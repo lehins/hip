@@ -18,6 +18,9 @@ instance Pixel Color where
 
   ref (ColorImage i) = vRef i
 
+  makeImage w h op = ColorImage $ vMake w h op
+
   fromVector w h v = ColorImage $ vFromVector w h v
 
-  makeImage w h op = ColorImage $ vMake w h op
+  toVector (ColorImage img) = vPixels img
+

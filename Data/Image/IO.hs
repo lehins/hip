@@ -8,15 +8,29 @@ import Data.Image.Color
 import Data.Image.Gray
 import qualified Data.Image.Convertable as C
 import Data.Either
-import Data.Vector as V (map)
-import Data.Vector.Storable as VS (convert)
+import Data.Vector as V (map, convert)
+import Data.Vector.Storable as VS (map, convert)
 import Data.Typeable
 import Data.Either
 import Data.ByteString (ByteString, readFile)
+import qualified Data.ByteString.Lazy as BL
 import Foreign.Storable ( Storable )
 import System.IO hiding (readFile)
 import System.IO.Temp
+import qualified Codec.Picture as JP
 
+data Format = BMP | JPG | PNG | TIFF | HGR | PBM | PGM | PPM
+
+class (C.Convertable px) => Saveable px where
+  inRGB8 :: Image px -> Format -> BL.ByteString
+  inRGB16 :: Image px -> Format -> BL.ByteString
+
+image2JP f img = JP.generateImage pxOp (width img) (height img) where
+  pxOp x y = f $ ref img x y 
+
+instance Saveable Color where
+  inRGB8 img BMP = JP.encodeBitmap $ image2JP (C.fromColor  :: Color -> JP.PixelRGB8) img
+  inRGB16 img BMP = JP.encodeBitmap $ image2JP (C.fromColor  :: Color -> JP.PixelRGBA8) img
 
 decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ C.decodeImage imstr
   where
