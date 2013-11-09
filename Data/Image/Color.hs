@@ -5,9 +5,7 @@ module Data.Image.Color (
   ) where
 
 import Data.Image.Internal
-
-data Color = RGB Double Double Double
-           | RGBA Double Double Double Double deriving (Show)
+import Data.Image.Pixel (Color(..))
 
 instance Pixel Color where
   data Image Color = ColorImage (VectorImage Color)

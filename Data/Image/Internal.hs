@@ -25,7 +25,11 @@ class Pixel px where
   fromVector :: Int -> Int -> V.Vector px -> Image px
 
   toVector :: Image px -> V.Vector px
-  
+
+  readImage :: String -> IO (Image px)
+
+--  writeImage :: String -> Image px -> Format
+
 
 instance Pixel img => Show (Image img) where
   show img = "<Image: "++show (width img)++"x"++show (height img)++">"
