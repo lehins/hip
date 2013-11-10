@@ -1,21 +1,16 @@
-{-# LANGUAGE TypeFamilies, ViewPatterns, TypeSynonymInstances #-}
+{-# LANGUAGE TypeFamilies, ViewPatterns, TypeSynonymInstances, TemplateHaskell, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
 module Data.Image.Pixel (
-  Gray(..),
-  Color(..),
   Convertable(..)
   ) where
 
+import Data.Image.Gray
+import Data.Image.Color
 import Data.Typeable
 import Data.Word (Word8, Word16)
 import Codec.Picture
 import Codec.Picture.Types
 import Graphics.Netpbm
 
-data Gray = Gray Double
-          | GrayA Double Double deriving (Show)
-
-data Color = RGB Double Double Double
-           | RGBA Double Double Double Double deriving (Show)
 
 
 class Convertable px where
@@ -126,6 +121,7 @@ instance Convertable PixelYCbCr8 where
   toGray = toGray . toColor
   fromGray = fromColor . toColor
   toColor = toColor . (convertPixel :: PixelYCbCr8 -> PixelRGB8)
+  fromColor p@(RGB r g b) = (convertPixel :: PixelRGB8 -> PixelYCbCr8) $ fromColor p
   fromColor (RGBA r g b _) = fromColor (RGB r g b)
   
 instance Convertable PixelCMYK8 where

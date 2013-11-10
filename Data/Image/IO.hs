@@ -8,11 +8,12 @@ module Data.Image.IO (
   ) where
 
 import Prelude hiding (readFile, writeFile)
+import Data.Image
 import Data.Image.Pixel
 import Data.Image.Gray
 import Data.Image.Color
 import Data.Image.Internal
-import Data.Vector as V (map, convert)
+import Data.Vector.Unboxed as V (map, convert)
 import Data.Vector.Storable as VS (map, convert)
 import Data.ByteString (ByteString, readFile)
 import qualified Data.ByteString.Lazy as BL (ByteString, writeFile)
@@ -39,6 +40,7 @@ class (Pixel px, Convertable px) => Saveable px where
 
 image2jp f img = JP.generateImage pxOp (width img) (height img) where
   pxOp x y = f $ ref img x y 
+
 
 instance Saveable Gray where
   inY8 BMP = JP.encodeBitmap . (image2jp (fromGray :: Gray -> JP.Pixel8))
@@ -138,7 +140,8 @@ decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage im
 
 readColorImage path = fmap decodeColorImage (readFile path)
 
-writeImage path img format encoder = BL.writeFile path $ encoder format img
+writeImage path img format encoder =
+  BL.writeFile path $ encoder format $ compute img
   
 {-
 readGrayImage path = do
