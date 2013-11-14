@@ -1,10 +1,10 @@
 {-# LANGUAGE TypeFamilies, TemplateHaskell, ViewPatterns, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses #-}
 
 module Data.Image.Color (
-  Color (..)
+  Color (..),
+  ColorImage
   ) where
 
-import Data.Image.Base
 import Data.Image.Internal
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V (Unbox)
@@ -12,69 +12,47 @@ import qualified Data.Vector.Unboxed as V (Unbox)
 data Color = RGB Double Double Double
            | RGBA Double Double Double Double deriving Eq
 
+type ColorImage = Image Color
 
 instance Pixel Color where
-  data Image Color = ColorImage (RepaImage Color)
 
-  liftPx f (RGB r g b) = RGB (f r) (f g) (f b)
-  liftPx f (RGBA r g b a) = RGBA (f r) (f g) (f b) (f a)
+  pxOp f (RGB r g b) = RGB (f r) (f g) (f b)
+  pxOp f (RGBA r g b a) = RGBA (f r) (f g) (f b) (f a)
 
-  liftPx2 f (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
-  liftPx2 f (RGBA r1 g1 b1 a) (RGB r2 g2 b2) = RGBA (f r1 r2) (f g1 g2) (f b1 b2) a
-  liftPx2 f (RGB r1 g1 b1) (RGBA r2 g2 b2 a) = RGBA (f r1 r2) (f g1 g2) (f b1 b2) a
-  liftPx2 f (RGBA r1 g1 b1 a1) (RGBA r2 g2 b2 a2) =
+  pxOp2 f (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
+  pxOp2 f (RGBA r1 g1 b1 a) (RGB r2 g2 b2) = RGBA (f r1 r2) (f g1 g2) (f b1 b2) a
+  pxOp2 f (RGB r1 g1 b1) (RGBA r2 g2 b2 a) = RGBA (f r1 r2) (f g1 g2) (f b1 b2) a
+  pxOp2 f (RGBA r1 g1 b1 a1) (RGBA r2 g2 b2 a2) =
     RGBA (f r1 r2) (f g1 g2) (f b1 b2) (f a1 a2)
-
-  width (ColorImage img) = rWidth img
-
-  height (ColorImage img) = rHeight img
-
-  ref (ColorImage img) x y = rRef img x y
-
-  makeImage w h op = ColorImage $ rMakeImage w h op
-
-  imageMap op (ColorImage img) = ColorImage $ liftI op img
-
-  imageZipWith op (ColorImage img1) (ColorImage img2) =
-    ColorImage $ liftI2 op img1 img2
-
-  --imageFold op px (ColorImage img) = rFold op px img
-
-  fromVector w h v = ColorImage $ rFromVector w h v
-
-  toVector (ColorImage img) = rToVector img
-
-  compute (ColorImage img) = ColorImage . rCompute $ img
-
 
 
 instance Num Color where
-  (+)           = liftPx2 (+)
-  (-)           = liftPx2 (-)
-  (*)           = liftPx2 (*)
-  abs           = liftPx abs
-  signum        = liftPx signum
+  (+)           = pxOp2 (+)
+  (-)           = pxOp2 (-)
+  (*)           = pxOp2 (*)
+  abs           = pxOp abs
+  signum        = pxOp signum
   fromInteger n = RGB nd nd nd where nd = fromIntegral n
 
 instance Fractional Color where
-  (/)            = liftPx2 (/)
-  recip          = liftPx recip
+  (/)            = pxOp2 (/)
+  recip          = pxOp recip
   fromRational n = RGB nd nd nd where nd = fromRational n
 
 instance Floating Color where
   pi      = RGB pi pi pi
-  exp     = liftPx exp
-  log     = liftPx log
-  sin     = liftPx sin
-  cos     = liftPx cos
-  asin    = liftPx asin
-  atan    = liftPx atan
-  acos    = liftPx acos
-  sinh    = liftPx sinh
-  cosh    = liftPx cosh
-  asinh   = liftPx asinh
-  atanh   = liftPx atanh
-  acosh   = liftPx acosh
+  exp     = pxOp exp
+  log     = pxOp log
+  sin     = pxOp sin
+  cos     = pxOp cos
+  asin    = pxOp asin
+  atan    = pxOp atan
+  acos    = pxOp acos
+  sinh    = pxOp sinh
+  cosh    = pxOp cosh
+  asinh   = pxOp asinh
+  atanh   = pxOp atanh
+  acosh   = pxOp acosh
 
 
 instance Show Color where

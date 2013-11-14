@@ -1,10 +1,10 @@
 {-# LANGUAGE TypeFamilies, TemplateHaskell, ViewPatterns, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses #-}
 
 module Data.Image.Gray (
-  Gray (..)
+  Gray (..),
+  GrayImage
   ) where
 
-import Data.Image.Base
 import Data.Image.Internal
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
@@ -12,63 +12,45 @@ import qualified Data.Vector.Unboxed as V
 data Gray = Gray Double
           | GrayA Double Double deriving Eq
 
+type GrayImage = Image Gray
+
 instance Pixel Gray where
-  data Image Gray = GrayImage (RepaImage Gray)
   
-  liftPx f (Gray y) = Gray (f y)
-  liftPx f (GrayA y a) = GrayA (f y) (f a)
+  pxOp f (Gray y) = Gray (f y)
+  pxOp f (GrayA y a) = GrayA (f y) (f a)
   
-  liftPx2 f (Gray y1) (Gray y2) = Gray (f y1 y2)
-  liftPx2 f (GrayA y1 a) (Gray y2) = GrayA (f y1 y2) a
-  liftPx2 f (Gray y1) (GrayA y2 a) = GrayA (f y1 y2) a
-  liftPx2 f (GrayA y1 a1) (GrayA y2 a2) = GrayA (f y1 y2) (f a1 a2)
+  pxOp2 f (Gray y1) (Gray y2) = Gray (f y1 y2)
+  pxOp2 f (GrayA y1 a) (Gray y2) = GrayA (f y1 y2) a
+  pxOp2 f (Gray y1) (GrayA y2 a) = GrayA (f y1 y2) a
+  pxOp2 f (GrayA y1 a1) (GrayA y2 a2) = GrayA (f y1 y2) (f a1 a2)
     
-  width (GrayImage img) = rWidth img
-
-  height (GrayImage img) = rHeight img
-
-  ref (GrayImage img) x y = rRef img x y
-
-  makeImage w h op = GrayImage $ rMakeImage w h op
-
-  imageMap op (GrayImage img) = GrayImage $ liftI op img
-
-  imageZipWith op (GrayImage img1) (GrayImage img2) =
-    GrayImage $ liftI2 op img1 img2
-
-  fromVector w h v = GrayImage $ rFromVector w h v
-
-  toVector (GrayImage img) = rToVector img
-
-  compute (GrayImage img) = GrayImage . rCompute $ img
-
 instance Num Gray where
-  (+)           = liftPx2 (+)
-  (-)           = liftPx2 (-)
-  (*)           = liftPx2 (*)
-  abs           = liftPx abs
-  signum        = liftPx signum
+  (+)           = pxOp2 (+)
+  (-)           = pxOp2 (-)
+  (*)           = pxOp2 (*)
+  abs           = pxOp abs
+  signum        = pxOp signum
   fromInteger n = Gray . fromIntegral $ n 
 
 instance Fractional Gray where
-  (/)          = liftPx2 (/)
-  recip        = liftPx recip
+  (/)          = pxOp2 (/)
+  recip        = pxOp recip
   fromRational = Gray . fromRational
 
 instance Floating Gray where
   pi      = Gray pi
-  exp     = liftPx exp
-  log     = liftPx log
-  sin     = liftPx sin
-  cos     = liftPx cos
-  asin    = liftPx asin
-  atan    = liftPx atan
-  acos    = liftPx acos
-  sinh    = liftPx sinh
-  cosh    = liftPx cosh
-  asinh   = liftPx asinh
-  atanh   = liftPx atanh
-  acosh   = liftPx acosh
+  exp     = pxOp exp
+  log     = pxOp log
+  sin     = pxOp sin
+  cos     = pxOp cos
+  asin    = pxOp asin
+  atan    = pxOp atan
+  acos    = pxOp acos
+  sinh    = pxOp sinh
+  cosh    = pxOp cosh
+  asinh   = pxOp asinh
+  atanh   = pxOp atanh
+  acosh   = pxOp acosh
 
 instance Show Gray where
   show (Gray y) = "<Gray:("++show y++")>"

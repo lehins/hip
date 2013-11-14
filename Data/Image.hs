@@ -10,7 +10,6 @@ import Data.Image.Internal
 
 dim img = (width img, height img)
 
-imageMap op img = liftI op img
 
 --imageZipWith op (Image px1) (Image px2) =
 --  liftI2 op img1 img2

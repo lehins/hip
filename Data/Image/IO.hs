@@ -165,17 +165,14 @@ decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage ims
         pnm2Image (PNM.PgmPixelData16 v) = fromPNMVector v
 
 
+readColorImage :: FilePath -> IO (ColorImage)
 readColorImage path = fmap ((either err id) . decodeColorImage) (readFile path) where
   err str = error str
 
+readGrayImage :: FilePath -> IO (GrayImage)
 readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) where
   err str = error str
 
 writeImage path img format encoder =
   BL.writeFile path $ encoder format $ compute img
   
-{-
-readGrayImage path = do
-  dimage <- readImage path
-  return $ getGrayImage dimage
--}

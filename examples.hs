@@ -9,22 +9,22 @@ import Data.Image.IO
 import Data.Image.Interactive
 --import Data.Image.Convolution
 
-{-
+
 getAvg imgs = foldr (+) (head imgs) (tail imgs) / l
   where l = fromIntegral $ length imgs
 
 getPowerSpec img = realImage (fftImg * conjugateImage fftImg)
-  where fftImg = fft img
+  where fftImg = fft $ toComplex img
 
 getAvgPower imgs = getAvg $ map getPowerSpec imgs
 
 
 getLog = imageMap log
 
-applyFilter img filt = realImage . ifft $ (fft img * filt)
--}
+applyFilter img filt = realImage (ifft  (fft ((toComplex img) * (toComplex filt))))
+
 main = do
-  {-
+  
   let signalNames = ["signal/signal"++show x++".pgm" | x <- [1..24]]
   let noiseNames = ["noise/noise"++show x++".pgm" | x <- [1..22]]
   let testNames = ["test/test"++show x++".pgm" | x <- [1..6]]
@@ -41,6 +41,6 @@ main = do
   let testWriter (fname, testImg) =
         writeImage fname (applyFilter testImg wiener) PNG inRGB8
   mapM_ testWriter $ zip testWNames tests
-  -}
-  im <- readGrayImage "signal/signal1.pgm"
-  display $ fromComplexI $ fft im
+  
+  --im <- readGrayImage "signal/signal1.pgm"
+  --display $ realImage $ fft $ toComplex im
