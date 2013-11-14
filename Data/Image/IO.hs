@@ -9,6 +9,7 @@ module Data.Image.IO (
 
 import Prelude hiding (readFile, writeFile)
 import Data.Image
+import Data.Image.Base
 import Data.Image.Pixel
 import Data.Image.Gray
 import Data.Image.Color

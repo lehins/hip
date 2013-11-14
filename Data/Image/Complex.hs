@@ -1,12 +1,14 @@
-{-# LANGUAGE TypeFamilies, TemplateHaskell, MultiParamTypeClasses, BangPatterns, TypeOperators, FlexibleContexts, NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeFamilies, TemplateHaskell, MultiParamTypeClasses, BangPatterns, TypeOperators, FlexibleContexts, NoMonomorphismRestriction, ViewPatterns #-}
 
-module Data.Image.Complex (
+module Data.Image.Complex  where
+{-(
   Complex (..),
+  RealPixel(..),
   magnitude, phase, fft, ifft,
-  toComplex, fromComplex, realImage, imagImage, realPixel, imagPixel,
+  realPixel, imagPixel, realImage, imagImage,
   conjugateImage
-  ) where
-
+  ) -}
+import Data.Image.Base
 import Data.Image.Gray
 import Data.Image.Color
 import Data.Image.Internal
@@ -20,6 +22,39 @@ import Prelude                                  as P
 
 
 data Complex px = px :+: px deriving Eq
+
+
+class Pixel px => RealPixel px where
+  safeDiv :: px -> px -> px -- divide by zero = zero
+  fromDouble :: Double -> px
+
+instance RealPixel Color where
+  safeDiv = liftPx2 op where op x y = if y == 0 then 0 else x / y
+  fromDouble d = RGB d d d
+
+instance RealPixel Gray where
+  safeDiv = liftPx2 op where op x y = if y == 0 then 0 else x / y
+  fromDouble d = Gray d
+
+class ComplexPixel px where
+  type C px
+  fromComplex :: Complex (C px) -> px
+  toComplex :: px -> Complex (C px)
+
+instance ComplexPixel Color where
+  type C Color = Color
+  fromComplex (px :+: _) = px
+  toComplex px = px :+: fromIntegral 0
+
+instance ComplexPixel Gray where
+  type C Gray = Gray
+  fromComplex (px :+: _) = px
+  toComplex px = px :+: fromIntegral 0
+
+instance ComplexPixel (Complex px) where
+  type C (Complex px) = px
+  fromComplex = id
+  toComplex = id
 
 magnitude :: (RealPixel px) => Complex px -> px
 magnitude (pxReal :+: pxImag) = sqrt (pxReal^2 + pxImag^2)
@@ -55,23 +90,31 @@ instance (RealPixel px) => Pixel (Complex px) where
 
   makeImage w h op = ComplexImage $ rMakeImage w h op
 
+  imageMap op (ComplexImage img) = ComplexImage $ liftI op img
+
+  imageZipWith op (ComplexImage img1) (ComplexImage img2) =
+    ComplexImage $ liftI2 op img1 img2
+
   fromVector w h v = ComplexImage $ rFromVector w h v
 
   toVector (ComplexImage img) = rToVector img
 
   compute (ComplexImage img) = ComplexImage . rCompute $ img
 
-fromComplex cimg = toImg $ V.unzip $ V.map toTuple $ toVector cimg where
+fromComplexI = imageMap fromComplex
+toComplexI = imageMap toComplex
+{-
+fromComplexI cimg = toImg $ V.unzip $ V.map toTuple $ toVector cimg where
   (w, h) = (width cimg, height cimg)
   toTuple (px1 :+: px2) = (px1, px2)
   toImg (v1, v2) = (fromVector w h v1, fromVector w h v2)
 
-toComplex img1 img2 =
+toComplexI img1 img2 =
   fromVector w h $ V.zipWith (:+:) (toVector img1) (toVector img2) where
     (w, h) = (width img1, height img1)
-
-realImage = fst . fromComplex
-imagImage = snd . fromComplex
+-}
+--realImage = fst . fromComplexI
+--imagImage = snd . fromComplexI
 
 conjugateImage = imageMap conjugate
 
@@ -139,17 +182,18 @@ derivingUnbox "ComplexPixel"
     [| \(px1 :+: px2) -> (px1, px2) |]
     [| \(px1, px2) -> px1 :+: px2 |]
 
+--fft :: (ComplexPixel px1, RealPixel px2) => Image px1 -> Image (Complex px2)
 
-fft img = 
-  toImg $ fft2dP Forward (fromUnboxed (Z :. w :. h) (toVector img)) where
-    (w, h) = (width img, height img)
-    toImg [arr] = fromVector w h $ toUnboxed arr
-
+fft img = liftI toComplex img
+--  toImg $ fft2dP Forward (fromUnboxed (Z :. w :. h) (toVector img)) where
+--    (w, h) = (width img, height img)
+--    toImg [arr] = fromVector w h $ toUnboxed arr
+{-
 ifft img = 
   toImg $ fft2dP Forward (fromUnboxed (Z :. w :. h) (toVector img)) where
     (w, h) = (width img, height img)
     toImg [arr] = fromVector w h $ toUnboxed arr
-
+-}
 
 -- Internal Algorithm ----------
 

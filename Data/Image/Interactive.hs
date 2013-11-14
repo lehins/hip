@@ -1,6 +1,7 @@
 module Data.Image.Interactive where
        
 import Data.Image
+import Data.Image.Base
 import Data.Image.Pixel
 import Data.Image.Internal
 import Data.Image.IO

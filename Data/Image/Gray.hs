@@ -4,14 +4,13 @@ module Data.Image.Gray (
   Gray (..)
   ) where
 
+import Data.Image.Base
 import Data.Image.Internal
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
 
 data Gray = Gray Double
           | GrayA Double Double deriving Eq
-
---type instance Internal Gray = Double
 
 instance Pixel Gray where
   data Image Gray = GrayImage (RepaImage Gray)
@@ -31,6 +30,11 @@ instance Pixel Gray where
   ref (GrayImage img) x y = rRef img x y
 
   makeImage w h op = GrayImage $ rMakeImage w h op
+
+  imageMap op (GrayImage img) = GrayImage $ liftI op img
+
+  imageZipWith op (GrayImage img1) (GrayImage img2) =
+    GrayImage $ liftI2 op img1 img2
 
   fromVector w h v = GrayImage $ rFromVector w h v
 
@@ -65,10 +69,6 @@ instance Floating Gray where
   asinh   = liftPx asinh
   atanh   = liftPx atanh
   acosh   = liftPx acosh
-
-instance RealPixel Gray where
-  safeDiv = liftPx2 op where op x y = if y == 0 then 0 else x / y
-  fromDouble d = Gray d
 
 instance Show Gray where
   show (Gray y) = "<Gray:("++show y++")>"

@@ -4,6 +4,7 @@ module Data.Image.Color (
   Color (..)
   ) where
 
+import Data.Image.Base
 import Data.Image.Internal
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V (Unbox)
@@ -11,7 +12,6 @@ import qualified Data.Vector.Unboxed as V (Unbox)
 data Color = RGB Double Double Double
            | RGBA Double Double Double Double deriving Eq
 
---type instance Internal Color = Double
 
 instance Pixel Color where
   data Image Color = ColorImage (RepaImage Color)
@@ -33,11 +33,20 @@ instance Pixel Color where
 
   makeImage w h op = ColorImage $ rMakeImage w h op
 
+  imageMap op (ColorImage img) = ColorImage $ liftI op img
+
+  imageZipWith op (ColorImage img1) (ColorImage img2) =
+    ColorImage $ liftI2 op img1 img2
+
+  --imageFold op px (ColorImage img) = rFold op px img
+
   fromVector w h v = ColorImage $ rFromVector w h v
 
   toVector (ColorImage img) = rToVector img
 
   compute (ColorImage img) = ColorImage . rCompute $ img
+
+
 
 instance Num Color where
   (+)           = liftPx2 (+)
@@ -67,9 +76,6 @@ instance Floating Color where
   atanh   = liftPx atanh
   acosh   = liftPx acosh
 
-instance RealPixel Color where
-  safeDiv = liftPx2 op where op x y = if y == 0 then 0 else x / y
-  fromDouble d = RGB d d d
 
 instance Show Color where
   show (RGB r g b) = "<RGB:("++show r++"|"++show g++"|"++show b++")>"

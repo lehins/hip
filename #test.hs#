@@ -25,8 +25,8 @@ instance Num (Numeric px) where
 class Summable f where
   plus :: f a -> f b -> f c
 
-instance Summable Numeric where
-  plus p1 p2 = Numeric (p1 + p2)
+instance Num p => Summable (Gray p) where
+  plus (Gray p1) (Gray p2) = Gray (p1 + p2)
 
 instance Num p => Num (Gray p) where
   (Gray p1) + (Gray p2) = Gray (p1 + p2)
