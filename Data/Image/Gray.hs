@@ -9,12 +9,21 @@ import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
 
 data Gray = Gray Double
-          | GrayA Double Double deriving (Show)
+          | GrayA Double Double deriving Eq
 
+--type instance Internal Gray = Double
 
 instance Pixel Gray where
   data Image Gray = GrayImage (RepaImage Gray)
   
+  liftPx f (Gray y) = Gray (f y)
+  liftPx f (GrayA y a) = GrayA (f y) (f a)
+  
+  liftPx2 f (Gray y1) (Gray y2) = Gray (f y1 y2)
+  liftPx2 f (GrayA y1 a) (Gray y2) = GrayA (f y1 y2) a
+  liftPx2 f (Gray y1) (GrayA y2 a) = GrayA (f y1 y2) a
+  liftPx2 f (GrayA y1 a1) (GrayA y2 a2) = GrayA (f y1 y2) (f a1 a2)
+    
   width (GrayImage img) = rWidth img
 
   height (GrayImage img) = rHeight img
@@ -29,22 +38,41 @@ instance Pixel Gray where
 
   compute (GrayImage img) = GrayImage . rCompute $ img
 
-yPxOp1 op (Gray y) = Gray (op y)
-yPxOp1 op (GrayA y a) = GrayA (op y) (op a)
-
-yPxOp op (Gray y1) (Gray y2) = Gray (op y1 y2)
-yPxOp op (GrayA y1 a) (Gray y2) = GrayA (op y1 y2) a
-yPxOp op (Gray y1) (GrayA y2 a) = GrayA (op y1 y2) a
-yPxOp op (GrayA y1 a1) (GrayA y2 a2) = GrayA (op y1 y2) (op a1 a2)
-
-
 instance Num Gray where
-  (+) = yPxOp (+)
-  (-) = yPxOp (-)
-  (*) = yPxOp (*)
-  abs = yPxOp1 abs
-  signum = yPxOp1 signum
-  fromInteger (fromIntegral -> n) = Gray n 
+  (+)           = liftPx2 (+)
+  (-)           = liftPx2 (-)
+  (*)           = liftPx2 (*)
+  abs           = liftPx abs
+  signum        = liftPx signum
+  fromInteger n = Gray . fromIntegral $ n 
+
+instance Fractional Gray where
+  (/)          = liftPx2 (/)
+  recip        = liftPx recip
+  fromRational = Gray . fromRational
+
+instance Floating Gray where
+  pi      = Gray pi
+  exp     = liftPx exp
+  log     = liftPx log
+  sin     = liftPx sin
+  cos     = liftPx cos
+  asin    = liftPx asin
+  atan    = liftPx atan
+  acos    = liftPx acos
+  sinh    = liftPx sinh
+  cosh    = liftPx cosh
+  asinh   = liftPx asinh
+  atanh   = liftPx atanh
+  acosh   = liftPx acosh
+
+instance RealPixel Gray where
+  safeDiv = liftPx2 op where op x y = if y == 0 then 0 else x / y
+  fromDouble d = Gray d
+
+instance Show Gray where
+  show (Gray y) = "<Gray:("++show y++")>"
+  show (GrayA y a) = "<GrayA:("++show y++"|"++show a++")>"
 
 
 unboxGray (Gray y) = (y, Nothing)
@@ -52,7 +80,7 @@ unboxGray (GrayA y a) = (y, Just a)
 boxGray (y, Nothing) = Gray y
 boxGray (y, Just a) = GrayA y a
 
-derivingUnbox "Gray"
+derivingUnbox "GrayPixel"
     [t| (V.Unbox Double) => Gray -> (Double, Maybe Double) |]
     [| unboxGray |]
     [| boxGray |]

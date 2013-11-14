@@ -3,7 +3,7 @@
 module Data.Image.IO (
   Format(..),
   Saveable(..),
-  readColorImage, writeImage
+  readGrayImage, readColorImage, writeImage
   
   ) where
 
@@ -136,9 +136,39 @@ decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage im
         pnm2Image (PNM.PbmPixelData v) = fromPNMVector v
         pnm2Image (PNM.PgmPixelData8 v) = fromPNMVector v
         pnm2Image (PNM.PgmPixelData16 v) = fromPNMVector v
-        
 
-readColorImage path = fmap decodeColorImage (readFile path)
+decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage imstr
+  where
+    fromJPImage i = makeImage (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
+      where pxOp i x y = toGray $ JP.pixelAt i x y
+    jp2Image (JP.ImageY8 i) = fromJPImage i
+    jp2Image (JP.ImageY16 i) = fromJPImage i
+    jp2Image (JP.ImageYF i) = fromJPImage i
+    jp2Image (JP.ImageRGB8 i) = fromJPImage i
+    jp2Image (JP.ImageRGB16 i) = fromJPImage i
+    jp2Image (JP.ImageRGBF i) = fromJPImage i
+    jp2Image (JP.ImageRGBA8 i) = fromJPImage i
+    jp2Image (JP.ImageRGBA16 i) = fromJPImage i
+    jp2Image (JP.ImageYCbCr8 i) = fromJPImage i
+    jp2Image (JP.ImageCMYK8 i) = fromJPImage i
+    jp2Image (JP.ImageCMYK16 i) = fromJPImage i
+    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
+      pnmResult2Image (Right (pnmLs, _)) = Right $ convertPNMImage (head pnmLs)
+      pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
+      convertPNMImage (PNM.PPM (PNM.PPMHeader _ w h) d) = pnm2Image d where
+        fromPNMVector v = fromVector w h $ V.map toGray $ VS.convert v
+        pnm2Image (PNM.PpmPixelDataRGB8 v) = fromPNMVector v
+        pnm2Image (PNM.PpmPixelDataRGB16 v) = fromPNMVector v
+        pnm2Image (PNM.PbmPixelData v) = fromPNMVector v
+        pnm2Image (PNM.PgmPixelData8 v) = fromPNMVector v
+        pnm2Image (PNM.PgmPixelData16 v) = fromPNMVector v
+
+
+readColorImage path = fmap ((either err id) . decodeColorImage) (readFile path) where
+  err str = error str
+
+readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) where
+  err str = error str
 
 writeImage path img format encoder =
   BL.writeFile path $ encoder format $ compute img

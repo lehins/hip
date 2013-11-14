@@ -9,10 +9,21 @@ import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V (Unbox)
 
 data Color = RGB Double Double Double
-           | RGBA Double Double Double Double deriving (Show)
+           | RGBA Double Double Double Double deriving Eq
+
+--type instance Internal Color = Double
 
 instance Pixel Color where
   data Image Color = ColorImage (RepaImage Color)
+
+  liftPx f (RGB r g b) = RGB (f r) (f g) (f b)
+  liftPx f (RGBA r g b a) = RGBA (f r) (f g) (f b) (f a)
+
+  liftPx2 f (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
+  liftPx2 f (RGBA r1 g1 b1 a) (RGB r2 g2 b2) = RGBA (f r1 r2) (f g1 g2) (f b1 b2) a
+  liftPx2 f (RGB r1 g1 b1) (RGBA r2 g2 b2 a) = RGBA (f r1 r2) (f g1 g2) (f b1 b2) a
+  liftPx2 f (RGBA r1 g1 b1 a1) (RGBA r2 g2 b2 a2) =
+    RGBA (f r1 r2) (f g1 g2) (f b1 b2) (f a1 a2)
 
   width (ColorImage img) = rWidth img
 
@@ -28,31 +39,49 @@ instance Pixel Color where
 
   compute (ColorImage img) = ColorImage . rCompute $ img
 
-
-cPxOp1 op (RGB r g b) = RGB (op r) (op g) (op b)
-cPxOp1 op (RGBA r g b a) = RGBA (op r) (op g) (op b) (op a)
-
-cPxOp op (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (op r1 r2) (op g1 g2) (op b1 b2)
-cPxOp op (RGBA r1 g1 b1 a) (RGB r2 g2 b2) = RGBA (op r1 r2) (op g1 g2) (op b1 b2) a
-cPxOp op (RGB r1 g1 b1) (RGBA r2 g2 b2 a) = RGBA (op r1 r2) (op g1 g2) (op b1 b2) a
-cPxOp op (RGBA r1 g1 b1 a1) (RGBA r2 g2 b2 a2) =
-  RGBA (op r1 r2) (op g1 g2) (op b1 b2) (op a1 a2)
-
 instance Num Color where
-  (+) = cPxOp (+)
-  (-) = cPxOp (-)
-  (*) = cPxOp (*)
-  abs = cPxOp1 abs
-  signum = cPxOp1 signum
-  fromInteger (fromIntegral -> n) = RGB n n n
+  (+)           = liftPx2 (+)
+  (-)           = liftPx2 (-)
+  (*)           = liftPx2 (*)
+  abs           = liftPx abs
+  signum        = liftPx signum
+  fromInteger n = RGB nd nd nd where nd = fromIntegral n
 
+instance Fractional Color where
+  (/)            = liftPx2 (/)
+  recip          = liftPx recip
+  fromRational n = RGB nd nd nd where nd = fromRational n
+
+instance Floating Color where
+  pi      = RGB pi pi pi
+  exp     = liftPx exp
+  log     = liftPx log
+  sin     = liftPx sin
+  cos     = liftPx cos
+  asin    = liftPx asin
+  atan    = liftPx atan
+  acos    = liftPx acos
+  sinh    = liftPx sinh
+  cosh    = liftPx cosh
+  asinh   = liftPx asinh
+  atanh   = liftPx atanh
+  acosh   = liftPx acosh
+
+instance RealPixel Color where
+  safeDiv = liftPx2 op where op x y = if y == 0 then 0 else x / y
+  fromDouble d = RGB d d d
+
+instance Show Color where
+  show (RGB r g b) = "<RGB:("++show r++"|"++show g++"|"++show b++")>"
+  show (RGBA r g b a) =
+    "<RGBA:("++show r++"|"++show g++"|"++show b++"|"++show a++")>"
 
 unboxColor (RGB r g b) = (r, g, b, Nothing)
 unboxColor (RGBA r g b a) = (r, g, b, Just a)
 boxColor (r, g, b, Nothing) = RGB r g b
 boxColor (r, g, b, Just a) = RGBA r g b a
 
-derivingUnbox "Color"
+derivingUnbox "ColorPixel"
     [t| (V.Unbox Double) => Color -> (Double, Double, Double, Maybe Double) |]
     [| unboxColor |]
     [| boxColor |]
