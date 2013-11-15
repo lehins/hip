@@ -22,22 +22,18 @@ import Prelude                                  as P
 
 data Complex px = px :+: px deriving Eq
 
-type ComplexImage px = Image (Complex px)
 
-class Pixel px => RealPixel px where
+class (Ord px, Pixel px) => RealPixel px where
   safeDiv :: px -> px -> px -- divide by zero = zero
-  fromDouble :: Double -> px
   toComplexPixel :: px -> Complex px
   
 
 instance RealPixel Color where
   safeDiv = pxOp2 op where op x y = if y == 0 then 0 else x / y
-  fromDouble d = RGB d d d
   toComplexPixel px = px :+: fromIntegral 0
 
 instance RealPixel Gray where
   safeDiv = pxOp2 op where op x y = if y == 0 then 0 else x / y
-  fromDouble d = Gray d
   toComplexPixel px = px :+: fromIntegral 0
 
 magnitude :: (RealPixel px) => Complex px -> px
@@ -64,22 +60,17 @@ instance (RealPixel px) => Pixel (Complex px) where
   pxOp op (px1 :+: px2) = (pxOp op px1 :+: pxOp op px2)
 
   pxOp2 op (px1 :+: px2) (px1' :+: px2') = (pxOp2 op px1 px1') :+: (pxOp2 op px2 px2')
-  
+
+  strongest (px1 :+: px2) = m :+: m where m = max (strongest px1) (strongest px2)
+
+  weakest (px1 :+: px2) = m :+: m where m = min (strongest px1) (strongest px2)
+
 realImage = imageMap realPixel
 imagImage = imageMap imagPixel
-toComplex = imageMap toComplexPixel
-{-
-fromComplexI cimg = toImg $ V.unzip $ V.map toTuple $ toVector cimg where
-  (w, h) = (width cimg, height cimg)
-  toTuple (px1 :+: px2) = (px1, px2)
-  toImg (v1, v2) = (fromVector w h v1, fromVector w h v2)
+complexImage = imageZipWith (:+:)
 
-toComplexI img1 img2 =
-  fromVector w h $ V.zipWith (:+:) (toVector img1) (toVector img2) where
-    (w, h) = (width img1, height img1)
--}
---realImage = fst . fromComplexI
---imagImage = snd . fromComplexI
+toComplex = imageMap toComplexPixel
+
 
 conjugateImage = imageMap conjugate
 
@@ -91,12 +82,12 @@ instance (RealPixel px) => Num (Complex px) where
   abs pxZ@(px :+: _) = (magnitude pxZ) :+: (px * 0)
   signum pxZ@(px1 :+: px2) = (px1 `safeDiv` mag) :+: (px2 `safeDiv` mag)
     where mag = magnitude pxZ
-  fromInteger n = nd :+: nd where nd = fromDouble . fromInteger $ n
+  fromInteger n = nd :+: nd where nd = fromInteger n
 
 instance (RealPixel px) => Fractional (Complex px) where
   (/)            = pxOp2 (/)
   recip          = pxOp recip
-  fromRational n = nd :+: nd where nd = fromDouble . fromRational $ n
+  fromRational n = nd :+: nd where nd = fromRational n
 
 instance (RealPixel px) => Floating (Complex px) where
     pi             =  pi :+: 0
@@ -113,10 +104,10 @@ instance (RealPixel px) => Floating (Complex px) where
     sin (x:+:y)     =  (sin x * cosh y) :+: (cos x * sinh y)
     cos (x:+:y)     =  (cos x * cosh y) :+: (- sin x * sinh y)
     tan (x:+:y)     =  ((sinx*coshy):+:(cosx*sinhy))/((cosx*coshy):+:(-sinx*sinhy))
-                      where sinx  = sin x
-                            cosx  = cos x
-                            sinhy = sinh y
-                            coshy = cosh y
+      where sinx  = sin x
+            cosx  = cos x
+            sinhy = sinh y
+            coshy = cosh y
 
     sinh (x:+:y)    =  (cos y * sinh x) :+: (sin  y * cosh x)
     cosh (x:+:y)    =  (cos y * cosh x) :+: (sin y * sinh x)
@@ -138,6 +129,15 @@ instance (RealPixel px) => Floating (Complex px) where
     acosh z        =  log (z + (z+1) * sqrt ((z-1)/(z+1)))
     atanh z        =  0.5 * log ((1.0+z) / (1.0-z))
   
+instance RealPixel px => Elt (Complex px) where
+  {-# INLINE touch #-}
+  touch (pxX :+: pxY) = touch pxX >> touch pxY
+  
+  {-# INLINE zero #-}
+  zero = toComplexPixel 0
+
+  {-# INLINE one #-}
+  one = toComplexPixel 1
 
 instance Show px => Show (Complex px) where
   show (px1 :+: px2) = "{" P.++show px1 P.++" + i" P.++show px2 P.++"}"
@@ -149,12 +149,13 @@ derivingUnbox "ComplexPixel"
 
 --fft :: (ComplexPixel px1, RealPixel px2) => Image px1 -> Image (Complex px2)
 
---fft :: (ComplexPixel px1, ComplexPixel px2, I.Image img) => img -> ComplexImage px2
+fft :: RealPixel px => Image (Complex px) -> Image (Complex px)
 fft img = 
   toImg $ fft2dP Forward (fromUnboxed (Z :. w :. h) (toVector img)) where
     (w, h) = (width img, height img)
     toImg [arr] = fromVector w h $ toUnboxed arr
 
+ifft :: RealPixel px => Image (Complex px) -> Image (Complex px)
 ifft img = 
   toImg $ fft2dP Inverse (fromUnboxed (Z :. w :. h) (toVector img)) where
     (w, h) = (width img, height img)

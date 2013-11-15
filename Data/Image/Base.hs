@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, ViewPatterns, TemplateHaskell, MultiParamTypeClasses, InstanceSigs #-}
+{-# LANGUAGE FunctionalDependencies, TypeFamilies, ViewPatterns, TemplateHaskell, MultiParamTypeClasses, FlexibleContexts #-}
 
 module Data.Image.Base where
 
@@ -7,20 +7,24 @@ import Data.Maybe
 import Data.Default
 import Data.Vector.Unboxed.Deriving
 import Data.Array.Repa.Eval
---import qualified Data.Image.Internal as I
 import qualified Data.List as L ((++))
 import qualified Data.Vector.Unboxed as V
 
 type PixelOp px = Int -> Int -> px
 
-class (V.Unbox px, Floating px, Fractional px, Num px, Eq px, Show px) =>
+
+
+class (Elt px, V.Unbox px, Floating px, Fractional px, Num px, Eq px, Show px) =>
       Pixel px where
   pxOp :: (Double -> Double) -> px -> px
 
   pxOp2 :: (Double -> Double -> Double) -> px -> px -> px
-  
 
-class Processable img where
+  strongest :: px -> px
+
+  weakest :: px -> px
+
+class Pixel px => Processable img px | px -> img where
 
   width :: Pixel px => img px -> Int
 
@@ -30,10 +34,12 @@ class Processable img where
 
   makeImage :: Pixel px => Int -> Int -> PixelOp px -> img px
 
-  imageMap :: (Pixel px1, Pixel px2) => (px1 -> px2) -> img px1 -> img px2
+  imageMap :: (Pixel px, Pixel px1) => (px -> px1) -> img px -> img px1
 
-  imageZipWith :: (Pixel px1, Pixel px2, Pixel px3) =>
-                  (px1 -> px2 -> px3) -> img px1 -> img px2 -> img px3
+  imageZipWith :: (Pixel px, Pixel px2, Pixel px3) =>
+                  (px -> px2 -> px3) -> img px -> img px2 -> img px3
+
+  imageFold :: Pixel px => (px -> px -> px) -> px -> img px -> px
 
   fromVector :: Pixel px => Int -> Int -> V.Vector px -> img px
 
@@ -42,34 +48,6 @@ class Processable img where
   compute :: Pixel px => img px -> img px
 
 
-{-
-instance Pixel px => Num (Image px) where
-  (+) = imageZipWith (+)
-  (-) = imageZipWith (-)
-  (*) = imageZipWith (*)
-  abs = imageMap abs
-  signum = imageMap signum
-  fromInteger = singleton . fromInteger
-  
-instance Pixel px => Fractional (Image px) where
-  (/) = imageZipWith (/)
-  fromRational = singleton . fromRational
-
-instance Pixel px => Floating (Image px) where
-  pi      = singleton pi
-  exp     = imageMap exp
-  log     = imageMap log
-  sin     = imageMap sin
-  cos     = imageMap cos
-  asin    = imageMap asin
-  atan    = imageMap atan
-  acos    = imageMap acos
-  sinh    = imageMap sinh
-  cosh    = imageMap cosh
-  asinh   = imageMap asinh
-  atanh   = imageMap atanh
-  acosh   = imageMap acosh
--}
 
 derivingUnbox "Maybe"
     [t| (Default a, V.Unbox a) => Maybe a -> (Bool, a) |]

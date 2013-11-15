@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE ViewPatterns, TypeFamilies, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 
 module Data.Image.Internal (
   Image,
@@ -7,6 +7,7 @@ module Data.Image.Internal (
 
 import Data.Image.Base
 import Data.Array.Repa
+
 import Prelude hiding (map, zipWith)
 import qualified Data.Vector.Unboxed as V
 
@@ -21,7 +22,7 @@ isSmall arr = w < 50 && h < 50 where (Z :. w  :. h) = extent arr
 getInner (VectorImage arr) = delay arr
 getInner (DelayedImage arr) = arr
 
-instance Processable Image where
+instance Pixel px => Processable Image px where
   width (VectorImage (extent -> (Z :. w :. _))) = w
   width (DelayedImage (extent -> (Z :. w :. _))) = w
 
@@ -35,15 +36,18 @@ instance Processable Image where
   makeImage w h f = DelayedImage . fromFunction (Z :. w :. h) $ g where
     g (Z :. x :. y) = f x y
   
-  fromVector w h = VectorImage . (fromUnboxed (Z :. w :. h))
-  
-  toVector (rCompute -> (VectorImage arr)) = toUnboxed arr
-
   imageMap = imgMap
 
   imageZipWith = imgZipWith
 
-  compute =rCompute
+  imageFold = imgFold
+
+  fromVector w h = VectorImage . (fromUnboxed (Z :. w :. h))
+  
+  toVector (rCompute -> (VectorImage arr)) = toUnboxed arr
+
+  compute = rCompute
+  
 
 
 imgMap op (PureImage arr) = PureImage $ map op arr
@@ -55,6 +59,10 @@ imgZipWith op img1 (PureImage arr) =
   DelayedImage $ map (flip op (arr ! Z)) (getInner img1)
 imgZipWith op img1 img2 =
   DelayedImage $ zipWith op (getInner img1) (getInner img2)
+
+imgFold op px (getInner -> arr)
+  | isSmall arr = foldAllS op px arr
+  | otherwise   = head $ foldAllP op px arr
 
 instance (V.Unbox px, Num px) => Num (Image px) where
   (+) = imgZipWith (+)

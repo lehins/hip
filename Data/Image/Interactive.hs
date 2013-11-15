@@ -47,7 +47,7 @@ display img = do
   program <- readIORef displayProgram
   if usestdin then runCommandWithStdIn program . (inRGBA16 PNG) $ img
               else do
-    writeImage ".tmp-img" img PNG inRGBA16
+    writeImage ".tmp-img" img [Format PNG, Encoder inRGBA16]
     runInteractiveCommand (program ++ " .tmp-img")
 
 displayProgram :: IORef String
