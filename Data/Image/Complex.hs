@@ -36,21 +36,21 @@ instance RealPixel Gray where
   safeDiv = pxOp2 op where op x y = if y == 0 then 0 else x / y
   toComplexPixel px = px :+: fromIntegral 0
 
-magnitude :: (RealPixel px) => Complex px -> px
-magnitude (pxReal :+: pxImag) = sqrt (pxReal^2 + pxImag^2)
+mag :: (RealPixel px) => Complex px -> px
+mag (pxReal :+: pxImag) = sqrt (pxReal^2 + pxImag^2)
 
-phase :: (RealPixel px) => Complex px -> px
-phase (pxX :+: pxY) = pxOp2 f pxX pxY where
+arg :: (RealPixel px) => Complex px -> px
+arg (pxX :+: pxY) = pxOp2 f pxX pxY where
   f x y | x /= 0          = atan (y/x) + (pi/2)*(1-signum x)
         | x == 0 && y /=0 = (pi/2)*signum y
         | otherwise = 0
   
 
-conjugate :: (RealPixel px) => Complex px -> Complex px
-conjugate (x :+: y) = x :+: (-y)
+conj :: (RealPixel px) => Complex px -> Complex px
+conj (x :+: y) = x :+: (-y)
 
-realPixel (px :+: _ ) = px
-imagPixel (_  :+: px) = px
+real (px :+: _ ) = px
+imag (_  :+: px) = px
 
 
 
@@ -65,35 +65,42 @@ instance (RealPixel px) => Pixel (Complex px) where
 
   weakest (px1 :+: px2) = m :+: m where m = min (strongest px1) (strongest px2)
 
-realImage = imageMap realPixel
-imagImage = imageMap imagPixel
+realImage = imageMap real
+
+imagImage = imageMap imag
+
 complexImage = imageZipWith (:+:)
 
 toComplex = imageMap toComplexPixel
 
+conjImage = imageMap conj
 
-conjugateImage = imageMap conjugate
+
 
 instance (RealPixel px) => Num (Complex px) where
   (+) = pxOp2 (+)
   (-) = pxOp2 (-)
-  (*) = pxOp2 (*)
+  (x :+: y) * (x' :+: y') = (x*x' - y*y') :+: (x*y' + y*x')
+
   negate = pxOp negate
-  abs pxZ@(px :+: _) = (magnitude pxZ) :+: (px * 0)
-  signum pxZ@(px1 :+: px2) = (px1 `safeDiv` mag) :+: (px2 `safeDiv` mag)
-    where mag = magnitude pxZ
+  abs z = (mag z) :+: (fromIntegral 0)
+  signum z@(x :+: y)
+    | mag' == 0 = (fromIntegral 0) :+: (fromIntegral 0)
+    | otherwise = (x / mag') :+: (x / mag')
+    where mag' = mag z
   fromInteger n = nd :+: nd where nd = fromInteger n
 
 instance (RealPixel px) => Fractional (Complex px) where
-  (/)            = pxOp2 (/)
+  (x :+: y) / z2@(x' :+: y') = ((x*x' + y*y') / mag2) :+: ((y*x' - x*y') / mag2)
+    where mag2 = x'*x' + y'*y'
   recip          = pxOp recip
   fromRational n = nd :+: nd where nd = fromRational n
 
 instance (RealPixel px) => Floating (Complex px) where
     pi             =  pi :+: 0
-    exp (x:+:y)     =  (expx * cos y) :+: (expx * sin y)
+    exp (x:+:y)    =  (expx * cos y) :+: (expx * sin y)
                       where expx = exp x
-    log z          =  (log (magnitude z)) :+: (phase z)
+    log z          =  (log (mag z)) :+: (arg z)
     {-
     sqrt (0:+:0)    =  0
     sqrt z@(x:+:y)  =  u :+: (if y < 0 then -v else v)
@@ -131,7 +138,7 @@ instance (RealPixel px) => Floating (Complex px) where
   
 instance RealPixel px => Elt (Complex px) where
   {-# INLINE touch #-}
-  touch (pxX :+: pxY) = touch pxX >> touch pxY
+  touch (x :+: y) = touch x >> touch y
   
   {-# INLINE zero #-}
   zero = toComplexPixel 0
@@ -264,3 +271,4 @@ twiddle :: (RealPixel px) =>
 twiddle sign k' n' = (cos (2 * pi * k / n)) :+: (sign * sin  (2 * pi * k / n)) where
   k = fromIntegral k'
   n = fromIntegral n'
+

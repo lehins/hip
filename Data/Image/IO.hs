@@ -10,14 +10,13 @@ module Data.Image.IO (
 
 import Prelude hiding (readFile, writeFile)
 import Data.Image
-import Data.Image.Base
-import Data.Image.Pixel
+import Data.Image.Conversion
 import Data.Image.Gray
 import Data.Image.Color
 import Data.Image.Internal
 import Data.Image.Processing
 import Data.Char (toUpper)
-import qualified Data.Vector.Unboxed as V (map, convert)
+import qualified Data.Vector.Unboxed as V --(map, convert)
 import qualified Data.Vector.Storable as VS (map, convert)
 import Data.ByteString (ByteString, readFile)
 import qualified Data.ByteString.Lazy as BL (ByteString, writeFile)
@@ -134,11 +133,11 @@ instance Saveable Color where
 
 
 
-
 decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage imstr
   where
     fromJPImage i = makeImage (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
       where pxOp i x y = toColor $ JP.pixelAt i x y
+    --fromJPImage (JP.Image w h v) = fromVector w h $ V.map toColor $ VS.convert v
     jp2Image (JP.ImageY8 i) = fromJPImage i
     jp2Image (JP.ImageY16 i) = fromJPImage i
     jp2Image (JP.ImageYF i) = fromJPImage i

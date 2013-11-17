@@ -2,7 +2,7 @@ module Data.Image.Interactive where
        
 import Data.Image
 import Data.Image.Base
-import Data.Image.Pixel
+import Data.Image.Conversion
 import Data.Image.Internal
 import Data.Image.IO
 import qualified Data.ByteString.Lazy as BL
@@ -47,7 +47,7 @@ display img = do
   program <- readIORef displayProgram
   if usestdin then runCommandWithStdIn program . (inRGBA16 PNG) $ img
               else do
-    writeImage ".tmp-img" img [Format PNG, Encoder inRGBA16]
+    writeImage ".tmp-img" img [Format PNG, Encoder inRGBA16, Normalize False]
     runInteractiveCommand (program ++ " .tmp-img")
 
 displayProgram :: IORef String

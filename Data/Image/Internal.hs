@@ -17,24 +17,24 @@ data Image px = VectorImage (Array U DIM2 px)
               | PureImage (Array D DIM0 px)
 
 
-isSmall arr = w < 50 && h < 50 where (Z :. w  :. h) = extent arr
+isSmall arr = w*h < 150 where (Z :. h  :. w) = extent arr
 
 getInner (VectorImage arr) = delay arr
 getInner (DelayedImage arr) = arr
 
 instance Pixel px => Processable Image px where
-  width (VectorImage (extent -> (Z :. w :. _))) = w
-  width (DelayedImage (extent -> (Z :. w :. _))) = w
+  width (VectorImage (extent -> (Z :. _ :. w))) = w
+  width (DelayedImage (extent -> (Z :. _ :. w))) = w
 
-  height (VectorImage (extent -> (Z :. _ :. h))) = h
-  height (DelayedImage (extent -> (Z :. _ :. h))) = h
+  height (VectorImage (extent -> (Z :. h :. _))) = h
+  height (DelayedImage (extent -> (Z :. h :. _))) = h
   
   
-  ref (VectorImage arr) x y = index arr (Z :. x :. y)
-  ref (DelayedImage arr) x y = index arr (Z :. x :. y)
+  ref (VectorImage arr) x y = index arr (Z :. y :. x)
+  ref (DelayedImage arr) x y = index arr (Z :. y :. x)
   
-  makeImage w h f = DelayedImage . fromFunction (Z :. w :. h) $ g where
-    g (Z :. x :. y) = f x y
+  makeImage w h f = DelayedImage . fromFunction (Z :. h :. w) $ g where
+    g (Z :. y :. x) = f x y
   
   imageMap = imgMap
 
@@ -42,7 +42,7 @@ instance Pixel px => Processable Image px where
 
   imageFold = imgFold
 
-  fromVector w h = VectorImage . (fromUnboxed (Z :. w :. h))
+  fromVector w h = VectorImage . (fromUnboxed (Z :. h :. w))
   
   toVector (rCompute -> (VectorImage arr)) = toUnboxed arr
 

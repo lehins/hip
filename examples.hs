@@ -2,33 +2,29 @@ module Main where
 import System.Environment
 import Data.Image
 import Data.Image.Gray
---import Data.Image.Complex
+import Data.Image.Complex
+--import Data.Image.Complex.FFTRepa
 import Data.Image.Internal
 import Data.Image.Base
 import Data.Image.IO
 import Data.Image.Interactive
 import Data.Image.Processing
---import Data.Array.Repa
---import Data.Image.Convolution
 
-{-
-getAvg imgs = foldr (+) (head imgs) (tail imgs) / l
+
+getAvg imgs = sum imgs / l
   where l = fromIntegral $ length imgs
 
-getPowerSpec img = realImage (fftImg * conjugateImage fftImg)
+getPowerSpec img = realImage (fftImg * conjImage fftImg)
   where fftImg = fft $ toComplex img
 
 getAvgPower imgs = getAvg $ map getPowerSpec imgs
 
 
---getLog = imageMap log
+getLog = imageMap log
 
-applyFilter img filt = realImage (ifft  (fft ((toComplex img) * (toComplex filt))))
--}
-
+applyFilter img filt = realImage (ifft ((fft . toComplex $ img) * (toComplex filt)))
 
 main = do
-  {-
   let signalNames = ["signal/signal"++show x++".pgm" | x <- [1..24]]
   let noiseNames = ["noise/noise"++show x++".pgm" | x <- [1..22]]
   let testNames = ["test/test"++show x++".pgm" | x <- [1..6]]
@@ -38,22 +34,23 @@ main = do
   let signalsAvgPow = getAvgPower signals
   let noisesAvgPow = getAvgPower noises
   let wiener = (signalsAvgPow / (signalsAvgPow + noisesAvgPow))
-  writeImage "signalsLogAvgPow.pgm" (getLog signalsAvgPow) PNG inRGB8
-  writeImage "noisesLogAvgPow.pgm" (getLog noisesAvgPow) PNG inRGB8
-  writeImage "wiener.pgm" wiener PNG inRGB8
-  let testWNames = ["test/testW"++show x++".pgm" | x <- [1..6]]
+  writeImage "signalsLogAvgPow.png" (getLog signalsAvgPow) []
+  writeImage "noisesLogAvgPow.png" (getLog noisesAvgPow) []
+  writeImage "wiener.png" wiener []
+  let testWNames = ["test/testW"++show x++".png" | x <- [1..6]]
   let testWriter (fname, testImg) =
-        writeImage fname (applyFilter testImg wiener) PNG inRGB8
+        writeImage fname (applyFilter testImg wiener) []
   mapM_ testWriter $ zip testWNames tests
-  -}
-  im <- readGrayImage "signal/signal1.pgm"
+  --im <- readColorImage "msc.jpg"
+  --let iim = fft $ toComplex im
+  --display im
+  --display $ realImage iim
+  --display $ realImage $ ifft iim
   {-display im
   display (im * 2)
   display $ normalize (im * 2)
   -}
-  --let imFFT = getFFT im
-  --display imFFT
   --let iim =  fft $ toComplex im 
-  --display $ realImage iim
   --display $ realImage $ ifft iim 
+  --display $ realImage iim
   return ()
