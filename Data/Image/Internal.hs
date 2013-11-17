@@ -2,11 +2,13 @@
 
 module Data.Image.Internal (
   Image,
-  Processable(..), Pixel(..), PixelOp
+  Processable(..)
   ) where
 
+import Prelude hiding (map, zipWith)
 import Data.Image.Base
-import Data.Array.Repa
+import qualified Data.Array.Repa as R (map, zipWith)
+import Data.Array.Repa hiding (map, zipWith)
 
 import Prelude hiding (map, zipWith)
 import qualified Data.Vector.Unboxed as V
@@ -33,32 +35,29 @@ instance Pixel px => Processable Image px where
   ref (VectorImage arr) x y = index arr (Z :. y :. x)
   ref (DelayedImage arr) x y = index arr (Z :. y :. x)
   
-  makeImage w h f = DelayedImage . fromFunction (Z :. h :. w) $ g where
+  make w h f = DelayedImage . fromFunction (Z :. h :. w) $ g where
     g (Z :. y :. x) = f x y
   
-  imageMap = imgMap
+  map = imgMap
 
-  imageZipWith = imgZipWith
+  zipWith = imgZipWith
 
-  imageFold = imgFold
+  fold = imgFold
 
   fromVector w h = VectorImage . (fromUnboxed (Z :. h :. w))
   
   toVector (rCompute -> (VectorImage arr)) = toUnboxed arr
 
-  compute = rCompute
-  
 
-
-imgMap op (PureImage arr) = PureImage $ map op arr
-imgMap op img = DelayedImage $ map op $ getInner img
+imgMap op (PureImage arr) = PureImage $ R.map op arr
+imgMap op img = DelayedImage $ R.map op $ getInner img
 
 imgZipWith op (PureImage arr) img2 =
-  DelayedImage $ map (op (arr ! Z)) (getInner img2)
+  DelayedImage $ R.map (op (arr ! Z)) (getInner img2)
 imgZipWith op img1 (PureImage arr) =
-  DelayedImage $ map (flip op (arr ! Z)) (getInner img1)
+  DelayedImage $ R.map (flip op (arr ! Z)) (getInner img1)
 imgZipWith op img1 img2 =
-  DelayedImage $ zipWith op (getInner img1) (getInner img2)
+  DelayedImage $ R.zipWith op (getInner img1) (getInner img2)
 
 imgFold op px (getInner -> arr)
   | isSmall arr = foldAllS op px arr

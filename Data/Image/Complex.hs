@@ -1,39 +1,31 @@
 {-# LANGUAGE TypeFamilies, TemplateHaskell, MultiParamTypeClasses, BangPatterns, TypeOperators, FlexibleContexts, NoMonomorphismRestriction, ViewPatterns #-}
 
-module Data.Image.Complex  where
-{-(
-  Complex (..),
-  RealPixel(..),
-  magnitude, phase, fft, ifft,
-  realPixel, imagPixel, realImage, imagImage,
-  conjugateImage
-  ) -}
+module Data.Image.Complex (
+  RealPixel(..), Complex (..),
+  mag, arg, conj, real, imag,
+  realImage, imagImage, conjImage, toComplex
+  ) where
+
+import Prelude as P 
+import Data.Image.Base (Pixel(..))
 import Data.Image.Gray
 import Data.Image.Color
-import Data.Image.Internal
-import Data.Vector.Unboxed.Deriving
---import Data.Array.Repa.Algorithms.Complex
-import qualified Data.Vector.Unboxed            as V
-import Data.Array.Repa				as R
-import Data.Array.Repa.Eval                     as R
-import Data.Array.Repa.Unsafe                   as R
-import Prelude                                  as P 
+import qualified Data.Image.Internal as I
+import Data.Array.Repa.Eval (Elt(..))
+import Data.Vector.Unboxed.Deriving (derivingUnbox)
 
 
 data Complex px = px :+: px deriving Eq
 
 
 class (Ord px, Pixel px) => RealPixel px where
-  safeDiv :: px -> px -> px -- divide by zero = zero
   toComplexPixel :: px -> Complex px
   
 
 instance RealPixel Color where
-  safeDiv = pxOp2 op where op x y = if y == 0 then 0 else x / y
   toComplexPixel px = px :+: fromIntegral 0
 
 instance RealPixel Gray where
-  safeDiv = pxOp2 op where op x y = if y == 0 then 0 else x / y
   toComplexPixel px = px :+: fromIntegral 0
 
 mag :: (RealPixel px) => Complex px -> px
@@ -46,10 +38,16 @@ arg (pxX :+: pxY) = pxOp2 f pxX pxY where
         | otherwise = 0
   
 
+{-| Conjugates a pixel -}
 conj :: (RealPixel px) => Complex px -> Complex px
 conj (x :+: y) = x :+: (-y)
 
+{-| Extracts a real part of a pixel -}
+real :: (RealPixel px) => Complex px -> px
 real (px :+: _ ) = px
+
+{-| Extracts an imaginary part of a pixel -}
+imag :: (RealPixel px) => Complex px -> px
 imag (_  :+: px) = px
 
 
@@ -65,15 +63,15 @@ instance (RealPixel px) => Pixel (Complex px) where
 
   weakest (px1 :+: px2) = m :+: m where m = min (strongest px1) (strongest px2)
 
-realImage = imageMap real
+realImage = I.map real
 
-imagImage = imageMap imag
+imagImage = I.map imag
 
-complexImage = imageZipWith (:+:)
+complexImage = I.zipWith (:+:)
 
-toComplex = imageMap toComplexPixel
+toComplex = I.map toComplexPixel
 
-conjImage = imageMap conj
+conjImage = I.map conj
 
 
 
@@ -153,122 +151,4 @@ derivingUnbox "ComplexPixel"
     [t| (Pixel px) => (Complex px) -> (px, px) |]
     [| \(px1 :+: px2) -> (px1, px2) |]
     [| \(px1, px2) -> px1 :+: px2 |]
-
---fft :: (ComplexPixel px1, RealPixel px2) => Image px1 -> Image (Complex px2)
-
-fft :: RealPixel px => Image (Complex px) -> Image (Complex px)
-fft img = 
-  toImg $ fft2dP Forward (fromUnboxed (Z :. w :. h) (toVector img)) where
-    (w, h) = (width img, height img)
-    toImg [arr] = fromVector w h $ toUnboxed arr
-
-ifft :: RealPixel px => Image (Complex px) -> Image (Complex px)
-ifft img = 
-  toImg $ fft2dP Inverse (fromUnboxed (Z :. w :. h) (toVector img)) where
-    (w, h) = (width img, height img)
-    toImg [arr] = fromVector w h $ toUnboxed arr
-
-
--- Internal Algorithm ----------
-
-data Mode
-	= Forward
-	| Reverse
-	| Inverse
-	deriving (Show, Eq)
-
-
---signOfMode :: Mode -> 
-signOfMode mode
- = case mode of
-	Forward		-> (-1)
-	Reverse		->   1
-	Inverse		->   1
-{-# INLINE signOfMode #-}
-
-
--- | Check if an `Int` is a power of two.
-isPowerOfTwo :: Int -> Bool
-isPowerOfTwo n
-	| 0	<- n		= True
-	| 2	<- n		= True
-	| n `mod` 2 == 0	= isPowerOfTwo (n `div` 2)
-	| otherwise		= False
-{-# INLINE isPowerOfTwo #-}
-
-
-
-
--- Matrix Transform -------------------------------------------------------------------------------
--- | Compute the DFT of a matrix. Array dimensions must be powers of two else `error`.
-fft2dP 	:: (RealPixel px, Source r (Complex px), Monad m)
-        => Mode
-	-> Array r DIM2 (Complex px)
-	-> m (Array U DIM2 (Complex px))
-fft2dP mode arr
- = let	_ :. height :. width	= extent arr
-	sign	= signOfMode mode
-	scale 	= fromIntegral (width * height) 
-		
-   in	if not (isPowerOfTwo height && isPowerOfTwo width)
-	 then error $ unlines
-	        [ "Data.Array.Repa.Algorithms.FFT: fft2d"
-	        , "  Array dimensions must be powers of two,"
-	        , "  but the provided array is " P.++ show height P.++ "x" P.++ show width ]
-	 
-	 else arr `deepSeqArray` 
-		case mode of
-			Forward	-> now $ fftTrans2d sign $ fftTrans2d sign arr
-			Reverse	-> now $ fftTrans2d sign $ fftTrans2d sign arr
-			Inverse	-> computeP $ R.map (/ scale) $ fftTrans2d sign $ fftTrans2d sign arr
-{-# INLINE fft2dP #-}
-
-
-fftTrans2d
-	:: (RealPixel px, Source r (Complex px))
-	=> px
-	-> Array r DIM2 (Complex px)
-	-> Array U DIM2 (Complex px)
-
-fftTrans2d sign arr =
-  let (sh :. len) = extent arr
-  in suspendedComputeP $ transpose $ fftGeneral sign sh len arr
-{-# INLINE fftTrans2d #-}
-
-
-
-
--- Rank Generalised Worker ------------------------------------------------------------------------
-fftGeneral     :: (RealPixel px, Shape sh, Source r (Complex px))
-        => px -> sh -> Int 
-        -> Array r (sh :. Int) (Complex px)
-        -> Array U (sh :. Int) (Complex px)
-fftGeneral !sign !sh !lenVec !vec = go lenVec 0 1 where
-  go !len !offset !stride
-    | len == 2 = suspendedComputeP $ fromFunction (sh :. 2) swivel
-    | otherwise = combine len 
-                  (go (len `div` 2) offset            (stride * 2))
-                  (go (len `div` 2) (offset + stride) (stride * 2))
-    where
-      swivel (sh' :. ix) = case ix of
-        0 -> (vec `unsafeIndex` (sh' :. offset)) +
-             (vec `unsafeIndex` (sh' :. (offset + stride)))
-        1 -> (vec `unsafeIndex` (sh' :. offset)) -
-             (vec `unsafeIndex` (sh' :. (offset + stride)))
-      combine !len' evens odds =  evens `deepSeqArray` odds `deepSeqArray`
-        let odds' = unsafeTraverse odds id
-                    (\get ix@(_ :. k) -> twiddle sign k len' * get ix) 
-        in suspendedComputeP $ (evens +^ odds') R.++ (evens -^ odds')
-
-
--- Compute a twiddle factor.
-twiddle :: (RealPixel px) =>
-           px
-	-> Int 			-- index
-	-> Int 			-- length
-	-> (Complex px)
-
-twiddle sign k' n' = (cos (2 * pi * k / n)) :+: (sign * sin  (2 * pi * k / n)) where
-  k = fromIntegral k'
-  n = fromIntegral n'
 

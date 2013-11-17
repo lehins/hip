@@ -3,9 +3,9 @@ import System.Environment
 import Data.Image
 import Data.Image.Gray
 import Data.Image.Complex
---import Data.Image.Complex.FFTRepa
-import Data.Image.Internal
-import Data.Image.Base
+import Data.Image.Complex.Algorithms
+import Data.Image.Internal hiding (map)
+import qualified Data.Image.Internal as I
 import Data.Image.IO
 import Data.Image.Interactive
 import Data.Image.Processing
@@ -20,7 +20,7 @@ getPowerSpec img = realImage (fftImg * conjImage fftImg)
 getAvgPower imgs = getAvg $ map getPowerSpec imgs
 
 
-getLog = imageMap log
+getLog = I.map log
 
 applyFilter img filt = realImage (ifft ((fft . toComplex $ img) * (toComplex filt)))
 

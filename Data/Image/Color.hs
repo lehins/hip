@@ -4,6 +4,7 @@ module Data.Image.Color (
   Color (..)
   ) where
 
+import Data.Image.Base (Pixel(..))
 import Data.Image.Internal
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving

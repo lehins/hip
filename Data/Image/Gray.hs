@@ -4,7 +4,7 @@ module Data.Image.Gray (
   Gray (..)
   ) where
 
-import Data.Image.Base
+import Data.Image.Base (Pixel(..))
 import Data.Image.Internal
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving

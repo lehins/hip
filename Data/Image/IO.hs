@@ -9,7 +9,9 @@ module Data.Image.IO (
   ) where
 
 import Prelude hiding (readFile, writeFile)
+import qualified Prelude as P (map)
 import Data.Image
+import Data.Image.Base (Pixel(..))
 import Data.Image.Conversion
 import Data.Image.Gray
 import Data.Image.Color
@@ -27,7 +29,7 @@ import qualified Graphics.Netpbm as PNM
 
 data Format = BMP | JPG | PNG | TIFF | HDR | PBM | PGM | PPM deriving Show
 
-ext2format ((map toUpper) -> ext)
+ext2format ((P.map toUpper) -> ext)
   | ext == "BMP"             = BMP
   | elem ext ["JPG", "JPEG"] = JPG
   | ext == "PNG"             = PNG
@@ -135,7 +137,7 @@ instance Saveable Color where
 
 decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage imstr
   where
-    fromJPImage i = makeImage (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
+    fromJPImage i = make (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
       where pxOp i x y = toColor $ JP.pixelAt i x y
     --fromJPImage (JP.Image w h v) = fromVector w h $ V.map toColor $ VS.convert v
     jp2Image (JP.ImageY8 i) = fromJPImage i
@@ -162,7 +164,7 @@ decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage im
 
 decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage imstr
   where
-    fromJPImage i = makeImage (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
+    fromJPImage i = make (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
       where pxOp i x y = toGray $ JP.pixelAt i x y
     jp2Image (JP.ImageY8 i) = fromJPImage i
     jp2Image (JP.ImageY16 i) = fromJPImage i
@@ -198,6 +200,7 @@ readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) wh
 writeImage path img options = BL.writeFile path $ encoder format $ compute img' where
   format = getFormat options
   encoder = getEncoder options
+  compute i@(dim -> (w, h)) = fromVector w h $ toVector i
   img' = if shouldNormalize options then normalize img else img
   ext = reverse . fst . (span ('.'/=)) . reverse $ path
   shouldNormalize [] = True

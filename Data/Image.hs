@@ -1,15 +1,17 @@
 {-# LANGUAGE ViewPatterns #-}
 module Data.Image where
 
-
---import Data.Image.Base
+import Prelude hiding (map, zipWith)
 import Data.Image.Gray
 import Data.Image.Color
 import Data.Image.Internal
 import Data.Image.Processing
-
+import qualified Data.Vector.Unboxed as V
 
 dim img = (width img, height img)
 
+toList img =
+  [[ref img x y | x <- [0..width img]] | y <- [0..height img]]
 
-
+fromList ls =
+  (fromVector (length $ head ls) (length ls)) . V.fromList . concat $ ls
