@@ -1,9 +1,9 @@
 
-module Data.Image.Processing where
+module Graphics.Image.Algorithms where
 
 import Prelude hiding (map, fold, zipWith)
-import Data.Image.Base (Pixel(..))
-import Data.Image.Internal
+import Graphics.Image.Base (Pixel(..))
+import Graphics.Image.Internal
 
 getLargest :: (Ord px, Pixel px) => Image px -> px
 getLargest img = fold max (ref img 0 0) img

@@ -1,14 +1,14 @@
 module Main where
 import System.Environment
-import Data.Image
-import Data.Image.Gray
-import Data.Image.Complex
-import Data.Image.Complex.Algorithms
-import Data.Image.Internal hiding (map)
-import qualified Data.Image.Internal as I
-import Data.Image.IO
-import Data.Image.Interactive
-import Data.Image.Processing
+import Graphics.Image
+import Graphics.Image.Gray
+import Graphics.Image.Complex
+import Graphics.Image.Complex.Algorithms
+import Graphics.Image.Internal hiding (map)
+import qualified Graphics.Image.Internal as I
+import Graphics.Image.IO
+import Graphics.Image.Interactive
+import Graphics.Image.Algorithms
 
 
 getAvg imgs = sum imgs / l

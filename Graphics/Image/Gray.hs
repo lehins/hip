@@ -1,11 +1,11 @@
 {-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
 
-module Data.Image.Gray (
+module Graphics.Image.Gray (
   Gray (..)
   ) where
 
-import Data.Image.Base (Pixel(..))
-import Data.Image.Internal
+import Graphics.Image.Base (Pixel(..))
+import Graphics.Image.Internal
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V

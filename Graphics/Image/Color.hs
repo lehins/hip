@@ -1,11 +1,11 @@
 {-# LANGUAGE TypeFamilies, TemplateHaskell, ViewPatterns, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses #-}
 
-module Data.Image.Color (
+module Graphics.Image.Color (
   Color (..)
   ) where
 
-import Data.Image.Base (Pixel(..))
-import Data.Image.Internal
+import Graphics.Image.Base (Pixel(..))
+import Graphics.Image.Internal
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V (Unbox)

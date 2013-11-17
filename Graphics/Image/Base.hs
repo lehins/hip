@@ -1,6 +1,6 @@
 {-# LANGUAGE FunctionalDependencies, TypeFamilies, ViewPatterns, TemplateHaskell, MultiParamTypeClasses, FlexibleContexts #-}
 
-module Data.Image.Base where
+module Graphics.Image.Base where
 
 import Prelude hiding ((++))
 import Data.Array.Repa.Eval

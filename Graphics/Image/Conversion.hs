@@ -1,10 +1,10 @@
 {-# LANGUAGE TypeFamilies, ViewPatterns, TypeSynonymInstances, TemplateHaskell, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
-module Data.Image.Conversion (
+module Graphics.Image.Conversion (
   Convertable(..)
   ) where
 
-import Data.Image.Gray
-import Data.Image.Color
+import Graphics.Image.Gray
+import Graphics.Image.Color
 import Data.Typeable
 import Data.Word (Word8, Word16)
 import Codec.Picture

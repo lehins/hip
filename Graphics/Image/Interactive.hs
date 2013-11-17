@@ -1,10 +1,10 @@
-module Data.Image.Interactive where
+module Graphics.Image.Interactive where
        
-import Data.Image
-import Data.Image.Base
-import Data.Image.Conversion
-import Data.Image.Internal
-import Data.Image.IO
+import Graphics.Image
+import Graphics.Image.Base
+import Graphics.Image.Conversion
+import Graphics.Image.Internal
+import Graphics.Image.IO
 import qualified Data.ByteString.Lazy as BL
 --import Data.List(intercalate)
 import Data.IORef

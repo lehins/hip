@@ -1,12 +1,12 @@
 {-# LANGUAGE ViewPatterns, TypeFamilies, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 
-module Data.Image.Internal (
+module Graphics.Image.Internal (
   Image,
   Processable(..)
   ) where
 
 import Prelude hiding (map, zipWith)
-import Data.Image.Base
+import Graphics.Image.Base
 import qualified Data.Array.Repa as R (map, zipWith)
 import Data.Array.Repa hiding (map, zipWith)
 

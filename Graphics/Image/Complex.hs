@@ -1,16 +1,16 @@
 {-# LANGUAGE TypeFamilies, TemplateHaskell, MultiParamTypeClasses, BangPatterns, TypeOperators, FlexibleContexts, NoMonomorphismRestriction, ViewPatterns #-}
 
-module Data.Image.Complex (
+module Graphics.Image.Complex (
   RealPixel(..), Complex (..),
   mag, arg, conj, real, imag,
   realImage, imagImage, conjImage, toComplex
   ) where
 
 import Prelude as P 
-import Data.Image.Base (Pixel(..))
-import Data.Image.Gray
-import Data.Image.Color
-import qualified Data.Image.Internal as I
+import Graphics.Image.Base (Pixel(..))
+import Graphics.Image.Gray
+import Graphics.Image.Color
+import qualified Graphics.Image.Internal as I
 import Data.Array.Repa.Eval (Elt(..))
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 

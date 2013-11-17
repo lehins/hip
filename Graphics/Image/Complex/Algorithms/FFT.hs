@@ -1,11 +1,11 @@
 {-# LANGUAGE BangPatterns, TypeOperators, FlexibleContexts #-}
-module Data.Image.Complex.Algorithms.FFT (
+module Graphics.Image.Complex.Algorithms.FFT (
   fft, ifft
   ) where
 
-import Data.Image.Base (Pixel(..))
-import Data.Image.Complex
-import qualified Data.Image.Internal as I
+import Graphics.Image.Base (Pixel(..))
+import Graphics.Image.Complex
+import qualified Graphics.Image.Internal as I
 import Data.Array.Repa.Eval (Elt(..))
 import Prelude                                  as P 
 import Data.Array.Repa				as R

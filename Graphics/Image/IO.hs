@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, ViewPatterns, ConstraintKinds, MultiParamTypeClasses,
              UndecidableInstances, FlexibleInstances #-}
-module Data.Image.IO (
+module Graphics.Image.IO (
   Format(..),
   Saveable(..),
   SaveOptions(..),
@@ -10,13 +10,13 @@ module Data.Image.IO (
 
 import Prelude hiding (readFile, writeFile)
 import qualified Prelude as P (map)
-import Data.Image
-import Data.Image.Base (Pixel(..))
-import Data.Image.Conversion
-import Data.Image.Gray
-import Data.Image.Color
-import Data.Image.Internal
-import Data.Image.Processing
+import Graphics.Image
+import Graphics.Image.Base (Pixel(..))
+import Graphics.Image.Conversion
+import Graphics.Image.Gray
+import Graphics.Image.Color
+import Graphics.Image.Internal
+import Graphics.Image.Algorithms
 import Data.Char (toUpper)
 import qualified Data.Vector.Unboxed as V --(map, convert)
 import qualified Data.Vector.Storable as VS (map, convert)
