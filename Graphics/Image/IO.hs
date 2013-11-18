@@ -200,7 +200,7 @@ readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) wh
 writeImage path img options = BL.writeFile path $ encoder format $ compute img' where
   format = getFormat options
   encoder = getEncoder options
-  compute i@(dim -> (w, h)) = fromVector w h $ toVector i
+  compute i@(dims -> (w, h)) = fromVector w h $ toVector i
   img' = if shouldNormalize options then normalize img else img
   ext = reverse . fst . (span ('.'/=)) . reverse $ path
   shouldNormalize [] = True

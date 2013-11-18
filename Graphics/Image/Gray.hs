@@ -14,13 +14,16 @@ data Gray = Gray Double deriving Eq
 
 
 instance Pixel Gray where
+
+  pixel d = Gray d
+  
   pxOp f (Gray y) = Gray (f y)
   
   pxOp2 f (Gray y1) (Gray y2) = Gray (f y1 y2)
 
-  strongest (Gray y) = Gray y
+  strongest = id
 
-  weakest (Gray y) = Gray y
+  weakest = id
 
 instance Num Gray where
   (+)           = pxOp2 (+)

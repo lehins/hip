@@ -8,8 +8,6 @@ import Graphics.Image.Internal
 import Graphics.Image.Algorithms
 import qualified Data.Vector.Unboxed as V
 
-dim img = (width img, height img)
-
 toList img =
   [[ref img x y | x <- [0..width img]] | y <- [0..height img]]
 

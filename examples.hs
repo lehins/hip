@@ -20,11 +20,12 @@ getPowerSpec img = realImage (fftImg * conjImage fftImg)
 getAvgPower imgs = getAvg $ map getPowerSpec imgs
 
 
-getLog = I.map log
+--getLog = I.map log
 
 applyFilter img filt = realImage (ifft ((fft . toComplex $ img) * (toComplex filt)))
 
 main = do
+  {-
   let signalNames = ["signal/signal"++show x++".pgm" | x <- [1..24]]
   let noiseNames = ["noise/noise"++show x++".pgm" | x <- [1..22]]
   let testNames = ["test/test"++show x++".pgm" | x <- [1..6]]
@@ -41,6 +42,7 @@ main = do
   let testWriter (fname, testImg) =
         writeImage fname (applyFilter testImg wiener) []
   mapM_ testWriter $ zip testWNames tests
+  -}
   --im <- readColorImage "msc.jpg"
   --let iim = fft $ toComplex im
   --display im
@@ -53,4 +55,10 @@ main = do
   --let iim =  fft $ toComplex im 
   --display $ realImage $ ifft iim 
   --display $ realImage iim
+  --i <- readColorImage "cone1.ppm"
+  --writeImage "natalia.png" (rotate (correct i (2*pi) 5) pi) []
+  f <- readGrayImage "frog.pgm"
+  display $ rotate f (pi/6)
+  display $ rotate' f (pi/6)
+  display $ rotate'' f (pi/6)
   return ()

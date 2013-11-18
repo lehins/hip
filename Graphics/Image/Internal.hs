@@ -7,8 +7,8 @@ module Graphics.Image.Internal (
 
 import Prelude hiding (map, zipWith)
 import Graphics.Image.Base
-import qualified Data.Array.Repa as R (map, zipWith)
-import Data.Array.Repa hiding (map, zipWith)
+import qualified Data.Array.Repa as R (map, zipWith, traverse)
+import Data.Array.Repa hiding (map, zipWith, traverse)
 
 import Prelude hiding (map, zipWith)
 import qualified Data.Vector.Unboxed as V
@@ -34,6 +34,10 @@ instance Pixel px => Processable Image px where
   
   ref (VectorImage arr) x y = index arr (Z :. y :. x)
   ref (DelayedImage arr) x y = index arr (Z :. y :. x)
+
+  refd def img@(dims -> (w, h)) x y
+     | x >= 0 && y >= 0 && x < w && y < h = ref img x y
+     | otherwise = def
   
   make w h f = DelayedImage . fromFunction (Z :. h :. w) $ g where
     g (Z :. y :. x) = f x y
@@ -43,6 +47,8 @@ instance Pixel px => Processable Image px where
   zipWith = imgZipWith
 
   fold = imgFold
+
+  traverse = imgTraverse
 
   fromVector w h = VectorImage . (fromUnboxed (Z :. h :. w))
   
@@ -62,6 +68,12 @@ imgZipWith op img1 img2 =
 imgFold op px (getInner -> arr)
   | isSmall arr = foldAllS op px arr
   | otherwise   = head $ foldAllP op px arr
+
+imgTraverse img f g = DelayedImage $ R.traverse (getInner img) f' g' where
+  toShape (w, h) = (Z :. h :. w)
+  f' (Z :. h :. w) = toShape (f w h)
+  g' u (Z :. h1 :. w1) = g (u' u) w1 h1
+  u' u w h = u ( Z :. h :. w)
 
 instance (V.Unbox px, Num px) => Num (Image px) where
   (+) = imgZipWith (+)

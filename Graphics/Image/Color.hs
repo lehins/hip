@@ -14,13 +14,15 @@ data Color = RGB Double Double Double deriving Eq
 
 instance Pixel Color where
 
+  pixel d = RGB d d d
+
   pxOp f (RGB r g b) = RGB (f r) (f g) (f b)
 
   pxOp2 f (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
 
-  strongest (RGB r g b) = RGB m m m where m = maximum [r, g, b]
+  strongest (RGB r g b) = pixel . maximum $ [r, g, b]
 
-  weakest (RGB r g b) = RGB m m m where m = minimum [r, g, b]
+  weakest (RGB r g b) = pixel . minimum $ [r, g, b]
 
 zipRGB (RGB r g b) = (r,g,b)
 unzipRGB (r,g,b) = (RGB r g b)

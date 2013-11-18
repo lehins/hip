@@ -3,12 +3,15 @@
 module Graphics.Image.Base where
 
 import Prelude hiding ((++))
+import qualified Prelude as P (floor)
 import Data.Array.Repa.Eval
 import qualified Data.Vector.Unboxed as V
 
 
 class (Elt px, V.Unbox px, Floating px, Fractional px, Num px, Eq px, Show px) =>
       Pixel px where
+  pixel :: Double -> px
+       
   pxOp :: (Double -> Double) -> px -> px
 
   pxOp2 :: (Double -> Double -> Double) -> px -> px -> px
@@ -26,8 +29,16 @@ class Pixel px => Processable img px | px -> img where
   {-| Get the width of an image -}
   height :: Pixel px => img px -> Int
 
+  dims :: Pixel px => img px -> (Int, Int)
+  dims img = (width img, height img)
+
   {-| Get a pixel at x y coordinates -}
   ref :: Pixel px => img px -> Int -> Int -> px
+
+  {-| Get a pixel at x y coordinates with default pixel. If x or y are out of
+      bounds use the default pixel value.
+  -}
+  refd :: Pixel px => px -> img px -> Int -> Int -> px
 
   {-| Make an Image by supplying width, height and a function that takes x and y
       coordinates as arguments.
@@ -45,6 +56,9 @@ class Pixel px => Processable img px | px -> img where
 
   {-| Fold over an Image in Parallel. -}
   fold :: Pixel px => (px -> px -> px) -> px -> img px -> px
+
+  traverse :: Pixel px => img px -> (Int -> Int -> (Int, Int)) ->
+              ((Int -> Int -> px) -> Int -> Int -> px1) -> img px1
 
   {-| O(1) Convert a Vector to an Image by supplying width, height and a vector -}
   fromVector :: Pixel px => Int -> Int -> V.Vector px -> img px

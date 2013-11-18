@@ -2,7 +2,7 @@
 
 module Graphics.Image.Complex (
   RealPixel(..), Complex (..),
-  mag, arg, conj, real, imag,
+  mag, arg, conj, real, imag, fromPolar,
   realImage, imagImage, conjImage, toComplex
   ) where
 
@@ -36,7 +36,8 @@ arg (pxX :+: pxY) = pxOp2 f pxX pxY where
   f x y | x /= 0          = atan (y/x) + (pi/2)*(1-signum x)
         | x == 0 && y /=0 = (pi/2)*signum y
         | otherwise = 0
-  
+
+fromPolar r theta = (r * cos theta) :+: (r * sin theta)
 
 {-| Conjugates a pixel -}
 conj :: (RealPixel px) => Complex px -> Complex px
@@ -55,6 +56,8 @@ imag (_  :+: px) = px
 
 instance (RealPixel px) => Pixel (Complex px) where
 
+  pixel v = (pixel v) :+: (pixel v)
+  
   pxOp op (px1 :+: px2) = (pxOp op px1 :+: pxOp op px2)
 
   pxOp2 op (px1 :+: px2) (px1' :+: px2') = (pxOp2 op px1 px1') :+: (pxOp2 op px2 px2')
