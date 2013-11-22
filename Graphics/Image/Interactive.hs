@@ -47,7 +47,7 @@ display img = do
   program <- readIORef displayProgram
   if usestdin then runCommandWithStdIn program . (inRGBA16 PNG) $ img
               else do
-    writeImage ".tmp-img" img [Format PNG, Encoder inRGBA16, Normalize False]
+    writeImage ".tmp-img" img [Format JPG]
     runInteractiveCommand (program ++ " .tmp-img")
 
 displayProgram :: IORef String
@@ -57,7 +57,7 @@ displayProgram = unsafePerformIO $ do
 
 useStdin :: IORef Bool
 useStdin = unsafePerformIO $ do
-  usestdin <- newIORef True
+  usestdin <- newIORef False
   return usestdin
   
 -- Run a command via the shell with the input given as stdin

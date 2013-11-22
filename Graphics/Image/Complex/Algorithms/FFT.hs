@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, TypeOperators, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns, TypeOperators, FlexibleContexts, ViewPatterns #-}
 module Graphics.Image.Complex.Algorithms.FFT (
   fft, ifft
   ) where
@@ -17,16 +17,14 @@ import Data.Bits ((.&.))
 --fft :: (ComplexPixel px1, RealPixel px2) => Image px1 -> Image (Complex px2)
 
 --fft :: RealPixel px => Image (Complex px) -> Image (Complex px)
-fft img = 
-  toImg $ fft2dP Forward (fromUnboxed (Z :. w :. h) (I.toVector img)) where
-    (w, h) = (I.width img, I.height img)
-    toImg [arr] = I.fromVector w h $ toUnboxed arr
+fft img@(I.dims -> (r,c)) = 
+  toImg $ fft2dP Forward (fromUnboxed (Z :. r :. c) (I.toVector img)) where
+    toImg [arr] = I.fromVector r c $ toUnboxed arr
 
 --ifft :: RealPixel px => Image (Complex px) -> Image (Complex px)
-ifft img = 
-  toImg $ fft2dP Inverse (fromUnboxed (Z :. w :. h) (I.toVector img)) where
-    (w, h) = (I.width img, I.height img)
-    toImg [arr] = I.fromVector w h $ toUnboxed arr
+ifft img@(I.dims -> (r,c)) = 
+  toImg $ fft2dP Inverse (fromUnboxed (Z :. r :. c) (I.toVector img)) where
+    toImg [arr] = I.fromVector r c $ toUnboxed arr
 
 
 -- Internal Algorithm ----------

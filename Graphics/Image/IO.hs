@@ -61,8 +61,8 @@ class (Ord px, Pixel px, Convertable px) => Saveable px where
   inCMYK8 :: Encoder px
   inCMYK16 :: Encoder px
 
-image2jp f img = JP.generateImage pxOp (width img) (height img) where
-  pxOp x y = f $ ref img x y 
+image2jp f img = JP.generateImage pxOp (cols img) (rows img) where
+  pxOp x y = f (ref img y x)
 
 
 instance Saveable Gray where
@@ -137,8 +137,8 @@ instance Saveable Color where
 
 decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage imstr
   where
-    fromJPImage i = make (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
-      where pxOp i x y = toColor $ JP.pixelAt i x y
+    fromJPImage i = make (JP.imageHeight i) (JP.imageWidth i) pxOp
+      where pxOp m n = toColor (JP.pixelAt i n m)
     --fromJPImage (JP.Image w h v) = fromVector w h $ V.map toColor $ VS.convert v
     jp2Image (JP.ImageY8 i) = fromJPImage i
     jp2Image (JP.ImageY16 i) = fromJPImage i
@@ -164,8 +164,8 @@ decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage im
 
 decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage imstr
   where
-    fromJPImage i = make (JP.imageWidth i) (JP.imageHeight i) (pxOp i)
-      where pxOp i x y = toGray $ JP.pixelAt i x y
+    fromJPImage i = make  (JP.imageHeight i) (JP.imageWidth i) pxOp
+      where pxOp y x = toGray $ JP.pixelAt i x y
     jp2Image (JP.ImageY8 i) = fromJPImage i
     jp2Image (JP.ImageY16 i) = fromJPImage i
     jp2Image (JP.ImageYF i) = fromJPImage i
@@ -180,8 +180,8 @@ decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage ims
     pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
       pnmResult2Image (Right (pnmLs, _)) = Right $ convertPNMImage (head pnmLs)
       pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
-      convertPNMImage (PNM.PPM (PNM.PPMHeader _ w h) d) = pnm2Image d where
-        fromPNMVector v = fromVector w h $ V.map toGray $ VS.convert v
+      convertPNMImage (PNM.PPM (PNM.PPMHeader _ r c) d) = pnm2Image d where
+        fromPNMVector v = fromVector r c $ V.map toGray $ VS.convert v
         pnm2Image (PNM.PpmPixelDataRGB8 v) = fromPNMVector v
         pnm2Image (PNM.PpmPixelDataRGB16 v) = fromPNMVector v
         pnm2Image (PNM.PbmPixelData v) = fromPNMVector v

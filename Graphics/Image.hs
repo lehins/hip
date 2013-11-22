@@ -8,8 +8,8 @@ import Graphics.Image.Internal
 import Graphics.Image.Algorithms
 import qualified Data.Vector.Unboxed as V
 
-toList img =
-  [[ref img x y | x <- [0..width img]] | y <- [0..height img]]
+toLists img =
+  [[ref img m n | n <- [0..cols img]] | m <- [0..rows img]]
 
-fromList ls =
-  (fromVector (length $ head ls) (length ls)) . V.fromList . concat $ ls
+fromLists ls =
+  (fromVector (length ls) (length $ head ls)) . V.fromList . concat $ ls

@@ -57,8 +57,9 @@ main = do
   --display $ realImage iim
   --i <- readColorImage "cone1.ppm"
   --writeImage "natalia.png" (rotate (correct i (2*pi) 5) pi) []
-  f <- readGrayImage "frog.pgm"
-  display $ rotate f (pi/6)
-  display $ rotate' f (pi/6)
-  display $ rotate'' f (pi/6)
+  f <- readColorImage "me.jpg"
+  display f
+  --display $ rotate f (pi/6)
+  --display $ rotate' f (pi/6)
+  --display $ rotate'' f (pi/6)
   return ()

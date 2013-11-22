@@ -14,33 +14,23 @@ import Prelude hiding (map, zipWith)
 import qualified Data.Vector.Unboxed as V
 
       
-data Image px = VectorImage (Array U DIM2 px)
+data Image px = VectorImage  (Array U DIM2 px)
               | DelayedImage (Array D DIM2 px)
-              | PureImage (Array D DIM0 px)
+              | PureImage    (Array D DIM0 px)
 
-
-isSmall arr = w*h < 150 where (Z :. h  :. w) = extent arr
-
-getInner (VectorImage arr) = delay arr
-getInner (DelayedImage arr) = arr
 
 instance Pixel px => Processable Image px where
-  width (VectorImage (extent -> (Z :. _ :. w))) = w
-  width (DelayedImage (extent -> (Z :. _ :. w))) = w
+  rows = fst . dims
 
-  height (VectorImage (extent -> (Z :. h :. _))) = h
-  height (DelayedImage (extent -> (Z :. h :. _))) = h
+  cols = snd . dims
   
-  
-  ref (VectorImage arr) x y = index arr (Z :. y :. x)
-  ref (DelayedImage arr) x y = index arr (Z :. y :. x)
+  dims (DelayedImage arr) = (r, c) where (Z :. r :. c) = extent arr
+  dims (VectorImage arr) = (r, c) where (Z :. r :. c) = extent arr
 
-  refd def img@(dims -> (w, h)) x y
-     | x >= 0 && y >= 0 && x < w && y < h = ref img x y
-     | otherwise = def
+  ref (imgCompute -> arr) r c = index arr (Z :. r :. c)
   
-  make w h f = DelayedImage . fromFunction (Z :. h :. w) $ g where
-    g (Z :. y :. x) = f x y
+  make m n f = DelayedImage . fromFunction (Z :. m :. n) $ g where
+    g (Z :. m :. n) = f m n
   
   map = imgMap
 
@@ -50,30 +40,40 @@ instance Pixel px => Processable Image px where
 
   traverse = imgTraverse
 
-  fromVector w h = VectorImage . (fromUnboxed (Z :. h :. w))
+  fromVector r c = VectorImage . (fromUnboxed (Z :. r :. c))
   
-  toVector (rCompute -> (VectorImage arr)) = toUnboxed arr
+  toVector (imgCompute -> arr) = toUnboxed arr
 
 
-imgMap op (PureImage arr) = PureImage $ R.map op arr
-imgMap op img = DelayedImage $ R.map op $ getInner img
+isSmall (extent -> (Z :. r  :. c)) = r*c < 150
+
+imgDelay (VectorImage arr)  = delay arr
+imgDelay (DelayedImage arr) = arr
+
+imgCompute (VectorImage arr) = arr
+imgCompute (DelayedImage arr)
+  | isSmall arr = head . computeUnboxedP $ arr
+  | otherwise = computeUnboxedS arr
+
+imgMap op (PureImage arr)    = PureImage $ R.map op arr
+imgMap op img = DelayedImage . (R.map op) . imgDelay $ img
 
 imgZipWith op (PureImage arr) img2 =
-  DelayedImage $ R.map (op (arr ! Z)) (getInner img2)
+  DelayedImage $ R.map (op (arr ! Z)) (imgDelay img2)
 imgZipWith op img1 (PureImage arr) =
-  DelayedImage $ R.map (flip op (arr ! Z)) (getInner img1)
+  DelayedImage $ R.map (flip op (arr ! Z)) (imgDelay img1)
 imgZipWith op img1 img2 =
-  DelayedImage $ R.zipWith op (getInner img1) (getInner img2)
+  DelayedImage $ R.zipWith op (imgDelay img1) (imgDelay img2)
 
-imgFold op px (getInner -> arr)
+imgFold op px (imgDelay -> arr)
   | isSmall arr = foldAllS op px arr
   | otherwise   = head $ foldAllP op px arr
 
-imgTraverse img f g = DelayedImage $ R.traverse (getInner img) f' g' where
-  toShape (w, h) = (Z :. h :. w)
-  f' (Z :. h :. w) = toShape (f w h)
-  g' u (Z :. h1 :. w1) = g (u' u) w1 h1
-  u' u w h = u ( Z :. h :. w)
+imgTraverse img f g = DelayedImage $ R.traverse (imgDelay img) f' g' where
+  toShape (r, c) = (Z :. r :. c)
+  f' (Z :. m :. n) = toShape (f m n)
+  g' u (Z :. r1 :. c1) = g (u' u) r1 c1
+  u' u r c = u ( Z :. r :. c)
 
 instance (V.Unbox px, Num px) => Num (Image px) where
   (+) = imgZipWith (+)
@@ -102,14 +102,6 @@ instance (V.Unbox px, Floating px) => Floating (Image px) where
   atanh   = imgMap atanh
   acosh   = imgMap acosh
 
-
-
-
-rCompute i@(VectorImage _) = i
-rCompute (DelayedImage arr)
-  | isSmall arr = VectorImage parr
-  | otherwise = VectorImage . computeUnboxedS $ arr
-  where [parr] = computeUnboxedP arr
 
 
 

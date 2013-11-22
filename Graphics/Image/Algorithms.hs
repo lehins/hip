@@ -25,22 +25,12 @@ ref1 img@(dims -> (w, h)) x y = fx0 + y'*(fx1-fx0) where
   (x1, y1) = (x0 + 1, y0 + 1)
   x' = pixel (x - (fromIntegral x0))
   y' = pixel (y - (fromIntegral y0))
-  f00 = refd (pixel 0) img x0 y0
-  f10 = refd (pixel 0) img x1 y0
-  f01 = refd (pixel 0) img x0 y1 
-  f11 = refd (pixel 0) img x1 y1 
+  f00 = refd img (pixel 0) x0 y0
+  f10 = refd img (pixel 0) x1 y0
+  f01 = refd img (pixel 0) x0 y1 
+  f11 = refd img (pixel 0) x1 y1 
   fx0 = f00 + x'*(f10-f00)
   fx1 = f01 + x'*(f11-f01)
-
-correct img angle ratio = make (mw * round ratio) mh gop
-  where alpha = (2*pi)/(mwd*ratio)
-        (w, h) = (width img, height img)
-        (mw, mh) = (div w 2, div h 2)
-        (mwd, mhd) = (fromIntegral mw, fromIntegral mh)
-        gop (fromIntegral -> x) (fromIntegral -> y) = ref1 img x' y'
-          where z  = mkPolar y (x*alpha)
-                x' = imagPart z + mhd
-                y' = realPart z + mwd 
 
 {-| Rotate an image by angle `theta` in radians in counterclockwise direction
     while preserving the dimsensions of the original image. Pixels out of bounds are
@@ -54,7 +44,7 @@ rotate img@(dims -> (w, h)) theta = make w h gop where
     y' = mh + imagPart z
 
 {-| Same as `rotate` except the dimensions of the new image are adjusted so that
-    the rotated image would completely fit.
+    the rotated image will fit completely.
 -}
 rotate' img@(dims -> (w, h)) theta = traverse img f g where
   (nwd, nhd) = (w' * cost + h' * sint, h' * cost + w' * sint)
