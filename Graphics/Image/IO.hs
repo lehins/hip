@@ -1,5 +1,4 @@
-{-# LANGUAGE FlexibleContexts, ViewPatterns, ConstraintKinds, MultiParamTypeClasses,
-             UndecidableInstances, FlexibleInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 module Graphics.Image.IO (
   Format(..),
   Saveable(..),
@@ -8,17 +7,14 @@ module Graphics.Image.IO (
   readGrayImage, readColorImage, writeImage
   ) where
 
-import Prelude hiding (readFile, writeFile)
-import qualified Prelude as P (map)
-import Graphics.Image
-import Graphics.Image.Base (Pixel(..))
+import Prelude as P hiding (readFile, writeFile)
+import Graphics.Image.Base
 import Graphics.Image.Conversion
 import Graphics.Image.Gray
 import Graphics.Image.Color
-import Graphics.Image.Internal
 import Graphics.Image.Algorithms
 import Data.Char (toUpper)
-import qualified Data.Vector.Unboxed as V --(map, convert)
+import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Storable as VS (map, convert)
 import Data.ByteString (ByteString, readFile)
 import qualified Data.ByteString.Lazy as BL (ByteString, writeFile)
@@ -139,7 +135,6 @@ decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage im
   where
     fromJPImage i = make (JP.imageHeight i) (JP.imageWidth i) pxOp
       where pxOp m n = toColor (JP.pixelAt i n m)
-    --fromJPImage (JP.Image w h v) = fromVector w h $ V.map toColor $ VS.convert v
     jp2Image (JP.ImageY8 i) = fromJPImage i
     jp2Image (JP.ImageY16 i) = fromJPImage i
     jp2Image (JP.ImageYF i) = fromJPImage i
@@ -151,7 +146,8 @@ decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage im
     jp2Image (JP.ImageYCbCr8 i) = fromJPImage i
     jp2Image (JP.ImageCMYK8 i) = fromJPImage i
     jp2Image (JP.ImageCMYK16 i) = fromJPImage i
-    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
+    pnm2Image = undefined
+{-    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
       pnmResult2Image (Right (pnmLs, _)) = Right $ convertPNMImage (head pnmLs)
       pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
       convertPNMImage (PNM.PPM (PNM.PPMHeader _ w h) d) = pnm2Image d where
@@ -161,7 +157,7 @@ decodeColorImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage im
         pnm2Image (PNM.PbmPixelData v) = fromPNMVector v
         pnm2Image (PNM.PgmPixelData8 v) = fromPNMVector v
         pnm2Image (PNM.PgmPixelData16 v) = fromPNMVector v
-
+-}
 decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage imstr
   where
     fromJPImage i = make  (JP.imageHeight i) (JP.imageWidth i) pxOp
@@ -177,7 +173,8 @@ decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage ims
     jp2Image (JP.ImageYCbCr8 i) = fromJPImage i
     jp2Image (JP.ImageCMYK8 i) = fromJPImage i
     jp2Image (JP.ImageCMYK16 i) = fromJPImage i
-    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
+    pnm2Image = undefined
+{-    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
       pnmResult2Image (Right (pnmLs, _)) = Right $ convertPNMImage (head pnmLs)
       pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
       convertPNMImage (PNM.PPM (PNM.PPMHeader _ r c) d) = pnm2Image d where
@@ -187,7 +184,7 @@ decodeGrayImage imstr = either pnm2Image (Right . jp2Image) $ JP.decodeImage ims
         pnm2Image (PNM.PbmPixelData v) = fromPNMVector v
         pnm2Image (PNM.PgmPixelData8 v) = fromPNMVector v
         pnm2Image (PNM.PgmPixelData16 v) = fromPNMVector v
-
+-}
 
 readColorImage :: FilePath -> IO (Image Color)
 readColorImage path = fmap ((either err id) . decodeColorImage) (readFile path) where

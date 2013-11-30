@@ -2,22 +2,22 @@
 module Graphics.Image.Algorithms where
 
 import Prelude hiding (map, fold, zipWith)
-import Graphics.Image.Base (Pixel(..))
-import Graphics.Image.Internal
+import Graphics.Image.Base
 import Data.Complex
+import Data.Maybe
 
-getLargest :: (Ord px, Pixel px) => Image px -> px
-getLargest img = fold max (ref img 0 0) img
 
-getSmallest :: (Ord px, Pixel px) => Image px -> px
-getSmallest img = fold min (ref img 0 0) img
-
-normalize :: (Ord px, Pixel px) => Image px -> Image px
-normalize img
-  | s == w = img * 0
-  | otherwise = map normalizer img
-  where (s, w) = (strongest (getLargest img), weakest (getSmallest img))
-        normalizer px = (px - w)/(s - w)
+-- | Get a pixel at i j location with a default pixel. If i or j are greater
+-- then number rows or columns respectively, default pixel will be used
+refd :: Pixel px => Image px -> px -> Int -> Int -> px
+refd img def i j = maybe def id $ refm img i j
+ 
+-- | Get Maybe pixel at i j location. If i or j are greater then number of rows or
+-- columns respectively will return Nothing
+refm :: Pixel px => Image px -> Int -> Int -> Maybe px
+refm img@(dims -> (m, n)) i j
+   | i >= 0 && j >= 0 && i < m && j < n = Just $ ref img i j
+   | otherwise = Nothing
 
 ref1 :: Pixel px => Image px -> Double -> Double -> px
 ref1 img@(dims -> (w, h)) x y = fx0 + y'*(fx1-fx0) where
@@ -31,6 +31,21 @@ ref1 img@(dims -> (w, h)) x y = fx0 + y'*(fx1-fx0) where
   f11 = refd img (pixel 0) x1 y1 
   fx0 = f00 + x'*(f10-f00)
   fx1 = f01 + x'*(f11-f01)
+
+crop img i j m n = make m n (\i' j' -> ref img (i'-i) (j'-j))
+
+getLargest :: (Ord px, Pixel px) => Image px -> px
+getLargest img = fold max (ref img 0 0) img
+
+getSmallest :: (Ord px, Pixel px) => Image px -> px
+getSmallest img = fold min (ref img 0 0) img
+
+normalize :: (Ord px, Pixel px) => Image px -> Image px
+normalize img
+  | s == w = img * 0
+  | otherwise = map normalizer img
+  where (s, w) = (strongest (getLargest img), weakest (getSmallest img))
+        normalizer px = (px - w)/(s - w)
 
 {-| Rotate an image by angle `theta` in radians in counterclockwise direction
     while preserving the dimsensions of the original image. Pixels out of bounds are

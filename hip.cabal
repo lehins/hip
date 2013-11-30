@@ -1,0 +1,48 @@
+Name:              hip
+Version:           1.0.0.0
+License:           GPL
+License-File:      LICENSE
+Author:            AlexeyKuleshevich, Joseph Collard, Stephen Patel, Lance Williams
+Stability:         experimental
+Maintainer:        josephmcollard+unm-hip@gmail.com
+Category:          Image Processing
+Synopsis:          A Library for the manipulation of images
+
+Description:       The University of New Mexico's Haskell Image Processing library contains functionality for performing manipulations on binary, grayscale, color, and complex images. The library was designed for use in UNM's Digital Image Processing class but it can be used for a wide range of image processing purposes.
+Cabal-Version:     >= 1.6
+Build-Type:        Simple
+
+Library
+  Build-Depends:  base >= 4 && < 5, 
+                  bytestring >= 0.10.0.2,
+                  containers >= 0.5.0.0,
+                  vector >= 0.10.0.1,
+                  vector-th-unbox >= 0.2.0.1,
+                  repa >= 3.2.3.3,
+                  repa-algorithms >= 3.2.4.1,
+                  process >= 1.1.0.2,
+                  temporary >= 1.1.2.4,
+                  netpbm >= 1.0.0,
+                  JuicyPixels >= 3.1.1.1
+
+  Extensions:     BangPatterns,
+                  FlexibleContexts, 
+                  FlexibleInstances, 
+                  MultiParamTypeClasses,
+                  NoMonomorphismRestriction,
+                  TemplateHaskell,
+                  TypeFamilies, 
+                  ViewPatterns
+
+  Exposed-Modules:Graphics.Image,
+                  Graphics.Image.Base,
+                  Graphics.Image.Gray,
+                  Graphics.Image.Color,
+                  Graphics.Image.Complex,
+                  Graphics.Image.Processing,
+                  Graphics.Image.Interactive,
+                  Graphics.Image.IO
+
+Source-Repository head
+  type:     git
+  location: https://github.com/lehins/hip

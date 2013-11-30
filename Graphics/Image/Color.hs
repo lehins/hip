@@ -1,16 +1,16 @@
-{-# LANGUAGE TypeFamilies, TemplateHaskell, ViewPatterns, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies,
+UndecidableInstances, BangPatterns #-}
 
 module Graphics.Image.Color (
   Color (..)
   ) where
 
-import Graphics.Image.Base (Pixel(..))
-import Graphics.Image.Internal
+import Graphics.Image.Base
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V (Unbox)
 
-data Color = RGB Double Double Double deriving Eq
+data Color = RGB !Double !Double !Double deriving Eq
 
 instance Pixel Color where
 

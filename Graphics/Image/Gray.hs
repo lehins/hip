@@ -1,16 +1,16 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies,
+UndecidableInstances, BangPatterns #-}
 
 module Graphics.Image.Gray (
   Gray (..)
   ) where
 
-import Graphics.Image.Base (Pixel(..))
-import Graphics.Image.Internal
+import Graphics.Image.Base
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
 
-data Gray = Gray Double deriving Eq
+data Gray = Gray !Double deriving Eq
 
 
 instance Pixel Gray where

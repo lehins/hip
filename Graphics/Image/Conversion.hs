@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeFamilies, ViewPatterns, TypeSynonymInstances, TemplateHaskell, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
 module Graphics.Image.Conversion (
   Convertable(..)
   ) where

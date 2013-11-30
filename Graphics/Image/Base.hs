@@ -1,73 +1,110 @@
-{-# LANGUAGE FunctionalDependencies, TypeFamilies, ViewPatterns, TemplateHaskell, MultiParamTypeClasses, FlexibleContexts #-}
+{-# LANGUAGE ViewPatterns, FlexibleInstances, MultiParamTypeClasses #-}
 
-module Graphics.Image.Base where
+module Graphics.Image.Base (
+  Image, 
+  Processable(..),
+  Pixel(..), -- Convertable(..),
+  getDelayed, fromDelayed, getComputed, fromComputed
+  ) where
 
-import Prelude hiding ((++))
-import qualified Prelude as P (floor)
-import Data.Array.Repa.Eval
+import Graphics.Image.Internal
+import Data.Array.Repa as R
 import qualified Data.Vector.Unboxed as V
 
-
-class (Elt px, V.Unbox px, Floating px, Fractional px, Num px, Eq px, Show px) =>
-      Pixel px where
-  pixel :: Double -> px
-       
-  pxOp :: (Double -> Double) -> px -> px
-
-  pxOp2 :: (Double -> Double -> Double) -> px -> px -> px
-
-  strongest :: px -> px
-
-  weakest :: px -> px
+      
+data Image px = ComputedImage  (Array U DIM2 px)
+              | DelayedImage (Array D DIM2 px)
+              | PureImage    (Array D DIM0 px)
 
 
-class Pixel px => Processable img px | px -> img where
+instance Pixel px => Processable Image px where
+  rows = fst . dims
 
-  {-| Get the number of rows in the image -}
-  rows :: Pixel px => img px -> Int
+  cols = snd . dims
+  
+  dims (DelayedImage arr) = (r, c) where (Z :. r :. c) = extent arr
+  dims (ComputedImage arr) = (r, c) where (Z :. r :. c) = extent arr
 
-  {-| Get the number of columns in the image -}
-  cols :: Pixel px => img px -> Int
+  ref img r c = index (getComputed img) (Z :. r :. c)
+  
+  make m n f = DelayedImage . fromFunction (Z :. m :. n) $ g where
+    g (Z :. m :. n) = f m n
+  
+  map = imgMap
 
-  {-| Get a pixel at m-th row and n-th column -}
-  ref :: Pixel px => img px -> Int -> Int -> px
+  zipWith = imgZipWith
 
-  -- | Make an Image by supplying number of rows, number of columns and a
-  -- function that returns a pixel value at the m n location which are provided
-  -- as arguments.
-  make :: Pixel px => Int -> Int -> (Int -> Int -> px) -> img px
+  fold = imgFold
 
-  {-| Map a function over an image with a function. -}
-  map :: (Pixel px, Pixel px1) => (px -> px1) -> img px -> img px1
+  traverse = imgTraverse
 
-  -- | Zip two Images with a function. Images do not have to hold the same type
-  -- of pixels.
-  zipWith :: (Pixel px, Pixel px2, Pixel px3) =>
-                  (px -> px2 -> px3) -> img px -> img px2 -> img px3
+  fromVector r c = ComputedImage . (fromUnboxed (Z :. r :. c))
+  
+  toVector = toUnboxed . getComputed
 
-  {-| Fold over an Image. -}
-  fold :: Pixel px => (px -> px -> px) -> px -> img px -> px
 
-  -- | Traverse the image.
-  traverse :: Pixel px =>
-              img px ->
-              (Int -> Int -> (Int, Int)) ->
-              ((Int -> Int -> px) -> Int -> Int -> px1) ->
-              img px1
+isSmall (extent -> (Z :. r  :. c)) = r*c < 150
 
-  {-| O(1) Convert a Vector to an Image by supplying width, height and a vector -}
-  fromVector :: Pixel px => Int -> Int -> V.Vector px -> img px
+getDelayed (ComputedImage arr)  = delay arr
+getDelayed (DelayedImage arr) = arr
 
-  {-| O(1) Convert an Image to a Vector of length: width*height -}
-  toVector :: Pixel px => img px -> V.Vector px
+fromDelayed = DelayedImage
 
-  dims :: Pixel px => img px -> (Int, Int)
+getComputed (ComputedImage arr) = arr
+getComputed (DelayedImage arr)
+  | isSmall arr = head . computeUnboxedP $ arr
+  | otherwise = computeUnboxedS arr
 
-  {-| Get a pixel at m n location with default pixel. If m or n are out of
-      bounds it will return the default pixel.
-  -}
-  refd :: Pixel px => img px -> px -> Int -> Int -> px
-  refd img@(dims -> (w, h)) def x y
-     | x >= 0 && y >= 0 && x < w && y < h = ref img x y
-     | otherwise = def
+fromComputed = ComputedImage . head 
 
+imgMap op (PureImage arr)    = PureImage $ R.map op arr
+imgMap op img = DelayedImage . (R.map op) . getDelayed $ img
+
+imgZipWith op (PureImage arr) img2 =
+  DelayedImage $ R.map (op (arr ! Z)) (getDelayed img2)
+imgZipWith op img1 (PureImage arr) =
+  DelayedImage $ R.map (flip op (arr ! Z)) (getDelayed img1)
+imgZipWith op img1 img2 =
+  DelayedImage $ R.zipWith op (getDelayed img1) (getDelayed img2)
+
+imgFold op px (getDelayed -> arr)
+  | isSmall arr = foldAllS op px arr
+  | otherwise   = head $ foldAllP op px arr
+
+imgTraverse img f g = DelayedImage $ R.traverse (getDelayed img) f' g' where
+  toShape (r, c) = (Z :. r :. c)
+  f' (Z :. m :. n) = toShape (f m n)
+  g' u (Z :. r1 :. c1) = g (u' u) r1 c1
+  u' u r c = u ( Z :. r :. c)
+
+instance (V.Unbox px, Num px) => Num (Image px) where
+  (+) = imgZipWith (+)
+  (-) = imgZipWith (-)
+  (*) = imgZipWith (*)
+  abs = imgMap abs
+  signum = imgMap signum
+  fromInteger i = PureImage $ fromFunction Z (const . fromInteger $ i)
+
+instance (V.Unbox px, Fractional px) => Fractional (Image px) where
+  (/) = imgZipWith (/)
+  fromRational r = PureImage $ fromFunction Z (const . fromRational $ r)
+
+instance (V.Unbox px, Floating px) => Floating (Image px) where
+  pi      = PureImage $ fromFunction Z (const pi)
+  exp     = imgMap exp
+  log     = imgMap log
+  sin     = imgMap sin
+  cos     = imgMap cos
+  asin    = imgMap asin
+  atan    = imgMap atan
+  acos    = imgMap acos
+  sinh    = imgMap sinh
+  cosh    = imgMap cosh
+  asinh   = imgMap asinh
+  atanh   = imgMap atanh
+  acosh   = imgMap acosh
+
+
+
+
+  
