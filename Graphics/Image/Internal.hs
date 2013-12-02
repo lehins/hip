@@ -1,4 +1,4 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, ViewPatterns #-}
 
 module Graphics.Image.Internal where
 
@@ -26,12 +26,6 @@ class Convertable px1 px2 where
 
 
 class Pixel px => Processable img px | px -> img where
-
-  -- | Get the number of rows in the image 
-  rows :: Pixel px => img px -> Int
-
-  -- | Get the number of columns in the image
-  cols :: Pixel px => img px -> Int
 
   -- | Get a pixel at m-th row and n-th column
   ref :: Pixel px => img px -> Int -> Int -> px
@@ -68,4 +62,39 @@ class Pixel px => Processable img px | px -> img where
   -- | Get dimensions of the image. (rows, cols)
   dims :: Pixel px => img px -> (Int, Int)
 
+  -- | Get the number of rows in the image 
+  rows :: Pixel px => img px -> Int
+  {-# INLINE rows #-}
+  rows = fst . dims
 
+  -- | Get the number of columns in the image
+  cols :: Pixel px => img px -> Int
+  {-# INLINE cols #-}
+  cols = snd . dims
+  
+  -- | Get a pixel at i j location with a default pixel. If i or j are greater
+  -- then number rows or columns respectively, default pixel will be used
+  refd :: Pixel px => img px -> px -> Int -> Int -> px
+  {-# INLINE refd #-}
+  refd img def i j = maybe def id $ refm img i j
+  
+  
+  -- | Get Maybe pixel at i j location. If i or j are greater then number of rows or
+  -- columns respectively will return Nothing
+  refm :: Pixel px => img px -> Int -> Int -> Maybe px
+  {-# INLINE refm #-}
+  refm img@(dims -> (m, n)) i j
+     | i >= 0 && j >= 0 && i < m && j < n = Just $ ref img i j
+     | otherwise = Nothing
+  
+  -- | Convert an Image to a nested List of Pixels.
+  toLists :: Pixel px => img px -> [[px]]
+  {-# INLINE toLists #-}
+  toLists img =
+    [[ref img m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]]
+  
+  -- | Convert a nested List of Pixels to an Image.
+  fromLists :: Pixel px => [[px]] -> img px
+  {-# INLINE fromLists #-}
+  fromLists ls =
+    (fromVector (length ls) (length $ head ls)) . V.fromList . concat $ ls

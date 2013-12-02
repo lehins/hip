@@ -1,6 +1,5 @@
 module Graphics.Image.Interactive where
        
-import Graphics.Image
 import Graphics.Image.Base
 import Graphics.Image.Conversion
 import Graphics.Image.Internal
@@ -47,7 +46,7 @@ display img = do
   program <- readIORef displayProgram
   if usestdin then runCommandWithStdIn program . (inRGBA16 PNG) $ img
               else do
-    writeImage ".tmp-img" img [Format JPG]
+    writeImage ".tmp-img" img [Format PNG, Normalize True]
     runInteractiveCommand (program ++ " .tmp-img")
 
 displayProgram :: IORef String

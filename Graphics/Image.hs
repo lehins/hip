@@ -1,15 +1,19 @@
 {-# LANGUAGE ViewPatterns #-}
-module Graphics.Image where
+module Graphics.Image (
+  Image, Processable(..), Pixel(..), 
+  module Graphics.Image.Gray,
+  module Graphics.Image.Color,
+  module Graphics.Image.Complex,
+  module Graphics.Image.IO,
+  module Graphics.Image.Interactive
+  ) where
 
 import Prelude hiding (map, zipWith)
+import Graphics.Image.Base
 import Graphics.Image.Gray
 import Graphics.Image.Color
-import Graphics.Image.Base
-import Graphics.Image.Algorithms
+import Graphics.Image.Complex
+import Graphics.Image.IO
+import Graphics.Image.Interactive
 import qualified Data.Vector.Unboxed as V
 
-toLists img =
-  [[ref img m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]]
-
-fromLists ls =
-  (fromVector (length ls) (length $ head ls)) . V.fromList . concat $ ls

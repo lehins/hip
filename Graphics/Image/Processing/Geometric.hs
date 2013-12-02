@@ -1,50 +1,43 @@
-{-# LANGUAGE ViewPatterns #-}
-module Graphics.Image.Algorithms where
+{-# LANGUAGE ViewPatterns, BangPatterns #-}
+module Graphics.Image.Processing.Geometric (
+  ref1, normalize, rotate, rotate'
+  ) where
 
 import Prelude hiding (map, fold, zipWith)
 import Graphics.Image.Base
 import Data.Complex
 import Data.Maybe
 
-
--- | Get a pixel at i j location with a default pixel. If i or j are greater
--- then number rows or columns respectively, default pixel will be used
-refd :: Pixel px => Image px -> px -> Int -> Int -> px
-refd img def i j = maybe def id $ refm img i j
- 
--- | Get Maybe pixel at i j location. If i or j are greater then number of rows or
--- columns respectively will return Nothing
-refm :: Pixel px => Image px -> Int -> Int -> Maybe px
-refm img@(dims -> (m, n)) i j
-   | i >= 0 && j >= 0 && i < m && j < n = Just $ ref img i j
-   | otherwise = Nothing
-
+-- | Bilinear or first order interpolation at given location.
 ref1 :: Pixel px => Image px -> Double -> Double -> px
+{-# INLINE ref1 #-}
 ref1 img@(dims -> (w, h)) x y = fx0 + y'*(fx1-fx0) where
-  (x0, y0) = (floor x, floor y)
-  (x1, y1) = (x0 + 1, y0 + 1)
-  x' = pixel (x - (fromIntegral x0))
-  y' = pixel (y - (fromIntegral y0))
-  f00 = refd img (pixel 0) x0 y0
-  f10 = refd img (pixel 0) x1 y0
-  f01 = refd img (pixel 0) x0 y1 
-  f11 = refd img (pixel 0) x1 y1 
-  fx0 = f00 + x'*(f10-f00)
-  fx1 = f01 + x'*(f11-f01)
-
-crop img i j m n = make m n (\i' j' -> ref img (i'-i) (j'-j))
+  !(!x0, !y0) = (floor x, floor y)
+  !(!x1, !y1) = (x0 + 1, y0 + 1)
+  !x' = pixel (x - (fromIntegral x0))
+  !y' = pixel (y - (fromIntegral y0))
+  !f00 = refd img (pixel 0) x0 y0
+  !f10 = refd img (pixel 0) x1 y0
+  !f01 = refd img (pixel 0) x0 y1 
+  !f11 = refd img (pixel 0) x1 y1 
+  !fx0 = f00 + x'*(f10-f00)
+  !fx1 = f01 + x'*(f11-f01)
 
 getLargest :: (Ord px, Pixel px) => Image px -> px
-getLargest img = fold max (ref img 0 0) img
+{-# INLINE getLargest #-}
+getLargest img = fold (pxOp2 max) (ref img 0 0) img
 
 getSmallest :: (Ord px, Pixel px) => Image px -> px
-getSmallest img = fold min (ref img 0 0) img
+{-# INLINE getSmallest #-}
+getSmallest img = fold (pxOp2 min) (ref img 0 0) img
 
 normalize :: (Ord px, Pixel px) => Image px -> Image px
+{-# INLINE normalize #-}
 normalize img
   | s == w = img * 0
   | otherwise = map normalizer img
-  where (s, w) = (strongest (getLargest img), weakest (getSmallest img))
+  where !(!s, !w) = (strongest $ getLargest img, weakest $ getSmallest img)
+        {-# INLINE normalizer #-}
         normalizer px = (px - w)/(s - w)
 
 {-| Rotate an image by angle `theta` in radians in counterclockwise direction

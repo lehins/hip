@@ -34,14 +34,26 @@ Library
                   TypeFamilies, 
                   ViewPatterns
 
-  Exposed-Modules:Graphics.Image,
-                  Graphics.Image.Base,
-                  Graphics.Image.Gray,
-                  Graphics.Image.Color,
-                  Graphics.Image.Complex,
-                  Graphics.Image.Processing,
-                  Graphics.Image.Interactive,
-                  Graphics.Image.IO
+  Exposed-Modules: Graphics.Image,
+                   Graphics.Image.Gray,
+                   Graphics.Image.Color,
+                   Graphics.Image.Complex,
+                   Graphics.Image.Processing,
+                   Graphics.Image.Interactive,
+                   Graphics.Image.IO
+
+  Other-modules:   Graphics.Image.Internal,
+                   Graphics.Image.Base,
+                   Graphics.Image.Conversion,
+                   Graphics.Image.Processing.Convolution,
+                   Graphics.Image.Processing.FFT,
+                   Graphics.Image.Processing.Geometric,
+                   Graphics.Image.Processing.Matrix
+
+  ghc-options: -O2 -Wall -threaded -rtsopts -with-rtsopts=-N 
+
+--executable examples
+--  main-is:         Main.hs
 
 Source-Repository head
   type:     git

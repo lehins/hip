@@ -8,7 +8,6 @@ module Graphics.Image.Complex (
   ) where
 
 import Graphics.Image.Base as I
-import Graphics.Image.Internal (Convertable(..))
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Array.Repa.Eval (Elt(..))
@@ -22,23 +21,26 @@ class (Ord px, Pixel px) => RealPixel px where
   toComplexPixel :: px -> Complex px
 
 instance Convertable Gray (Complex Gray) where
+  {-# INLINE convert #-}
   convert = toComplexPixel
 
-instance Convertable Color (Complex Color) where
+instance Convertable RGB (Complex RGB) where
+  {-# INLINE convert #-}
   convert = toComplexPixel
 
 instance Pixel px => Convertable (Complex px) (Complex px) where
+  {-# INLINE convert #-}
   convert = id
 
-instance RealPixel Color where
+instance RealPixel RGB where
   toComplexPixel px = px :+: pixel 0
 
 instance RealPixel Gray where
   toComplexPixel px = px :+: pixel 0
 
 mag :: (RealPixel px) => Complex px -> px
-mag (pxReal :+: pxImag) = sqrt (pxReal^2 + pxImag^2)
 {-# INLINE mag #-}
+mag (pxReal :+: pxImag) = sqrt (pxReal^2 + pxImag^2)
 
 arg :: (RealPixel px) => Complex px -> px
 arg (pxX :+: pxY) = pxOp2 f pxX pxY where
@@ -162,10 +164,10 @@ instance RealPixel px => Elt (Complex px) where
   touch (x :+: y) = touch x >> touch y
   
   {-# INLINE zero #-}
-  zero = toComplexPixel 0
+  zero = pixel 0
 
   {-# INLINE one #-}
-  one = toComplexPixel 1
+  one = pixel 1
 
 instance Show px => Show (Complex px) where
   show (px1 :+: px2) = "{" ++show px1 ++" + i" ++show px2 ++"}"

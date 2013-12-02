@@ -1,23 +1,51 @@
-module Graphics.Image.Processing.Matrix where
+{-# LANGUAGE BangPatterns #-}
+module Graphics.Image.Processing.Matrix (
+  transpose, crop,  (.*), flipH, flipV
+  ) where
 
-import Graphics.Image.Base
-import Data.Array.Repa as R
+import Graphics.Image.Base as I
+import Data.Array.Repa as R hiding (transpose)
+import qualified Data.Array.Repa as R (transpose)
+
+crop :: Pixel px => Image px -> Int -> Int -> Int -> Int -> Image px
+{-# INLINE crop #-}
+crop img i j m n = make m n (\i' j' -> ref img (i'-i) (j'-j))
+
+flipH :: Pixel px => Image px -> Image px
+{-# INLINE flipH #-}
+flipH img = fromDelayed . backpermute (Z :. m :. n) flipper $ arr where
+  !arr = getDelayed img
+  !(Z :. m :. n) = extent arr
+  {-# INLINE flipper #-}
+  flipper (Z :. i :. j) = (Z :. i :. mod (-j-1) n)
+
+flipV :: Pixel px => Image px -> Image px
+{-# INLINE flipV #-}
+flipV img = fromDelayed . backpermute (Z :. m :. n) flipper $ arr where
+  !arr = getDelayed img
+  !(Z :. m :. n) = extent arr
+  {-# INLINE flipper #-}
+  flipper (Z :. i :. j) = (Z :. mod (-i-1) m :. j)
 
 transpose :: Pixel px => Image px -> Image px
+{-# INLINE transpose #-}
 transpose = fromDelayed . R.transpose . getDelayed
 
+-- | Matrix type multiplication of two images. Dimensions must be MxN .* NxM
+-- Note that operator is exactly opposite in MATLAB.
 (.*) :: Pixel px => Image px -> Image px -> Image px
+{-# INLINE (.*) #-}
 (.*) img1 img2
-  | m1 == n2 && n1 == m2 = make m1 n2 multOp
+  | m1 == n2 && n1 == m2 = fromDelayed $ fromFunction (Z :. m1 :. n2) multOp
   | otherwise = error "Image dimensions must agree. Expected MxN * NxM = MxM"
   where
-    (m1, n1) = dims img1
-    (m2, n2) = dims img2
-    arr1 = getComputed img1
-    arr2 = getComputed img2
-    multOp i j = sumAllS $ R.zipWith (*)
+    !(!m1, !n1) = dims img1
+    !(!m2, !n2) = dims img2
+    !arr1 = getComputed img1
+    !arr2 = getComputed img2
+    {-# INLINE multOp #-}
+    multOp (Z :. i :. j) = sumAllS $ R.zipWith (*)
                  (slice arr1 (Any :. (i::Int) :. All))
                  (slice arr2 (Any :. (j::Int)))
-
 
 
