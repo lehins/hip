@@ -13,10 +13,15 @@ import Data.Array.Repa.Unsafe                   as R
 import Data.Bits ((.&.))
 
 
+fft :: (Convertable px1 (Complex px), Pixel px1, Pixel px) =>
+       Image px1 -> Image (Complex px)
+{-# INLINE fft #-}
 fft img@(I.dims -> (r,c)) = 
   toImg $ fft2dP Forward (fromUnboxed (Z :. r :. c) (I.toVector . (I.map convert) $ img)) where
     toImg [arr] = I.fromVector r c $ toUnboxed arr
 
+ifft :: Pixel px => Image (Complex px) -> Image (Complex px)
+{-# INLINE ifft #-}
 ifft img@(I.dims -> (r,c)) = 
   toImg $ fft2dP Inverse (fromUnboxed (Z :. r :. c) (I.toVector img)) where
     toImg [arr] = I.fromVector r c $ toUnboxed arr
@@ -47,10 +52,11 @@ isPowerOfTwo n = n /= 0 && (n .&. (n-1)) == 0
 
 -- Matrix Transform -------------------------------------------------------------------------------
 -- | Compute the DFT of a matrix. Array dimensions must be powers of two else `error`.
-fft2dP 	:: (RealPixel px, Source r (Complex px), Monad m)
+fft2dP 	:: (Pixel px, Source r (Complex px), Monad m)
         => Mode
 	-> Array r DIM2 (Complex px)
 	-> m (Array U DIM2 (Complex px))
+{-# INLINE fft2dP #-}
 fft2dP mode arr
  = let	_ :. height :. width	= extent arr
 	sign	= signOfMode mode
@@ -66,25 +72,20 @@ fft2dP mode arr
 		case mode of
 			Forward	-> now $ fftTrans2d sign $ fftTrans2d sign arr
 			Inverse	-> computeP $ R.map (/ scale) $ fftTrans2d sign $ fftTrans2d sign arr
-{-# INLINE fft2dP #-}
 
 
-fftTrans2d
-	:: (RealPixel px, Source r (Complex px))
-	=> px
-	-> Array r DIM2 (Complex px)
-	-> Array U DIM2 (Complex px)
-
+fftTrans2d :: (Pixel px, Source r (Complex px))	=>
+              px -> Array r DIM2 (Complex px) -> Array U DIM2 (Complex px)
+{-# INLINE fftTrans2d #-}
 fftTrans2d sign arr =
   let (sh :. len) = extent arr
   in suspendedComputeP $ transpose $ fftGeneral sign sh len arr
-{-# INLINE fftTrans2d #-}
 
 
 
 
 -- Rank Generalised Worker ------------------------------------------------------------------------
-fftGeneral     :: (RealPixel px, Shape sh, Source r (Complex px))
+fftGeneral     :: (Pixel px, Shape sh, Source r (Complex px))
         => px -> sh -> Int 
         -> Array r (sh :. Int) (Complex px)
         -> Array U (sh :. Int) (Complex px)
@@ -107,7 +108,7 @@ fftGeneral !sign !sh !lenVec !vec = go lenVec 0 1 where
 
 
 -- Compute a twiddle factor.
-twiddle :: (RealPixel px) =>
+twiddle :: (Pixel px) =>
            px
 	-> Int 			-- index
 	-> Int 			-- length

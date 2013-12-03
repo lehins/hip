@@ -50,7 +50,7 @@ Library
                    Graphics.Image.Processing.Geometric,
                    Graphics.Image.Processing.Matrix
 
-  ghc-options: -O2 -Wall -threaded -rtsopts -with-rtsopts=-N 
+  ghc-options: -Wall -Odph -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
 
 --executable examples
 --  main-is:         Main.hs

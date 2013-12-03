@@ -1,11 +1,11 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing.Convolution (
-  Outside(..), convolveOut, convolve, convolve'
+  Outside(..), convolveOut, convolve, convolve', convolveRows, convolveCols
   ) where
 
 import Graphics.Image.Base
-import Graphics.Image.Processing.Matrix (crop)
-import Data.Array.Repa
+import Graphics.Image.Processing.Matrix (crop, transpose)
+import Data.Array.Repa hiding (transpose)
 --import Data.Array.Repa.Stencil.Dim2
 import Data.Array.Repa.Algorithms.Convolve
 
@@ -39,5 +39,10 @@ convolve' :: Pixel px => Image px -> Image px -> Image px
 {-# INLINE convolve' #-}
 convolve' = convolveOut Extend
 
+convolveRows :: Pixel px => [px] -> Image px -> Image px
+{-# INLINE convolveRows #-}
+convolveRows row = convolve . transpose . fromLists $ [row]
 
-
+convolveCols :: Pixel px => [px] -> Image px -> Image px
+{-# INLINE convolveCols #-}
+convolveCols row = convolve . fromLists $ [row]

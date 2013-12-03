@@ -1,8 +1,8 @@
 {-# LANGUAGE TypeFamilies, TemplateHaskell, MultiParamTypeClasses, BangPatterns,
-NoMonomorphismRestriction, ViewPatterns, FlexibleInstances #-}
+NoMonomorphismRestriction, ViewPatterns, FlexibleInstances, FlexibleContexts #-}
 
 module Graphics.Image.Complex (
-  RealPixel(..), Complex (..), Convertable(..),
+  Complex (..),
   mag, arg, conj, real, imag, fromPolar,
   realImage, imagImage, conjImage, toComplex
   ) where
@@ -16,33 +16,23 @@ import Data.Vector.Unboxed.Deriving (derivingUnbox)
 
 data Complex px = !px :+: !px deriving Eq
 
-
-class (Ord px, Pixel px) => RealPixel px where
-  toComplexPixel :: px -> Complex px
-
 instance Convertable Gray (Complex Gray) where
   {-# INLINE convert #-}
-  convert = toComplexPixel
+  convert px = px :+: pixel 0
 
 instance Convertable RGB (Complex RGB) where
   {-# INLINE convert #-}
-  convert = toComplexPixel
+  convert px = px :+: pixel 0
 
 instance Pixel px => Convertable (Complex px) (Complex px) where
   {-# INLINE convert #-}
   convert = id
 
-instance RealPixel RGB where
-  toComplexPixel px = px :+: pixel 0
-
-instance RealPixel Gray where
-  toComplexPixel px = px :+: pixel 0
-
-mag :: (RealPixel px) => Complex px -> px
+mag :: Pixel px => Complex px -> px
 {-# INLINE mag #-}
 mag (pxReal :+: pxImag) = sqrt (pxReal^2 + pxImag^2)
 
-arg :: (RealPixel px) => Complex px -> px
+arg :: Pixel px => Complex px -> px
 arg (pxX :+: pxY) = pxOp2 f pxX pxY where
   f x y | x /= 0          = atan (y/x) + (pi/2)*(1-signum x)
         | x == 0 && y /=0 = (pi/2)*signum y
@@ -52,25 +42,25 @@ arg (pxX :+: pxY) = pxOp2 f pxX pxY where
 
 -- | Create a complex pixel from two real pixels, which represent a magnitude
 -- and an argument, ie. radius and phase
-fromPolar :: (RealPixel px) => px -> px -> Complex px
+fromPolar :: (Pixel px) => px -> px -> Complex px
 fromPolar r theta = (r * cos theta) :+: (r * sin theta)
 {-# INLINE fromPolar #-}
 
 -- | Conjugate a complex pixel
-conj :: (RealPixel px) => Complex px -> Complex px
+conj :: (Pixel px) => Complex px -> Complex px
 conj (x :+: y) = x :+: (-y)
 {-# INLINE conj #-}
 
 -- | Extracts a real part from a complex pixel -}
-real :: (RealPixel px) => Complex px -> px
+real :: (Pixel px) => Complex px -> px
 real (px :+: _ ) = px
 
 {-| Extracts an imaginary part of a pixel -}
-imag :: (RealPixel px) => Complex px -> px
+imag :: (Pixel px) => Complex px -> px
 imag (_  :+: px) = px
 
 
-instance (RealPixel px) => Pixel (Complex px) where
+instance (Pixel px) => Pixel (Complex px) where
 
   pixel v = (pixel v) :+: (pixel v)
   
@@ -78,9 +68,11 @@ instance (RealPixel px) => Pixel (Complex px) where
 
   pxOp2 op (px1 :+: px2) (px1' :+: px2') = (pxOp2 op px1 px1') :+: (pxOp2 op px2 px2')
 
-  strongest (px1 :+: px2) = m :+: m where m = max (strongest px1) (strongest px2)
+  strongest (px1 :+: px2) = m :+: m
+    where m = pxOp2 max (strongest px1) (strongest px2)
 
-  weakest (px1 :+: px2) = m :+: m where m = min (strongest px1) (strongest px2)
+  weakest (px1 :+: px2) = m :+: m
+    where m = pxOp2 min (strongest px1) (strongest px2)
 
 
 realImage = I.map real
@@ -92,15 +84,16 @@ imagImage = I.map imag
 complexImage = I.zipWith (:+:)
 {-# INLINE complexImage #-}
 
-toComplex = I.map toComplexPixel
+toComplex :: (Convertable px (Complex px), Pixel px) => Image px -> Image (Complex px)
 {-# INLINE toComplex #-}
+toComplex = I.map convert
 
 conjImage = I.map conj
 {-# INLINE conjImage #-}
 
 
 
-instance (RealPixel px) => Num (Complex px) where
+instance (Pixel px) => Num (Complex px) where
   (+) = pxOp2 (+)
   (-) = pxOp2 (-)
   (x :+: y) * (x' :+: y') = (x*x' - y*y') :+: (x*y' + y*x')
@@ -113,13 +106,13 @@ instance (RealPixel px) => Num (Complex px) where
     where mag' = mag z
   fromInteger n = nd :+: nd where nd = fromInteger n
 
-instance (RealPixel px) => Fractional (Complex px) where
+instance (Pixel px) => Fractional (Complex px) where
   (x :+: y) / z2@(x' :+: y') = ((x*x' + y*y') / mag2) :+: ((y*x' - x*y') / mag2)
     where mag2 = x'*x' + y'*y'
   recip          = pxOp recip
   fromRational n = nd :+: nd where nd = fromRational n
 
-instance (RealPixel px) => Floating (Complex px) where
+instance (Pixel px) => Floating (Complex px) where
     pi             =  pi :+: 0
     exp (x:+:y)    =  (expx * cos y) :+: (expx * sin y)
                       where expx = exp x
@@ -159,7 +152,7 @@ instance (RealPixel px) => Floating (Complex px) where
     acosh z        =  log (z + (z+1) * sqrt ((z-1)/(z+1)))
     atanh z        =  0.5 * log ((1.0+z) / (1.0-z))
   
-instance RealPixel px => Elt (Complex px) where
+instance Pixel px => Elt (Complex px) where
   {-# INLINE touch #-}
   touch (x :+: y) = touch x >> touch y
   

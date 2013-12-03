@@ -57,8 +57,8 @@ class (Ord px, Pixel px) => Saveable px where
   inCMYK8 :: Encoder px
   inCMYK16 :: Encoder px
 
-image2jp f img = JP.generateImage pxOp (cols img) (rows img) where
-  pxOp x y = f (ref img y x)
+image2jp f img = JP.generateImage op (cols img) (rows img) where
+  op x y = f (ref img y x)
 
 
 instance Saveable Gray where
@@ -155,7 +155,7 @@ readGrayImage :: FilePath -> IO (Image Gray)
 readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) where
   err str = error str
 
-writeImage :: Saveable t => [Char] -> Image t -> [SaveOptions t] -> IO ()
+writeImage :: Saveable t => String -> Image t -> [SaveOptions t] -> IO ()
 {-# INLINE writeImage #-}
 writeImage path img options = BL.writeFile path $ encoder format $ compute img' where
   format = getFormat options

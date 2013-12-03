@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Processing (
+  -- * Convolution
   module Graphics.Image.Processing.Convolution,
   module Graphics.Image.Processing.FFT,
   module Graphics.Image.Processing.Matrix,
@@ -34,7 +35,7 @@ upsampleF fm fn img = fromDelayed $ R.traverse arr
                         else fromInteger 0)
   where !arr = getComputed img
 
-
+-- | Removes every second row from the image starting with second one.
 downsampleRows :: Pixel px => Image px -> Image px
 {-# INLINE downsampleRows #-}
 downsampleRows = downsampleF 2 1
