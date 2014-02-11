@@ -9,6 +9,8 @@ import Graphics.Image.Gray
 import Graphics.Image.Base as I
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 import qualified Data.Vector.Unboxed as V
 
 data RGB = RGB !Double !Double !Double deriving Eq

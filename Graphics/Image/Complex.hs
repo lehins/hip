@@ -11,6 +11,8 @@ import Graphics.Image.Base as I
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Array.Repa.Eval (Elt(..))
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 
 
@@ -152,6 +154,9 @@ instance (Pixel px) => Floating (Complex px) where
     acosh z        =  log (z + (z+1) * sqrt ((z-1)/(z+1)))
     atanh z        =  0.5 * log ((1.0+z) / (1.0-z))
   
+instance Show px => Show (Complex px) where
+  show (px1 :+: px2) = "{" ++show px1 ++" + i" ++show px2 ++"}"
+
 instance Pixel px => Elt (Complex px) where
   {-# INLINE touch #-}
   touch (x :+: y) = touch x >> touch y
@@ -161,9 +166,6 @@ instance Pixel px => Elt (Complex px) where
 
   {-# INLINE one #-}
   one = pixel 1
-
-instance Show px => Show (Complex px) where
-  show (px1 :+: px2) = "{" ++show px1 ++" + i" ++show px2 ++"}"
 
 derivingUnbox "ComplexPixel"
     [t| (Pixel px) => (Complex px) -> (px, px) |]

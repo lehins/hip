@@ -8,6 +8,8 @@ module Graphics.Image.Gray (
 import Graphics.Image.Base
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 import qualified Data.Vector.Unboxed as V
 
 data Gray = Gray !Double deriving Eq

@@ -2,7 +2,7 @@ Name:              hip
 Version:           1.0.0.0
 License:           GPL
 License-File:      LICENSE
-Author:            AlexeyKuleshevich, Joseph Collard, Stephen Patel, Lance Williams
+Author:            Alexey Kuleshevich, Joseph Collard, Stephen Patel, Lance Williams
 Stability:         experimental
 Maintainer:        josephmcollard+unm-hip@gmail.com
 Category:          Image Processing
@@ -50,7 +50,7 @@ Library
                    Graphics.Image.Processing.Geometric,
                    Graphics.Image.Processing.Matrix
 
-  ghc-options: -Wall -Odph -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
+  ghc-options: -Wall -Odph -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
 
 --executable examples
 --  main-is:         Main.hs
