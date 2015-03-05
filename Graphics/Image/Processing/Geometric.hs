@@ -3,7 +3,7 @@ module Graphics.Image.Processing.Geometric (
   ref1, normalize, rotate, rotate'
   ) where
 
-import Prelude hiding (map, fold, zipWith)
+import Prelude hiding (map, zipWith)
 import Graphics.Image.Base
 import Data.Complex
 import Data.Maybe
