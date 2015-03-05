@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ViewPatterns, BangPatterns #-}
 module Graphics.Image.IO (
   Format(..),
   Saveable(..),
@@ -14,17 +14,14 @@ import Graphics.Image.Gray
 import Graphics.Image.Color
 import Graphics.Image.Processing.Geometric (normalize)
 import Data.Char (toUpper)
-import qualified Data.Vector.Unboxed as V
-import qualified Data.Vector.Storable as VS (map, convert)
 import Data.ByteString (ByteString, readFile)
 import qualified Data.ByteString.Lazy as BL (ByteString, writeFile)
-import Foreign.Storable ( Storable )
-import System.IO hiding (readFile, writeFile)
 import qualified Codec.Picture as JP
 import qualified Graphics.Netpbm as PNM
 
 data Format = BMP | JPG | PNG | TIFF | HDR | PBM | PGM | PPM deriving Show
 
+ext2format :: [Char] -> Format
 ext2format ((P.map toUpper) -> ext)
   | ext == "BMP"             = BMP
   | elem ext ["JPG", "JPEG"] = JPG
@@ -57,6 +54,8 @@ class (Ord px, Pixel px) => Saveable px where
   inCMYK8 :: Encoder px
   inCMYK16 :: Encoder px
 
+
+image2jp :: (JP.Pixel a, Pixel px) => (px -> a) -> Image px -> JP.Image a
 image2jp f img = JP.generateImage op (cols img) (rows img) where
   op x y = f (ref img y x)
 
@@ -157,22 +156,22 @@ readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) wh
 
 writeImage :: Saveable t => String -> Image t -> [SaveOptions t] -> IO ()
 {-# INLINE writeImage #-}
-writeImage path img options = BL.writeFile path $ encoder format $ compute img' where
-  format = getFormat options
-  encoder = getEncoder options
-  compute i@(dims -> (w, h)) = fromVector w h $ toVector i
-  img' = if shouldNormalize options then normalize img else img
-  ext = reverse . fst . (span ('.'/=)) . reverse $ path
+writeImage !path !img !options = BL.writeFile path $ encoder format $ compute img' where
+  !format = getFormat options
+  !encoder = getEncoder options
+  compute !i@(dims -> (w, h)) = fromVector w h $ toVector i
+  !img' = if shouldNormalize options then normalize img else img
+  !ext = reverse . fst . (span ('.'/=)) . reverse $ path
   shouldNormalize [] = True
   shouldNormalize ((Normalize v):_) = v
   shouldNormalize (_:opts) = shouldNormalize opts
   getFormat [] = ext2format ext
-  getFormat ((Format f):_) = f
-  getFormat (_:opts) = getFormat opts
+  getFormat !((Format f):_) = f
+  getFormat !(_:opts) = getFormat opts
   getEncoder [] = defaultEncoder format
-  getEncoder ((Encoder enc):_) = enc
-  getEncoder (_:opts) = getEncoder opts
-  defaultEncoder f = case f of
+  getEncoder !((Encoder enc):_) = enc
+  getEncoder !(_:opts) = getEncoder opts
+  defaultEncoder !f = case f of
     BMP  -> inRGB8
     JPG  -> inYCbCr8
     PNG  -> inRGB8

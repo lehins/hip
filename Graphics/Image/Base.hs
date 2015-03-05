@@ -51,7 +51,7 @@ instance Pixel px => Processable Image px where
 
 
 
-isSmall :: (Num a, Ord a, Source r e) => Array r DIM2 e -> Bool
+isSmall :: Source r e => Array r DIM2 e -> Bool
 {-# INLINE isSmall #-}
 isSmall (extent -> (Z :. r  :. c)) = r*c < 150
 
@@ -101,11 +101,7 @@ imgFold op px (getDelayed -> arr)
   | otherwise   = head $ foldAllP op px arr
 
 {-# INLINE imgTraverse #-}
-imgTraverse img f g = DelayedImage $ R.traverse (getComputed img) f' g' where
-  toShape i j = (Z :. i :. j)
-  f' (Z :. m :. n) = uncurry toShape (f m n)
-  g' u' (Z :. i' :. j') = g u i' j' where
-    u i j = u' (Z :. i :. j)
+imgTraverse = undefined
 
 instance (V.Unbox px, Num px) => Num (Image px) where
   (+) = imgZipWith (+)
