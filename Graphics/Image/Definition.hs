@@ -2,14 +2,17 @@
 {-# LANGUAGE FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns #-}
 
 module Graphics.Image.Definition where
+{-  Format(..),
+  Saveable(..),
+  SaveOptions(..),
+  Encoder, -}
 
 import Prelude hiding ((++), map, minimum, maximum)
 import qualified Prelude as P (floor)
 import Data.Array.Repa.Eval
 import qualified Data.Vector.Unboxed as V
-
 import Data.Array.Repa as R hiding (map)
-import qualified Data.Array.Repa as R (map)
+
 
 data Image px = ComputedImage  !(Array U DIM2 px)
               | DelayedImage !(Array D DIM2 px)
@@ -45,6 +48,10 @@ class (Num (img px), Pixel px) => Abstract img px | px -> img where
   -- | Get the number of columns in the image
   cols :: Pixel px => img px -> Int
   cols = snd . dims
+
+  -- | In case you created a 2D Repa Array of pixels, you can easily convert it
+  -- to an Image
+  fromArray :: Pixel px => Array D DIM2 px -> img px
 
   -- | O(1) Convert an Unboxed Vector to an Image by supplying rows, columns and
   -- a vector
@@ -111,6 +118,9 @@ class (Abstract img px, Pixel px) => Concrete img px | px -> img where
 
   compute :: Pixel px => img px -> img px
 
+  -- | If you feel adventerous and want to manipulate this image using Repa
+  toArray :: Pixel px => img px -> Array U DIM2 px
+  
   -- | O(1) Convert an Image to a Vector of length: rows*cols
   toVector :: Pixel px => img px -> V.Vector px
 
@@ -135,109 +145,3 @@ class (Abstract img px, Pixel px) => Concrete img px | px -> img where
                     normalizer px = (px - w)/(s - w)
                     {-# INLINE normalizer #-}
   {-# INLINE normalize #-}
-
-instance Pixel px => Abstract Image px where
-  dims (DelayedImage arr) = (r, c) where (Z :. r :. c) = extent arr
-  dims (ComputedImage arr) = (r, c) where (Z :. r :. c) = extent arr
-  dims (PureImage _) = (1, 1)
-  {-# INLINE dims #-}
-
-  make m n f = DelayedImage . fromFunction (Z :. m :. n) $ g where
-    g (Z :. r :. c) = f r c
-  {-# INLINE make #-}
-    
-  map = imgMap
-  {-# INLINE map #-}
-  
-  zipWith = imgZipWith
-  {-# INLINE zipWith #-}
-  
-  fromVector r c = ComputedImage . (fromUnboxed (Z :. r :. c))
-  {-# INLINE fromVector #-}
-  
-  traverse = undefined
-  
-
-imgMap :: (V.Unbox a, V.Unbox px) => (a -> px) -> Image a -> Image px
-{-# INLINE imgMap #-}
-imgMap op (PureImage arr)     = PureImage $ computeS $ R.map op arr
-imgMap op (DelayedImage arr)  = DelayedImage $ R.map op arr
-imgMap op (ComputedImage arr) = DelayedImage $ R.map op arr
-
-
-imgZipWith :: (V.Unbox a, V.Unbox b, V.Unbox px) =>
-              (a -> b -> px) -> Image a -> Image b -> Image px
-{-# INLINE imgZipWith #-}
-imgZipWith op (PureImage a1) (PureImage a2) =
-  PureImage $ computeS $ fromFunction (Z :. 0 :. 0) (
-    const (op (a1 ! (Z :. 0 :. 0)) (a2 ! (Z :. 0 :. 0))))
-imgZipWith op (PureImage a1) (DelayedImage a2) = DelayedImage $ R.map (op (a1 ! (Z :. 0 :. 0))) a2
-imgZipWith op i1@(DelayedImage _) i2@(PureImage _) = imgZipWith (flip op) i2 i1
-imgZipWith op (PureImage a1) (ComputedImage a2) = DelayedImage $ R.map (op (a1 ! (Z :. 0 :. 0))) a2
-imgZipWith op i1@(ComputedImage _) i2@(PureImage _) = imgZipWith (flip op) i2 i1
-imgZipWith op (ComputedImage a1) (DelayedImage a2) = DelayedImage $ R.zipWith op a1 a2
-imgZipWith op (DelayedImage a1) (ComputedImage a2) = DelayedImage $ R.zipWith op a1 a2
-imgZipWith op (ComputedImage a1) (ComputedImage a2) = DelayedImage $ R.zipWith op a1 a2
-imgZipWith op (DelayedImage a1) (DelayedImage a2) = DelayedImage $ R.zipWith op a1 a2
-
-
-instance (V.Unbox px, Num px) => Num (Image px) where
-  (+) = imgZipWith (+)
-  {-# INLINE (+) #-}
-  
-  (-) = imgZipWith (-)
-  {-# INLINE (-) #-}
-  
-  (*) = imgZipWith (*)
-  {-# INLINE (*) #-}
-  
-  abs = imgMap abs
-  {-# INLINE abs #-}
-  
-  signum = imgMap signum
-  {-# INLINE signum #-}
-  
-  fromInteger i = PureImage $ computeS $ fromFunction (Z :. 0 :. 0) (const . fromInteger $ i)
-  {-# INLINE fromInteger#-}
-
-
-instance (V.Unbox px, Fractional px) => Fractional (Image px) where
-  (/) = imgZipWith (/)
-  {-# INLINE (/) #-}
-  
-  fromRational r = PureImage $ computeS $ fromFunction (Z :. 0 :. 0) (const . fromRational $ r)
-  {-# INLINE fromRational #-}
-
-
-instance (V.Unbox px, Floating px) => Floating (Image px) where
-  pi      = PureImage $ computeS $ fromFunction (Z :. 0 :. 0) (const pi)
-  {-# INLINE pi #-}
-  exp     = imgMap exp
-  {-# INLINE exp #-}
-  log     = imgMap log
-  {-# INLINE log#-}
-  sin     = imgMap sin
-  {-# INLINE sin #-}
-  cos     = imgMap cos
-  {-# INLINE cos #-}
-  asin    = imgMap asin
-  {-# INLINE asin #-}
-  atan    = imgMap atan
-  {-# INLINE atan #-}
-  acos    = imgMap acos
-  {-# INLINE acos #-}
-  sinh    = imgMap sinh
-  {-# INLINE sinh #-}
-  cosh    = imgMap cosh
-  {-# INLINE cosh #-}
-  asinh   = imgMap asinh
-  {-# INLINE asinh #-}
-  atanh   = imgMap atanh
-  {-# INLINE atanh #-}
-  acosh   = imgMap acosh
-  {-# INLINE acosh #-}
-
-
-
-
-  

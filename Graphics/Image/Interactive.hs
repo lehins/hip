@@ -1,7 +1,5 @@
 module Graphics.Image.Interactive where
        
-import Graphics.Image.Base
-import Graphics.Image.Conversion
 import Graphics.Image.Internal
 import Graphics.Image.IO
 import qualified Data.ByteString.Lazy as BL

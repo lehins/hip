@@ -1,21 +1,58 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
-module Graphics.Image.Conversion (
-  Convertable(..)
-  ) where
+module Graphics.Image.Conversion where
 
-import Graphics.Image.Definition
+import Prelude hiding (map)
+import Graphics.Image.Definition hiding (minimum, maximum)
 import Graphics.Image.Gray
 import Graphics.Image.Color
+import Data.Array.Repa hiding ((++), map)
+import Data.ByteString.Lazy (ByteString)
 import Data.Typeable
 import Data.Word (Word8, Word16)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Storable as VS (map, convert)
 import Codec.Picture hiding (Pixel, Image)
 import Codec.Picture.Types hiding (Pixel, Image)
-import qualified Codec.Picture as JP (Pixel(..), Image(..))
-import Graphics.Netpbm
+import qualified Codec.Picture as JP    -- JuicyPixels
+import qualified Graphics.Netpbm as PNM -- Portable anymap format (PNM)
 import GHC.Float
+
+-- TODO: add links to wikipedia on formats
+-- TODO: implement writing for PNM formats
+-- | Format types that an image can be saved in.
+data Format = BMP  -- ^ A BMP image with .bmp extension
+            | JPG  -- ^ A JPG image with .jpg or .jpeg extension
+            | PNG  -- ^ A PNG (Portable Network Graphics) image with .png extension
+            | TIFF -- ^ A TIFF image with .tif or .tiff extension
+            | HDR  -- ^ A HDR image with .hdr extension
+            -- | PBM
+            -- | PGM
+            -- | PPM
+            deriving Show
+
+
+type Encoder px = Format -> Array U DIM2 px -> ByteString
+
+
+data SaveOptions px = Format Format
+                    | Encoder (Encoder px)
+                    | Normalize Bool
+
+
+class (Ord px, Pixel px) => Saveable px where
+  inY8 :: Encoder px
+  inY16 :: Encoder px
+  inYA8 :: Encoder px
+  inYA16 :: Encoder px
+  inRGB8 :: Encoder px
+  inRGB16 :: Encoder px
+  inRGBF :: Encoder px
+  inRGBA8 :: Encoder px
+  inRGBA16 :: Encoder px
+  inYCbCr8 :: Encoder px
+  inCMYK8 :: Encoder px
+  inCMYK16 :: Encoder px
 
 -- Pixels ========================================================================
 
@@ -41,6 +78,53 @@ instance Convertable Gray Gray where
 
 instance Convertable RGB Gray where
   convert (RGB r g b) = Gray ((r + g + b)/3)
+
+instance Convertable RGB HSI where
+  convert (RGB r g b) = HSI (to0 (h/(2*pi))) (to0 s) (to0 i) where
+    h | b <= g = h'
+      | otherwise = 2*pi - h' where
+        h' = acos(0.5*(2*r - g - b)/(sqrt ((r-g)^2 + (r-b)*(g-b))))
+    s = 1 - ((minimum [r, g, b])/i)
+    i = (r+g+b)/3
+
+
+instance Convertable HSI RGB where
+  convert (HSI hdn s i) = RGB (to0 r) (to0 g) (to0 b) where
+    h = rad2pi(hdn*2*pi)
+    x = i*(1 - s)
+    y h' = i*(1 + (s*cos h')/(cos (pi/3-h')))
+    z y' = 3*i - x - y'
+    (r,g,b) | h < 2*pi/3  = let y' = y h          in (y', z y', x)
+            | h >= 4*pi/3 = let y' = y (h-4*pi/3) in (z y', x, y')
+            | otherwise   = let y' = y (h-2*pi/3) in (x, y', z y')
+
+
+instance Convertable (Image HSI) (Image RGB) where
+  convert = map convert
+
+
+instance Convertable (Image RGB) (Image HSI) where
+  convert = map convert
+
+
+instance Convertable (Image HSI) (Image Gray, Image Gray, Image Gray) where
+  convert img = (map h img, map s img, map i img)
+    where h (HSI v _ _) = Gray v
+          s (HSI _ v _) = Gray v
+          i (HSI _ _ v) = Gray v
+
+
+rad2pi :: (Floating a, Ord a) => a -> a
+rad2pi r = if r < 0 then rad2pi (r + 2*pi) else
+             if r >= (2*pi) then rad2pi (r - 2*pi) else r
+{-# INLINE rad2pi #-}
+
+
+to0 :: RealFloat a => a -> a
+to0 n = if isNaN n then 0 else n
+{-# INLINE to0 #-}
+
+          
   
 -- JuicyPixel ---------------------------------------------------------------------
 
@@ -240,55 +324,55 @@ instance Convertable DynamicImage (Image RGB) where
 
 ---- to and from Gray -----
   
-instance Convertable PgmPixel8 Gray where
-  convert (PgmPixel8 w8) = convert w8
+instance Convertable PNM.PgmPixel8 Gray where
+  convert (PNM.PgmPixel8 w8) = convert w8
 
-instance Convertable Gray PgmPixel8 where
-  convert (Gray g) = PgmPixel8 $ toWord8 g
+instance Convertable Gray PNM.PgmPixel8 where
+  convert (Gray g) = PNM.PgmPixel8 $ toWord8 g
 
-instance Convertable PgmPixel16 Gray where
-  convert (PgmPixel16 w16) = convert w16
+instance Convertable PNM.PgmPixel16 Gray where
+  convert (PNM.PgmPixel16 w16) = convert w16
 
-instance Convertable Gray PgmPixel16 where
-  convert (Gray g) = PgmPixel16 $ toWord16 g
+instance Convertable Gray PNM.PgmPixel16 where
+  convert (Gray g) = PNM.PgmPixel16 $ toWord16 g
 
-instance Convertable PpmPixelRGB8 Gray where
-  convert = convert . (convert :: PpmPixelRGB8 -> RGB)
+instance Convertable PNM.PpmPixelRGB8 Gray where
+  convert = convert . (convert :: PNM.PpmPixelRGB8 -> RGB)
 
-instance Convertable Gray PpmPixelRGB8 where
+instance Convertable Gray PNM.PpmPixelRGB8 where
   convert = convert . (convert :: Gray -> RGB)
 
-instance Convertable PpmPixelRGB16 Gray where
-  convert = convert . (convert :: PpmPixelRGB16 -> RGB)
+instance Convertable PNM.PpmPixelRGB16 Gray where
+  convert = convert . (convert :: PNM.PpmPixelRGB16 -> RGB)
 
-instance Convertable Gray PpmPixelRGB16 where
+instance Convertable Gray PNM.PpmPixelRGB16 where
   convert = convert . (convert :: Gray -> RGB)
 
 ---- to and from RGB -----
 
-instance Convertable PgmPixel8 RGB where
-  convert = convert . (convert :: PgmPixel8 -> Gray)
+instance Convertable PNM.PgmPixel8 RGB where
+  convert = convert . (convert :: PNM.PgmPixel8 -> Gray)
 
-instance Convertable RGB PgmPixel8 where
+instance Convertable RGB PNM.PgmPixel8 where
   convert = convert . (convert :: RGB -> Gray)
 
-instance Convertable PgmPixel16 RGB where
-  convert = convert . (convert :: PgmPixel16 -> Gray)
+instance Convertable PNM.PgmPixel16 RGB where
+  convert = convert . (convert :: PNM.PgmPixel16 -> Gray)
 
-instance Convertable RGB PgmPixel16 where
+instance Convertable RGB PNM.PgmPixel16 where
   convert = convert . (convert :: RGB -> Gray)
 
-instance Convertable PpmPixelRGB8 RGB where
-  convert (PpmPixelRGB8 r g b) = RGB (fromWord8 r) (fromWord8 g) (fromWord8 b)
+instance Convertable PNM.PpmPixelRGB8 RGB where
+  convert (PNM.PpmPixelRGB8 r g b) = RGB (fromWord8 r) (fromWord8 g) (fromWord8 b)
 
-instance Convertable RGB PpmPixelRGB8 where
-  convert (RGB r g b) = PpmPixelRGB8 (toWord8 r) (toWord8 g) (toWord8 b)
+instance Convertable RGB PNM.PpmPixelRGB8 where
+  convert (RGB r g b) = PNM.PpmPixelRGB8 (toWord8 r) (toWord8 g) (toWord8 b)
 
-instance Convertable PpmPixelRGB16 RGB where
-  convert (PpmPixelRGB16 r g b) = RGB (fromWord16 r) (fromWord16 g) (fromWord16 b)
+instance Convertable PNM.PpmPixelRGB16 RGB where
+  convert (PNM.PpmPixelRGB16 r g b) = RGB (fromWord16 r) (fromWord16 g) (fromWord16 b)
 
-instance Convertable RGB PpmPixelRGB16 where
-  convert (RGB r g b) = PpmPixelRGB16 (toWord16 r) (toWord16 g) (toWord16 b)
+instance Convertable RGB PNM.PpmPixelRGB16 where
+  convert (RGB r g b) = PNM.PpmPixelRGB16 (toWord16 r) (toWord16 g) (toWord16 b)
 
 {-
 instance Convertable PbmPixel where
@@ -299,17 +383,108 @@ instance Convertable PbmPixel where
 
 -}
 
-ppm2Image (PPMHeader _ c r) v = fromVector r c $ V.map convert $ VS.convert v
+ppm2Image (PNM.PPMHeader _ c r) v = fromVector r c $ V.map convert $ VS.convert v
 
-instance Convertable PPM (Image Gray) where
-  convert (PPM header (PpmPixelDataRGB8 v)) = ppm2Image header v
-  convert (PPM header (PpmPixelDataRGB16 v)) = ppm2Image header v
-  convert (PPM header (PgmPixelData8 v)) = ppm2Image header v
-  convert (PPM header (PgmPixelData16 v)) = ppm2Image header v
 
-instance Convertable PPM (Image RGB) where
-  convert (PPM header (PpmPixelDataRGB8 v)) = ppm2Image header v
-  convert (PPM header (PpmPixelDataRGB16 v)) = ppm2Image header v
-  convert (PPM header (PgmPixelData8 v)) = ppm2Image header v
-  convert (PPM header (PgmPixelData16 v)) = ppm2Image header v
+decodeGrayImage imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
+  where
+    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
+      pnmResult2Image (Right (pnmLs, _)) = Right $ convert (head pnmLs)
+      pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
 
+
+decodeRGBImage imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
+  where
+    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
+      pnmResult2Image (Right (pnmLs, _)) = Right $ convert (head pnmLs)
+      pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
+
+
+instance Convertable PNM.PPM (Image Gray) where
+  convert (PNM.PPM header (PNM.PpmPixelDataRGB8 v))  = ppm2Image header v
+  convert (PNM.PPM header (PNM.PpmPixelDataRGB16 v)) = ppm2Image header v
+  convert (PNM.PPM header (PNM.PgmPixelData8 v))     = ppm2Image header v
+  convert (PNM.PPM header (PNM.PgmPixelData16 v))    = ppm2Image header v
+
+
+instance Convertable PNM.PPM (Image RGB) where
+  convert (PNM.PPM header (PNM.PpmPixelDataRGB8 v))  = ppm2Image header v
+  convert (PNM.PPM header (PNM.PpmPixelDataRGB16 v)) = ppm2Image header v
+  convert (PNM.PPM header (PNM.PgmPixelData8 v))     = ppm2Image header v
+  convert (PNM.PPM header (PNM.PgmPixelData16 v))    = ppm2Image header v
+
+
+arrayToJPImage :: (JP.Pixel a, Pixel px) => (px -> a) -> Array U DIM2 px -> JP.Image a
+arrayToJPImage f arr@(extent -> (Z :. m :. n)) =
+  JP.generateImage g n m where
+    g c r = f $ index arr (Z :. r :. c)
+
+
+instance Saveable Gray where
+  inY8 BMP      = JP.encodeBitmap . (arrayToJPImage (convert :: Gray -> JP.Pixel8))
+  inY8 PNG      = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.Pixel8))
+  inY8 TIFF     = JP.encodeTiff   . (arrayToJPImage (convert :: Gray -> JP.Pixel8))
+  inY8 f        = error $ "Cannot save "++show f++" in Y8 colorspace"
+  inY16 PNG     = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.Pixel16))
+  inY16 TIFF    = JP.encodeTiff   . (arrayToJPImage (convert :: Gray -> JP.Pixel16))
+  inY16 f       = error $ "Cannot save "++show f++" in Y16 colorspace"
+  inYA8 PNG     = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.PixelYA8))
+  inYA8 f       = error $ "Cannot save "++show f++" in Y8 colorspace"
+  inYA16 PNG    = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.PixelYA16))
+  inYA16 f      = error $ "Cannot save "++show f++" in Y16 colorspace"
+  inRGB8 BMP    = JP.encodeBitmap . (arrayToJPImage (convert :: Gray -> JP.PixelRGB8))
+  inRGB8 PNG    = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.PixelRGB8))
+  inRGB8 TIFF   = JP.encodeTiff   . (arrayToJPImage (convert :: Gray -> JP.PixelRGB8))
+  inRGB8 f      = error $ "Cannot save "++show f++" in RGB8 colorspace"
+  inRGB16 TIFF  = JP.encodeTiff   . (arrayToJPImage (convert :: Gray -> JP.PixelRGB16))
+  inRGB16 PNG   = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.PixelRGB16))
+  inRGB16 f     = error $ "Cannot save "++show f++" in RGB16 colorspace"
+  inRGBA8 BMP   = JP.encodeBitmap . (arrayToJPImage (convert :: Gray -> JP.PixelRGBA8))
+  inRGBA8 PNG   = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.PixelRGBA8))
+  inRGBA8 f     = error $ "Cannot save "++show f++" in RGBA8 colorspace"
+  inRGBA16 PNG  = JP.encodePng    . (arrayToJPImage (convert :: Gray -> JP.PixelRGBA16))
+  inRGBA16 f    = error $ "Cannot save "++show f++" in RGBA16 colorspace"
+  inYCbCr8 JPG  =
+    (JP.encodeJpegAtQuality 100) . (arrayToJPImage (convert :: Gray -> JP.PixelYCbCr8))
+  inYCbCr8 f    = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
+  inCMYK8 TIFF  = JP.encodeTiff  . (arrayToJPImage (convert :: Gray -> JP.PixelCMYK8))
+  inCMYK8 f     = error $ "Cannot save "++show f++" in CMYK8 colorspace"
+  inCMYK16 TIFF = JP.encodeTiff  . (arrayToJPImage (convert :: Gray -> JP.PixelCMYK16))
+  inCMYK16 f    = error $ "Cannot save "++show f++" in CMYK16 colorspace"
+  inRGBF HDR    = JP.encodeHDR   . (arrayToJPImage (convert :: Gray -> JP.PixelRGBF))
+  inRGBF f      = error $ "Cannot save "++show f++" in RGBF colorspace"
+
+
+instance Saveable RGB where
+  inY8 BMP      = JP.encodeBitmap . (arrayToJPImage (convert :: RGB -> JP.Pixel8))
+  inY8 PNG      = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.Pixel8))
+  inY8 TIFF     = JP.encodeTiff . (arrayToJPImage (convert :: RGB -> JP.Pixel8))
+  inY8 f        = error $ "Cannot save "++show f++" in Y8 colorspace"
+  inY16 PNG     = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.Pixel16))
+  inY16 TIFF    = JP.encodeTiff . (arrayToJPImage (convert :: RGB -> JP.Pixel16))
+  inY16 f       = error $ "Cannot save "++show f++" in Y16 colorspace"
+  inYA8 PNG     = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.PixelYA8))
+  inYA8 f       = error $ "Cannot save "++show f++" in Y8 colorspace"
+  inYA16 PNG    = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.PixelYA16))
+  inYA16 f      = error $ "Cannot save "++show f++" in Y16 colorspace"
+  inRGB8 BMP    = JP.encodeBitmap . (arrayToJPImage (convert :: RGB -> JP.PixelRGB8))
+  inRGB8 PNG    = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.PixelRGB8))
+  inRGB8 TIFF   = JP.encodeTiff . (arrayToJPImage (convert :: RGB -> JP.PixelRGB8))
+  inRGB8 f      = error $ "Cannot save "++show f++" in RGB8 colorspace"
+  inRGB16 TIFF  = JP.encodeTiff . (arrayToJPImage (convert :: RGB -> JP.PixelRGB16))
+  inRGB16 PNG   = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.PixelRGB16))
+  inRGB16 f     = error $ "Cannot save "++show f++" in RGB16 colorspace"
+  inRGBA8 BMP   = JP.encodeBitmap . (arrayToJPImage (convert :: RGB -> JP.PixelRGBA8))
+  inRGBA8 PNG   = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.PixelRGBA8))
+  inRGBA8 f     = error $ "Cannot save "++show f++" in RGBA8 colorspace"
+  inRGBA16 PNG  = JP.encodePng . (arrayToJPImage (convert :: RGB -> JP.PixelRGBA16))
+  inRGBA16 f    = error $ "Cannot save "++show f++" in RGBA16 colorspace"
+  inYCbCr8 JPG  =
+    (JP.encodeJpegAtQuality 100) . (arrayToJPImage (convert :: RGB -> JP.PixelYCbCr8))
+  inYCbCr8 f    = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
+  inCMYK8 TIFF  = JP.encodeTiff . (arrayToJPImage (convert :: RGB -> JP.PixelCMYK8))
+  inCMYK8 f     = error $ "Cannot save "++show f++" in CMYK8 colorspace"
+  inCMYK16 TIFF = JP.encodeTiff . (arrayToJPImage (convert :: RGB -> JP.PixelCMYK16))
+  inCMYK16 f    = error $ "Cannot save "++show f++" in CMYK16 colorspace"
+  inRGBF HDR    = JP.encodeHDR . (arrayToJPImage (convert :: RGB -> JP.PixelRGBF))
+  inRGBF f      = error $ "Cannot save "++show f++" in RGBF colorspace"

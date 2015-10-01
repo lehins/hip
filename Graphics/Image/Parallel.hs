@@ -7,7 +7,8 @@ module Graphics.Image.Parallel (
 
 import Prelude hiding (minmum, maximum)
 import Graphics.Image.Definition
-import Graphics.Image.IO (Saveable, SaveOptions(Normalize), writeArrayImage)
+import Graphics.Image.Conversion
+import Graphics.Image.IO (shouldNormalize, writeArrayImage)
 import Data.Array.Repa as R hiding ((++))
 import Data.Array.Repa.Eval as R
 import qualified Data.Vector.Unboxed as V
@@ -27,21 +28,26 @@ instance Pixel px => Concrete Image px where
 
   compute = imgCompute
   {-# INLINE compute #-}
+
+  toArray (PureImage arr)       = arr
+  toArray (ComputedImage arr)   = arr
+  toArray img@(DelayedImage _)  = toArray $ compute img
+  {-# INLINE toArray #-}
   
   toVector = imgToVector
   {-# INLINE toVector #-}
 
 
 imgFold :: (Pixel px, Elt px, V.Unbox px) => (px -> px -> px) -> px -> Image px -> px
-imgFold op px (PureImage arr) = head $ foldAllP op px arr
-imgFold op px (DelayedImage arr) = head $ foldAllP op px arr
+imgFold op px (PureImage arr)     = foldAllS op px arr
+imgFold op px (DelayedImage arr)  = head $ foldAllP op px arr
 imgFold op px (ComputedImage arr) = head $ foldAllP op px arr
 {-# INLINE imgFold #-}
 
 imgCompute :: (Pixel px, Elt px, V.Unbox px) => Image px -> Image px 
-imgCompute (PureImage arr) = PureImage arr
-imgCompute (DelayedImage arr) = deepSeqArray arr' $ ComputedImage arr' where
-  arr' = head $ computeP arr
+imgCompute (PureImage arr)       = PureImage arr
+imgCompute (DelayedImage arr)    = deepSeqArray arr' $ ComputedImage arr'
+  where arr' = head $ computeP arr
 imgCompute img@(ComputedImage _) = img
 {-# INLINE imgCompute #-}
 
@@ -55,12 +61,6 @@ imgToVector (ComputedImage arr) = toUnboxed arr
 
 writeImage :: (Saveable px) => String -> Image px -> [SaveOptions px] -> IO ()
 writeImage !path !img !options =
-  writeArrayImage path (getArray $ imgCompute img') options where
+  writeArrayImage path (toArray $ imgCompute img') options where
   !img' = if shouldNormalize options then normalize img else img
-  getArray (PureImage arr) = arr
-  getArray (ComputedImage arr) = arr
-  getArray (DelayedImage _) = error "Buggy imgCompute implementation."
-  shouldNormalize [] = True
-  shouldNormalize ((Normalize v):_) = v
-  shouldNormalize (_:opts) = shouldNormalize opts
 {-# INLINE writeImage #-}

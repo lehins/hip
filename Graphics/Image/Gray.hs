@@ -9,94 +9,116 @@ import Graphics.Image.Definition
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
-
 data Gray = Gray !Double deriving Eq
 
 
 instance Pixel Gray where
+  pixel d                     = Gray d
   {-# INLINE pixel #-}
-  pixel d = Gray d
   
+  pxOp f (Gray y)             = Gray (f y)
   {-# INLINE pxOp #-}
-  pxOp f (Gray y) = Gray (f y)
   
-  {-# INLINE pxOp2 #-}
   pxOp2 f (Gray y1) (Gray y2) = Gray (f y1 y2)
+  {-# INLINE pxOp2 #-}
 
+  strongest                   = id
   {-# INLINE strongest #-}
-  strongest = id
 
+  weakest                     = id
   {-# INLINE weakest #-}
-  weakest = id
+
 
 instance Num Gray where
-  {-# INLINE (+) #-}
   (+)           = pxOp2 (+)
-  {-# INLINE (-) #-}
+  {-# INLINE (+) #-}
+
   (-)           = pxOp2 (-)
-  {-# INLINE (*) #-}
+  {-# INLINE (-) #-}
+
   (*)           = pxOp2 (*)
-  {-# INLINE abs #-}
+  {-# INLINE (*) #-}
+
   abs           = pxOp abs
-  {-# INLINE signum #-}
+  {-# INLINE abs #-}
   signum        = pxOp signum
-  {-# INLINE fromInteger #-}
+  {-# INLINE signum #-}
+
   fromInteger n = Gray . fromIntegral $ n
+  {-# INLINE fromInteger #-}
+
 
 instance Fractional Gray where
   (/)          = pxOp2 (/)
   {-# INLINE (/) #-}
+
   recip        = pxOp recip
   {-# INLINE recip #-}
+
   fromRational = Gray . fromRational
   {-# INLINE fromRational #-}
 
+
 instance Floating Gray where
-  {-# INLINE pi #-}
   pi      = Gray pi
-  {-# INLINE exp #-}
+  {-# INLINE pi #-}
+
   exp     = pxOp exp
-  {-# INLINE log #-}
+  {-# INLINE exp #-}
+
   log     = pxOp log
-  {-# INLINE sin #-}
+  {-# INLINE log #-}
+
   sin     = pxOp sin
-  {-# INLINE cos #-}
+  {-# INLINE sin #-}
+
   cos     = pxOp cos
-  {-# INLINE asin #-}
+  {-# INLINE cos #-}
+
   asin    = pxOp asin
-  {-# INLINE atan #-}
+  {-# INLINE asin #-}
+
   atan    = pxOp atan
-  {-# INLINE acos #-}
+  {-# INLINE atan #-}
+
   acos    = pxOp acos
-  {-# INLINE sinh #-}
+  {-# INLINE acos #-}
+
   sinh    = pxOp sinh
-  {-# INLINE cosh #-}
+  {-# INLINE sinh #-}
+
   cosh    = pxOp cosh
-  {-# INLINE asinh #-}
+  {-# INLINE cosh #-}
+
   asinh   = pxOp asinh
-  {-# INLINE atanh #-}
+  {-# INLINE asinh #-}
+
   atanh   = pxOp atanh
-  {-# INLINE acosh #-}
+  {-# INLINE atanh #-}
+
   acosh   = pxOp acosh
+  {-# INLINE acosh #-}
+
 
 instance Ord Gray where
-  {-# INLINE (<=) #-}
   (Gray y1) <= (Gray y2) = y1 <= y2
+  {-# INLINE (<=) #-}
 
 
 instance Show Gray where
-  {-# INLINE show #-}
   show (Gray y) = "<Gray:("++show y++")>"
+  {-# INLINE show #-}
+
 
 instance Elt Gray where
-  {-# INLINE touch #-}
   touch (Gray y) = touch y
+  {-# INLINE touch #-}
   
-  {-# INLINE zero #-}
   zero = 0
+  {-# INLINE zero #-}
 
-  {-# INLINE one #-}
   one = 1
+  {-# INLINE one #-}
 
 
 derivingUnbox "GrayPixel"

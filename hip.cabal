@@ -38,12 +38,12 @@ Library
                    Graphics.Image.Color,
                    Graphics.Image.Complex,
                    Graphics.Image.Processing,
-                   Graphics.Image.Interactive,
-                   Graphics.Image.IO
+                   Graphics.Image.Interactive
 
-  Other-modules:   Graphics.Image.Internal,
-                   Graphics.Image.Base,
+  Other-modules:   Graphics.Image.Definition,
+                   Graphics.Image.Internal,
                    Graphics.Image.Conversion,
+                   Graphics.Image.IO,
                    Graphics.Image.Processing.Convolution,
                    Graphics.Image.Processing.FFT,
                    Graphics.Image.Processing.Geometric,

@@ -1,19 +1,21 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Graphics.Image.Sequential (
-  Image, 
-  Pixel, 
+  Concrete(..), writeImage
   ) where
 
+import Prelude hiding (minmum, maximum)
 import Graphics.Image.Definition
-import Data.Array.Repa as R
+import Graphics.Image.Conversion
+import Graphics.Image.IO (shouldNormalize, writeArrayImage)
+import Data.Array.Repa as R hiding ((++))
 import Data.Array.Repa.Eval as R
 import qualified Data.Vector.Unboxed as V
 
       
 instance Pixel px => Concrete Image px where
   ref (ComputedImage arr) r c = index arr (Z :. r :. c)
-  ref (PureImage arr)     _ _ = index arr Z
+  ref (PureImage arr)     _ _ = unsafeIndex arr (Z :. 0 :. 0)
   ref (DelayedImage _)    _ _ =
     error "Only concrete images can have there content referenced."
   {-# INLINE ref #-}
@@ -23,6 +25,11 @@ instance Pixel px => Concrete Image px where
 
   compute = imgCompute
   {-# INLINE compute #-}
+
+  toArray (PureImage arr)       = arr
+  toArray (ComputedImage arr)   = arr
+  toArray img@(DelayedImage _)  = toArray $ compute img
+  {-# INLINE toArray #-}
   
   toVector = imgToVector
   {-# INLINE toVector #-}
@@ -43,8 +50,13 @@ imgCompute (ComputedImage arr) = ComputedImage arr
 
 
 imgToVector :: (Pixel a, Elt a, V.Unbox a) => Image a -> V.Vector a
-imgToVector (PureImage arr) = V.singleton $ index arr Z
+imgToVector (PureImage arr) = V.singleton $ unsafeIndex arr (Z :. 0 :. 0)
 imgToVector (DelayedImage arr) = toUnboxed $ computeS arr
 imgToVector (ComputedImage arr) = toUnboxed arr
 {-# INLINE imgToVector #-}
 
+writeImage :: (Saveable px) => String -> Image px -> [SaveOptions px] -> IO ()
+writeImage !path !img !options =
+  writeArrayImage path (toArray $ imgCompute img') options where
+  !img' = if shouldNormalize options then normalize img else img
+{-# INLINE writeImage #-}
