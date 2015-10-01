@@ -1,9 +1,10 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
 module Graphics.Image.Conversion (
   Convertable(..)
   ) where
 
-import Graphics.Image.Base
+import Graphics.Image.Definition
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Typeable

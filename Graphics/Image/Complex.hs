@@ -7,7 +7,8 @@ module Graphics.Image.Complex (
   realImage, imagImage, conjImage, toComplex
   ) where
 
-import Graphics.Image.Base as I
+import Prelude hiding (map, zipWith)
+import Graphics.Image.Definition
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Array.Repa.Eval (Elt(..))
@@ -77,20 +78,20 @@ instance (Pixel px) => Pixel (Complex px) where
     where m = pxOp2 min (strongest px1) (strongest px2)
 
 
-realImage = I.map real
+realImage = map real
 {-# INLINE realImage #-}
 
-imagImage = I.map imag
+imagImage = map imag
 {-# INLINE imagImage #-}
 
-complexImage = I.zipWith (:+:)
+complexImage = zipWith (:+:)
 {-# INLINE complexImage #-}
 
 toComplex :: (Convertable px (Complex px), Pixel px) => Image px -> Image (Complex px)
 {-# INLINE toComplex #-}
-toComplex = I.map convert
+toComplex = map convert
 
-conjImage = I.map conj
+conjImage = map conj
 {-# INLINE conjImage #-}
 
 

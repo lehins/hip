@@ -3,7 +3,7 @@ module Graphics.Image.Processing.Matrix (
   transpose, crop,  (.*), flipH, flipV
   ) where
 
-import Graphics.Image.Base as I
+import Graphics.Image.Definition
 import Data.Array.Repa as R hiding (transpose)
 import qualified Data.Array.Repa as R (transpose)
 

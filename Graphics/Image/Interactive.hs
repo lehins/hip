@@ -40,14 +40,16 @@ setDisplayProgram program stdin =
     >>>display frog
 
  -}
-display :: (Saveable px) => Image px -> IO (Handle, Handle, Handle, ProcessHandle)
+display :: (Saveable px) => Image px -> IO ()
 display img = do
   usestdin <- readIORef useStdin
   program <- readIORef displayProgram
-  if usestdin then runCommandWithStdIn program . (inRGBA16 PNG) $ img
-              else do
+  if usestdin
+    then runCommandWithStdIn program . (inRGBA16 PNG) $ img
+    else do
     writeImage ".tmp-img" img [Format PNG, Normalize True]
     runInteractiveCommand (program ++ " .tmp-img")
+  return ()
 
 displayProgram :: IORef String
 displayProgram = unsafePerformIO $ do
@@ -61,11 +63,10 @@ useStdin = unsafePerformIO $ do
   
 -- Run a command via the shell with the input given as stdin
 runCommandWithStdIn :: String -> BL.ByteString -> IO (Handle, Handle, Handle, ProcessHandle)
-runCommandWithStdIn cmd stdin =
-  do
-    ioval <- runInteractiveCommand cmd
-    let stdInput = (\ (x, _, _, _) -> x) ioval
-    BL.hPutStr stdInput stdin
-    hFlush stdInput
-    hClose stdInput
-    return ioval
+runCommandWithStdIn cmd stdin = do
+  ioval <- runInteractiveCommand cmd
+  let stdInput = (\ (x, _, _, _) -> x) ioval
+  BL.hPutStr stdInput stdin
+  hFlush stdInput
+  hClose stdInput
+  return ioval

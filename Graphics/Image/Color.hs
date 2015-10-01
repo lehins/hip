@@ -5,12 +5,11 @@ module Graphics.Image.Color (
   RGB (..), HSI(..)
   ) where
 
+import Prelude hiding (map)
 import Graphics.Image.Gray
-import Graphics.Image.Base as I
+import Graphics.Image.Definition hiding (minimum, maximum)
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
-import qualified Data.Vector.Generic
-import qualified Data.Vector.Generic.Mutable
 import qualified Data.Vector.Unboxed as V
 
 data RGB = RGB !Double !Double !Double deriving Eq
@@ -210,9 +209,11 @@ derivingUnbox "HSIPixel"
     [| zipHSI |]
     [| unzipHSI |]
 
+rad2pi :: (Floating a, Ord a) => a -> a
 rad2pi r = if r < 0 then rad2pi (r + 2*pi) else
              if r >= (2*pi) then rad2pi (r - 2*pi) else r
 
+to0 :: RealFloat a => a -> a
 to0 n = if isNaN n then 0 else n
 
 instance Convertable RGB HSI where
@@ -234,25 +235,25 @@ instance Convertable HSI RGB where
             | otherwise   = let y' = y (h-2*pi/3) in (x, y', z y')
 
 instance Convertable (Image HSI) (Image RGB) where
-  convert = I.map convert
+  convert = map convert
 
 instance Convertable (Image RGB) (Image HSI) where
-  convert = I.map convert
+  convert = map convert
 
-crossImgs (a, b, c) = (f a, f b, f c) where
-  f = V.map (\(Gray d) -> d) . I.toVector
+--crossImgs (a, b, c) = (f a, f b, f c) where
+--  f = V.map (\(Gray d) -> d) . toVector
 
 instance Convertable (Image HSI) (Image Gray, Image Gray, Image Gray) where
-  convert img = (I.map h img, I.map s img, I.map i img)
+  convert img = (map h img, map s img, map i img)
     where h (HSI v _ _) = Gray v
           s (HSI _ v _) = Gray v
           i (HSI _ _ v) = Gray v
-
+{-
 instance Convertable (Image Gray, Image Gray, Image Gray) (Image HSI) where
-  convert imgs@(himg, _, _) = fromVector m n $ V.zipWith3 HSI h s i
-    where (h, s, i) = crossImgs imgs
-          (m, n) = dims himg
-
+  convert imgs@(h, s, i) = fromVector m n $ V.zipWith3 HSI (f h) (f s) (f i)
+    where (m, n) = dims h
+          f = V.map (\(Gray d) -> d) . toVector
+-}
 
 {-
 instance Convertable RGB HSI where

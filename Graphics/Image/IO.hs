@@ -4,15 +4,15 @@ module Graphics.Image.IO (
   Saveable(..),
   SaveOptions(..),
   Encoder,
-  readGrayImage, readColorImage, writeImage
+  readGrayImage, readColorImage, writeArrayImage
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
-import Graphics.Image.Base
+import Graphics.Image.Definition
 import Graphics.Image.Conversion
 import Graphics.Image.Gray
 import Graphics.Image.Color
-import Graphics.Image.Processing.Geometric (normalize)
+import Data.Array.Repa as R hiding ((++)) --(Array, U, DIM2, Z, (:.), index, extent)
 import Data.Char (toUpper)
 import Data.ByteString (ByteString, readFile)
 import qualified Data.ByteString.Lazy as BL (ByteString, writeFile)
@@ -34,7 +34,7 @@ ext2format ((P.map toUpper) -> ext)
   | null ext = error "File extension was not supplied"
   | otherwise = error $ "Unsupported file extension: "++ext
 
-type Encoder px = Format -> Image px -> BL.ByteString
+type Encoder px = Format -> Array U DIM2 px -> BL.ByteString
 
 data SaveOptions px = Format Format
                     | Encoder (Encoder px)
@@ -55,77 +55,78 @@ class (Ord px, Pixel px) => Saveable px where
   inCMYK16 :: Encoder px
 
 
-image2jp :: (JP.Pixel a, Pixel px) => (px -> a) -> Image px -> JP.Image a
-image2jp f img = JP.generateImage op (cols img) (rows img) where
-  op x y = f (ref img y x)
+vectorToJP :: (JP.Pixel a, Pixel px) => (px -> a) -> Array U DIM2 px -> JP.Image a
+vectorToJP f arr@(extent -> (Z :. m :. n)) =
+  JP.generateImage g n m where
+    g c r = f $ index arr (Z :. r :. c)
 
 
 instance Saveable Gray where
-  inY8 BMP = JP.encodeBitmap . (image2jp (convert :: Gray -> JP.Pixel8))
-  inY8 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.Pixel8))
-  inY8 TIFF = JP.encodeTiff . (image2jp (convert :: Gray -> JP.Pixel8))
+  inY8 BMP = JP.encodeBitmap . (vectorToJP (convert :: Gray -> JP.Pixel8))
+  inY8 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.Pixel8))
+  inY8 TIFF = JP.encodeTiff . (vectorToJP (convert :: Gray -> JP.Pixel8))
   inY8 f = error $ "Cannot save "++show f++" in Y8 colorspace"
-  inY16 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.Pixel16))
-  inY16 TIFF = JP.encodeTiff . (image2jp (convert :: Gray -> JP.Pixel16))
+  inY16 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.Pixel16))
+  inY16 TIFF = JP.encodeTiff . (vectorToJP (convert :: Gray -> JP.Pixel16))
   inY16 f = error $ "Cannot save "++show f++" in Y16 colorspace"
-  inYA8 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.PixelYA8))
+  inYA8 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.PixelYA8))
   inYA8 f = error $ "Cannot save "++show f++" in Y8 colorspace"
-  inYA16 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.PixelYA16))
+  inYA16 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.PixelYA16))
   inYA16 f = error $ "Cannot save "++show f++" in Y16 colorspace"
-  inRGB8 BMP = JP.encodeBitmap . (image2jp (convert :: Gray -> JP.PixelRGB8))
-  inRGB8 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.PixelRGB8))
-  inRGB8 TIFF = JP.encodeTiff . (image2jp (convert :: Gray -> JP.PixelRGB8))
+  inRGB8 BMP = JP.encodeBitmap . (vectorToJP (convert :: Gray -> JP.PixelRGB8))
+  inRGB8 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.PixelRGB8))
+  inRGB8 TIFF = JP.encodeTiff . (vectorToJP (convert :: Gray -> JP.PixelRGB8))
   inRGB8 f = error $ "Cannot save "++show f++" in RGB8 colorspace"
-  inRGB16 TIFF = JP.encodeTiff . (image2jp (convert :: Gray -> JP.PixelRGB16))
-  inRGB16 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.PixelRGB16))
+  inRGB16 TIFF = JP.encodeTiff . (vectorToJP (convert :: Gray -> JP.PixelRGB16))
+  inRGB16 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.PixelRGB16))
   inRGB16 f = error $ "Cannot save "++show f++" in RGB16 colorspace"
-  inRGBA8 BMP = JP.encodeBitmap . (image2jp (convert :: Gray -> JP.PixelRGBA8))
-  inRGBA8 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.PixelRGBA8))
+  inRGBA8 BMP = JP.encodeBitmap . (vectorToJP (convert :: Gray -> JP.PixelRGBA8))
+  inRGBA8 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.PixelRGBA8))
   inRGBA8 f = error $ "Cannot save "++show f++" in RGBA8 colorspace"
-  inRGBA16 PNG = JP.encodePng . (image2jp (convert :: Gray -> JP.PixelRGBA16))
+  inRGBA16 PNG = JP.encodePng . (vectorToJP (convert :: Gray -> JP.PixelRGBA16))
   inRGBA16 f = error $ "Cannot save "++show f++" in RGBA16 colorspace"
   inYCbCr8 JPG =
-    (JP.encodeJpegAtQuality 100) . (image2jp (convert :: Gray -> JP.PixelYCbCr8))
+    (JP.encodeJpegAtQuality 100) . (vectorToJP (convert :: Gray -> JP.PixelYCbCr8))
   inYCbCr8 f = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
-  inCMYK8 TIFF = JP.encodeTiff . (image2jp (convert :: Gray -> JP.PixelCMYK8))
+  inCMYK8 TIFF = JP.encodeTiff . (vectorToJP (convert :: Gray -> JP.PixelCMYK8))
   inCMYK8 f = error $ "Cannot save "++show f++" in CMYK8 colorspace"
-  inCMYK16 TIFF = JP.encodeTiff . (image2jp (convert :: Gray -> JP.PixelCMYK16))
+  inCMYK16 TIFF = JP.encodeTiff . (vectorToJP (convert :: Gray -> JP.PixelCMYK16))
   inCMYK16 f = error $ "Cannot save "++show f++" in CMYK16 colorspace"
-  inRGBF HDR = JP.encodeHDR . (image2jp (convert :: Gray -> JP.PixelRGBF))
+  inRGBF HDR = JP.encodeHDR . (vectorToJP (convert :: Gray -> JP.PixelRGBF))
   inRGBF f = error $ "Cannot save "++show f++" in RGBF colorspace"
 
 instance Saveable RGB where
-  inY8 BMP = JP.encodeBitmap . (image2jp (convert :: RGB -> JP.Pixel8))
-  inY8 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.Pixel8))
-  inY8 TIFF = JP.encodeTiff . (image2jp (convert :: RGB -> JP.Pixel8))
+  inY8 BMP = JP.encodeBitmap . (vectorToJP (convert :: RGB -> JP.Pixel8))
+  inY8 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.Pixel8))
+  inY8 TIFF = JP.encodeTiff . (vectorToJP (convert :: RGB -> JP.Pixel8))
   inY8 f = error $ "Cannot save "++show f++" in Y8 colorspace"
-  inY16 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.Pixel16))
-  inY16 TIFF = JP.encodeTiff . (image2jp (convert :: RGB -> JP.Pixel16))
+  inY16 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.Pixel16))
+  inY16 TIFF = JP.encodeTiff . (vectorToJP (convert :: RGB -> JP.Pixel16))
   inY16 f = error $ "Cannot save "++show f++" in Y16 colorspace"
-  inYA8 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.PixelYA8))
+  inYA8 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.PixelYA8))
   inYA8 f = error $ "Cannot save "++show f++" in Y8 colorspace"
-  inYA16 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.PixelYA16))
+  inYA16 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.PixelYA16))
   inYA16 f = error $ "Cannot save "++show f++" in Y16 colorspace"
-  inRGB8 BMP = JP.encodeBitmap . (image2jp (convert :: RGB -> JP.PixelRGB8))
-  inRGB8 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.PixelRGB8))
-  inRGB8 TIFF = JP.encodeTiff . (image2jp (convert :: RGB -> JP.PixelRGB8))
+  inRGB8 BMP = JP.encodeBitmap . (vectorToJP (convert :: RGB -> JP.PixelRGB8))
+  inRGB8 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.PixelRGB8))
+  inRGB8 TIFF = JP.encodeTiff . (vectorToJP (convert :: RGB -> JP.PixelRGB8))
   inRGB8 f = error $ "Cannot save "++show f++" in RGB8 colorspace"
-  inRGB16 TIFF = JP.encodeTiff . (image2jp (convert :: RGB -> JP.PixelRGB16))
-  inRGB16 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.PixelRGB16))
+  inRGB16 TIFF = JP.encodeTiff . (vectorToJP (convert :: RGB -> JP.PixelRGB16))
+  inRGB16 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.PixelRGB16))
   inRGB16 f = error $ "Cannot save "++show f++" in RGB16 colorspace"
-  inRGBA8 BMP = JP.encodeBitmap . (image2jp (convert :: RGB -> JP.PixelRGBA8))
-  inRGBA8 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.PixelRGBA8))
+  inRGBA8 BMP = JP.encodeBitmap . (vectorToJP (convert :: RGB -> JP.PixelRGBA8))
+  inRGBA8 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.PixelRGBA8))
   inRGBA8 f = error $ "Cannot save "++show f++" in RGBA8 colorspace"
-  inRGBA16 PNG = JP.encodePng . (image2jp (convert :: RGB -> JP.PixelRGBA16))
+  inRGBA16 PNG = JP.encodePng . (vectorToJP (convert :: RGB -> JP.PixelRGBA16))
   inRGBA16 f = error $ "Cannot save "++show f++" in RGBA16 colorspace"
   inYCbCr8 JPG =
-    (JP.encodeJpegAtQuality 100) . (image2jp (convert :: RGB -> JP.PixelYCbCr8))
+    (JP.encodeJpegAtQuality 100) . (vectorToJP (convert :: RGB -> JP.PixelYCbCr8))
   inYCbCr8 f = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
-  inCMYK8 TIFF = JP.encodeTiff . (image2jp (convert :: RGB -> JP.PixelCMYK8))
+  inCMYK8 TIFF = JP.encodeTiff . (vectorToJP (convert :: RGB -> JP.PixelCMYK8))
   inCMYK8 f = error $ "Cannot save "++show f++" in CMYK8 colorspace"
-  inCMYK16 TIFF = JP.encodeTiff . (image2jp (convert :: RGB -> JP.PixelCMYK16))
+  inCMYK16 TIFF = JP.encodeTiff . (vectorToJP (convert :: RGB -> JP.PixelCMYK16))
   inCMYK16 f = error $ "Cannot save "++show f++" in CMYK16 colorspace"
-  inRGBF HDR = JP.encodeHDR . (image2jp (convert :: RGB -> JP.PixelRGBF))
+  inRGBF HDR = JP.encodeHDR . (vectorToJP (convert :: RGB -> JP.PixelRGBF))
   inRGBF f = error $ "Cannot save "++show f++" in RGBF colorspace"
 
 
@@ -153,30 +154,30 @@ readGrayImage :: FilePath -> IO (Image Gray)
 {-# INLINE readGrayImage #-}
 readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) where
   err str = error str
+  
 
-writeImage :: Saveable t => String -> Image t -> [SaveOptions t] -> IO ()
-{-# INLINE writeImage #-}
-writeImage !path !img !options = BL.writeFile path $ encoder format $ compute img' where
-  !format = getFormat options
-  !encoder = getEncoder options
-  compute !i@(dims -> (w, h)) = fromVector w h $ toVector i
-  !img' = if shouldNormalize options then normalize img else img
-  !ext = reverse . fst . (span ('.'/=)) . reverse $ path
-  shouldNormalize [] = True
-  shouldNormalize ((Normalize v):_) = v
-  shouldNormalize (_:opts) = shouldNormalize opts
-  getFormat [] = ext2format ext
-  getFormat !((Format f):_) = f
-  getFormat !(_:opts) = getFormat opts
-  getEncoder [] = defaultEncoder format
-  getEncoder !((Encoder enc):_) = enc
-  getEncoder !(_:opts) = getEncoder opts
-  defaultEncoder !f = case f of
-    BMP  -> inRGB8
-    JPG  -> inYCbCr8
-    PNG  -> inRGB8
-    TIFF -> inRGB8
-    HDR  -> inRGBF
-    PBM  -> inY8
-    PGM  -> inY8
-    PPM  -> inRGB8
+writeArrayImage :: Saveable px => String
+                   -> Array U DIM2 px
+                   -> [SaveOptions px]
+                   -> IO ()
+writeArrayImage !path !arr !options =
+  BL.writeFile path $ encoder format arr where
+    !format = getFormat options
+    !encoder = getEncoder options
+    !ext = reverse . fst . (span ('.'/=)) . reverse $ path
+    getFormat [] = ext2format ext
+    getFormat !((Format f):_) = f
+    getFormat !(_:opts) = getFormat opts
+    getEncoder [] = defaultEncoder format
+    getEncoder !((Encoder enc):_) = enc
+    getEncoder !(_:opts) = getEncoder opts
+    defaultEncoder !f = case f of
+      BMP  -> inRGB8
+      JPG  -> inYCbCr8
+      PNG  -> inRGB8
+      TIFF -> inRGB8
+      HDR  -> inRGBF
+      PBM  -> inY8
+      PGM  -> inY8
+      PPM  -> inRGB8
+{-# INLINE writeArrayImage #-}
