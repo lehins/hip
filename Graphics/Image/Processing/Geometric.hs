@@ -12,7 +12,7 @@ import Data.Complex
     while preserving the dimsensions of the original image. Pixels out of bounds are
     replaced with zero (black) pixels.
 -}
-rotate :: (Concrete Image px, Pixel px) => Image px -> Double -> Image px
+rotate :: (Image img px, Pixel px) => img px -> Double -> img px
 rotate img@(dims -> (w, h)) theta = make w h gop where
   (mw, mh) = (fromIntegral $ div w 2, fromIntegral $ div h 2)
   gop (fromIntegral -> x) (fromIntegral -> y) = ref1 img x' y' where
@@ -23,7 +23,7 @@ rotate img@(dims -> (w, h)) theta = make w h gop where
 {-| Same as `rotate` except the dimensions of the new image are adjusted so that
     the rotated image will fit completely.
 -}
-rotate' :: (Concrete Image px, Pixel px) => Image px -> Double -> Image px
+rotate' :: (Image img px, Pixel px) => img px -> Double -> img px
 rotate' img@(dims -> (w, h)) theta = make nw nh gop where
   (nw, nh) = (ceiling nwd, ceiling nhd)
   (nwd2, nhd2) = (nwd/2, nhd/2)

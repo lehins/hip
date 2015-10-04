@@ -1,9 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances, ViewPatterns #-}
 module Graphics.Image.Conversion where
 
 import Prelude hiding (map)
-import Graphics.Image.Definition hiding (minimum, maximum)
+import Graphics.Image.Definition (Convertable(..), Pixel(..))
+import Graphics.Image.Internal hiding (maximum, minimum)
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Array.Repa hiding ((++), map)
@@ -17,6 +18,7 @@ import Codec.Picture.Types hiding (Pixel, Image)
 import qualified Codec.Picture as JP    -- JuicyPixels
 import qualified Graphics.Netpbm as PNM -- Portable anymap format (PNM)
 import GHC.Float
+
 
 -- TODO: add links to wikipedia on formats
 -- TODO: implement writing for PNM formats

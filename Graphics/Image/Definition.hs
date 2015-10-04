@@ -1,11 +1,12 @@
--- {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns #-}
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns #-}
 
-module Graphics.Image.Definition where
-{-  Format(..),
-  Saveable(..),
-  SaveOptions(..),
-  Encoder, -}
+module Graphics.Image.Definition (
+  Convertable(..),
+  Pixel(..),
+  Strategy(..),
+  Image(..)
+  ) where
+
 
 import Prelude hiding ((++), map, minimum, maximum)
 import qualified Prelude as P (floor)
@@ -14,13 +15,8 @@ import qualified Data.Vector.Unboxed as V
 import Data.Array.Repa as R hiding (map)
 
 
-data Image px = ComputedImage  !(Array U DIM2 px)
-              | DelayedImage !(Array D DIM2 px)
-              | PureImage    !(Array U DIM2 px)
-
-
-class Convertable px1 px2 where
-  convert :: px1 -> px2
+class Convertable a b where
+  convert :: a -> b
 
 
 class (Elt px, V.Unbox px, Floating px, Fractional px, Num px, Eq px, Show px) =>
@@ -36,7 +32,22 @@ class (Elt px, V.Unbox px, Floating px, Fractional px, Num px, Eq px, Show px) =
   weakest :: px -> px
 
 
-class (Num (img px), Pixel px) => Abstract img px | px -> img where
+class (Image img px, Pixel px) => Strategy strat img px where
+  
+  -- | Make sure an Image is in a computed form.
+  compute :: strat img px
+             -> img px
+             -> img px
+
+  -- | Fold an Image.
+  fold :: strat img px
+          -> (px -> px -> px)
+          -> px
+          -> img px
+          -> px
+
+
+class (Num (img px), Pixel px) => Image img px | px -> img where
 
   -- | Get dimensions of the image. (rows, cols)
   dims :: Pixel px => img px -> (Int, Int)
@@ -48,10 +59,6 @@ class (Num (img px), Pixel px) => Abstract img px | px -> img where
   -- | Get the number of columns in the image
   cols :: Pixel px => img px -> Int
   cols = snd . dims
-
-  -- | In case you created a 2D Repa Array of pixels, you can easily convert it
-  -- to an Image
-  fromArray :: Pixel px => Array D DIM2 px -> img px
 
   -- | O(1) Convert an Unboxed Vector to an Image by supplying rows, columns and
   -- a vector
@@ -81,9 +88,6 @@ class (Num (img px), Pixel px) => Abstract img px | px -> img where
               ((Int -> Int -> px) -> Int -> Int -> px1) ->
               img px1
               
-
-class (Abstract img px, Pixel px) => Concrete img px | px -> img where
-
   -- | Get a pixel at i-th row and j-th column
   ref :: Pixel px => img px -> Int -> Int -> px
 
@@ -113,35 +117,54 @@ class (Abstract img px, Pixel px) => Concrete img px | px -> img where
     !fx0 = f00 + x'*(f10-f00)
     !fx1 = f01 + x'*(f11-f01)
   
-  -- | Fold an Image.
-  fold :: Pixel px => (px -> px -> px)-> px -> img px -> px
-
-  compute :: Pixel px => img px -> img px
-
-  -- | If you feel adventerous and want to manipulate this image using Repa
-  toArray :: Pixel px => img px -> Array U DIM2 px
-  
-  -- | O(1) Convert an Image to a Vector of length: rows*cols
-  toVector :: Pixel px => img px -> V.Vector px
-
   -- | Convert an Image to a nested List of Pixels.
-  toLists :: Pixel px => img px -> [[px]]
-  toLists img =
-    [[ref img m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]]
+  toLists :: (Strategy strat img px, Pixel px) =>
+             strat img px
+             -> img px
+             -> [[px]]
+  toLists strat img =
+    [[ref img' m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]] where
+      img' = compute strat img
 
-  maximum :: (Pixel px, Ord px) => img px -> px
-  maximum img = fold (pxOp2 max) (ref img 0 0) img
+  fromArray :: Pixel px =>
+               Array D DIM2 px
+               -> img px
+             
+  toArray :: (Strategy strat img px, Pixel px) =>
+             strat img px
+             -> img px
+             -> Array U DIM2 px
+
+  -- | O(1) Convert an Image to a Vector of length: rows*cols
+  toVector :: (Strategy strat img px, Pixel px) =>
+              strat img px
+              -> img px
+              -> V.Vector px
+  toVector strat = toUnboxed . toArray strat
+
+  maximum :: (Strategy strat img px, Pixel px, Ord px) =>
+             strat img px
+             -> img px
+             -> px
+  maximum strat img = fold strat (pxOp2 max) (ref img 0 0) img
   {-# INLINE maximum #-}
 
-  minimum :: (Pixel px, Ord px) => img px -> px
-  minimum img = fold (pxOp2 min) (ref img 0 0) img
+  minimum :: (Strategy strat img px, Pixel px, Ord px) =>
+             strat img px
+             -> img px
+             -> px
+  minimum strat img = fold strat (pxOp2 min) (ref img 0 0) img
   {-# INLINE minimum #-}
-
-  normalize :: (Pixel px, Ord px) => img px -> img px
-  normalize img = if s == w
+  
+  normalize :: (Strategy strat img px, Pixel px, Ord px) =>
+               strat img px
+               -> img px
+               -> img px
+  normalize strat img = compute strat $ if s == w
                   then img * 0
-                  else compute $ map normalizer img where
-                    !(!s, !w) = (strongest $ maximum img, weakest $ minimum img)
+                  else map normalizer img where
+                    !(!s, !w) = (strongest $ maximum strat img,
+                                 weakest $ minimum strat img)
                     normalizer px = (px - w)/(s - w)
                     {-# INLINE normalizer #-}
-  {-# INLINE normalize #-}
+  --{-# INLINE normalize #-}

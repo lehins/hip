@@ -1,12 +1,13 @@
 {-# LANGUAGE ViewPatterns, BangPatterns #-}
 module Graphics.Image.IO (
-  readGrayImage, readColorImage, writeArrayImage, shouldNormalize
+  readGrayImage, readColorImage, writeImage
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
 import Graphics.Image.Gray
 import Graphics.Image.Color
-import Graphics.Image.Definition
+import Graphics.Image.Definition (Pixel(..))
+import Graphics.Image.Internal
 import Graphics.Image.Conversion
 import Data.Char (toUpper)
 import Data.ByteString (readFile)
@@ -18,13 +19,11 @@ import qualified Data.ByteString.Lazy as BL (writeFile)
 readGrayImage :: FilePath -> IO (Image Gray)
 readGrayImage path = fmap ((either err id) . decodeGrayImage) (readFile path) where
   err str = error str
-{-# INLINE readGrayImage #-}
 
 
 readColorImage :: FilePath -> IO (Image RGB)
 readColorImage path = fmap ((either err id) . decodeRGBImage) (readFile path) where
   err str = error str
-{-# INLINE readColorImage #-}
 
   
 ext2format :: [Char] -> Format
@@ -42,15 +41,19 @@ ext2format ((P.map toUpper) -> ext)
 
 
 shouldNormalize [] = True
-shouldNormalize ((Normalize v):_) = v
+shouldNormalize ((Normalize should):_) = should
 shouldNormalize (_:opts) = shouldNormalize opts
 
-writeArrayImage :: Saveable px => String
-                   -> Array U DIM2 px
+
+writeImage :: (Pixel px, Saveable px) =>
+                   RepaStrategy Image px
+                   -> FilePath
+                   -> Image px
                    -> [SaveOptions px]
                    -> IO ()
-writeArrayImage !path !arr !options =
+writeImage !strat !path !img !options =
   BL.writeFile path $ encoder format arr where
+    !arr = toArray strat $ if shouldNormalize options then normalize strat img else img
     !format = getFormat options
     !encoder = getEncoder options
     !ext = reverse . fst . (span ('.'/=)) . reverse $ path

@@ -1,62 +1,80 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Graphics.Image.Sequential (
-  Concrete(..), writeImage
+  compute, fold, maximum, minimum, normalize, toVector, toLists, toArray, writeImage
   ) where
 
-import Prelude hiding (minmum, maximum)
-import Graphics.Image.Definition
-import Graphics.Image.Conversion
-import Graphics.Image.IO (shouldNormalize, writeArrayImage)
+import Prelude hiding (maximum, minimum)
+import Graphics.Image.Conversion (Saveable, SaveOptions)
+import Graphics.Image.Definition (Pixel)
+import qualified Graphics.Image.Internal as I
+import qualified Graphics.Image.IO as IO (writeImage)
 import Data.Array.Repa as R hiding ((++))
 import Data.Array.Repa.Eval as R
-import qualified Data.Vector.Unboxed as V
-
-      
-instance Pixel px => Concrete Image px where
-  ref (ComputedImage arr) r c = index arr (Z :. r :. c)
-  ref (PureImage arr)     _ _ = unsafeIndex arr (Z :. 0 :. 0)
-  ref (DelayedImage _)    _ _ =
-    error "Only concrete images can have there content referenced."
-  {-# INLINE ref #-}
-  
-  fold = imgFold
-  {-# INLINE fold #-}
-
-  compute = imgCompute
-  {-# INLINE compute #-}
-
-  toArray (PureImage arr)       = arr
-  toArray (ComputedImage arr)   = arr
-  toArray img@(DelayedImage _)  = toArray $ compute img
-  {-# INLINE toArray #-}
-  
-  toVector = imgToVector
-  {-# INLINE toVector #-}
+import Data.Vector.Unboxed (Vector)
 
 
-imgFold :: (Pixel px, Elt px, V.Unbox px) => (px -> px -> px) -> px -> Image px -> px
-imgFold op px (PureImage arr) = foldAllS op px arr
-imgFold op px (DelayedImage arr) = foldAllS op px arr
-imgFold op px (ComputedImage arr) = foldAllS op px arr
-{-# INLINE imgFold #-}
+compute :: Pixel px =>
+           I.Image px
+           -> I.Image px
+compute = I.compute I.Sequential
+{-# INLINE compute #-}
 
 
-imgCompute :: (Pixel px, Elt px, V.Unbox px) => Image px -> Image px 
-imgCompute (PureImage arr) = PureImage arr
-imgCompute (DelayedImage arr) = ComputedImage $ computeS arr
-imgCompute (ComputedImage arr) = ComputedImage arr
-{-# INLINE imgCompute #-}
+fold :: Pixel px =>
+        (px -> px -> px)
+        -> px
+        -> I.Image px
+        -> px
+fold = I.fold I.Sequential
+{-# INLINE fold #-}
 
 
-imgToVector :: (Pixel a, Elt a, V.Unbox a) => Image a -> V.Vector a
-imgToVector (PureImage arr) = V.singleton $ unsafeIndex arr (Z :. 0 :. 0)
-imgToVector (DelayedImage arr) = toUnboxed $ computeS arr
-imgToVector (ComputedImage arr) = toUnboxed arr
-{-# INLINE imgToVector #-}
+maximum :: (Pixel px, Ord px) =>
+           I.Image px
+           -> px
+maximum = I.maximum I.Sequential
+{-# INLINE maximum #-}
 
-writeImage :: (Saveable px) => String -> Image px -> [SaveOptions px] -> IO ()
-writeImage !path !img !options =
-  writeArrayImage path (toArray $ imgCompute img') options where
-  !img' = if shouldNormalize options then normalize img else img
-{-# INLINE writeImage #-}
+
+minimum :: (Pixel px, Ord px) =>
+           I.Image px
+           -> px
+minimum = I.minimum I.Sequential
+{-# INLINE minimum #-}
+
+
+normalize :: (Pixel px, Ord px) =>
+             I.Image px
+             -> I.Image px
+normalize = I.normalize I.Sequential
+{-# INLINE normalize #-}
+
+
+toVector :: Pixel px =>
+            I.Image px
+            -> Vector px
+toVector = I.toVector I.Sequential
+{-# INLINE toVector #-}
+
+
+toLists :: Pixel px =>
+           I.Image px
+           -> [[px]]
+toLists = I.toLists I.Sequential
+{-# INLINE toLists #-}
+
+
+toArray :: Pixel px =>
+           I.Image px
+           -> Array U DIM2 px
+toArray = I.toArray I.Sequential
+{-# INLINE toArray #-}
+
+
+writeImage :: (Saveable px) =>
+              String
+              -> I.Image px
+              -> [SaveOptions px]
+              -> IO ()
+writeImage !path !img !options = IO.writeImage I.Sequential path img options
