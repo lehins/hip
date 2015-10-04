@@ -10,7 +10,6 @@ import Graphics.Image.Definition (Pixel)
 import qualified Graphics.Image.Internal as I
 import qualified Graphics.Image.IO as IO (writeImage)
 import Data.Array.Repa as R hiding ((++))
-import Data.Array.Repa.Eval as R
 import Data.Vector.Unboxed (Vector)
 
 

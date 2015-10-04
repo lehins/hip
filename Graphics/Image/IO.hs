@@ -11,7 +11,6 @@ import Graphics.Image.Internal
 import Graphics.Image.Conversion
 import Data.Char (toUpper)
 import Data.ByteString (readFile)
-import Data.Array.Repa as R hiding ((++))
 import qualified Data.ByteString.Lazy as BL (writeFile)
 
 
@@ -40,6 +39,7 @@ ext2format ((P.map toUpper) -> ext)
   | otherwise = error $ "Unsupported file extension: "++ext
 
 
+shouldNormalize :: Pixel px => [SaveOption px] -> Bool
 shouldNormalize [] = True
 shouldNormalize ((Normalize should):_) = should
 shouldNormalize (_:opts) = shouldNormalize opts
@@ -49,7 +49,7 @@ writeImage :: (Pixel px, Saveable px) =>
                    RepaStrategy Image px
                    -> FilePath
                    -> Image px
-                   -> [SaveOptions px]
+                   -> [SaveOption px]
                    -> IO ()
 writeImage !strat !path !img !options =
   BL.writeFile path $ encoder format arr where

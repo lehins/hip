@@ -9,6 +9,7 @@ import Graphics.Image.Definition
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
+
 data Gray = Gray !Double deriving Eq
 
 

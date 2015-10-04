@@ -7,11 +7,9 @@ module Graphics.Image.Color (
 
 import Prelude hiding (map)
 import Graphics.Image.Definition (Pixel(..))
-import Graphics.Image.Internal hiding (maximum, minimum)
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import Data.Vector.Unboxed (Unbox)
-import qualified Codec.Picture as JP
 
 
 data RGB = RGB !Double !Double !Double deriving Eq

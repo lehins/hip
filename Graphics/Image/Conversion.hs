@@ -8,11 +8,11 @@ import Graphics.Image.Internal hiding (maximum, minimum)
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Array.Repa hiding ((++), map)
-import Data.ByteString.Lazy (ByteString)
-import Data.Typeable
+import qualified Data.ByteString.Lazy as BL (ByteString)
+import qualified Data.ByteString as B (ByteString)
 import Data.Word (Word8, Word16)
 import qualified Data.Vector.Unboxed as V
-import qualified Data.Vector.Storable as VS (map, convert)
+import qualified Data.Vector.Storable as VS (convert, Vector, Storable)
 import Codec.Picture hiding (Pixel, Image)
 import Codec.Picture.Types hiding (Pixel, Image)
 import qualified Codec.Picture as JP    -- JuicyPixels
@@ -34,12 +34,12 @@ data Format = BMP  -- ^ A BMP image with .bmp extension
             deriving Show
 
 
-type Encoder px = Format -> Array U DIM2 px -> ByteString
+type Encoder px = Format -> Array U DIM2 px -> BL.ByteString
 
 
-data SaveOptions px = Format Format
-                    | Encoder (Encoder px)
-                    | Normalize Bool
+data SaveOption px = Format Format
+                   | Encoder (Encoder px)
+                   | Normalize Bool
 
 
 class (Ord px, Pixel px) => Saveable px where
@@ -292,13 +292,17 @@ instance Convertable RGB PixelCMYK16 where
 
 ----- JuicyPixels Images --------------------------------------------------------
 
-jp2Image i = make (imageHeight i) (imageWidth i) pxOp
-  where pxOp y x = convert $ pixelAt i x y
+jp2Image :: (Pixel px1, Convertable px2 px1, JP.Pixel px2) =>
+            JP.Image px2 -> Image px1
+jp2Image i = make (imageHeight i) (imageWidth i) conv
+  where conv y x = convert $ pixelAt i x y
 
 instance Convertable DynamicImage (Image Gray) where
   convert (ImageY8 i) = jp2Image i
   convert (ImageY16 i) = jp2Image i
   convert (ImageYF i) = jp2Image i
+  convert (ImageYA8 i) = jp2Image i
+  convert (ImageYA16 i) = jp2Image i
   convert (ImageRGB8 i) = jp2Image i
   convert (ImageRGB16 i) = jp2Image i
   convert (ImageRGBF i) = jp2Image i
@@ -312,6 +316,8 @@ instance Convertable DynamicImage (Image RGB) where
   convert (ImageY8 i) = jp2Image i
   convert (ImageY16 i) = jp2Image i
   convert (ImageYF i) = jp2Image i
+  convert (ImageYA8 i) = jp2Image i
+  convert (ImageYA16 i) = jp2Image i
   convert (ImageRGB8 i) = jp2Image i
   convert (ImageRGB16 i) = jp2Image i
   convert (ImageRGBF i) = jp2Image i
@@ -325,6 +331,9 @@ instance Convertable DynamicImage (Image RGB) where
 -- Netpbm--------------------------------------------------------------------------
 
 ---- to and from Gray -----
+  
+instance Convertable PNM.PbmPixel Gray where
+  convert (PNM.PbmPixel bool) = Gray $ if bool then 1.0 else 0.0
   
 instance Convertable PNM.PgmPixel8 Gray where
   convert (PNM.PgmPixel8 w8) = convert w8
@@ -352,6 +361,9 @@ instance Convertable Gray PNM.PpmPixelRGB16 where
 
 ---- to and from RGB -----
 
+instance Convertable PNM.PbmPixel RGB where
+  convert = convert . (convert :: PNM.PbmPixel -> Gray)
+  
 instance Convertable PNM.PgmPixel8 RGB where
   convert = convert . (convert :: PNM.PgmPixel8 -> Gray)
 
@@ -385,9 +397,13 @@ instance Convertable PbmPixel where
 
 -}
 
+ppm2Image :: (VS.Storable px1, V.Unbox px1, Pixel px2, Convertable px1 px2) =>
+             PNM.PPMHeader -> VS.Vector px1 -> Image px2
 ppm2Image (PNM.PPMHeader _ c r) v = fromVector r c $ V.map convert $ VS.convert v
 
 
+decodeGrayImage :: (Convertable PNM.PPM b, Convertable DynamicImage b) =>
+                   B.ByteString -> Either [Char] b
 decodeGrayImage imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
   where
     pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
@@ -395,6 +411,8 @@ decodeGrayImage imstr = either pnm2Image (Right . convert) $ JP.decodeImage imst
       pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
 
 
+decodeRGBImage :: (Convertable PNM.PPM b, Convertable DynamicImage b) =>
+                  B.ByteString -> Either [Char] b
 decodeRGBImage imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
   where
     pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
@@ -405,6 +423,7 @@ decodeRGBImage imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
 instance Convertable PNM.PPM (Image Gray) where
   convert (PNM.PPM header (PNM.PpmPixelDataRGB8 v))  = ppm2Image header v
   convert (PNM.PPM header (PNM.PpmPixelDataRGB16 v)) = ppm2Image header v
+  convert (PNM.PPM header (PNM.PbmPixelData v))      = ppm2Image header v
   convert (PNM.PPM header (PNM.PgmPixelData8 v))     = ppm2Image header v
   convert (PNM.PPM header (PNM.PgmPixelData16 v))    = ppm2Image header v
 
@@ -412,6 +431,7 @@ instance Convertable PNM.PPM (Image Gray) where
 instance Convertable PNM.PPM (Image RGB) where
   convert (PNM.PPM header (PNM.PpmPixelDataRGB8 v))  = ppm2Image header v
   convert (PNM.PPM header (PNM.PpmPixelDataRGB16 v)) = ppm2Image header v
+  convert (PNM.PPM header (PNM.PbmPixelData v))      = ppm2Image header v
   convert (PNM.PPM header (PNM.PgmPixelData8 v))     = ppm2Image header v
   convert (PNM.PPM header (PNM.PgmPixelData16 v))    = ppm2Image header v
 
