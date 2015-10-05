@@ -117,9 +117,9 @@ instance Floating Color where
 
 
 instance Ord Color where
-  {-# INLINE (<=) #-}
   (strongest -> RGB m1 _ _) <= (strongest -> RGB m2 _ _) = m1 <= m2
-  px1 <= px2 = (inRGB px1) <= (inRGB px2)
+  px1 <= px2                                             = (inRGB px1) <= (inRGB px2)
+  {-# INLINE (<=) #-}
 
 instance Show Color where
   {-# INLINE show #-}

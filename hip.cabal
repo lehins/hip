@@ -1,6 +1,6 @@
 Name:              hip
 Version:           1.0.0.0
-License:           GPL
+License:           MIT
 License-File:      LICENSE
 Author:            Alexey Kuleshevich, Joseph Collard, Stephen Patel, Lance Williams
 Stability:         experimental
