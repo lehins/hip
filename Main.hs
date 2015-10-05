@@ -1,14 +1,13 @@
-{-# LANGUAGE FlexibleInstances #-}
 module Main where
 
-import Graphics.Image.IO
---import Graphics.Image.Gray
---import Graphics.Image.Internal (make, ref)
-import qualified Graphics.Image.Parallel as P
---import qualified Graphics.Image.Sequential as S
+import Graphics.Image
+import Graphics.Image.Parallel
 import Graphics.Image.Processing.Geometric
   
 main :: IO ()  
 main = do
+  setDisplayProgram "gpicview"
   lena <- readColorImage "lena.jpg"
-  P.writeImage "lena_rot.png" (rotate' (P.compute lena) (pi/6)) []
+  --writeImage "lena_rot.png" (rotate' (compute lena) (pi/6)) []
+  display (rotate' (compute lena) (pi/6))
+  display lena

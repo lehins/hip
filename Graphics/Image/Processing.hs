@@ -3,7 +3,6 @@ module Graphics.Image.Processing (
   -- * Convolution
   module Graphics.Image.Processing.Convolution,
   module Graphics.Image.Processing.FFT,
-  module Graphics.Image.Processing.Matrix,
   module Graphics.Image.Processing.Geometric,
   downsampleRows, downsampleCols, downsample, downsampleF,
   upsampleRows, upsampleCols, upsample, upsampleF,

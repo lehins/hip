@@ -1,19 +1,21 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE GADTs, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, FlexibleInstances #-}
+{-# LANGUAGE GADTs, MultiParamTypeClasses, ViewPatterns, FlexibleInstances #-}
 
 module Graphics.Image.Internal (
-  compute, fold, ref, dims, make, map, zipWith, traverse, fromVector, fromLists,
-  fromArray, toVector, toLists, toArray, maximum, minimum, normalize,
+  compute, fold, sum, ref, refd, refm, ref1, dims, make, 
+  map, zipWith, traverse, transpose, backpermute, crop,
+  fromVector, fromLists, fromArray, toVector, toLists, toArray,
+  maximum, minimum, normalize,
   Image(..), RepaStrategy(..)
   ) where
 
-import Prelude hiding ((++), map, zipWith, maximum, minimum)
+import Prelude hiding ((++), map, zipWith, maximum, minimum, sum)
 import qualified Prelude as P (floor)
 import Graphics.Image.Definition hiding (Image)
 import qualified Graphics.Image.Definition as D (Image)
 import Data.Array.Repa.Eval
-import Data.Array.Repa as R hiding (map, zipWith, traverse)
-import qualified Data.Array.Repa as R (map, zipWith, traverse)
+import Data.Array.Repa as R hiding (map, zipWith, traverse, transpose, backpermute)
+import qualified Data.Array.Repa as R (map, zipWith, traverse, transpose, backpermute)
 
 
 data Image px = ComputedImage !(Array U DIM2 px)
@@ -29,7 +31,7 @@ data RepaStrategy img px where
 
 instance Pixel px => Strategy RepaStrategy Image px where
   compute Sequential (AbstractImage arr) = ComputedImage $ computeS arr
-  compute Parallel (AbstractImage arr) = deepSeqArray arr' $ ComputedImage arr'
+  compute Parallel (AbstractImage arr) =  arr' `deepSeqArray` ComputedImage arr'
     where arr' = head $ computeP arr
   compute _ img = img
   {-# INLINE compute #-}
@@ -40,6 +42,11 @@ instance Pixel px => Strategy RepaStrategy Image px where
   fold Parallel op px (ComputedImage arr)   = head $ foldAllP op px arr
   fold _ op px (SingletonImage arr)         = foldAllS op px arr
   {-# INLINE fold #-}
+
+  toArray _ (SingletonImage arr) = arr
+  toArray _ (ComputedImage arr)  = arr
+  toArray strat img              = toArray strat $ compute strat img
+  {-# INLINE toArray #-}
 
 
 instance Pixel px => D.Image Image px where
@@ -83,17 +90,25 @@ instance Pixel px => D.Image Image px where
     {-# INLINE nindex #-}
       -- g i j = f (Z :. i :. j) == g = ((.).(.)) f ix2
   {-# INLINE traverse #-}
+
+  transpose img@(SingletonImage _) = img
+  transpose (getDelayed -> arr)    = AbstractImage . R.transpose $ arr
+  {-# INLINE transpose #-}
+
+  backpermute _ _ _ img@(SingletonImage _) = img
+  backpermute r c f (getDelayed -> arr) =
+    AbstractImage $ R.backpermute (Z :. r :. c) g arr where
+      g (Z :. i :. j) = uncurry ix2 $ f i j
+  {-# INLINE backpermute #-}
+
+  crop _ _ _ _ img@(SingletonImage _) = img
+  crop i j m n (getDelayed -> arr) =
+    AbstractImage $ extract (Z :. i :. j) (Z :. m :. n) arr
+  {-# INLINE crop #-}
   
-  fromVector r c = ComputedImage . (fromUnboxed (Z :. r :. c))
-  {-# INLINE fromVector #-}
-  
-  fromArray arr = AbstractImage arr
+  fromArray arr = AbstractImage . delay $ arr
   {-# INLINE fromArray #-}
   
-  toArray _ (SingletonImage arr) = arr
-  toArray _ (ComputedImage arr)  = arr
-  toArray strat img              = toArray strat $ compute strat img
-  {-# INLINE toArray #-}
   
 
 getDelayed :: Pixel px => Image px -> Array D DIM2 px
@@ -171,26 +186,3 @@ instance Pixel px => Floating (Image px) where
   
   acosh = map acosh
   {-# INLINE acosh #-}
-
-{-
--- | In case you created a 2D Repa Array of pixels, you can easily convert it
--- to an Image
-fromArray :: (Source r px, Pixel px) => Array r DIM2 px -> RepaImage px
-fromArray arr = AbstractImage $ delay arr
-
--}  
-
-
-
-
-{-
-
-
-imgToVector :: (Pixel px, Elt px, V.Unbox px) => Image px -> V.Vector px
-imgToVector (SingletonImage arr) = V.singleton $ unsafeIndex arr (Z :. 0 :. 0)
-imgToVector (AbstractImage arr) = toUnboxed $ head $ computeP arr
-imgToVector (ComputedImage arr) = toUnboxed arr
-{-# INLINE imgToVector #-}
-
-
--}

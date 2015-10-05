@@ -1,41 +1,67 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies,
-UndecidableInstances, BangPatterns, FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses,
+UndecidableInstances, BangPatterns, FlexibleInstances, TypeFamilies #-}
 
 module Graphics.Image.Color (
-  RGB (..), HSI(..)
+  Color (..), inRGB, inHSI
   ) where
 
 import Prelude hiding (map)
 import Graphics.Image.Definition (Pixel(..))
+import Data.Int (Int8)
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import Data.Vector.Unboxed (Unbox)
 
 
-data RGB = RGB !Double !Double !Double deriving Eq
+data Color = RGB !Double !Double !Double
+           | HSI !Double !Double !Double deriving Eq
 
 
-data HSI = HSI !Double !Double !Double deriving Eq
+inRGB :: Color -> Color
+inRGB !(HSI !h !s !i) = RGB r g b where
+    !r  = i + v1
+    !g  = i - (v1/2) + v2
+    !b  = i - (v1/2) - v2
+    !v1 = c * s * (cos h)/3
+    !v2 = c * s * (sin h)/2
+    !c  = 2.44948974278318
+inRGB px@(RGB _ _ _) = px
 
 
-instance Pixel RGB where
-  pixel d                               = RGB d d d
+inHSI :: Color -> Color
+inHSI (RGB r g b) = HSI h s i where
+  h = if (v1 /= 0.0) then atan2 v2 v1 else 0
+  s = sqrt((v1 * v1) + (v2 * v2))
+  i = (r + g + b)/3
+  v1 = (2.0*r - g - b) / c
+  v2 = (g - b) / c
+  c = 2.44948974278318
+inHSI px@(HSI _ _ _) = px
+
+
+instance Pixel Color where
+  pixel d = RGB d d d
   {-# INLINE pixel #-}
 
-  pxOp f (RGB r g b)                    = RGB (f r) (f g) (f b)
+  pxOp f (RGB r g b) = RGB (f r) (f g) (f b)
+  pxOp f (HSI h s i) = HSI (f h) (f s) (f i)
   {-# INLINE pxOp #-}
 
   pxOp2 f (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
+  pxOp2 f (HSI h1 s1 i1) (HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
+  pxOp2 f px1 px2                       = pxOp2 f (inRGB px1) (inRGB px2)
   {-# INLINE pxOp2 #-}
 
-  strongest (RGB r g b)                 = pixel . maximum $ [r, g, b]
+  strongest (RGB r g b) = pixel . maximum $ [r, g, b]
+  strongest px          = strongest . inRGB $ px
   {-# INLINE strongest #-}
 
-  weakest (RGB r g b)                   = pixel . minimum $ [r, g, b]
+  weakest (RGB r g b) = pixel . minimum $ [r, g, b]
+  weakest px          = weakest . inRGB $ px
   {-# INLINE weakest #-}
   
 
-instance Num RGB where
+instance Num Color where
   (+)           = pxOp2 (+)
   {-# INLINE (+) #-}
   
@@ -55,13 +81,13 @@ instance Num RGB where
   {-# INLINE fromInteger #-}
 
 
-instance Fractional RGB where
+instance Fractional Color where
   (/)            = pxOp2 (/)
   recip          = pxOp recip
   fromRational n = pixel . fromRational $ n
 
 
-instance Floating RGB where
+instance Floating Color where
   {-# INLINE pi #-}
   pi      = pixel pi
   {-# INLINE exp #-}
@@ -90,19 +116,21 @@ instance Floating RGB where
   acosh   = pxOp acosh
 
 
-instance Ord RGB where
+instance Ord Color where
   {-# INLINE (<=) #-}
   (strongest -> RGB m1 _ _) <= (strongest -> RGB m2 _ _) = m1 <= m2
+  px1 <= px2 = (inRGB px1) <= (inRGB px2)
 
-
-instance Show RGB where
+instance Show Color where
   {-# INLINE show #-}
   show (RGB r g b) = "<RGB:("++show r++"|"++show g++"|"++show b++")>"
+  show (HSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"
 
 
-instance Elt RGB where
+instance Elt Color where
   {-# INLINE touch #-}
   touch (RGB r g b) = touch r >> touch g >> touch b
+  touch (HSI h s i) = touch h >> touch s >> touch i
   
   {-# INLINE zero #-}
   zero             = 0
@@ -111,168 +139,20 @@ instance Elt RGB where
   one              = 1
 
 
-instance Pixel HSI where
-  pixel d                               = HSI d d d
-  {-# INLINE pixel #-}
-
-  pxOp f (HSI r g b)                    = HSI (f r) (f g) (f b)
-  {-# INLINE pxOp #-}
-
-  pxOp2 f (HSI r1 g1 b1) (HSI r2 g2 b2) = HSI (f r1 r2) (f g1 g2) (f b1 b2)
-  {-# INLINE pxOp2 #-}
-
-  strongest (HSI r g b)                 = pixel . maximum $ [r, g, b]
-  {-# INLINE strongest #-}
-
-  weakest (HSI r g b)                   = pixel . minimum $ [r, g, b]
-  {-# INLINE weakest #-}
+unboxColor :: Color -> (Int8, Double, Double, Double)
+{-# INLINE unboxColor #-}  
+unboxColor (RGB r g b) = (0, r, g, b)
+unboxColor (HSI h s i) = (1, h, s, i)
 
 
-instance Num HSI where
-  (+)           = pxOp2 (+)
-  {-# INLINE (+) #-}
-
-  (-)           = pxOp2 (-)
-  {-# INLINE (-) #-}
-
-  (*)           = pxOp2 (*)
-  {-# INLINE (*) #-}
-
-  abs           = pxOp abs
-  {-# INLINE abs #-}
-
-  signum        = pxOp signum
-  {-# INLINE signum #-}
-
-  fromInteger n = pixel . fromIntegral $ n
-  {-# INLINE fromInteger #-}
+boxColor :: (Int8, Double, Double, Double) -> Color
+{-# INLINE boxColor #-}
+boxColor (0, r, g, b) = RGB r g b
+boxColor (1, h, s, i) = HSI h s i
+boxColor u            = error ("Unsupported unboxed color: "++show u)
 
 
-instance Fractional HSI where
-  (/)            = pxOp2 (/)
-  recip          = pxOp recip
-  fromRational n = pixel . fromRational $ n
-
-
-instance Floating HSI where
-  pi      = pixel pi
-  {-# INLINE pi #-}
-
-  exp     = pxOp exp
-  {-# INLINE exp #-}
-
-  log     = pxOp log
-  {-# INLINE log #-}
-
-  sin     = pxOp sin
-  {-# INLINE sin #-}
-
-  cos     = pxOp cos
-  {-# INLINE cos #-}
-
-  asin    = pxOp asin
-  {-# INLINE asin #-}
-
-  atan    = pxOp atan
-  {-# INLINE atan #-}
-
-  acos    = pxOp acos
-  {-# INLINE acos #-}
-
-  sinh    = pxOp sinh
-  {-# INLINE sinh #-}
-
-  cosh    = pxOp cosh
-  {-# INLINE cosh #-}
-
-  asinh   = pxOp asinh
-  {-# INLINE asinh #-}
-
-  atanh   = pxOp atanh
-  {-# INLINE atanh #-}
-
-  acosh   = pxOp acosh
-  {-# INLINE acosh #-}
-
-
-instance Ord HSI where
-  {-# INLINE (<=) #-}
-  (strongest -> HSI m1 _ _) <= (strongest -> HSI m2 _ _) = m1 <= m2
-
-
-instance Show HSI where
-  {-# INLINE show #-}
-  show (HSI r g b) = "<HSI:("++show r++"|"++show g++"|"++show b++")>"
-
-
-instance Elt HSI where
-  {-# INLINE touch #-}
-  touch (HSI r g b) = touch r >> touch g >> touch b
-  
-  {-# INLINE zero #-}
-  zero = 0
-
-  {-# INLINE one #-}
-  one = 1
-
-
-zipRGB :: RGB -> (Double, Double, Double)
-{-# INLINE zipRGB #-}  
-zipRGB (RGB r g b) = (r,g,b)
-
-
-unzipRGB :: (Double, Double, Double) -> RGB
-{-# INLINE unzipRGB #-}
-unzipRGB (r,g,b) = (RGB r g b)
-
-
-zipHSI :: HSI -> (Double, Double, Double)
-{-# INLINE zipHSI #-}  
-zipHSI (HSI r g b) = (r,g,b)
-
-
-unzipHSI :: (Double, Double, Double) -> HSI
-{-# INLINE unzipHSI #-}
-unzipHSI (r,g,b) = (HSI r g b)
-
-
-derivingUnbox "RGBPixel"
-    [t| (Unbox Double) => RGB -> (Double, Double, Double) |]
-    [| zipRGB |]
-    [| unzipRGB |]
-
-
-derivingUnbox "HSIPixel"
-    [t| (Unbox Double) => HSI -> (Double, Double, Double) |]
-    [| zipHSI |]
-    [| unzipHSI |]
-
-
-                               
-{-
-instance Convertable (Image Gray, Image Gray, Image Gray) (Image HSI) where
-  convert imgs@(h, s, i) = fromVector m n $ V.zipWith3 HSI (f h) (f s) (f i)
-    where (m, n) = dims h
-          f = V.map (\(Gray d) -> d) . toVector
--}
-
-{-
-instance Convertable RGB HSI where
-  convert (RGB r g b) = HSI h s i where
-    h = (rad2pi (if (v1 /= 0.0) then atan2 v2 v1 else 0)) / (2*pi)
-    s = 1 - ((minimum [r, g, b])/i)
-    i = (r+g+b)/3
-    v1 = (2.0*r-g-b) / c
-    v2 = (g - b) / c
-    c = 2.44948974278318
-
-instance Convertable HSI RGB where
-  convert (HSI h s i) = RGB r g b where
-    h' = 2*pi
-    r = i + v1
-    g = i - (v1/2) + v2
-    b = i - (v1/2) - v2
-    v1 = c*s*(cos h')/3
-    v2 = c*s*(sin h')/2
-    c = 2.44948974278318
--}
+derivingUnbox "ColorPixel"
+    [t| (Unbox Double) => Color -> (Int8, Double, Double, Double) |]
+    [| unboxColor |]
+    [| boxColor |]

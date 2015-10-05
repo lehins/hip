@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Processing.Matrix (
-  transpose, crop,  (.*), flipH, flipV
+  crop,  (.*), flipH, flipV
   ) where
 
 import Graphics.Image.Definition
@@ -27,16 +27,17 @@ flipV img = fromDelayed . backpermute (Z :. m :. n) flipper $ arr where
   {-# INLINE flipper #-}
   flipper (Z :. i :. j) = (Z :. mod (-i-1) m :. j)
 
-transpose :: Pixel px => Image px -> Image px
-{-# INLINE transpose #-}
-transpose = fromDelayed . R.transpose . getDelayed
 
 -- | Matrix type multiplication of two images. Dimensions must be MxN .* NxM
 -- Note that operator is exactly opposite in MATLAB.
-(.*) :: Pixel px => Image px -> Image px -> Image px
+(.*) :: (Strategy strat img px, Image img px, Pixel px) =>
+        strat img px
+        -> img px
+        -> img px
+        -> img px
 {-# INLINE (.*) #-}
 (.*) img1 img2
-  | m1 == n2 && n1 == m2 = fromDelayed $ fromFunction (Z :. m1 :. n2) multOp
+  | m1 == n2 && n1 == m2 = make m1 n2 multOp
   | otherwise = error "Image dimensions must agree. Expected MxN * NxM = MxM"
   where
     !(!m1, !n1) = dims img1
@@ -44,7 +45,7 @@ transpose = fromDelayed . R.transpose . getDelayed
     !arr1 = getComputed img1
     !arr2 = getComputed img2
     {-# INLINE multOp #-}
-    multOp (Z :. i :. j) = sumAllS $ R.zipWith (*)
+    multOp i j = sumAllS $ R.zipWith (*)
                  (slice arr1 (Any :. (i::Int) :. All))
                  (slice arr2 (Any :. (j::Int)))
 

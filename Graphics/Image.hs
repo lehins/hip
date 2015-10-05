@@ -1,33 +1,27 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image (
-  Image, Abstract(..), Pixel(..), Convertable(..),
-  module Graphics.Image.Gray,
-  module Graphics.Image.Color,
-  module Graphics.Image.Complex,
-  hsiToGrays, rgbToHsi, hsiToRgb
+  Image, Pixel, Gray(..), Color(..),
+  ref, refd, refm, ref1, dims, make, map, zipWith, traverse, transpose,
+  backpermute, crop, fromVector, fromLists, fromArray,
+  readColorImage, readGrayImage, setDisplayProgram
   ) where
-
-import Graphics.Image.Definition
+import qualified Prelude as P
+import Codec.Picture.Types (DynamicImage)
+import Graphics.Image.Definition (Convertable, Pixel)
+import Graphics.Image.Internal
 import Graphics.Image.Gray
 import Graphics.Image.Color
-import Graphics.Image.Complex
---import Graphics.Image.IO
---import Graphics.Image.Interactive
+import Graphics.Image.IO
+import Graphics.Netpbm (PPM)
 
-hsiToGrays :: Image HSI -> (Image Gray, Image Gray, Image Gray)
-{-# INLINE hsiToGrays #-}
-hsiToGrays = convert
 
-{-
-graysToHsi :: (Image Gray, Image Gray, Image Gray) -> Image HSI
-{-# INLINE graysToHsi #-}
-graysToHsi = convert
--}
+readGrayImage :: (Convertable DynamicImage (Image Gray),
+                  Convertable PPM (Image Gray)) =>
+                 P.FilePath -> P.IO (Image Gray)
+readGrayImage = readImage
 
-rgbToHsi :: Image RGB -> Image HSI
-{-# INLINE rgbToHsi #-}
-rgbToHsi = convert
 
-hsiToRgb :: Image HSI -> Image RGB
-{-# INLINE hsiToRgb #-}
-hsiToRgb = convert
-
+readColorImage :: (Convertable DynamicImage (Image Color),
+                  Convertable PPM (Image Color)) =>
+                 P.FilePath -> P.IO (Image Color)
+readColorImage = readImage

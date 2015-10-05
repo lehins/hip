@@ -4,29 +4,32 @@ License:           GPL
 License-File:      LICENSE
 Author:            Alexey Kuleshevich, Joseph Collard, Stephen Patel, Lance Williams
 Stability:         experimental
-Maintainer:        josephmcollard+unm-hip@gmail.com
+Maintainer:        lehins@yandex.ru
 Category:          Image Processing
-Synopsis:          A Library for the manipulation of images
+Synopsis:          An Image Processing Library.
 
 Description:       The University of New Mexico's Haskell Image Processing library contains functionality for performing manipulations on binary, grayscale, color, and complex images. The library was designed for use in UNM's Digital Image Processing class but it can be used for a wide range of image processing purposes.
 Cabal-Version:     >= 1.6
 Build-Type:        Simple
 
 Library
-  Build-Depends:  base >= 4 && < 5,
-                  vector >= 0.9,
-                  bytestring >= 0.9.0.4,
-                  repa >= 3.0.0.1,
-                  repa-algorithms >= 3.0.0.1,
-                  vector-th-unbox >= 0.2.0.1,
-                  temporary >= 1.0,
-                  process >= 1.1.0.0,
-                  netpbm >= 1.0.0,
-                  JuicyPixels >= 3.1
+  Build-Depends:  JuicyPixels >= 3.1
+                , base >= 4.5 && < 5
+                , bytestring >= 0.9.0.4
+                , filepath >= 1.1
+                , netpbm >= 1.0.1
+                , process >= 1.1.0.0
+                , repa >= 3.0.0.1
+                , repa-algorithms >= 3.0.0.1
+                , temporary >= 1.1.1
+                , vector >= 0.9
+                , vector-th-unbox >= 0.2.1.0
 	  
   Extensions:     BangPatterns,
+                  GADTs,
                   FlexibleContexts, 
-                  FlexibleInstances, 
+                  FlexibleInstances,
+                  FunctionalDependencies,
                   MultiParamTypeClasses,
                   NoMonomorphismRestriction,
                   TemplateHaskell,
@@ -38,7 +41,8 @@ Library
                    Graphics.Image.Color,
                    Graphics.Image.Complex,
                    Graphics.Image.Processing,
-                   Graphics.Image.Interactive
+                   Graphics.Image.Parallel,
+                   Graphics.Image.Sequential
 
   Other-modules:   Graphics.Image.Definition,
                    Graphics.Image.Internal,
@@ -49,7 +53,7 @@ Library
                    Graphics.Image.Processing.Geometric,
                    Graphics.Image.Processing.Matrix
 
-  ghc-options: -Wall -Odph -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
+  ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
 
 --executable examples
 --  main-is:         Main.hs

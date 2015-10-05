@@ -35,8 +35,8 @@ class (Elt px, V.Unbox px, Floating px, Fractional px, Num px, Eq px, Show px) =
 class (Image img px, Pixel px) => Strategy strat img px where
   
   -- | Make sure an Image is in a computed form.
-  compute :: strat img px
-             -> img px
+  compute :: strat img px -- ^ a strategy for computing this image.
+             -> img px    -- ^ image to be computed.
              -> img px
 
   -- | Fold an Image.
@@ -45,6 +45,60 @@ class (Image img px, Pixel px) => Strategy strat img px where
           -> px
           -> img px
           -> px
+
+  -- | Convert an image to an Unboxed Repa Array.
+  toArray :: strat img px
+             -> img px
+             -> Array U DIM2 px
+
+  -- | Sum all pixels of the image
+  sum :: strat img px
+         -> img px
+         -> px
+  sum strat img = fold strat (+) (ref img 0 0) img
+  {-# INLINE sum #-}
+
+  maximum :: Ord px =>
+             strat img px
+             -> img px
+             -> px
+  maximum strat img = fold strat (pxOp2 max) (ref img 0 0) img
+  {-# INLINE maximum #-}
+
+  minimum :: Ord px =>
+             strat img px
+             -> img px
+             -> px
+  minimum strat img = fold strat (pxOp2 min) (ref img 0 0) img
+  {-# INLINE minimum #-}
+  
+  normalize :: Ord px =>
+               strat img px
+               -> img px
+               -> img px
+  normalize strat img = compute strat $ if s == w
+                  then img * 0
+                  else map normalizer img where
+                    !(!s, !w) = (strongest $ maximum strat img,
+                                 weakest $ minimum strat img)
+                    normalizer px = (px - w)/(s - w)
+                    {-# INLINE normalizer #-}
+  {-# INLINE normalize #-}
+  
+  -- | Convert an Image to a list of lists of Pixels.
+  toLists :: strat img px
+             -> img px
+             -> [[px]]
+  toLists strat img =
+    [[ref img' m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]] where
+      img' = compute strat img
+
+  -- | Convert an Image to a Vector of length: rows*cols
+  toVector :: strat img px
+              -> img px
+              -> V.Vector px
+  toVector strat = toUnboxed . toArray strat
+
 
 
 class (Num (img px), Pixel px) => Image img px | px -> img where
@@ -59,10 +113,6 @@ class (Num (img px), Pixel px) => Image img px | px -> img where
   -- | Get the number of columns in the image
   cols :: Pixel px => img px -> Int
   cols = snd . dims
-
-  -- | O(1) Convert an Unboxed Vector to an Image by supplying rows, columns and
-  -- a vector
-  fromVector :: Pixel px => Int -> Int -> V.Vector px -> img px
 
   -- | Convert a nested List of Pixels to an Image.
   fromLists :: Pixel px => [[px]] -> img px
@@ -87,7 +137,35 @@ class (Num (img px), Pixel px) => Image img px | px -> img where
               (Int -> Int -> (Int, Int)) ->
               ((Int -> Int -> px) -> Int -> Int -> px1) ->
               img px1
-              
+
+  -- | Transpose the image
+  transpose :: Pixel px =>
+               img px
+               -> img px
+
+  -- | Backpermute the Image
+  backpermute :: Pixel px =>
+                 Int -> Int -- ^ rows and columns in a new image.
+                 -> (Int -> Int -> (Int, Int)) -- ^ Function that maps each 
+                                               -- location in a new image to an
+                                               -- old image
+                 -> img px -- ^ source image
+                 -> img px
+
+  -- | Crop an image retrieves a sub-image from a source image with @m@ rows and
+  -- @n@ columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
+  -- source image.
+  crop :: Pixel px =>
+          Int -> Int    -- ^ Starting index @i@ @j@ from within an old image
+          -> Int -> Int -- ^ Dimensions of a new image @m@ and @n@.
+          -> img px     -- ^ Source image.
+          -> img px
+
+  -- | Create an image from a Repa Array
+  fromArray :: (Source r px, Pixel px) =>
+               Array r DIM2 px
+               -> img px
+             
   -- | Get a pixel at i-th row and j-th column
   ref :: Pixel px => img px -> Int -> Int -> px
 
@@ -117,54 +195,7 @@ class (Num (img px), Pixel px) => Image img px | px -> img where
     !fx0 = f00 + x'*(f10-f00)
     !fx1 = f01 + x'*(f11-f01)
   
-  -- | Convert an Image to a nested List of Pixels.
-  toLists :: (Strategy strat img px, Pixel px) =>
-             strat img px
-             -> img px
-             -> [[px]]
-  toLists strat img =
-    [[ref img' m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]] where
-      img' = compute strat img
-
-  fromArray :: Pixel px =>
-               Array D DIM2 px
-               -> img px
-             
-  toArray :: (Strategy strat img px, Pixel px) =>
-             strat img px
-             -> img px
-             -> Array U DIM2 px
-
-  -- | O(1) Convert an Image to a Vector of length: rows*cols
-  toVector :: (Strategy strat img px, Pixel px) =>
-              strat img px
-              -> img px
-              -> V.Vector px
-  toVector strat = toUnboxed . toArray strat
-
-  maximum :: (Strategy strat img px, Pixel px, Ord px) =>
-             strat img px
-             -> img px
-             -> px
-  maximum strat img = fold strat (pxOp2 max) (ref img 0 0) img
-  {-# INLINE maximum #-}
-
-  minimum :: (Strategy strat img px, Pixel px, Ord px) =>
-             strat img px
-             -> img px
-             -> px
-  minimum strat img = fold strat (pxOp2 min) (ref img 0 0) img
-  {-# INLINE minimum #-}
-  
-  normalize :: (Strategy strat img px, Pixel px, Ord px) =>
-               strat img px
-               -> img px
-               -> img px
-  normalize strat img = compute strat $ if s == w
-                  then img * 0
-                  else map normalizer img where
-                    !(!s, !w) = (strongest $ maximum strat img,
-                                 weakest $ minimum strat img)
-                    normalizer px = (px - w)/(s - w)
-                    {-# INLINE normalizer #-}
-  --{-# INLINE normalize #-}
+  -- | Convert an Unboxed Vector to an Image by supplying rows, columns and
+  -- a vector
+  fromVector :: Pixel px => Int -> Int -> V.Vector px -> img px
+  fromVector m n v = fromArray $ delay $ fromUnboxed (Z :. m :. n) v

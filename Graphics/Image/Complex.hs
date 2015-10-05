@@ -4,7 +4,7 @@ NoMonomorphismRestriction, ViewPatterns, FlexibleInstances, FlexibleContexts #-}
 module Graphics.Image.Complex (
   Complex (..),
   mag, arg, conj, real, imag, fromPolar,
-  realImage, imagImage, conjImage, toComplex
+  realImage, imagImage, conjImage, toComplex, complexImage
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -12,28 +12,25 @@ import Graphics.Image.Definition
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Array.Repa.Eval (Elt(..))
-import qualified Data.Vector.Generic
-import qualified Data.Vector.Generic.Mutable
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 
 
 data Complex px = !px :+: !px deriving Eq
 
 instance Convertable Gray (Complex Gray) where
-  {-# INLINE convert #-}
   convert px = px :+: pixel 0
-
-instance Convertable RGB (Complex RGB) where
   {-# INLINE convert #-}
+
+-- TODO: Maybe allow only RGB Complex Color images
+instance Convertable Color (Complex Color) where
   convert px = px :+: pixel 0
-
-instance Pixel px => Convertable (Complex px) (Complex px) where
   {-# INLINE convert #-}
-  convert = id
+
 
 mag :: Pixel px => Complex px -> px
+mag (pxReal :+: pxImag) = sqrt (pxReal ^ (2 :: Int) + pxImag ^ (2 :: Int))
 {-# INLINE mag #-}
-mag (pxReal :+: pxImag) = sqrt (pxReal^2 + pxImag^2)
+
 
 arg :: Pixel px => Complex px -> px
 arg (pxX :+: pxY) = pxOp2 f pxX pxY where
@@ -78,19 +75,32 @@ instance (Pixel px) => Pixel (Complex px) where
     where m = pxOp2 min (strongest px1) (strongest px2)
 
 
+realImage :: (Pixel px, Image img (Complex px)) => img (Complex px) -> img px
 realImage = map real
 {-# INLINE realImage #-}
 
+
+imagImage :: (Pixel px, Image img (Complex px)) => img (Complex px) -> img px
 imagImage = map imag
 {-# INLINE imagImage #-}
 
+
+complexImage :: (Pixel px, Pixel (Complex px), Image img px) =>
+                img px -> img px -> img (Complex px)
 complexImage = zipWith (:+:)
 {-# INLINE complexImage #-}
 
-toComplex :: (Convertable px (Complex px), Pixel px) => Image px -> Image (Complex px)
-{-# INLINE toComplex #-}
-toComplex = map convert
 
+toComplex :: (Pixel px, Image img px, Convertable px (Complex px)) =>
+             img px
+             -> img (Complex px)
+toComplex = map convert
+{-# INLINE toComplex #-}
+
+
+conjImage :: (Pixel px, Image img (Complex px)) =>
+             img (Complex px)
+             -> img (Complex px)
 conjImage = map conj
 {-# INLINE conjImage #-}
 
@@ -102,18 +112,20 @@ instance (Pixel px) => Num (Complex px) where
   (x :+: y) * (x' :+: y') = (x*x' - y*y') :+: (x*y' + y*x')
 
   negate = pxOp negate
-  abs z = (mag z) :+: (fromIntegral 0)
-  signum z@(x :+: y)
-    | mag' == 0 = (fromIntegral 0) :+: (fromIntegral 0)
+  abs z = (mag z) :+: (fromInteger 0)
+  signum z@(x :+: _)
+    | mag' == 0 = (fromInteger 0) :+: (fromInteger 0)
     | otherwise = (x / mag') :+: (x / mag')
     where mag' = mag z
   fromInteger n = nd :+: nd where nd = fromInteger n
 
+
 instance (Pixel px) => Fractional (Complex px) where
-  (x :+: y) / z2@(x' :+: y') = ((x*x' + y*y') / mag2) :+: ((y*x' - x*y') / mag2)
+  (x :+: y) / (x' :+: y') = ((x*x' + y*y') / mag2) :+: ((y*x' - x*y') / mag2)
     where mag2 = x'*x' + y'*y'
   recip          = pxOp recip
   fromRational n = nd :+: nd where nd = fromRational n
+
 
 instance (Pixel px) => Floating (Complex px) where
     pi             =  pi :+: 0
@@ -154,19 +166,22 @@ instance (Pixel px) => Floating (Complex px) where
     asinh z        =  log (z + sqrt (1+z*z))
     acosh z        =  log (z + (z+1) * sqrt ((z-1)/(z+1)))
     atanh z        =  0.5 * log ((1.0+z) / (1.0-z))
-  
+
+    
 instance Show px => Show (Complex px) where
   show (px1 :+: px2) = "{" ++show px1 ++" + i" ++show px2 ++"}"
 
-instance Pixel px => Elt (Complex px) where
-  {-# INLINE touch #-}
-  touch (x :+: y) = touch x >> touch y
-  
-  {-# INLINE zero #-}
-  zero = pixel 0
 
-  {-# INLINE one #-}
+instance Pixel px => Elt (Complex px) where
+  touch (x :+: y) = touch x >> touch y
+  {-# INLINE touch #-}
+  
+  zero = pixel 0
+  {-# INLINE zero #-}
+  
   one = pixel 1
+  {-# INLINE one #-}
+  
 
 derivingUnbox "ComplexPixel"
     [t| (Pixel px) => (Complex px) -> (px, px) |]
