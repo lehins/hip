@@ -4,49 +4,70 @@ module Graphics.Image.Processing.Geometric (
   ) where
 
 import Prelude hiding (map, zipWith)
-import Graphics.Image.Definition
+import Graphics.Image.Interface
 import Data.Complex
 
 
-{-| Rotate an image by angle `theta` in radians in counterclockwise direction
-    while preserving the dimsensions of the original image. Pixels out of bounds are
-    replaced with zero (black) pixels.
--}
-rotate :: (Image img px, Pixel px) => img px -> Double -> img px
-rotate img@(dims -> (w, h)) theta = make w h gop where
-  (mw, mh) = (fromIntegral $ div w 2, fromIntegral $ div h 2)
-  gop (fromIntegral -> x) (fromIntegral -> y) = ref1 img x' y' where
-    z = exp(0 :+ theta) * ((x-mw) :+ (y-mh))
-    x' = mw + realPart z
-    y' = mh + imagPart z
+{-| Rotate an image around it's center by an angle Θ in counterclockwise
+direction. Dimensions of a new image are adjusted, so rotated image fully fits
+inside.
 
-{-| Same as `rotate` except the dimensions of the new image are adjusted so that
-    the rotated image will fit completely.
--}
-rotate' :: (Image img px, Pixel px) => img px -> Double -> img px
-rotate' img@(dims -> (w, h)) theta = make nw nh gop where
-  (nw, nh) = (ceiling nwd, ceiling nhd)
-  (nwd2, nhd2) = (nwd/2, nhd/2)
-  (nwd, nhd) = (w' * cost + h' * sint, h' * cost + w' * sint)
-    where (w', h')     = (fromIntegral w, fromIntegral h)
-          (sint, cost) = (sin theta, cos theta)
-  (mw, mh) = (fromIntegral w / 2, fromIntegral h / 2)
-  gop (fromIntegral -> x) (fromIntegral -> y) = ref1 img x' y' where
-    z = exp(0 :+ theta) * ((x - nwd2) :+ (y - nhd2))
-    x' = mw + realPart z
-    y' = mh + imagPart z
+>>> lena
+<Image RGB: 512x512>
+>>> let lena30deg = rotate lena 0 (pi/6)
+>>> lena30deg
+<Image RGB: 700x700>
 
-{-
-rotate'' :: (Concrete Image px, Pixel px) => Image px -> Double -> Image px
-rotate'' img@(dims -> (w, h)) theta = traverse img f g where
-  (nwd, nhd) = (w' * cost + h' * sint, h' * cost + w' * sint)
-    where (w', h')     = (fromIntegral w, fromIntegral h)
-          (sint, cost) = (sin theta, cos theta)
-  f _ _ = (ceiling nwd, ceiling nhd)
-  g _ = gop
-  (mw, mh) = (fromIntegral w / 2, fromIntegral h / 2)
-  gop (fromIntegral -> x) (fromIntegral -> y) = ref1 img x' y' where
-    z = exp(0 :+ theta) * ((x-(nwd/2)) :+ (y-(nhd/2)))
-    x' = mw + realPart z
-    y' = mh + imagPart z
 -}
+rotate :: (Interpolation alg, Image img px, Pixel px) =>
+          alg    -- ^ Interpolation algorithm to be used during rotation.
+       -> img px -- ^ image to be rotated.
+       -> px     -- ^ default pixel that will fill in areas that are out of bounds.
+       -> Double -- ^ angle @theta@ in radians, that an image should be rotated by.
+       -> img px
+rotate alg !img@(dims -> !(m, n)) !defPx !theta = traverse img getNewDims getNewPx
+  where
+    !(oldM, oldN) = (fromIntegral m, fromIntegral n)
+    !(newM, newN) = (oldM * cost + oldN * sint, oldN * cost + oldM * sint)
+      where !(sint, cost) = (sin theta, cos theta)
+    !(oldMhalf, oldNhalf) = (oldM / 2, oldN / 2)
+    !(newMhalf, newNhalf) = (newM / 2, newN / 2)
+    getNewDims _ _ = (ceiling newM, ceiling newN)
+    {-# INLINE getNewDims #-}
+    getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
+      interpolate alg defPx m n getOldPx i' j' where
+        !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
+        !i' = oldMhalf + imagPart z
+        !j' = oldNhalf + realPart z
+    {-# INLINE getNewPx #-}
+{-# INLINE rotate #-}
+
+
+{-| Rotate an image around it's center by an angle Θ in counterclockwise
+direction. Dimensions of a new image will be kept the same.
+
+>>> lena
+<Image RGB: 512x512>
+>>> let lena30deg = rotate lena 0 (pi/6)
+>>> lena30deg
+<Image RGB: 512x512>
+
+-}
+rotate' :: (Interpolation alg, Image img px, Pixel px) =>
+           alg    -- ^ Interpolation algorithm to be used during rotation.
+        -> img px -- ^ image to be rotated.
+        -> px     -- ^ default pixel that will fill in areas that are out of bounds.
+        -> Double -- ^ angle @theta@ in radians, that an image should be rotated by.
+        -> img px
+rotate' alg img@(dims -> !(m, n)) !defPx !theta =  traverse img getNewDims getNewPx
+  where
+    !(newMhalf, newNhalf) = (fromIntegral $ div m 2, fromIntegral $ div n 2)
+    getNewDims _ _ = (m, n)
+    {-# INLINE getNewDims #-}
+    getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
+      interpolate alg defPx m n getOldPx i' j' where
+        !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
+        !i' = newMhalf + imagPart z
+        !j' = newNhalf + realPart z
+    {-# INLINE getNewPx #-}
+{-# INLINE rotate' #-}

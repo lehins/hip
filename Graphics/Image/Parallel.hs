@@ -8,7 +8,7 @@ module Graphics.Image.Parallel (
 
 import Prelude hiding (maximum, minimum, sum)
 import Graphics.Image.Conversion (Saveable, SaveOption(..))
-import Graphics.Image.Definition (Pixel)
+import Graphics.Image.Interface (Pixel)
 import qualified Graphics.Image.Internal as I
 import qualified Graphics.Image.IO as IO (writeImage, display)
 import Data.Array.Repa as R hiding ((++))

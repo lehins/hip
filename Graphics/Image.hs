@@ -1,14 +1,16 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image (
   Image, Pixel, Gray(..), Color(..),
-  ref, refd, refm, ref1, dims, make, map, zipWith, traverse, transpose,
+  ref, refDefault, refMaybe, dims, make, map, zipWith, traverse, transpose,
   backpermute, crop, fromVector, fromLists, fromArray,
-  readColorImage, readGrayImage, setDisplayProgram
+  readColorImage, readGrayImage, setDisplayProgram,
+  module Graphics.Image.Interpolation
   ) where
 import qualified Prelude as P
 import Codec.Picture.Types (DynamicImage)
-import Graphics.Image.Definition (Convertable, Pixel)
+import Graphics.Image.Interface (Convertable, Pixel)
 import Graphics.Image.Internal
+import Graphics.Image.Interpolation
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Graphics.Image.IO

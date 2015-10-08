@@ -5,7 +5,7 @@ module Graphics.Image.Gray (
   Gray (..)
   ) where
 
-import Graphics.Image.Definition
+import Graphics.Image.Interface (Pixel(..))
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
@@ -28,6 +28,8 @@ instance Pixel Gray where
 
   weakest                     = id
   {-# INLINE weakest #-}
+
+  showType _                  = "Gray"
 
 
 instance Num Gray where

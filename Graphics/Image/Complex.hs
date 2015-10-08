@@ -8,7 +8,7 @@ module Graphics.Image.Complex (
   ) where
 
 import Prelude hiding (map, zipWith)
-import Graphics.Image.Definition
+import Graphics.Image.Interface
 import Graphics.Image.Gray
 import Graphics.Image.Color
 import Data.Array.Repa.Eval (Elt(..))
@@ -21,9 +21,8 @@ instance Convertable Gray (Complex Gray) where
   convert px = px :+: pixel 0
   {-# INLINE convert #-}
 
--- TODO: Maybe allow only RGB Complex Color images
 instance Convertable Color (Complex Color) where
-  convert px = px :+: pixel 0
+  convert px = inRGB px :+: pixel 0
   {-# INLINE convert #-}
 
 
@@ -74,6 +73,7 @@ instance (Pixel px) => Pixel (Complex px) where
   weakest (px1 :+: px2) = m :+: m
     where m = pxOp2 min (strongest px1) (strongest px2)
 
+  showTpye (px :+: _) = "Complex "++(showType px)
 
 realImage :: (Pixel px, Image img (Complex px)) => img (Complex px) -> img px
 realImage = map real

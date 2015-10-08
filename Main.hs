@@ -9,5 +9,5 @@ main = do
   setDisplayProgram "gpicview"
   lena <- readColorImage "lena.jpg"
   --writeImage "lena_rot.png" (rotate' (compute lena) (pi/6)) []
-  display (rotate' (compute lena) (pi/6))
-  display lena
+  writeImage "lena_rot.png" (rotate Bilinear lena 1 (pi/3)) []
+  --display (rotate'' lena) (pi/6))

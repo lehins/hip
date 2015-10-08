@@ -8,7 +8,7 @@ import Codec.Picture.Types (DynamicImage)
 import Data.Char (toUpper)
 import Data.IORef
 import Data.ByteString (readFile)
-import Graphics.Image.Definition (Pixel, Image, Convertable, Strategy(normalize, toArray))
+import Graphics.Image.Interface (Pixel, Image, Convertable, Strategy(normalize, toArray))
 import Graphics.Image.Conversion
 import Graphics.Netpbm (PPM)
 import qualified Data.ByteString.Lazy as BL (writeFile)
@@ -121,8 +121,8 @@ displayUsing :: (Strategy strat img px, Image img px, Pixel px, Saveable px) =>
              -> FilePath
              -> IO ()
 displayUsing strat img program tmpDir = do
-  let path = tmpDir </> "tmp-img.jpg"
-  writeImage strat path img [Format JPG, Normalize True]
+  let path = tmpDir </> "tmp-img.png"
+  writeImage strat path img [Format PNG, Normalize True]
   ph <- runCommand (program ++ " " ++ path)
   e <- waitForProcess ph
   let printExit ExitSuccess = return ()

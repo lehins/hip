@@ -2,19 +2,19 @@
 {-# LANGUAGE GADTs, MultiParamTypeClasses, ViewPatterns, FlexibleInstances #-}
 
 module Graphics.Image.Internal (
-  compute, fold, sum, ref, refd, refm, ref1, dims, make, 
+  compute, fold, sum, ref, refDefault, refMaybe, dims, make, 
   map, zipWith, traverse, transpose, backpermute, crop,
   fromVector, fromLists, fromArray, toVector, toLists, toArray,
   maximum, minimum, normalize,
   Image(..), RepaStrategy(..)
   ) where
 
-import Prelude hiding ((++), map, zipWith, maximum, minimum, sum)
+import Prelude hiding (map, zipWith, maximum, minimum, sum)
 import qualified Prelude as P (floor)
-import Graphics.Image.Definition hiding (Image)
-import qualified Graphics.Image.Definition as D (Image)
+import Graphics.Image.Interface hiding (Image)
+import qualified Graphics.Image.Interface as D (Image)
 import Data.Array.Repa.Eval
-import Data.Array.Repa as R hiding (map, zipWith, traverse, transpose, backpermute)
+import Data.Array.Repa as R hiding ((++), map, zipWith, traverse, transpose, backpermute)
 import qualified Data.Array.Repa as R (map, zipWith, traverse, transpose, backpermute)
 
 
@@ -25,7 +25,7 @@ data Image px = ComputedImage !(Array U DIM2 px)
 
 data RepaStrategy img px where
   Sequential :: (D.Image img px, Pixel px) => RepaStrategy img px
-  Parallel :: (D.Image img px, Pixel px) => RepaStrategy img px
+  Parallel   :: (D.Image img px, Pixel px) => RepaStrategy img px
 
                   
 
@@ -186,3 +186,8 @@ instance Pixel px => Floating (Image px) where
   
   acosh = map acosh
   {-# INLINE acosh #-}
+
+
+instance Pixel px => Show (Image px) where
+  show img@(dims -> (m, n)) = "<Image "++(showType px)++": "++(show m)++"x"++(show n)++">"
+    where px = ref img 0 0

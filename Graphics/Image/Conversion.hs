@@ -3,7 +3,7 @@
 module Graphics.Image.Conversion where
 
 import Prelude hiding (map)
-import Graphics.Image.Definition (Convertable(..), Pixel(..))
+import Graphics.Image.Interface (Convertable(..), Pixel(..))
 import Graphics.Image.Internal hiding (maximum, minimum)
 import Graphics.Image.Gray
 import Graphics.Image.Color

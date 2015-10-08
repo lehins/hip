@@ -6,7 +6,7 @@ module Graphics.Image.Color (
   ) where
 
 import Prelude hiding (map)
-import Graphics.Image.Definition (Pixel(..))
+import Graphics.Image.Interface (Pixel(..))
 import Data.Int (Int8)
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
@@ -59,6 +59,9 @@ instance Pixel Color where
   weakest (RGB r g b) = pixel . minimum $ [r, g, b]
   weakest px          = weakest . inRGB $ px
   {-# INLINE weakest #-}
+
+  showType (RGB _ _ _) = "RGB"
+  showType (HSI _ _ _) = "HSI"
   
 
 instance Num Color where
