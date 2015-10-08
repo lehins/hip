@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 
 module Graphics.Image.Parallel (
   compute, fold, sum, maximum, minimum, normalize, toVector, toLists, toArray,
@@ -78,15 +78,17 @@ toArray = I.toArray I.Parallel
 {-# INLINE toArray #-}
 
 
-writeImage :: (Saveable px, Pixel px) =>
+writeImage :: (Saveable I.Image px, Pixel px) =>
               FilePath
            -> I.Image px
-           -> [SaveOption px]
+           -> [SaveOption I.Image px]
            -> IO ()
 writeImage !path !img !options = IO.writeImage I.Parallel path img options
+{-# INLINE writeImage #-}
 
 
-display :: (Saveable px, Pixel px) =>
+display :: (Saveable I.Image px, Pixel px) =>
            I.Image px
         -> IO ()
 display = IO.display I.Parallel
+{-# INLINE display #-}

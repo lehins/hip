@@ -1,7 +1,7 @@
 module Main where
 
 import Graphics.Image
-import Graphics.Image.Parallel
+import Graphics.Image.Sequential
 import Graphics.Image.Processing.Geometric
   
 main :: IO ()  

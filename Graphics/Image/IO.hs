@@ -8,7 +8,7 @@ import Codec.Picture.Types (DynamicImage)
 import Data.Char (toUpper)
 import Data.IORef
 import Data.ByteString (readFile)
-import Graphics.Image.Interface (Pixel, Image, Convertable, Strategy(normalize, toArray))
+import Graphics.Image.Interface (Pixel, Image, Convertable, Strategy(normalize, compute))
 import Graphics.Image.Conversion
 import Graphics.Netpbm (PPM)
 import qualified Data.ByteString.Lazy as BL (writeFile)
@@ -41,21 +41,21 @@ ext2format ((P.map toUpper) -> ext)
   | otherwise = error $ "Unsupported file extension: "++ext
 
 
-shouldNormalize :: Pixel px => [SaveOption px] -> Bool
+shouldNormalize :: (Image img px, Pixel px) => [SaveOption img px] -> Bool
 shouldNormalize [] = True
 shouldNormalize ((Normalize should):_) = should
 shouldNormalize (_:opts) = shouldNormalize opts
 
 
-writeImage :: (Strategy strat img px, Image img px, Pixel px, Saveable px) =>
+writeImage :: (Strategy strat img px, Image img px, Pixel px, Saveable img px) =>
               strat img px
               -> FilePath
               -> img px
-              -> [SaveOption px]
+              -> [SaveOption img px]
               -> IO ()
 writeImage !strat !path !img !options =
-  BL.writeFile path $ encoder format arr where
-    !arr = toArray strat $ if shouldNormalize options then normalize strat img else img
+  BL.writeFile path $ encoder format img' where
+    !img' = compute strat $ if shouldNormalize options then normalize strat img else img
     !format = getFormat options
     !encoder = getEncoder options
     !ext = reverse . fst . (span ('.'/=)) . reverse $ path
@@ -105,7 +105,7 @@ displayProgram = unsafePerformIO $ do
     >>>display frog
 
  -}
-display :: (Strategy strat img px, Image img px, Pixel px, Saveable px) =>
+display :: (Strategy strat img px, Image img px, Pixel px, Saveable img px) =>
            strat img px
         -> img px
         -> IO ()
@@ -114,7 +114,7 @@ display strat img = do
   withSystemTempDirectory "hip_" (displayUsing strat img program)
 
 
-displayUsing :: (Strategy strat img px, Image img px, Pixel px, Saveable px) =>
+displayUsing :: (Strategy strat img px, Image img px, Pixel px, Saveable img px) =>
                 strat img px
              -> img px
              -> String
