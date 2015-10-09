@@ -82,8 +82,8 @@ class (Image img px, Pixel px) => Strategy strat img px where
   normalize strat img = compute strat $ if s == w
                   then img * 0
                   else map normalizer img where
-                    !(!s, !w) = (strongest $ maximum strat img,
-                                 weakest $ minimum strat img)
+                    !(s, w) = (strongest $ maximum strat img,
+                               weakest $ minimum strat img)
                     normalizer px = (px - w)/(s - w)
                     {-# INLINE normalizer #-}
   {-# INLINE normalize #-}
@@ -104,7 +104,7 @@ class (Image img px, Pixel px) => Strategy strat img px where
 
 
 
-class (Num (img px), Pixel px) => Image img px | px -> img where
+class (Show (img px), Num (img px), Pixel px) => Image img px | px -> img where
 
   -- | Get dimensions of the image. (rows, cols)
   dims :: img px -> (Int, Int)
@@ -138,10 +138,19 @@ class (Num (img px), Pixel px) => Image img px | px -> img where
           -> img px3
 
   -- | Traverse the image.
-  traverse :: img px
+  traverse :: Pixel px1 =>
+              img px1
            -> (Int -> Int -> (Int, Int))
-           -> ((Int -> Int -> px) -> Int -> Int -> px1)
-           -> img px1
+           -> ((Int -> Int -> px1) -> Int -> Int -> px)
+           -> img px
+
+  -- | Traverse two images.
+  traverse2 :: (Pixel px1, Pixel px2) =>
+               img px1
+            -> img px2
+            -> (Int -> Int -> Int -> Int -> (Int, Int))
+            -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
+            -> img px
 
   -- | Transpose the image
   transpose :: img px

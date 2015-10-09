@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE GADTs, MultiParamTypeClasses, ViewPatterns, FlexibleInstances #-}
+{-# LANGUAGE GADTs, MultiParamTypeClasses, ViewPatterns, BangPatterns, FlexibleInstances #-}
 
 module Graphics.Image.Internal (
   compute, fold, sum, ref, refDefault, refMaybe, dims, make, 
-  map, zipWith, traverse, transpose, backpermute, crop,
+  map, zipWith, traverse, traverse2, transpose, backpermute, crop,
   fromVector, fromLists, fromArray, toVector, toLists, toArray,
   maximum, minimum, normalize,
   Image(..), RepaStrategy(..)
@@ -14,8 +14,10 @@ import qualified Prelude as P (floor)
 import Graphics.Image.Interface hiding (Image)
 import qualified Graphics.Image.Interface as D (Image)
 import Data.Array.Repa.Eval
-import Data.Array.Repa as R hiding ((++), map, zipWith, traverse, transpose, backpermute)
-import qualified Data.Array.Repa as R (map, zipWith, traverse, transpose, backpermute)
+import Data.Array.Repa as R hiding ((++), map, zipWith, traverse, traverse2,
+                                    transpose, backpermute)
+import qualified Data.Array.Repa as R (map, zipWith, traverse, traverse2,
+                                       transpose, backpermute)
 
 
 data Image px = ComputedImage !(Array U DIM2 px)
@@ -83,26 +85,37 @@ instance Pixel px => D.Image Image px where
   zipWith op (getDelayed -> a1) (getDelayed -> a2) = AbstractImage $ R.zipWith op a1 a2
   {-# INLINE zipWith #-}
   
-  traverse (getDelayed -> arr) ndims nref = AbstractImage $ R.traverse arr nsh nindex where
-    nsh (Z :. r :. c) = uncurry ix2 $ ndims r c
-    {-# INLINE nsh #-}
-    nindex f (Z :. r :. c) = nref (((.).(.)) f ix2) r c
-    {-# INLINE nindex #-}
+  traverse (getDelayed -> !arr) !newDims !newPx =
+    AbstractImage $ R.traverse arr newExtent newPixel where
+    newExtent !(Z :. m :. n) = uncurry ix2 $ newDims m n
+    {-# INLINE newExtent #-}
+    newPixel !getPx !(Z :. i :. j) = newPx (((.).(.)) getPx ix2) i j
+    {-# INLINE newPixel #-}
       -- g i j = f (Z :. i :. j) == g = ((.).(.)) f ix2
   {-# INLINE traverse #-}
 
-  transpose img@(SingletonImage _) = img
-  transpose (getDelayed -> arr)    = AbstractImage . R.transpose $ arr
+  traverse2 (getDelayed -> !arr1) (getDelayed -> !arr2) !newDims !newPx =
+    AbstractImage $ R.traverse2 arr1 arr2 newExtent newPixel where
+      newExtent !(Z :. m1 :. n1) !(Z :. m2 :. n2) = uncurry ix2 $ newDims m1 n1 m2 n2
+      {-# INLINE newExtent #-}
+      newPixel !getPx1 !getPx2 !(Z :. i :. j) =
+        newPx (((.).(.)) getPx1 ix2) (((.).(.)) getPx2 ix2) i j
+      {-# INLINE newPixel #-}
+  {-# INLINE traverse2 #-}
+
+  transpose !img@(SingletonImage _) = img
+  transpose (getDelayed -> !arr)    = AbstractImage . R.transpose $ arr
   {-# INLINE transpose #-}
 
-  backpermute _ _ _ img@(SingletonImage _) = img
-  backpermute r c f (getDelayed -> arr) =
-    AbstractImage $ R.backpermute (Z :. r :. c) g arr where
-      g (Z :. i :. j) = uncurry ix2 $ f i j
+  backpermute _ _ _ !img@(SingletonImage _) = img
+  backpermute !m !n !newIndex (getDelayed -> !arr) =
+    AbstractImage $ R.backpermute (Z :. m :. n) newShape arr where
+      newShape !(Z :. i :. j) = uncurry ix2 $ newIndex i j
+      {-# INLINE newShape #-}
   {-# INLINE backpermute #-}
 
-  crop _ _ _ _ img@(SingletonImage _) = img
-  crop i j m n (getDelayed -> arr) =
+  crop _ _ _ _ !img@(SingletonImage _) = img
+  crop !i !j !m !n (getDelayed -> !arr) =
     AbstractImage $ extract (Z :. i :. j) (Z :. m :. n) arr
   {-# INLINE crop #-}
   

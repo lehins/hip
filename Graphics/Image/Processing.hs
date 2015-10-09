@@ -1,85 +1,96 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing (
-  -- * Convolution
-  module Graphics.Image.Processing.Convolution,
-  module Graphics.Image.Processing.FFT,
+  --module Graphics.Image.Processing.Convolution,
+  --module Graphics.Image.Processing.FFT,
   module Graphics.Image.Processing.Geometric,
   downsampleRows, downsampleCols, downsample, downsampleF,
   upsampleRows, upsampleCols, upsample, upsampleF,
-  leftToRight, topToBottom
+  leftToRight, topToBottom, pad
   ) where
 
-import Graphics.Image.Base as I
-import Graphics.Image.Processing.Convolution
-import Graphics.Image.Processing.FFT
-import Graphics.Image.Processing.Matrix
+import Graphics.Image.Interface
+--import Graphics.Image.Processing.Convolution
+--import Graphics.Image.Processing.FFT
+--import Graphics.Image.Processing.Matrix
 import Graphics.Image.Processing.Geometric
-import Data.Array.Repa as R hiding (transpose)
 
-downsampleF :: Pixel px => Int -> Int -> Image px -> Image px
+downsampleF :: Image img px => Int -> Int -> img px -> img px
 {-# INLINE downsampleF #-}
-downsampleF fm fn img = fromDelayed $ R.traverse arr
-                        (\(Z :. m :. n) -> (Z :. m `div` fm :. n `div` fn))
-                        (\_ (Z :. i :. j) -> index arr (Z :. i*fm :. j*fn))
-  where !arr = getComputed img
+downsampleF !fm !fn !img = traverse img
+                           (\m n -> (m `div` fm, n `div` fn))
+                           (\getPx i j -> getPx (i*fm) (j*fn))
 
 
-upsampleF :: Pixel px => Int -> Int -> Image px -> Image px
+upsampleF :: Image img px => Int -> Int -> img px -> img px
 {-# INLINE upsampleF #-}
-upsampleF fm fn img = fromDelayed $ R.traverse arr
-                      (\(Z :. m :. n) -> (Z :. m*fm :. n*fn))
-                      (\_ (Z :. i :. j) ->
-                        if i `mod` fm == 0 && j `mod` fn == 0
-                        then index arr (Z :. i `div` fm :.  j `div` fn)
-                        else fromInteger 0)
-  where !arr = getComputed img
+upsampleF !fm !fn !img = traverse img 
+                         (\m n -> (m*fm, n*fn))
+                         (\getPx i j ->
+                           if i `mod` fm == 0 && j `mod` fn == 0
+                           then getPx (i `div` fm) (j `div` fn)
+                           else pixel 0)
 
 -- | Removes every second row from the image starting with second one.
-downsampleRows :: Pixel px => Image px -> Image px
+downsampleRows :: Image img px => img px -> img px
 {-# INLINE downsampleRows #-}
 downsampleRows = downsampleF 2 1
 
-downsampleCols :: Pixel px => Image px -> Image px
+downsampleCols :: Image img px => img px -> img px
 {-# INLINE downsampleCols #-}
 downsampleCols = downsampleF 1 2
 
-downsample :: Pixel px => Image px -> Image px
+downsample :: Image img px => img px -> img px
 {-# INLINE downsample #-}
 downsample = downsampleF 2 2
 
-upsampleRows :: Pixel px => Image px -> Image px
+upsampleRows :: Image img px => img px -> img px
 {-# INLINE upsampleRows #-}
 upsampleRows = upsampleF 2 1
 
-upsampleCols :: Pixel px => Image px -> Image px
+upsampleCols :: Image img px => img px -> img px
 {-# INLINE upsampleCols #-}
 upsampleCols = upsampleF 1 2
 
-upsample :: Pixel px => Image px -> Image px
+upsample :: Image img px => img px -> img px
 {-# INLINE upsample #-}
 upsample = upsampleF 2 2
 
-leftToRight :: Pixel px => Image px -> Image px -> Image px
+{- | Concatenates two images together into one. Both input images must have the
+same number of rows. -}
+leftToRight :: Image img px => img px -> img px -> img px
 {-# INLINE leftToRight #-}
-leftToRight img1 img2
-  | m1 == m2  = make m1 (n1 + n2) getPixel
-  | otherwise = error "Images must agree in numer of rows" where
-    !(!m1, !n1) = dims img1
-    !(!m2, !n2) = dims img2
-    {-# INLINE getPixel #-}
-    getPixel i j
-      | j < n1    = ref img1 i j
-      | otherwise = ref img2 i (j-n1)
+leftToRight !img1@(cols -> !n1) !img2 = traverse2 img1 img2 newDims newPx where
+  newDims !m1 _ !m2 !n2
+    | m1 == m2  = (m1, n1 + n2)
+    | otherwise = error ("Images must agree in numer of rows, but received: "++
+                         (show img1)++" and "++(show img2))
+  {-# INLINE newDims #-}
+  newPx !getPx1 !getPx2 !i !j = if j < n1 then getPx1 i j else getPx2 i (j-n1)
+  {-# INLINE newPx #-}
 
-topToBottom :: Pixel px => Image px -> Image px -> Image px
+{- | Concatenates two images together into one. Both input images must have the
+same number of columns. -}
+topToBottom :: Image img px => img px -> img px -> img px
 {-# INLINE topToBottom #-}
-topToBottom img1 img2
-  | n1 == n2  = make (m1 + m2) n1 getPixel
-  | otherwise = error "Images must agree in numer of columns" where
-    !(!m1, !n1) = dims img1
-    !(!m2, !n2) = dims img2
-    {-# INLINE getPixel #-}
-    getPixel i j
-      | i < m1    = ref img1 i j
-      | otherwise = ref img2 (i-m1) j
+topToBottom !img1@(rows -> !m1) !img2 = traverse2 img1 img2 newDims newPx where
+  newDims _ n1 !m2 !n2
+    | n1 == n2  = (m1 + m2, n1)
+    | otherwise = error ("Images must agree in numer of columns, but received: "++
+                         (show img1)++" and "++(show img2))
+  {-# INLINE newDims #-}
+  newPx !getPx1 !getPx2 !i !j = if i < m1 then getPx1 i j else getPx2 (i-m1) j
+  {-# INLINE newPx #-}
 
+{- | Changes dimensions of an image while padding it with a default pixel whenever
+@i@ and @j@ is out of bounds for an original image -}
+pad :: Image img px =>
+       px         -- ^ default pixel to be used for out of bounds region
+    -> Int -> Int -- ^ image's new dimensions @m@ rows and @n@ columns
+    -> img px     -- ^ image that is subjected to padding.
+    -> img px
+pad !defPx !m1 !n1 !img@(dims -> !(m, n)) =
+  traverse img (const . const (m1, n1)) newPx where
+    newPx !getPx !i !j = if i < m && j < n then getPx i j else defPx
+    {-# INLINE newPx #-}
+{-# INLINE pad #-}
+  

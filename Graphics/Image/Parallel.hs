@@ -17,16 +17,16 @@ import Data.Vector.Unboxed (Vector)
 
 compute :: Pixel px =>
            I.Image px
-           -> I.Image px
+        -> I.Image px
 compute = I.compute I.Parallel
 {-# INLINE compute #-}
 
 
 fold :: Pixel px =>
         (px -> px -> px)
-        -> px
-        -> I.Image px
-        -> px
+     -> px
+     -> I.Image px
+     -> px
 fold = I.fold I.Parallel
 {-# INLINE fold #-}
 

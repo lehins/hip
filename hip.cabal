@@ -2,7 +2,7 @@ Name:              hip
 Version:           1.0.0.0
 License:           MIT
 License-File:      LICENSE
-Author:            Alexey Kuleshevich, Joseph Collard, Stephen Patel, Lance Williams
+Author:            Alexey Kuleshevich, Joseph Collard, Lance Williams
 Stability:         experimental
 Maintainer:        lehins@yandex.ru
 Category:          Image Processing
@@ -46,7 +46,7 @@ Library
                    Graphics.Image.Sequential,
                    Graphics.Image.Interpolation
 
-  Other-modules:   Graphics.Image.Iterface,
+  Other-modules:   Graphics.Image.Interface,
                    Graphics.Image.Internal,
                    Graphics.Image.Conversion,
                    Graphics.Image.IO,

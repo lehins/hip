@@ -8,8 +8,8 @@ import Codec.Picture.Types (DynamicImage)
 import Data.Char (toUpper)
 import Data.IORef
 import Data.ByteString (readFile)
-import Graphics.Image.Interface (Pixel, Image, Convertable, Strategy(normalize, compute))
 import Graphics.Image.Conversion
+import Graphics.Image.Interface (Pixel, Image, Convertable, Strategy(normalize, compute))
 import Graphics.Netpbm (PPM)
 import qualified Data.ByteString.Lazy as BL (writeFile)
 import System.Exit (ExitCode(ExitSuccess))
@@ -26,7 +26,7 @@ readImage :: (Pixel px, Image img px,
 readImage path = fmap ((either err id) . decodeImage) (readFile path) where
   err str = error str
 
-  
+
 ext2format :: [Char] -> Format
 ext2format ((P.map toUpper) -> ext)
   | ext == "BMP"             = BMP

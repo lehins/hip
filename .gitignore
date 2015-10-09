@@ -6,4 +6,4 @@ cabal-dev
 *.chi
 *.chs.h
 .virthualenv
-examples*
+problems
