@@ -50,10 +50,7 @@ Library
                    Graphics.Image.Internal,
                    Graphics.Image.Conversion,
                    Graphics.Image.IO,
-                   Graphics.Image.Processing.Convolution,
-                   Graphics.Image.Processing.FFT,
-                   Graphics.Image.Processing.Geometric,
-                   Graphics.Image.Processing.Matrix
+                   Graphics.Image.Processing.Geometric
 
   ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
 

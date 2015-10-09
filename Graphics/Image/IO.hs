@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, ViewPatterns, BangPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
 module Graphics.Image.IO (
   readImage, writeImage, display, setDisplayProgram
   ) where
@@ -20,23 +20,21 @@ import System.Process (runCommand, waitForProcess)
 
 
 readImage :: (Pixel px, Image img px,
-              Convertable DynamicImage (img px),
-              Convertable PPM (img px)) =>
+              Convertable DynamicImage (img px), Convertable PPM (img px)) =>
              FilePath -> IO (img px)
-readImage path = fmap ((either err id) . decodeImage) (readFile path) where
-  err str = error str
+readImage path = fmap ((either error id) . decodeImage) (readFile path)
 
 
 ext2format :: [Char] -> Format
 ext2format ((P.map toUpper) -> ext)
   | ext == "BMP"             = BMP
-  | elem ext ["JPG", "JPEG"] = JPG
+  | elem ext ["JPG", "JPEG"] = JPG 100
   | ext == "PNG"             = PNG
   | elem ext ["TIF", "TIFF"] = TIFF
   | ext == "HDR"             = HDR
-  -- | ext == "PBM"             = PBM
-  -- | ext == "PGM"             = PGM
-  -- | ext == "PPM"             = PPM
+  --  ext == "PBM"             = PBM
+  --  ext == "PGM"             = PGM
+  --  ext == "PPM"             = PPM
   | null ext = error "File extension was not supplied"
   | otherwise = error $ "Unsupported file extension: "++ext
 
@@ -66,17 +64,17 @@ writeImage !strat !path !img !options =
     getEncoder !((Encoder enc):_) = enc
     getEncoder !(_:opts) = getEncoder opts
     defaultEncoder !f = case f of
-      BMP  -> inRGB8
-      JPG  -> inYCbCr8
-      PNG  -> inRGB8
-      TIFF -> inRGB8
-      HDR  -> inRGBF
+      BMP    -> inRGB8
+      (JPG _)-> inYCbCr8
+      PNG    -> inRGB8
+      TIFF   -> inRGB8
+      HDR    -> inRGBF
       -- PBM  -> inY8
       -- PGM  -> inY8
       -- PPM  -> inRGB8
 
 {-| Sets the program to use when making a call to display. By default,
-    ImageMagick ("display") is the default program to use and it is read
+    ImageMagick (display) is the default program to use and it is read
     using stdin.
 
     >>> setDisplayProgram "gpicview"

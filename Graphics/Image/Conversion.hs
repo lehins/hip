@@ -22,14 +22,15 @@ import GHC.Float
 -- TODO: add links to wikipedia on formats
 -- TODO: implement writing for PNM formats
 -- | Format types that an image can be saved in.
-data Format = BMP  -- ^ A BMP image with .bmp extension
-            | JPG  -- ^ A JPG image with .jpg or .jpeg extension
-            | PNG  -- ^ A PNG (Portable Network Graphics) image with .png extension
-            | TIFF -- ^ A TIFF image with .tif or .tiff extension
-            | HDR  -- ^ A HDR image with .hdr extension
-            -- | PBM
-            -- | PGM
-            -- | PPM
+data Format = BMP       -- ^ A BMP image with .bmp extension
+            | JPG Word8 -- ^ A JPG image with .jpg or .jpeg extension with
+                        -- specified quality from 0 to a 100
+            | PNG       -- ^ A PNG (Portable Network Graphics) image with .png extension
+            | TIFF      -- ^ A TIFF image with .tif or .tiff extension
+            | HDR       -- ^ A HDR image with .hdr extension
+            -- PBM
+            -- PGM
+            -- PPM
             deriving Show
 
 
@@ -421,8 +422,8 @@ instance Image img Gray => Saveable img Gray where
   inRGBA8 f     = error $ "Cannot save "++show f++" in RGBA8 colorspace"
   inRGBA16 PNG  = JP.encodePng    . (imageToJPImage (convert :: Gray -> JP.PixelRGBA16))
   inRGBA16 f    = error $ "Cannot save "++show f++" in RGBA16 colorspace"
-  inYCbCr8 JPG  =
-    (JP.encodeJpegAtQuality 100) . (imageToJPImage (convert :: Gray -> JP.PixelYCbCr8))
+  inYCbCr8 (JPG q)  =
+    (JP.encodeJpegAtQuality q) . (imageToJPImage (convert :: Gray -> JP.PixelYCbCr8))
   inYCbCr8 f    = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
   inCMYK8 TIFF  = JP.encodeTiff  . (imageToJPImage (convert :: Gray -> JP.PixelCMYK8))
   inCMYK8 f     = error $ "Cannot save "++show f++" in CMYK8 colorspace"
@@ -456,8 +457,8 @@ instance Image img Color => Saveable img Color where
   inRGBA8 f     = error $ "Cannot save "++show f++" in RGBA8 colorspace"
   inRGBA16 PNG  = JP.encodePng . (imageToJPImage (convert :: Color -> JP.PixelRGBA16))
   inRGBA16 f    = error $ "Cannot save "++show f++" in RGBA16 colorspace"
-  inYCbCr8 JPG  =
-    (JP.encodeJpegAtQuality 100) . (imageToJPImage (convert :: Color -> JP.PixelYCbCr8))
+  inYCbCr8 (JPG q)  =
+    (JP.encodeJpegAtQuality q) . (imageToJPImage (convert :: Color -> JP.PixelYCbCr8))
   inYCbCr8 f    = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
   inCMYK8 TIFF  = JP.encodeTiff . (imageToJPImage (convert :: Color -> JP.PixelCMYK8))
   inCMYK8 f     = error $ "Cannot save "++show f++" in CMYK8 colorspace"

@@ -6,8 +6,8 @@ import Graphics.Image.Interface hiding (Interpolation)
 import qualified Graphics.Image.Interface as I (Interpolation)
 
 
-data Interpolation = None     -- | Linear or zero order interpolation.
-                   | Bilinear -- | Bilinear or first order interpolation at
+data Interpolation = None     -- ^ Linear or zero order interpolation.
+                   | Bilinear -- ^ Bilinear or first order interpolation at
                               -- given @i@ @j@ location.
 
 

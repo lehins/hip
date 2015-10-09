@@ -73,34 +73,38 @@ instance (Pixel px) => Pixel (Complex px) where
   weakest (px1 :+: px2) = m :+: m
     where m = pxOp2 min (strongest px1) (strongest px2)
 
-  showTpye (px :+: _) = "Complex "++(showType px)
+  showType (px :+: _) = "Complex "++(showType px)
 
-realImage :: (Pixel px, Image img (Complex px)) => img (Complex px) -> img px
+realImage :: (Pixel px, Image img px, Image img (Complex px)) =>
+             img (Complex px)
+          -> img px
 realImage = map real
 {-# INLINE realImage #-}
 
 
-imagImage :: (Pixel px, Image img (Complex px)) => img (Complex px) -> img px
+imagImage :: (Pixel px, Image img px, Image img (Complex px)) =>
+             img (Complex px)
+          -> img px
 imagImage = map imag
 {-# INLINE imagImage #-}
 
 
-complexImage :: (Pixel px, Pixel (Complex px), Image img px) =>
+complexImage :: (Pixel px, Image img px, Image img (Complex px)) =>
                 img px -> img px -> img (Complex px)
 complexImage = zipWith (:+:)
 {-# INLINE complexImage #-}
 
 
-toComplex :: (Pixel px, Image img px, Convertable px (Complex px)) =>
+toComplex :: (Pixel px, Convertable px (Complex px), Image img px, Image img (Complex px)) =>
              img px
-             -> img (Complex px)
+          -> img (Complex px)
 toComplex = map convert
 {-# INLINE toComplex #-}
 
 
 conjImage :: (Pixel px, Image img (Complex px)) =>
              img (Complex px)
-             -> img (Complex px)
+          -> img (Complex px)
 conjImage = map conj
 {-# INLINE conjImage #-}
 
