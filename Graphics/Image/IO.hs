@@ -9,7 +9,7 @@ import Data.Char (toUpper)
 import Data.IORef
 import Data.ByteString (readFile)
 import Graphics.Image.Conversion
-import Graphics.Image.Interface (Pixel, Image, Convertable, Strategy(normalize, compute))
+import Graphics.Image.Interface (Image, Convertable, Strategy(compute))
 import Graphics.Netpbm (PPM)
 import qualified Data.ByteString.Lazy as BL (writeFile)
 import System.Exit (ExitCode(ExitSuccess))
@@ -19,14 +19,15 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Process (runCommand, waitForProcess)
 
 
-readImage :: (Pixel px, Image img px,
-              Convertable DynamicImage (img px), Convertable PPM (img px)) =>
+readImage :: (Image img px,
+              Convertable DynamicImage (img px),
+              Convertable PPM          (img px)) =>
              FilePath -> IO (img px)
 readImage path = fmap ((either error id) . decodeImage) (readFile path)
 
 
-ext2format :: [Char] -> Format
-ext2format ((P.map toUpper) -> ext)
+extToFormat :: [Char] -> Format
+extToFormat ((P.map toUpper) -> ext)
   | ext == "BMP"             = BMP
   | elem ext ["JPG", "JPEG"] = JPG 100
   | ext == "PNG"             = PNG
@@ -39,25 +40,18 @@ ext2format ((P.map toUpper) -> ext)
   | otherwise = error $ "Unsupported file extension: "++ext
 
 
-shouldNormalize :: (Image img px, Pixel px) => [SaveOption img px] -> Bool
-shouldNormalize [] = True
-shouldNormalize ((Normalize should):_) = should
-shouldNormalize (_:opts) = shouldNormalize opts
-
-
-writeImage :: (Strategy strat img px, Image img px, Pixel px, Saveable img px) =>
+writeImage :: (Strategy strat img px, Image img px, Saveable img px) =>
               strat img px
               -> FilePath
               -> img px
               -> [SaveOption img px]
               -> IO ()
 writeImage !strat !path !img !options =
-  BL.writeFile path $ encoder format img' where
-    !img' = compute strat $ if shouldNormalize options then normalize strat img else img
+  BL.writeFile path $ encoder format (compute strat img) where
     !format = getFormat options
     !encoder = getEncoder options
     !ext = reverse . fst . (span ('.'/=)) . reverse $ path
-    getFormat [] = ext2format ext
+    getFormat [] = extToFormat ext
     getFormat !((Format f):_) = f
     getFormat !(_:opts) = getFormat opts
     getEncoder [] = defaultEncoder format
@@ -103,7 +97,7 @@ displayProgram = unsafePerformIO $ do
     >>>display frog
 
  -}
-display :: (Strategy strat img px, Image img px, Pixel px, Saveable img px) =>
+display :: (Strategy strat img px, Image img px, Saveable img px) =>
            strat img px
         -> img px
         -> IO ()
@@ -112,15 +106,11 @@ display strat img = do
   withSystemTempDirectory "hip_" (displayUsing strat img program)
 
 
-displayUsing :: (Strategy strat img px, Image img px, Pixel px, Saveable img px) =>
-                strat img px
-             -> img px
-             -> String
-             -> FilePath
-             -> IO ()
+displayUsing :: (Strategy strat img px, Image img px, Saveable img px) =>
+                strat img px -> img px -> String -> FilePath -> IO ()
 displayUsing strat img program tmpDir = do
   let path = tmpDir </> "tmp-img.png"
-  writeImage strat path img [Format PNG, Normalize True]
+  writeImage strat path img [Format PNG]
   ph <- runCommand (program ++ " " ++ path)
   e <- waitForProcess ph
   let printExit ExitSuccess = return ()

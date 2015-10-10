@@ -1,22 +1,24 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, UndecidableInstances, ViewPatterns #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts,
+UndecidableInstances, ViewPatterns, BangPatterns #-}
 module Graphics.Image.Conversion where
 
+import GHC.Float
 import Prelude hiding (map)
 import Graphics.Image.Interface (Convertable(..), Pixel(..), Image(..))
---import Graphics.Image.Internal hiding (maximum, minimum)
 import Graphics.Image.Gray
 import Graphics.Image.Color
-import qualified Data.ByteString.Lazy as BL (ByteString)
-import qualified Data.ByteString as B (ByteString)
 import Data.Word (Word8, Word16)
-import qualified Data.Vector.Unboxed as V
-import qualified Data.Vector.Storable as VS (convert, Vector, Storable)
+import Data.Vector.Unboxed (Unbox, (!))
+import Data.Vector.Storable (Storable)
 import Codec.Picture hiding (Pixel, Image)
 import Codec.Picture.Types hiding (Pixel, Image)
-import qualified Codec.Picture as JP    -- JuicyPixels
-import qualified Graphics.Netpbm as PNM -- Portable anymap format (PNM)
-import GHC.Float
+import qualified Codec.Picture as JP
+import qualified Data.ByteString.Lazy as BL (ByteString)
+import qualified Data.ByteString as B (ByteString)
+import qualified Data.Vector.Storable as VS (convert, Vector)
+import qualified Data.Vector.Unboxed as V (map)
+import qualified Graphics.Netpbm as PNM
 
 
 -- TODO: add links to wikipedia on formats
@@ -39,7 +41,6 @@ type Encoder img px = Format -> img px -> BL.ByteString
 
 data SaveOption img px = Format Format
                        | Encoder (Encoder img px)
-                       | Normalize Bool
 
 
 class (Ord px, Pixel px, Image img px) => Saveable img px where
@@ -361,9 +362,11 @@ instance Convertable Color PNM.PpmPixelRGB16 where
   convert px = convert $ inRGB px
 
 
-ppmImageToImage :: (VS.Storable px1, V.Unbox px1, Image img px2, Pixel px2, Convertable px1 px2) =>
+ppmImageToImage :: (Storable px1, Unbox px1, Unbox px2, Image img px2, Pixel px2, Convertable px1 px2) =>
              PNM.PPMHeader -> VS.Vector px1 -> img px2
-ppmImageToImage (PNM.PPMHeader _ c r) v = fromVector r c $ V.map convert $ VS.convert v
+ppmImageToImage (PNM.PPMHeader _ c r) v = make r c getPx where
+  !vectorImage = V.map convert $ VS.convert v
+  getPx i j = vectorImage ! (i*r + j)
 
 
 decodeImage :: (Convertable PNM.PPM b, Convertable DynamicImage b) =>

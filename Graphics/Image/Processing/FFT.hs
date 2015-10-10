@@ -34,11 +34,9 @@ data Mode = Forward
           deriving (Show, Eq)
 
 
---signOfMode :: Mode -> 
-signOfMode mode
- = case mode of
-	Forward		-> (-1)
-	Inverse		->   1
+--signOfMode :: Mode ->
+signOfMode Forward = (-1)
+signOfMode Inverse = 1
 {-# INLINE signOfMode #-}
 
 
@@ -113,7 +111,6 @@ twiddle :: (Pixel px) =>
 	-> Int 			-- index
 	-> Int 			-- length
 	-> (Complex px)
-
 twiddle sign k' n' = (cos (2 * pi * k / n)) :+: (sign * sin  (2 * pi * k / n)) where
   k = fromIntegral k'
   n = fromIntegral n'
