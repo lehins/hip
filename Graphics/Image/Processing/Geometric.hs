@@ -19,7 +19,7 @@ inside.
 <Image RGB: 700x700>
 
 -}
-rotate :: (Interpolation alg, Image img px, Pixel px) =>
+rotate :: (Interpolation alg, Image img px, Pixel px, Num px) =>
           alg    -- ^ Interpolation algorithm to be used during rotation.
        -> img px -- ^ image to be rotated.
        -> px     -- ^ default pixel that will fill in areas that are out of bounds.
@@ -53,7 +53,7 @@ direction. Dimensions of a new image will be kept the same.
 <Image RGB: 512x512>
 
 -}
-rotate' :: (Interpolation alg, Image img px, Pixel px) =>
+rotate' :: (Interpolation alg, Image img px, Pixel px, Num px) =>
            alg    -- ^ Interpolation algorithm to be used during rotation.
         -> img px -- ^ image to be rotated.
         -> px     -- ^ default pixel that will fill in areas that are out of bounds.

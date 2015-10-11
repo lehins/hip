@@ -38,9 +38,7 @@ Library
                   ViewPatterns
                     
   Exposed-Modules: Graphics.Image,
-                   Graphics.Image.Gray,
-                   Graphics.Image.Color,
-                   Graphics.Image.Complex,
+                   Graphics.Image.Pixel,
                    Graphics.Image.Processing,
                    Graphics.Image.Parallel,
                    Graphics.Image.Sequential,
@@ -48,6 +46,10 @@ Library
 
   Other-modules:   Graphics.Image.Interface,
                    Graphics.Image.Internal,
+                   Graphics.Image.Pixel.Gray,
+                   Graphics.Image.Pixel.RGB,
+                   Graphics.Image.Pixel.HSI,
+                   Graphics.Image.Pixel.Complex,
                    Graphics.Image.Conversion,
                    Graphics.Image.IO,
                    Graphics.Image.Processing.Geometric

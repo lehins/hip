@@ -32,7 +32,7 @@ fold = I.fold I.Parallel
 {-# INLINE fold #-}
 
 
-sum :: (Elt px, Unbox px, Pixel px) => I.Image px -> px
+sum :: (Elt px, Unbox px, Num px, Pixel px) => I.Image px -> px
 sum = I.sum I.Parallel
 {-# INLINE sum #-}
 

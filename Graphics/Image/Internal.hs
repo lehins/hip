@@ -128,7 +128,7 @@ getDelayed (ComputedImage a1)  = delay a1
 getDelayed (SingletonImage a1) = delay a1
 {-# INLINE getDelayed #-}
 
-instance (Elt px, Unbox px, Pixel px) => Num (Image px) where
+instance (Num px, Elt px, Unbox px, Pixel px) => Num (Image px) where
   (+)           = zipWith (+)
   {-# INLINE (+) #-}
   
@@ -208,13 +208,13 @@ instance (Elt px, Unbox px, Pixel px) => Show (Image px) where
 -- a vector.
 fromVector :: (Elt px, Unbox px, Pixel px) =>
               Int -> Int  -- ^ Image dimension @m@ rows and @n@ columns.
-           -> Vector px -- ^ Flat vector image rpresentation with length @m*n@
+           -> Vector px   -- ^ Flat vector image rpresentation with length @m*n@
            -> Image px
 fromVector m n v = fromArray $ delay $ fromUnboxed (Z :. m :. n) v
 {-# INLINE fromVector #-}
 
 
-  -- | Convert an Image to a Vector of length: rows*cols
+-- | Convert an Image to a Vector of length: rows*cols
 toVector :: (Elt px, Unbox px, Pixel px) =>
             RepaStrategy Image px
          -> Image px

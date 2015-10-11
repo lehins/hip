@@ -17,7 +17,7 @@ class Convertable a b where
   convert :: a -> b
 
 
-class (Num px, Eq px, Show px) => Pixel px where
+class Pixel px where
   pixel :: Double -> px
        
   pxOp :: (Double -> Double) -> px -> px
@@ -28,7 +28,7 @@ class (Num px, Eq px, Show px) => Pixel px where
 
   weakest :: px -> px
 
-  showType :: px -> String
+  showType :: px -> String -- TODO: switch to arity 0
 
 
 class (Image img px, Pixel px) => Strategy strat img px where
@@ -148,7 +148,7 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
 
 
 class Interpolation alg where
-  interpolate :: Pixel px =>
+  interpolate :: (Num px, Pixel px) =>
                  alg                -- ^ Interpolation algorithm
               -> px                 -- ^ default pixel, for an out of bound value.
               -> Int -> Int         -- ^ image dimensions @m@ rows and @n@ columns.
@@ -160,7 +160,7 @@ class Interpolation alg where
 
 
 -- | Sum all pixels of the image
-sum :: (Strategy strat img px, Image img px) =>
+sum :: (Strategy strat img px, Image img px, Num px) =>
        strat img px
        -> img px
        -> px

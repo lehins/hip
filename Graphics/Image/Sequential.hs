@@ -11,6 +11,7 @@ import Graphics.Image.Conversion (Saveable, SaveOption(..))
 import Graphics.Image.Interface (Pixel)
 import qualified Graphics.Image.Internal as I
 import qualified Graphics.Image.IO as IO (writeImage, display)
+import Data.Array.Repa.Eval (Elt)
 import Data.Array.Repa as R hiding ((++))
 import Data.Vector.Unboxed (Vector, Unbox)
 
@@ -31,7 +32,7 @@ fold = I.fold I.Sequential
 {-# INLINE fold #-}
 
 
-sum :: (Elt px, Unbox px, Pixel px) => I.Image px -> px
+sum :: (Elt px, Unbox px, Num px, Pixel px) => 
        I.Image px
     -> px
 sum = I.sum I.Sequential
