@@ -17,12 +17,12 @@ class Convertable a b where
   convert :: a -> b
 
 
-class Pixel px where
-  pixel :: Double -> px
+class (Num px, Num a) => Pixel px a | px -> a where
+  pixel :: a -> px
        
-  pxOp :: (Double -> Double) -> px -> px
+  pxOp :: (a -> a) -> px -> px
 
-  pxOp2 :: (Double -> Double -> Double) -> px -> px -> px
+  pxOp2 :: (a -> a -> a) -> px -> px -> px
 
   strongest :: px -> px
 
@@ -31,7 +31,7 @@ class Pixel px where
   showType :: px -> String -- TODO: switch to arity 0
 
 
-class (Image img px, Pixel px) => Strategy strat img px where
+class (Image img px a, Pixel px a) => Strategy strat img px a where
   
   -- | Make sure an Image is in a computed form.
   compute :: strat img px -- ^ a strategy for computing this image.
@@ -54,7 +54,7 @@ class (Image img px, Pixel px) => Strategy strat img px where
       img' = compute strat img
 
 
-class (Show (img px), Pixel px) => Image img px | px -> img where
+class (Show (img px), Pixel px a) => Image img px a | px a -> img where
 
   -- | Get dimensions of the image. (rows, cols)
   dims :: img px -> (Int, Int)
@@ -79,21 +79,21 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
 
   -- | Zip two Images with a function. Images do not have to hold the same type
   -- of pixels.
-  zipWith :: (Pixel px1, Pixel px2) =>
+  zipWith :: (Pixel px1 a1, Pixel px2 a1) =>
              (px1 -> px2 -> px)
           -> img px1
           -> img px2
           -> img px
 
   -- | Traverse the image.
-  traverse :: Pixel px1 =>
+  traverse :: Pixel px1 a1 =>
               img px1
            -> (Int -> Int -> (Int, Int))
            -> ((Int -> Int -> px1) -> Int -> Int -> px)
            -> img px
 
   -- | Traverse two images.
-  traverse2 :: (Pixel px1, Pixel px2) =>
+  traverse2 :: (Pixel px1 a1, Pixel px2 a2) =>
                img px1
             -> img px2
             -> (Int -> Int -> Int -> Int -> (Int, Int))
@@ -101,7 +101,7 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
             -> img px
 
   -- | Traverse two images.
-  traverse3 :: (Pixel px1, Pixel px2, Pixel px3) =>
+  traverse3 :: (Pixel px1 a1, Pixel px2 a2, Pixel px3 a3) =>
                img px1
             -> img px2
             -> img px3
@@ -160,7 +160,7 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
 
 
 class Interpolation alg where
-  interpolate :: (Num px, Pixel px) =>
+  interpolate :: (Num px, Pixel px a) =>
                  alg                -- ^ Interpolation algorithm
               -> px                 -- ^ default pixel, for an out of bound value.
               -> Int -> Int         -- ^ image dimensions @m@ rows and @n@ columns.
@@ -172,28 +172,28 @@ class Interpolation alg where
 
 
 -- | Sum all pixels of the image
-sum :: (Strategy strat img px, Image img px, Num px) =>
+sum :: (Strategy strat img px a, Image img px a, Num px) =>
        strat img px
        -> img px
        -> px
 sum strat img = fold strat (+) (ref img 0 0) img
 {-# INLINE sum #-}
 
-maximum :: (Strategy strat img px, Image img px, Ord px) =>
+maximum :: (Strategy strat img px a, Image img px a, Ord px, Ord a) =>
            strat img px
            -> img px
            -> px
 maximum strat img = fold strat (pxOp2 max) (ref img 0 0) img
 {-# INLINE maximum #-}
 
-minimum :: (Strategy strat img px, Image img px, Ord px) =>
+minimum :: (Strategy strat img px a, Image img px a, Ord px, Ord a) =>
            strat img px
            -> img px
            -> px
 minimum strat img = fold strat (pxOp2 min) (ref img 0 0) img
 {-# INLINE minimum #-}
   
-normalize :: (Strategy strat img px, Image img px, Fractional px, Ord px, Pixel px) =>
+normalize :: (Strategy strat img px a, Image img px a, Fractional px, Ord px, Ord a, Pixel px a) =>
              strat img px
              -> img px
              -> img px

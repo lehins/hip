@@ -13,7 +13,7 @@ import qualified Data.Vector.Unboxed as V
 data Gray = Gray !Double deriving Eq
 
 
-instance Pixel Gray where
+instance Pixel Gray Double where
   pixel d                     = Gray d
   {-# INLINE pixel #-}
   

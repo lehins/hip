@@ -32,7 +32,6 @@ data RepaStrategy img px where
   Sequential :: D.Image img px => RepaStrategy img px
   Parallel   :: D.Image img px => RepaStrategy img px
 
-                  
 
 instance (Elt px, Unbox px, Pixel px) => Strategy RepaStrategy Image px where
   compute Sequential (AbstractImage arr) = ComputedImage $ computeS arr
@@ -137,6 +136,7 @@ getDelayed (AbstractImage a1)  = a1
 getDelayed (ComputedImage a1)  = delay a1
 getDelayed (SingletonImage a1) = delay a1
 {-# INLINE getDelayed #-}
+
 
 instance (Num px, Elt px, Unbox px, Pixel px) => Num (Image px) where
   (+)           = zipWith (+)

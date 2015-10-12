@@ -13,7 +13,7 @@ import Data.Vector.Unboxed (Unbox)
 data RGB = RGB !Double !Double !Double deriving Eq
 
 
-instance Pixel RGB where
+instance Pixel RGB Double where
   pixel d = RGB d d d
   {-# INLINE pixel #-}
 
