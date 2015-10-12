@@ -3,7 +3,7 @@
 FlexibleInstances, InstanceSigs #-}
 
 module Graphics.Image.Internal (
-  compute, fold, sum, ref, refDefault, refMaybe, dims, make, 
+  compute, fold, sum, ref, refDefault, refMaybe, dims, rows, cols, make, 
   map, zipWith, traverse, traverse2, transpose, backpermute, crop,
   fromVector, fromLists, fromArray, toVector, toLists, toArray,
   maximum, minimum, normalize,
@@ -50,10 +50,10 @@ instance (Elt px, Unbox px, Pixel px) => Strategy RepaStrategy Image px where
 
 
 instance (Elt px, Unbox px, Pixel px) => D.Image Image px where
-  ref (ComputedImage arr)  r c = index arr (Z :. r :. c)
+  ref (ComputedImage  arr) r c = index arr (Z :. r :. c)
   ref (SingletonImage arr) _ _ = unsafeIndex arr (Z :. 0 :. 0)
-  ref (AbstractImage arr)  0 0 = unsafeIndex arr (Z :. 0 :. 0)
-  ref (AbstractImage _)    _ _ =
+  ref (AbstractImage  arr) 0 0 = unsafeIndex arr (Z :. 0 :. 0)
+  ref (AbstractImage    _) _ _ =
     error "Only computed images can be referenced, call 'compute' on the Image."
   {-# INLINE ref #-}
 
@@ -101,6 +101,16 @@ instance (Elt px, Unbox px, Pixel px) => D.Image Image px where
       {-# INLINE newPixel #-}
   {-# INLINE traverse2 #-}
 
+  traverse3 (getDelayed -> !arr1) (getDelayed -> !arr2) (getDelayed -> !arr3) !newDims !newPx =
+    AbstractImage $ R.traverse3 arr1 arr2 arr3 newExtent newPixel where
+      newExtent !(Z :. m1 :. n1) !(Z :. m2 :. n2) !(Z :. m3 :. n3) =
+        uncurry ix2 $ newDims m1 n1 m2 n2 m3 n3
+      {-# INLINE newExtent #-}
+      newPixel !getPx1 !getPx2 !getPx3 !(Z :. i :. j) =
+        newPx (((.).(.)) getPx1 ix2) (((.).(.)) getPx2 ix2) (((.).(.)) getPx3 ix2) i j
+      {-# INLINE newPixel #-}
+  {-# INLINE traverse3 #-}
+
   transpose !img@(SingletonImage _) = img
   transpose (getDelayed -> !arr)    = AbstractImage . R.transpose $ arr
   {-# INLINE transpose #-}
@@ -117,7 +127,7 @@ instance (Elt px, Unbox px, Pixel px) => D.Image Image px where
     AbstractImage $ extract (Z :. i :. j) (Z :. m :. n) arr
   {-# INLINE crop #-}
    
-  fromLists ls =
+  fromLists !ls =
     (fromVector (length ls) (length $ head ls)) . fromList . concat $ ls
   {-# INLINE fromLists #-}
 

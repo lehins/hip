@@ -100,6 +100,18 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
             -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
             -> img px
 
+  -- | Traverse two images.
+  traverse3 :: (Pixel px1, Pixel px2, Pixel px3) =>
+               img px1
+            -> img px2
+            -> img px3
+            -> (Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int))
+            -> ((Int -> Int -> px1) ->
+                (Int -> Int -> px2) ->
+                (Int -> Int -> px3) ->
+                Int -> Int -> px)
+            -> img px
+
   -- | Transpose the image
   transpose :: img px
             -> img px

@@ -1,13 +1,16 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+ViewPatterns #-}
 module Graphics.Image.Pixel (
+  hsiToRgb, rgbToHsi, graysToHsi, hsiToGrays,
   module Graphics.Image.Pixel.Gray,
   module Graphics.Image.Pixel.RGB,
   module Graphics.Image.Pixel.HSI,
   module Graphics.Image.Pixel.Complex
   ) where
 
-import Graphics.Image.Interface (Convertable(..), Pixel(..))
+import Prelude hiding (map)
+import Graphics.Image.Interface (Convertable(..), Pixel(..), Image(..))
 import Graphics.Image.Pixel.Gray
 import Graphics.Image.Pixel.RGB
 import Graphics.Image.Pixel.HSI
@@ -63,3 +66,28 @@ instance Pixel px => Convertable px (Complex px) where
 instance Pixel px => Convertable (Complex px) px where
   convert (px :+: _) = px
   {-# INLINE convert #-}
+
+
+hsiToRgb :: (Image img HSI, Image img RGB) => img HSI -> img RGB
+hsiToRgb img = map convert img
+
+
+rgbToHsi :: (Image img HSI, Image img RGB) => img RGB -> img HSI
+rgbToHsi img = map convert img
+
+
+hsiToGrays :: (Image img HSI, Image img Gray) => img HSI -> (img Gray, img Gray, img Gray)
+hsiToGrays img = (map (\(HSI h _ _) -> Gray h) img,
+                  map (\(HSI _ s _) -> Gray s) img,
+                  map (\(HSI _ _ i) -> Gray i) img)
+
+graysToHsi :: (Image img HSI, Image img Gray) => (img Gray, img Gray, img Gray) -> img HSI
+graysToHsi (imgH@(dims -> (hM, hN)), imgS@(dims -> (sM, sN)), imgI@(dims -> (iM, iN)))
+  | hM == sM && hM == iM && hN == sN && hN == iN =
+    let newDims _ _ _ _ _ _ = (hM, hN)
+        getValue (Gray v) = v
+        newPx getPx1 getPx2 getPx3 i j =
+          HSI (getValue $ getPx1 i j) (getValue $ getPx2 i j) (getValue $ getPx3 i j)
+          in traverse3 imgH imgS imgI newDims newPx
+  | otherwise = error ("Recieved images with inconsistent dimensions: "++
+                       (show imgH)++", "++(show imgS)++", "++(show imgI))

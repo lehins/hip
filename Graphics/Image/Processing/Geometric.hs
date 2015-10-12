@@ -1,6 +1,6 @@
 {-# LANGUAGE ViewPatterns, BangPatterns, FlexibleContexts #-}
 module Graphics.Image.Processing.Geometric (
-  normalize, rotate, rotate'
+  rotate, rotate'
   ) where
 
 import Prelude hiding (map, zipWith)

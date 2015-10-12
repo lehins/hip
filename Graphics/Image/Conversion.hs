@@ -6,8 +6,7 @@ module Graphics.Image.Conversion where
 import GHC.Float
 import Prelude hiding (map)
 import Graphics.Image.Interface (Convertable(..), Pixel(..), Image(..))
-import Graphics.Image.Pixel.Gray
-import Graphics.Image.Pixel.RGB
+import Graphics.Image.Pixel
 import Data.Word (Word8, Word16)
 import Data.Vector.Unboxed (Unbox, (!))
 import Data.Vector.Storable (Storable)
@@ -70,20 +69,6 @@ fromWord16 :: Word16 -> Double
 fromWord16 px = fromIntegral px / 65535
 toWord16 :: Double -> Word16
 toWord16 px = round (65535*px)
-
--- Internal ----------------------------------------------------------------------
-
-instance Convertable Gray RGB where
-  convert (Gray g) = pixel g
-
-
-instance Convertable Gray Gray where
-  convert = id
-
-
-instance Convertable RGB Gray where
-  convert (RGB r g b) = Gray ((r + g + b)/3)
-
 
 -- JuicyPixel ---------------------------------------------------------------------
 

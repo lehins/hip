@@ -1,15 +1,16 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image (
-  Image, Pixel, 
-  ref, refDefault, refMaybe, dims, make, map, zipWith, traverse, transpose,
+  Pixel, Saveable(..), SaveOption(..), Format(..),
+  ref, refDefault, refMaybe, dims, rows, cols, make, map, zipWith, traverse, transpose,
   backpermute, crop, fromVector, fromLists, fromArray,
-  readColorImage, readGrayImage, setDisplayProgram,
+  readColorImage, readGrayImage, setDisplayProgram, Convertable(..),
   module Graphics.Image.Interpolation,
   module Graphics.Image.Processing,
   module Graphics.Image.Pixel
   ) where
 import qualified Prelude as P
-import Graphics.Image.Interface (Pixel)
+import Graphics.Image.Conversion
+import Graphics.Image.Interface (Pixel, Convertable(..))
 import Graphics.Image.Internal
 import Graphics.Image.Interpolation
 import Graphics.Image.IO

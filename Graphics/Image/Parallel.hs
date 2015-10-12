@@ -2,15 +2,17 @@
 
 module Graphics.Image.Parallel (
   compute, fold, sum, maximum, minimum, normalize, toVector, toLists, toArray,
-  writeImage, display,
+  writeImage, display, convolve, convolveRows, convolveCols,
   SaveOption(..)
   ) where
 
-import Prelude hiding (maximum, minimum, sum)
+import Prelude hiding (maximum, minimum, sum, map)
+import qualified Prelude as P (map)
 import Graphics.Image.Conversion (Saveable, SaveOption(..))
 import Graphics.Image.Interface (Pixel)
 import qualified Graphics.Image.Internal as I
 import qualified Graphics.Image.IO as IO (writeImage, display)
+import qualified Graphics.Image.Processing.Convolution as C
 import Data.Array.Repa.Eval (Elt)
 import Data.Array.Repa as R hiding ((++))
 import Data.Vector.Unboxed (Vector, Unbox)
@@ -93,3 +95,13 @@ display :: (Saveable I.Image px, Elt px, Unbox px, Pixel px) =>
         -> IO ()
 display = IO.display I.Parallel
 {-# INLINE display #-}
+
+
+convolve :: (Pixel px, Num px, Unbox px, Elt px) => I.Image px -> I.Image px -> I.Image px
+convolve = C.convolve I.Parallel C.Wrap 
+
+convolveRows :: (Pixel px, Num px, Unbox px, Elt px) => [px] -> I.Image px -> I.Image px
+convolveRows ls = convolve (I.fromLists [ls])
+
+convolveCols :: (Pixel px, Num px, Unbox px, Elt px) => [px] -> I.Image px -> I.Image px
+convolveCols ls = convolve (I.fromLists $ P.map (:[]) ls)

@@ -9,7 +9,6 @@ module Graphics.Image.Processing (
   ) where
 
 import Graphics.Image.Interface
---import Graphics.Image.Processing.Convolution
 --import Graphics.Image.Processing.FFT
 --import Graphics.Image.Processing.Matrix
 import Graphics.Image.Processing.Geometric

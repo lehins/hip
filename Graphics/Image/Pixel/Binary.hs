@@ -7,15 +7,15 @@ module Graphics.Image.Binary (
 
 import Graphics.Image.Interface (Pixel(..))
 import Data.Array.Repa.Eval
-import Data.Int (Int8)
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
 
-data Binary = Binary !Int8 deriving Eq
+data Binary = Binary !Bool deriving Eq
 
 
 instance Pixel Binary where
-  pixel b                         = Binary b
+  pixel 0                         = Binary False
+  pixel _                         = Binary True
   {-# INLINE pixel #-}
   
   pxOp f (Binary b)               = Binary (f b)
