@@ -1,11 +1,23 @@
 {-# LANGUAGE ViewPatterns, BangPatterns, FlexibleContexts #-}
 module Graphics.Image.Processing.Geometric (
-  rotate, rotate'
+  rotate, rotate', scale
   ) where
 
 import Prelude hiding (map, zipWith)
 import Graphics.Image.Interface
 import Data.Complex
+
+{- | Scale an image by a factor wile using interpolation -}
+scale :: (Interpolation alg, Image img px, Pixel px, Num px, RealFrac (Inner px)) =>
+         alg      -- ^ Interpolation algorithm to be used during scaling
+      -> Inner px -- ^ Scaling factor, must be grater than 0.
+      -> img px   -- ^ Image to be scaled
+      -> img px
+scale !alg !fact !img = traverse img getNewDims getNewPx where
+  !(imgM, imgN) = dims img
+  getNewDims _ _ = (round (fromIntegral imgM * fact), round (fromIntegral imgN * fact))
+  getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
+    interpolate alg (pixel 0) imgM imgN getPx (i/fact) (j/fact)
 
 
 {-| Rotate an image around it's center by an angle Θ in counterclockwise
@@ -44,7 +56,7 @@ rotate alg !img@(dims -> !(m, n)) !defPx !theta = traverse img getNewDims getNew
 
 
 {-| Rotate an image around it's center by an angle Θ in counterclockwise
-direction. Dimensions of a new image will be kept the same.
+direction. Dimensions of a new image will stay unchanged.
 
 >>> lena
 <Image RGB: 512x512>

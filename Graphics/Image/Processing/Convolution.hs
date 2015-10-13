@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing.Convolution (
-  Outside(..), convolveOut, convolve
+  Outside(..), convolve
   ) where
 
 import Graphics.Image.Interface
@@ -16,6 +16,81 @@ data Outside px =
   | Crop      -- ^ Compute an image of redused size, by eliminating output rows
               -- and columns that cannot be computed by convolution.
   deriving Eq
+
+
+
+convolve  :: (Image img px, Pixel px) =>
+              Outside px   -- ^ Approach to be used near the borders.
+           -> img px       -- ^ Convolution kernel image.
+           -> img px       -- ^ Image that will be used to convolve the kernel.
+           -> img px
+convolve !out !kernel !img = traverse2 kernel img getDims stencil where
+  !(krnM, krnN)     = dims kernel        
+  !(imgM, imgN)     = dims img
+  !krnM2@borderUp   = krnM `div` 2
+  !krnN2@borderLeft = krnN `div` 2
+  !borderDown       = imgM - krnM2 - 1
+  !borderRight      = imgN - krnN2  - 1
+  !getOutPx         = getOutFunc out
+  getDims _ _ _ _   = getDims' out
+  getDims' Crop     = (imgM - krnM, imgN - krnN)
+  getDims' _        = (imgM, imgN)
+  getOutFunc Extend    = outExtend
+  getOutFunc Wrap      = outWrap
+  getOutFunc (Fill px) = outFill px
+  getOutFunc Crop      = outCrop
+  {-# INLINE getOutFunc #-}
+  outExtend !getPx !i !j = getPx
+                           (if i < 0 then 0 else if i >= imgM then (imgM-1) else i)
+                           (if j < 0 then 0 else if j >= imgN then (imgN-1) else j)
+  {-# INLINE outExtend #-}
+  outWrap !getPx !i !j   = getPx (i `mod` imgM) (j `mod` imgN)
+  {-# INLINE outWrap #-}
+  outFill !px _ _ _      = px
+  {-# INLINE outFill #-}
+  outCrop !getPx !i !j   = getPx (i + krnM2) (j + krnN2)
+  {-# INLINE outCrop #-}
+  stencil !getKrnPx !getImgPx !i !j = integrate 0 0 0 where
+    getImgPx' !i' !j' | j' < borderLeft  ||
+                        j' > borderRight ||
+                        i' < borderUp    ||  
+                        i' > borderDown     = getOutPx getImgPx i' j'
+                      | otherwise           = getImgPx i' j'
+    {-# INLINE getImgPx' #-}
+    !ikrnM = i - krnM2
+    !jkrnN = j - krnN2
+    integrate !ki !kj !acc
+      | ki == krnM            = integrate 0 (kj+1) acc
+      | ki == 0 && kj == krnN = acc
+      | otherwise             = let !krnPx = getKrnPx ki kj
+                                    !imgPx = getImgPx' (ki + ikrnM) (kj + jkrnN)
+                                in integrate (ki+1) kj (acc + krnPx * imgPx)
+    {-# INLINE integrate #-}
+  {-# INLINE stencil #-}
+    
+{-# INLINE convolve #-}
+
+
+{-
+convolve :: (Strategy strat img px, Image img px, Pixel px, Num px) =>
+            Image px
+         -> Image px
+         -> Image px
+{-# INLINE convolve #-}
+convolve strat = convolveOut strat Wrap
+
+convolve' :: Pixel px => Image px -> Image px -> Image px
+{-# INLINE convolve' #-}
+convolve' = convolveOut Extend
+
+convolveRows :: Pixel px => [px] -> Image px -> Image px
+{-# INLINE convolveRows #-}
+convolveRows row = convolve . transpose . fromLists $ [row]
+
+convolveCols :: Pixel px => [px] -> Image px -> Image px
+{-# INLINE convolveCols #-}
+convolveCols row = convolve . fromLists $ [row]
+
 
 
 convolveOut :: (Num px, Pixel px, Image img px) =>
@@ -37,7 +112,7 @@ convolveOut getOut kernel img = traverse img (,) stencil
           getPx' !i' !j' | j' < borderLeft  ||
                            j' > borderRight ||
                            i' < borderUp    ||  
-                           i' > borderDown     = getOut getPx i j
+                           i' > borderDown     = getOut getPx i' j'
                          | otherwise           = getPx i' j'
           {-# INLINE getPx' #-}
           !ikrnM = i - krnM2
@@ -85,23 +160,4 @@ convolve strat out kernel@(dims -> (m', n')) img@(dims -> (m, n)) =
     {-# INLINE getOutFunc #-}
 {-# INLINE convolve #-}
 
-{-
-convolve :: (Strategy strat img px, Image img px, Pixel px, Num px) =>
-            Image px
-         -> Image px
-         -> Image px
-{-# INLINE convolve #-}
-convolve strat = convolveOut strat Wrap
-
-convolve' :: Pixel px => Image px -> Image px -> Image px
-{-# INLINE convolve' #-}
-convolve' = convolveOut Extend
-
-convolveRows :: Pixel px => [px] -> Image px -> Image px
-{-# INLINE convolveRows #-}
-convolveRows row = convolve . transpose . fromLists $ [row]
-
-convolveCols :: Pixel px => [px] -> Image px -> Image px
-{-# INLINE convolveCols #-}
-convolveCols row = convolve . fromLists $ [row]
 -}

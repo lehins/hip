@@ -98,7 +98,7 @@ display = IO.display I.Parallel
 
 
 convolve :: (Pixel px, Num px, Unbox px, Elt px) => I.Image px -> I.Image px -> I.Image px
-convolve = C.convolve I.Parallel C.Wrap 
+convolve krn img = C.convolve C.Wrap (compute krn) (compute img)
 
 convolveRows :: (Pixel px, Num px, Unbox px, Elt px) => [px] -> I.Image px -> I.Image px
 convolveRows ls = convolve (I.fromLists [ls])

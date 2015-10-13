@@ -39,6 +39,7 @@ Library
                     
   Exposed-Modules: Graphics.Image,
                    Graphics.Image.Pixel,
+                   Graphics.Image.Binary,
                    Graphics.Image.Processing,
                    Graphics.Image.Parallel,
                    Graphics.Image.Sequential,

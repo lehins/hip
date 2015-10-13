@@ -5,13 +5,14 @@ module Graphics.Image.Processing (
   module Graphics.Image.Processing.Geometric,
   downsampleRows, downsampleCols, downsample, downsampleF,
   upsampleRows, upsampleCols, upsample, upsampleF,
-  leftToRight, topToBottom, pad
+  leftToRight, topToBottom, pad, Outside(..)
   ) where
 
 import Graphics.Image.Interface
 --import Graphics.Image.Processing.FFT
 --import Graphics.Image.Processing.Matrix
 import Graphics.Image.Processing.Geometric
+import Graphics.Image.Processing.Convolution (Outside(..))
 
 downsampleF :: Image img px => Int -> Int -> img px -> img px
 {-# INLINE downsampleF #-}
