@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies,
 UndecidableInstances, BangPatterns #-}
 
-module Graphics.Image.Binary (
-  Binary (..)
+module Graphics.Image.Pixel.Binary (
+  Binary, on, off, isOn, isOff
   ) where
 
 import Graphics.Image.Interface (Pixel(..))
@@ -15,6 +15,17 @@ newtype Bin = Bin Bool deriving Eq
 -- Need to specify a new type to avoid declaring instances for Bool
 data Binary = Binary !Bin deriving Eq
 
+on :: Binary
+on = Binary $ Bin True
+
+off :: Binary
+off = Binary $ Bin False
+
+isOn :: Binary -> Bool
+isOn (Binary (Bin v)) = v
+
+isOff :: Binary -> Bool
+isOff (Binary (Bin v)) = not v
 
 instance Num Bin where
   (Bin False) + (Bin False)  = Bin False
@@ -49,9 +60,10 @@ instance Show Bin where
   show (Bin False) = "0"
   
 
-instance Pixel Binary Bin where
-  pixel 0                         = Binary 0
-  pixel _                         = Binary 1
+instance Pixel Binary where
+  type Inner Binary = Bin
+  pixel 0                         = off
+  pixel _                         = on
   {-# INLINE pixel #-}
   
   pxOp f (Binary b)               = Binary (f b)
@@ -118,6 +130,12 @@ instance Elt Bin where
 
   one = 1
   {-# INLINE one #-}
+
+
+derivingUnbox "Bin"
+    [t| Bin -> Bool |]
+    [| \(Bin y) -> y |]
+    [| \y -> Bin y |]
 
 
 derivingUnbox "BinaryPixel"

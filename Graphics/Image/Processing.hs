@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
 module Graphics.Image.Processing (
   --module Graphics.Image.Processing.Convolution,
   --module Graphics.Image.Processing.FFT,
@@ -20,7 +20,7 @@ downsampleF !fm !fn !img = traverse img
                            (\getPx i j -> getPx (i*fm) (j*fn))
 
 
-upsampleF :: Image img px => Int -> Int -> img px -> img px
+upsampleF :: (Image img px, Ord (Inner px), Num (Inner px)) => Int -> Int -> img px -> img px
 {-# INLINE upsampleF #-}
 upsampleF !fm !fn !img = traverse img 
                          (\m n -> (m*fm, n*fn))
@@ -30,27 +30,27 @@ upsampleF !fm !fn !img = traverse img
                            else pixel 0)
 
 -- | Removes every second row from the image starting with second one.
-downsampleRows :: Image img px => img px -> img px
+downsampleRows :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsampleRows #-}
 downsampleRows = downsampleF 2 1
 
-downsampleCols :: Image img px => img px -> img px
+downsampleCols :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsampleCols #-}
 downsampleCols = downsampleF 1 2
 
-downsample :: Image img px => img px -> img px
+downsample :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsample #-}
 downsample = downsampleF 2 2
 
-upsampleRows :: Image img px => img px -> img px
+upsampleRows :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsampleRows #-}
 upsampleRows = upsampleF 2 1
 
-upsampleCols :: Image img px => img px -> img px
+upsampleCols :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsampleCols #-}
 upsampleCols = upsampleF 1 2
 
-upsample :: Image img px => img px -> img px
+upsample :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsample #-}
 upsample = upsampleF 2 2
 

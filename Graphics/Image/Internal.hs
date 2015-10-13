@@ -1,12 +1,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE GADTs, MultiParamTypeClasses, ViewPatterns, BangPatterns,
-FlexibleInstances, InstanceSigs #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, GADTs, MultiParamTypeClasses, ViewPatterns #-}
 
 module Graphics.Image.Internal (
-  compute, fold, sum, ref, refDefault, refMaybe, dims, rows, cols, make, 
+  compute, fold, ref, refDefault, refMaybe, dims, rows, cols, make, 
   map, zipWith, traverse, traverse2, transpose, backpermute, crop,
   fromVector, fromLists, fromArray, toVector, toLists, toArray,
-  maximum, minimum, normalize,
+  maximum, minimum, normalize, sum,
   Image(..), RepaStrategy(..)
   ) where
 
@@ -23,17 +22,22 @@ import Data.Vector.Unboxed (Unbox, Vector, fromList)
 
 
 data Image px where
-  ComputedImage  :: (Elt px, Unbox px, Pixel px) => (Array U DIM2 px) -> Image px
-  AbstractImage  :: (Elt px, Unbox px, Pixel px) => (Array D DIM2 px) -> Image px
-  SingletonImage :: (Elt px, Unbox px, Pixel px) => (Array U DIM2 px) -> Image px
+  ComputedImage  :: (Elt px, Unbox px, Pixel px) =>
+                    (Array U DIM2 px) -> Image px
+  AbstractImage  :: (Elt px, Unbox px, Pixel px) =>
+                    (Array D DIM2 px) -> Image px
+  SingletonImage :: (Elt px, Unbox px, Pixel px) =>
+                    (Array U DIM2 px) -> Image px
 
 
 data RepaStrategy img px where
-  Sequential :: D.Image img px => RepaStrategy img px
-  Parallel   :: D.Image img px => RepaStrategy img px
+  Sequential :: (Elt px, Unbox px, Pixel px, D.Image img px) =>
+                RepaStrategy img px
+  Parallel   :: (Elt px, Unbox px, Pixel px, D.Image img px) =>
+                RepaStrategy img px
 
 
-instance (Elt px, Unbox px, Pixel px) => Strategy RepaStrategy Image px where
+instance (Elt px, Unbox px, Show px, Pixel px) => Strategy RepaStrategy Image px where
   compute Sequential (AbstractImage arr) = ComputedImage $ computeS arr
   compute Parallel (AbstractImage arr) =  arr' `deepSeqArray` ComputedImage arr'
     where arr' = head $ computeP arr
@@ -48,7 +52,7 @@ instance (Elt px, Unbox px, Pixel px) => Strategy RepaStrategy Image px where
   {-# INLINE fold #-}
 
 
-instance (Elt px, Unbox px, Pixel px) => D.Image Image px where
+instance (Elt px, Unbox px, Show px, Pixel px) => D.Image Image px where
   ref (ComputedImage  arr) r c = index arr (Z :. r :. c)
   ref (SingletonImage arr) _ _ = unsafeIndex arr (Z :. 0 :. 0)
   ref (AbstractImage  arr) 0 0 = unsafeIndex arr (Z :. 0 :. 0)
@@ -132,13 +136,13 @@ instance (Elt px, Unbox px, Pixel px) => D.Image Image px where
 
 
 getDelayed :: Pixel px => Image px -> Array D DIM2 px
-getDelayed (AbstractImage a1)  = a1
-getDelayed (ComputedImage a1)  = delay a1
-getDelayed (SingletonImage a1) = delay a1
+getDelayed (AbstractImage arr)  = arr
+getDelayed (ComputedImage arr)  = delay arr
+getDelayed (SingletonImage arr) = delay arr
 {-# INLINE getDelayed #-}
 
 
-instance (Num px, Elt px, Unbox px, Pixel px) => Num (Image px) where
+instance (Elt px, Unbox px, Show px, Num px, Pixel px) => Num (Image px) where
   (+)           = zipWith (+)
   {-# INLINE (+) #-}
   
@@ -159,7 +163,7 @@ instance (Num px, Elt px, Unbox px, Pixel px) => Num (Image px) where
   {-# INLINE fromInteger#-}
 
 
-instance (Fractional px, Elt px, Unbox px, Pixel px) => Fractional (Image px) where
+instance (Elt px, Unbox px, Fractional px, Pixel px) => Fractional (Image px) where
   (/)            = zipWith (/)
   {-# INLINE (/) #-}
   
@@ -168,7 +172,7 @@ instance (Fractional px, Elt px, Unbox px, Pixel px) => Fractional (Image px) wh
   {-# INLINE fromRational #-}
 
 
-instance (Floating px, Elt px, Unbox px, Pixel px) => Floating (Image px) where
+instance (Elt px, Unbox px, Floating px, Pixel px) => Floating (Image px) where
   pi    = SingletonImage $ computeS $ fromFunction (Z :. 0 :. 0) (const pi)
   {-# INLINE pi #-}
   
@@ -209,7 +213,7 @@ instance (Floating px, Elt px, Unbox px, Pixel px) => Floating (Image px) where
   {-# INLINE acosh #-}
 
 
-instance (Elt px, Unbox px, Pixel px) => Show (Image px) where
+instance (Elt px, Unbox px, Show px, Pixel px) => Show (Image px) where
   show img@(dims -> (m, n)) = "<Image "++(showType px)++": "++(show m)++"x"++(show n)++">"
     where px = ref img 0 0
 
@@ -234,7 +238,7 @@ toVector strat = toUnboxed . toArray strat
 
               
 -- | Create an image from a Repa Array
-fromArray :: (Elt px, Unbox px, Pixel px, Source r px) =>
+fromArray :: (Source r px, Elt px, Unbox px, Pixel px) =>
              Array r DIM2 px
              -> Image px
 fromArray arr = AbstractImage . delay $ arr

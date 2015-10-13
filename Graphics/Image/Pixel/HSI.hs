@@ -14,7 +14,8 @@ import Data.Vector.Unboxed (Unbox)
 data HSI = HSI !Double !Double !Double deriving Eq
 
 
-instance Pixel HSI Double where
+instance Pixel HSI where
+  type Inner HSI = Double
   pixel d = HSI d d d
   {-# INLINE pixel #-}
 

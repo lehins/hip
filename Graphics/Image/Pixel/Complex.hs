@@ -1,10 +1,13 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies, TemplateHaskell, MultiParamTypeClasses, BangPatterns,
 NoMonomorphismRestriction, ViewPatterns, FlexibleInstances, FlexibleContexts #-}
 
 module Graphics.Image.Pixel.Complex (
   Complex (..),
   mag, arg, conj, real, imag, fromPolar,
-  realImage, imagImage, conjImage, toComplex, complexImage
+  realImage, imagImage, conjImage, toComplex, complexImage,
+  ComplexInner
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -12,15 +15,23 @@ import Graphics.Image.Interface
 import Data.Array.Repa.Eval (Elt(..))
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import Data.Vector.Unboxed (Unbox)
+import GHC.Exts (Constraint)
 
 data Complex px = !px :+: !px deriving Eq
 
-mag :: (Floating px, Pixel px) => Complex px -> px
+
+type family ComplexInner px :: Constraint
+type instance ComplexInner px =
+  (Num (Inner px), Ord (Inner px), Floating (Inner px),
+   Floating px, Fractional px, Num px, Eq px, Pixel px, Ord px)
+
+
+mag :: (ComplexInner px) => Complex px -> px
 mag (pxReal :+: pxImag) = sqrt (pxReal ^ (2 :: Int) + pxImag ^ (2 :: Int))
 {-# INLINE mag #-}
 
 
-arg :: Pixel px => Complex px -> px
+arg :: (ComplexInner px) => Complex px -> px
 arg (pxX :+: pxY) = pxOp2 f pxX pxY where
   f x y | x /= 0          = atan (y/x) + (pi/2)*(1-signum x)
         | x == 0 && y /=0 = (pi/2)*signum y
@@ -48,7 +59,8 @@ imag :: (Pixel px) => Complex px -> px
 imag (_  :+: px) = px
 
 
-instance (Floating px, Fractional px, Num px, Pixel px) => Pixel (Complex px) where
+instance ComplexInner px => Pixel (Complex px) where
+  type Inner (Complex px) = Inner px
 
   pixel v = (pixel v) :+: (pixel v)
   
@@ -63,6 +75,7 @@ instance (Floating px, Fractional px, Num px, Pixel px) => Pixel (Complex px) wh
     where m = pxOp2 min (strongest px1) (strongest px2)
 
   showType (px :+: _) = "Complex "++(showType px)
+  
 
 realImage :: (Pixel px, Image img px, Image img (Complex px)) =>
              img (Complex px)
@@ -99,7 +112,7 @@ conjImage = map conj
 
 
 
-instance (Fractional px, Floating px, Num px, Eq px, Pixel px) => Num (Complex px) where
+instance (ComplexInner px) => Num (Complex px) where
   (+) = pxOp2 (+)
   (-) = pxOp2 (-)
   (x :+: y) * (x' :+: y') = (x*x' - y*y') :+: (x*y' + y*x')
@@ -113,14 +126,14 @@ instance (Fractional px, Floating px, Num px, Eq px, Pixel px) => Num (Complex p
   fromInteger n = nd :+: nd where nd = fromInteger n
 
 
-instance (Fractional px, Floating px, Eq px, Pixel px) => Fractional (Complex px) where
+instance ComplexInner px => Fractional (Complex px) where
   (x :+: y) / (x' :+: y') = ((x*x' + y*y') / mag2) :+: ((y*x' - x*y') / mag2)
     where mag2 = x'*x' + y'*y'
   recip          = pxOp recip
   fromRational n = nd :+: nd where nd = fromRational n
 
 
-instance (Floating px, Eq px, Pixel px) => Floating (Complex px) where
+instance ComplexInner px => Floating (Complex px) where
     pi             =  pi :+: 0
     exp (x:+:y)    =  (expx * cos y) :+: (expx * sin y)
                       where expx = exp x
@@ -165,7 +178,7 @@ instance Show px => Show (Complex px) where
   show (px1 :+: px2) = "(" ++show px1 ++" + i" ++show px2 ++")"
 
 
-instance (Fractional px, Floating px, Elt px, Pixel px) => Elt (Complex px) where
+instance (Elt px, ComplexInner px) => Elt (Complex px) where
   touch (x :+: y) = touch x >> touch y
   {-# INLINE touch #-}
   

@@ -19,11 +19,11 @@ inside.
 <Image RGB: 700x700>
 
 -}
-rotate :: (Interpolation alg, Image img px, Pixel px, Num px) =>
+rotate :: (Interpolation alg, Image img px, Pixel px, Num px, RealFloat (Inner px)) =>
           alg    -- ^ Interpolation algorithm to be used during rotation.
        -> img px -- ^ image to be rotated.
        -> px     -- ^ default pixel that will fill in areas that are out of bounds.
-       -> Double -- ^ angle @theta@ in radians, that an image should be rotated by.
+       -> Inner px -- ^ angle @theta@ in radians, that an image should be rotated by.
        -> img px
 rotate alg !img@(dims -> !(m, n)) !defPx !theta = traverse img getNewDims getNewPx
   where
@@ -53,11 +53,11 @@ direction. Dimensions of a new image will be kept the same.
 <Image RGB: 512x512>
 
 -}
-rotate' :: (Interpolation alg, Image img px, Pixel px, Num px) =>
+rotate' :: (Interpolation alg, Image img px, Pixel px, Num px, RealFloat (Inner px)) =>
            alg    -- ^ Interpolation algorithm to be used during rotation.
         -> img px -- ^ image to be rotated.
         -> px     -- ^ default pixel that will fill in areas that are out of bounds.
-        -> Double -- ^ angle @theta@ in radians, that an image should be rotated by.
+        -> Inner px -- ^ angle @theta@ in radians, that an image should be rotated by.
         -> img px
 rotate' alg img@(dims -> !(m, n)) !defPx !theta =  traverse img getNewDims getNewPx
   where

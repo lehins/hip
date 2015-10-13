@@ -46,6 +46,7 @@ Library
 
   Other-modules:   Graphics.Image.Interface,
                    Graphics.Image.Internal,
+                   Graphics.Image.Pixel.Binary,
                    Graphics.Image.Pixel.Gray,
                    Graphics.Image.Pixel.RGB,
                    Graphics.Image.Pixel.HSI,

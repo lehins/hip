@@ -1,8 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
-ViewPatterns #-}
+{-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
+MultiParamTypeClasses, UndecidableInstances, ViewPatterns #-}
 module Graphics.Image.Pixel (
   hsiToRgb, rgbToHsi, graysToHsi, hsiToGrays,
+  module Graphics.Image.Pixel.Binary,
   module Graphics.Image.Pixel.Gray,
   module Graphics.Image.Pixel.RGB,
   module Graphics.Image.Pixel.HSI,
@@ -11,6 +12,7 @@ module Graphics.Image.Pixel (
 
 import Prelude hiding (map)
 import Graphics.Image.Interface (Convertable(..), Pixel(..), Image(..))
+import Graphics.Image.Pixel.Binary
 import Graphics.Image.Pixel.Gray
 import Graphics.Image.Pixel.RGB
 import Graphics.Image.Pixel.HSI
@@ -53,27 +55,39 @@ instance Convertable HSI Gray where
   convert !(HSI _ _ i) = Gray i
   {-# INLINE convert #-}
 
+
 instance Convertable Gray HSI where
   convert !(Gray y) = HSI 0 0 y
   {-# INLINE convert #-}
 
 
-instance Pixel px => Convertable px (Complex px) where
+instance Pixel px => Convertable Binary px where
+  convert !b = if isOn b then pixel 1 else pixel 0
+  {-# INLINE convert #-}
+
+
+instance (Pixel px1, Image img px1, Pixel px2, Image img px2, Convertable px1 px2) =>
+         Convertable (img px1) (img px2) where
+  convert img = map convert img
+  {-# INLINE convert #-}
+
+
+instance (ComplexInner px) => Convertable px (Complex px) where
   convert px = px :+: pixel 0
   {-# INLINE convert #-}
 
 
-instance Pixel px => Convertable (Complex px) px where
+instance (ComplexInner px) => Convertable (Complex px) px where
   convert (px :+: _) = px
   {-# INLINE convert #-}
 
 
 hsiToRgb :: (Image img HSI, Image img RGB) => img HSI -> img RGB
-hsiToRgb img = map convert img
+hsiToRgb = convert
 
 
 rgbToHsi :: (Image img HSI, Image img RGB) => img RGB -> img HSI
-rgbToHsi img = map convert img
+rgbToHsi = convert
 
 
 hsiToGrays :: (Image img HSI, Image img Gray) => img HSI -> (img Gray, img Gray, img Gray)
