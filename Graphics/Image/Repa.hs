@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 module Graphics.Image.Repa (
   Image,
   -- * Accessors

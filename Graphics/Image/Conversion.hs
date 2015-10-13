@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts,
-UndecidableInstances, ViewPatterns, BangPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+UndecidableInstances, ViewPatterns #-}
 module Graphics.Image.Conversion where
 
 import GHC.Float

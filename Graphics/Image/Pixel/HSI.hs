@@ -1,5 +1,6 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses,
-UndecidableInstances, BangPatterns, FlexibleInstances, TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses, 
+TemplateHaskell, TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Pixel.HSI (
   HSI (..)
@@ -8,8 +9,8 @@ module Graphics.Image.Pixel.HSI (
 import Graphics.Image.Interface (Pixel(..))
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
-import Data.Vector.Unboxed (Unbox)
-
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 
 data HSI = HSI !Double !Double !Double deriving Eq
 
@@ -120,6 +121,6 @@ boxHSI (h, s, i) = HSI h s i
 
 
 derivingUnbox "HSIPixel"
-    [t| (Unbox Double) => HSI -> (Double, Double, Double) |]
+    [t| HSI -> (Double, Double, Double) |]
     [| unboxHSI |]
     [| boxHSI |]

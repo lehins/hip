@@ -1,5 +1,6 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies,
-UndecidableInstances, BangPatterns #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# LANGUAGE BangPatterns, MultiParamTypeClasses, 
+TemplateHaskell, TypeFamilies, ViewPatterns, UndecidableInstances #-}
 
 module Graphics.Image.Pixel.Binary (
   Binary, on, off, isOn, isOff
@@ -9,10 +10,12 @@ import Graphics.Image.Interface (Pixel(..))
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import Data.Vector.Unboxed (Unbox)
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 
 newtype Bin = Bin Bool deriving Eq
 
--- Need to specify a new type to avoid declaring instances for Bool
+-- Need to specify a new type to avoid declaring Num for Bool
 data Binary = Binary !Bin deriving Eq
 
 on :: Binary
@@ -131,15 +134,15 @@ instance Elt Bin where
   one = 1
   {-# INLINE one #-}
 
-
+{-
 derivingUnbox "Bin"
     [t| Bin -> Bool |]
     [| \(Bin y) -> y |]
     [| \y -> Bin y |]
-
+-}
 
 derivingUnbox "BinaryPixel"
-    [t| (Unbox Bin) => Binary -> Bin |]
-    [| \(Binary y) -> y |]
-    [| \y -> Binary y |]
+    [t| Binary -> Bool |]
+    [| \(Binary (Bin y)) -> y |]
+    [| \y -> Binary (Bin y) |]
 

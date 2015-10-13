@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, TemplateHaskell, TypeFamilies, ViewPatterns, MultiParamTypeClasses, UndecidableInstances #-}
 
 module Graphics.Image.Pixel.RGB (
@@ -7,8 +8,8 @@ module Graphics.Image.Pixel.RGB (
 import Graphics.Image.Interface (Pixel(..))
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
-import Data.Vector.Unboxed (Unbox)
-
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 
 data RGB = RGB !Double !Double !Double deriving Eq
 
@@ -119,6 +120,6 @@ boxRGB (r, g, b) = RGB r g b
 
 
 derivingUnbox "RGBPixel"
-    [t| (Unbox Double) => RGB -> (Double, Double, Double) |]
+    [t| RGB -> (Double, Double, Double) |]
     [| unboxRGB |]
     [| boxRGB |]

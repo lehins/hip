@@ -16,6 +16,8 @@ import Data.Array.Repa.Eval (Elt(..))
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import Data.Vector.Unboxed (Unbox)
 import GHC.Exts (Constraint)
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 
 data Complex px = !px :+: !px deriving Eq
 
@@ -190,7 +192,7 @@ instance (Elt px, ComplexInner px) => Elt (Complex px) where
   
 
 derivingUnbox "ComplexPixel"
-    [t| (Unbox px, Pixel px) => (Complex px) -> (px, px) |]
+    [t| (Unbox px, Unbox (Inner px), Pixel px) => (Complex px) -> (px, px) |]
     [| \(px1 :+: px2) -> (px1, px2) |]
     [| \(px1, px2) -> px1 :+: px2 |]
 

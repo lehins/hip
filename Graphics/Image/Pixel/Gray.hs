@@ -1,5 +1,6 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns, MultiParamTypeClasses, TypeFamilies,
-UndecidableInstances, BangPatterns #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# LANGUAGE BangPatterns, MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
+UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Pixel.Gray (
   Gray (..)
@@ -9,6 +10,8 @@ import Graphics.Image.Interface (Pixel(..))
 import Data.Array.Repa.Eval
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Generic
+import qualified Data.Vector.Generic.Mutable
 
 data Gray = Gray !Double deriving Eq
 
@@ -126,7 +129,7 @@ instance Elt Gray where
 
 
 derivingUnbox "GrayPixel"
-    [t| (V.Unbox Double) => Gray -> Double |]
+    [t| Gray -> Double |]
     [| \(Gray y) -> y |]
     [| \y -> Gray y |]
 
