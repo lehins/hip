@@ -2,9 +2,9 @@
 module Main where
 
 import Prelude hiding (map, zipWith)
-import Graphics.Image
+import Graphics.Image.Repa
 --import Graphics.Image.Processing (convolve')
-import Graphics.Image.Parallel
+import Graphics.Image.Repa.Parallel
 --import Graphics.Image.Processing
   
 main :: IO ()  

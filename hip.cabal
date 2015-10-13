@@ -39,21 +39,23 @@ Library
                     
   Exposed-Modules: Graphics.Image,
                    Graphics.Image.Pixel,
+                   Graphics.Image.Interface,
+                   Graphics.Image.IO,
                    Graphics.Image.Binary,
                    Graphics.Image.Processing,
-                   Graphics.Image.Parallel,
-                   Graphics.Image.Sequential,
+                   Graphics.Image.Vector,
+                   Graphics.Image.Repa,
+                   Graphics.Image.Repa.Parallel,
+                   Graphics.Image.Repa.Sequential,
                    Graphics.Image.Interpolation
 
-  Other-modules:   Graphics.Image.Interface,
-                   Graphics.Image.Internal,
-                   Graphics.Image.Pixel.Binary,
+  Other-modules:   Graphics.Image.Pixel.Binary,
                    Graphics.Image.Pixel.Gray,
                    Graphics.Image.Pixel.RGB,
                    Graphics.Image.Pixel.HSI,
                    Graphics.Image.Pixel.Complex,
+                   Graphics.Image.Repa.Internal,
                    Graphics.Image.Conversion,
-                   Graphics.Image.IO,
                    Graphics.Image.Processing.Geometric
 
   ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3

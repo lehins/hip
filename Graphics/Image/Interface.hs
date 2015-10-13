@@ -53,8 +53,9 @@ class (Image img px, Pixel px) => Strategy strat img px where
              -> img px
              -> [[px]]
   toLists strat img =
-    [[ref img' m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]] where
+    [[index img' m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]] where
       img' = compute strat img
+
 
 class (Show (img px), Pixel px) => Image img px | px -> img where
 
@@ -69,16 +70,29 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
   cols :: Pixel px => img px -> Int
   cols = snd . dims
 
-  -- | Convert a nested List of Pixels to an Image.
-  fromLists :: [[px]] -> img px
+  -- | Get a pixel at i-th row and j-th column
+  index :: img px
+        -> Int -> Int
+        -> px
 
+  -- | Get a pixel at i-th row and j-th column without bounds check.
+  unsafeIndex :: img px
+              -> Int -> Int
+              -> px
   -- | Make an Image by supplying number of rows, columns and a function that
   -- returns a pixel value at the m n location which are provided as arguments.
   make :: Int -> Int -> (Int -> Int -> px) -> img px
 
-  {-| Map a function over an image with a function. -}
+  {-| Map a function over an image. -}
   map :: Pixel px1 => (px1 -> px) -> img px1 -> img px
 
+  {-| Apply a function to every pixel of an image and its index. -}
+  imap :: Pixel px1 => (Int -> Int -> px1 -> px) -> img px1 -> img px
+  imap !op !img = traverse img (,) getNewPx where
+    getNewPx !getPx !i !j = op i j (getPx i j)
+    {-# INLINE getNewPx #-}
+  {-# INLINE imap #-}
+  
   -- | Zip two Images with a function. Images do not have to hold the same type
   -- of pixels.
   zipWith :: (Pixel px1, Pixel px2) =>
@@ -134,39 +148,16 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
        -> img px   -- ^ Source image.
        -> img px
 
-  -- TODO: add refUnsafe, implement ref using it
-            
-  -- | Get a pixel at i-th row and j-th column
-  ref :: img px
-      -> Int -> Int
-      -> px
-
-  -- | Get a pixel at @i@ @j@ location with a default pixel. If @i@ @j@ index is out of
-  -- bounds, default pixel will be used
-  refDefault :: px        -- ^ default pixel that will be returned if out of bounds
-             -> img px    -- ^ image being refrenced
-             -> Int -> Int  -- ^ @i@ and @j@ index
-             -> px
-  refDefault pxDef img@(dims -> (m, n)) i j = if i >= 0 && j >= 0 && i < m && j < n
-                                              then ref img i j
-                                              else pxDef
-    
-  -- | Get Maybe pixel at @i@ @j@ location. If @i@ @j@ index is out of bounds will return
-  -- @Nothing@, otherwise @Just px@
-  refMaybe :: img px    -- ^ image being refrenced
-           -> Int -> Int  -- ^ @i@ and @j@ index
-           -> Maybe (px)
-  refMaybe img@(dims -> (m, n)) i j = if i >= 0 && j >= 0 && i < m && j < n
-                                  then Just $ ref img i j
-                                  else Nothing
+  -- | Convert a nested List of Pixels to an Image.
+  fromLists :: [[px]] -> img px
 
 
 class Interpolation alg where
-  interpolate :: (RealFrac (Inner px), Num px, Pixel px) =>
+  interpolate :: (RealFrac (Inner px), Pixel px) =>
                  alg                -- ^ Interpolation algorithm
-              -> px                 -- ^ default pixel, for an out of bound value.
-              -> Int -> Int         -- ^ image dimensions @m@ rows and @n@ columns.
-              -> (Int -> Int -> px) -- ^ lookup function that returns a pixel at @i@th
+              -> px                 -- ^ Default pixel to be used when out of bound.
+              -> Int -> Int         -- ^ Image dimensions @m@ rows and @n@ columns.
+              -> (Int -> Int -> px) -- ^ Lookup function that returns a pixel at @i@th
                                     -- and @j@th location.
               -> (Inner px) -> (Inner px)   -- ^ real values of @i@ and @j@ index
               -> px
@@ -177,21 +168,21 @@ sum :: (Strategy strat img px, Image img px, Pixel px) =>
        strat img px
        -> img px
        -> px
-sum strat img = fold strat (+) (ref img 0 0) img
+sum strat img = fold strat (+) (index img 0 0) img
 {-# INLINE sum #-}
 
 maximum :: (Strategy strat img px, Image img px, Pixel px, Ord px) =>
            strat img px
            -> img px
            -> px
-maximum strat img = fold strat (pxOp2 max) (ref img 0 0) img
+maximum strat img = fold strat (pxOp2 max) (index img 0 0) img
 {-# INLINE maximum #-}
 
 minimum :: (Strategy strat img px, Image img px, Pixel px, Ord px) =>
            strat img px
            -> img px
            -> px
-minimum strat img = fold strat (pxOp2 min) (ref img 0 0) img
+minimum strat img = fold strat (pxOp2 min) (index img 0 0) img
 {-# INLINE minimum #-}
   
 normalize :: (Strategy strat img px, Image img px, Pixel px, Fractional px, Ord px) =>

@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleInstances, GADTs, MultiParamTypeClasses, ViewPatterns #-}
 
-module Graphics.Image.Internal (
-  compute, fold, ref, refDefault, refMaybe, dims, rows, cols, make, 
-  map, zipWith, traverse, traverse2, transpose, backpermute, crop,
+module Graphics.Image.Repa.Internal (
+  compute, fold, index, unsafeIndex, dims, rows, cols, make, 
+  map, zipWith, traverse, traverse2, traverse3, transpose, backpermute, crop,
   fromVector, fromLists, fromArray, toVector, toLists, toArray,
   maximum, minimum, normalize, sum,
   Image(..), RepaStrategy(..)
@@ -12,15 +12,18 @@ module Graphics.Image.Internal (
 import Prelude hiding (map, zipWith, maximum, minimum, sum)
 import qualified Prelude as P (floor)
 import Graphics.Image.Interface hiding (Image)
-import qualified Graphics.Image.Interface as D (Image)
+import qualified Graphics.Image.Interface as I (Image)
 import Data.Array.Repa.Eval (Elt)
-import Data.Array.Repa as R hiding ((++), map, zipWith, traverse, traverse2,
-                                    transpose, backpermute)
-import qualified Data.Array.Repa as R (map, zipWith, traverse, traverse2,
-                                       transpose, backpermute)
+import Data.Array.Repa as R hiding (
+  (++), index, unsafeIndex, map, zipWith, traverse, traverse2, traverse3,
+  transpose, backpermute)
+import qualified Data.Array.Repa as R (
+  index, unsafeIndex, map, zipWith, traverse, traverse2, traverse3,
+  transpose, backpermute)
 import Data.Vector.Unboxed (Unbox, Vector, fromList)
 
 
+{- | Image representation using Repa Arrays. -}
 data Image px where
   ComputedImage  :: (Elt px, Unbox px, Pixel px) =>
                     (Array U DIM2 px) -> Image px
@@ -31,9 +34,9 @@ data Image px where
 
 
 data RepaStrategy img px where
-  Sequential :: (Elt px, Unbox px, Pixel px, D.Image img px) =>
+  Sequential :: (Elt px, Unbox px, Pixel px, I.Image img px) =>
                 RepaStrategy img px
-  Parallel   :: (Elt px, Unbox px, Pixel px, D.Image img px) =>
+  Parallel   :: (Elt px, Unbox px, Pixel px, I.Image img px) =>
                 RepaStrategy img px
 
 
@@ -52,13 +55,17 @@ instance (Elt px, Unbox px, Show px, Pixel px) => Strategy RepaStrategy Image px
   {-# INLINE fold #-}
 
 
-instance (Elt px, Unbox px, Show px, Pixel px) => D.Image Image px where
-  ref (ComputedImage  arr) r c = index arr (Z :. r :. c)
-  ref (SingletonImage arr) _ _ = unsafeIndex arr (Z :. 0 :. 0)
-  ref (AbstractImage  arr) 0 0 = unsafeIndex arr (Z :. 0 :. 0)
-  ref (AbstractImage    _) _ _ =
+instance (Elt px, Unbox px, Show px, Pixel px) => I.Image Image px where
+  index !(ComputedImage  arr) !r !c = R.index arr (Z :. r :. c)
+  index !img !r !c                  = unsafeIndex img r c
+  {-# INLINE index #-}
+
+  unsafeIndex (ComputedImage  arr) r c = R.unsafeIndex arr (Z :. r :. c)
+  unsafeIndex (SingletonImage arr) _ _ = R.unsafeIndex arr (Z :. 0 :. 0)
+  unsafeIndex (AbstractImage  arr) 0 0 = R.unsafeIndex arr (Z :. 0 :. 0)
+  unsafeIndex (AbstractImage    _) _ _ =
     error "Only computed images can be referenced, call 'compute' on the Image."
-  {-# INLINE ref #-}
+  {-# INLINE unsafeIndex #-}
 
   dims (AbstractImage (extent -> (Z :. r :. c))) = (r, c)
   dims (ComputedImage (extent -> (Z :. r :. c))) = (r, c)
@@ -73,7 +80,7 @@ instance (Elt px, Unbox px, Show px, Pixel px) => D.Image Image px where
   map op (AbstractImage arr)  = AbstractImage $ R.map op arr
   map op (ComputedImage arr)  = AbstractImage $ R.map op arr
   {-# INLINE map #-}
-  
+
   zipWith op (SingletonImage a1) (SingletonImage a2) =
     SingletonImage $ computeS $ fromFunction (Z :. 0 :. 0) (
       const (op (a1 ! (Z :. 0 :. 0)) (a2 ! (Z :. 0 :. 0))))
@@ -215,7 +222,7 @@ instance (Elt px, Unbox px, Floating px, Pixel px) => Floating (Image px) where
 
 instance (Elt px, Unbox px, Show px, Pixel px) => Show (Image px) where
   show img@(dims -> (m, n)) = "<Image "++(showType px)++": "++(show m)++"x"++(show n)++">"
-    where px = ref img 0 0
+    where px = index img 0 0
 
 
 -- | Convert an Unboxed Vector to an Image by supplying rows, columns and

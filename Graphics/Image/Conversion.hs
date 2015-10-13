@@ -367,7 +367,7 @@ imageToJPImage :: (Image img px, Pixel px, JP.Pixel px') =>
                   (px -> px') -> img px -> JP.Image px'
 imageToJPImage f img@(dims -> (m, n)) =
   JP.generateImage g n m where
-    g j i = f $ ref img i j
+    g j i = f $ index img i j
 
 
 instance Image img Gray => Saveable img Gray where
