@@ -1,18 +1,21 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
 
 module Graphics.Image.Repa.Parallel (
   compute, fold, sum, maximum, minimum, normalize, toVector, toLists, toArray,
-  writeImage, display, convolve, convolveRows, convolveCols,
+  writeImage, display, convolve, convolveRows, convolveCols, fft, ifft,
   SaveOption(..)
   ) where
 
 import Prelude hiding (maximum, minimum, sum, map)
 import qualified Prelude as P (map)
 import Graphics.Image.Conversion (Saveable, SaveOption(..))
-import Graphics.Image.Interface (Pixel)
+import Graphics.Image.Interface (Pixel, Inner)
+import Graphics.Image.Pixel.Complex (ComplexInner, Complex)
 import qualified Graphics.Image.Repa.Internal as I
 import qualified Graphics.Image.IO as IO (writeImage, display)
 import qualified Graphics.Image.Processing.Convolution as C
+import qualified Graphics.Image.Complex as C
 import Data.Array.Repa.Eval (Elt)
 import Data.Array.Repa as R hiding ((++))
 import Data.Vector.Unboxed (Vector, Unbox)
@@ -110,3 +113,10 @@ display :: (Saveable I.Image px, Elt px, Unbox px, Pixel px) =>
         -> IO ()
 display = IO.display I.Parallel
 {-# INLINE display #-}
+
+fft :: (ComplexInner px, Unbox px, Elt px, Unbox (Inner px), Elt (Inner px)) => I.Image (Complex px) -> I.Image (Complex px)
+fft = C.fft I.Parallel
+
+ifft :: (ComplexInner px, Unbox px, Elt px, Unbox (Inner px), Elt (Inner px)) =>
+        I.Image (Complex px) -> I.Image (Complex px)
+ifft = C.ifft I.Parallel

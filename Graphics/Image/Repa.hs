@@ -25,7 +25,7 @@ module Graphics.Image.Repa (
   -- ** Geometric
   module Graphics.Image.Processing.Geometric,
   -- ** Convolution
-  module Graphics.Image.Processing.Convolution,
+  --module Graphics.Image.Processing.Convolution,
   -- * IO
   readGrayImage, readColorImage, setDisplayProgram,
   -- * Conversion

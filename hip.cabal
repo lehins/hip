@@ -42,6 +42,7 @@ Library
                    Graphics.Image.Interface,
                    Graphics.Image.IO,
                    Graphics.Image.Binary,
+                   Graphics.Image.Complex,
                    Graphics.Image.Processing,
                    Graphics.Image.Vector,
                    Graphics.Image.Repa,
@@ -54,6 +55,7 @@ Library
                    Graphics.Image.Pixel.RGB,
                    Graphics.Image.Pixel.HSI,
                    Graphics.Image.Pixel.Complex,
+                   Graphics.Image.Complex.Fourier,
                    Graphics.Image.Repa.Internal,
                    Graphics.Image.Conversion,
                    Graphics.Image.Processing.Geometric

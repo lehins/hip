@@ -57,7 +57,7 @@ class (Image img px, Pixel px) => Strategy strat img px where
       img' = compute strat img
 
 
-class (Show (img px), Pixel px) => Image img px | px -> img where
+class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
 
   -- | Get dimensions of the image. (rows, cols)
   dims :: img px -> (Int, Int)
@@ -101,7 +101,7 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
           -> img px2
           -> img px
 
-  -- | Traverse the image.
+  -- | Traverse an image.
   traverse :: Pixel px1 =>
               img px1
            -> (Int -> Int -> (Int, Int))
@@ -116,7 +116,7 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
             -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
             -> img px
 
-  -- | Traverse two images.
+  -- | Traverse three images.
   traverse3 :: (Pixel px1, Pixel px2, Pixel px3) =>
                img px1
             -> img px2
@@ -128,11 +128,11 @@ class (Show (img px), Pixel px) => Image img px | px -> img where
                 Int -> Int -> px)
             -> img px
 
-  -- | Transpose the image
+  -- | Transpose an image
   transpose :: img px
             -> img px
 
-  -- | Backpermute the Image
+  -- | Backpermute an Image
   backpermute :: Int -> Int -- ^ rows and columns in a new image.
               -> (Int -> Int -> (Int, Int)) -- ^ Function that maps each
                                             -- location in a new image to an old

@@ -1,12 +1,11 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeFamilies, TemplateHaskell, MultiParamTypeClasses, BangPatterns,
-NoMonomorphismRestriction, ViewPatterns, FlexibleInstances, FlexibleContexts #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, GADTs,
+TemplateHaskell, TypeFamilies, MultiParamTypeClasses, NoMonomorphismRestriction,
+UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Pixel.Complex (
   Complex (..),
   mag, arg, conj, real, imag, fromPolar,
-  realImage, imagImage, conjImage, toComplex, complexImage,
   ComplexInner
   ) where
 
@@ -19,13 +18,19 @@ import GHC.Exts (Constraint)
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
 
-data Complex px = !px :+: !px deriving Eq
 
+{- | Every instance of this ComplexInner class can be used as a real and imaginary
+parts of a Complex pixel. -}
+class (Num (Inner px), Ord (Inner px), Floating (Inner px),
+       Floating px, Fractional px, Num px, Eq px, Ord px, Pixel px) =>
+      ComplexInner px where
 
-type family ComplexInner px :: Constraint
-type instance ComplexInner px =
-  (Num (Inner px), Ord (Inner px), Floating (Inner px),
-   Floating px, Fractional px, Num px, Eq px, Pixel px, Ord px)
+        
+data Complex px where
+  (:+:) :: ComplexInner px => px -> px -> Complex px 
+
+instance Eq (Complex px) where
+  (==) (px1x :+: px1y) (px2x :+: px2y) = px1x == px2x && px1y == px2y
 
 
 mag :: (ComplexInner px) => Complex px -> px
@@ -41,23 +46,23 @@ arg (pxX :+: pxY) = pxOp2 f pxX pxY where
 {-# INLINE arg #-}
 
 
--- | Create a complex pixel from two real pixels, which represent a magnitude
--- and an argument, ie. radius and phase
-fromPolar :: (Floating px, Pixel px) => px -> px -> Complex px
+{- | Create a complex pixel from two real pixels, which represent a magnitude and
+an argument, ie. radius and phase -}
+fromPolar :: (ComplexInner px) => px -> px -> Complex px
 fromPolar r theta = (r * cos theta) :+: (r * sin theta)
 {-# INLINE fromPolar #-}
 
--- | Conjugate a complex pixel
-conj :: (Pixel px, Num px) => Complex px -> Complex px
+{- | Conjugate a complex pixel -}
+conj :: (ComplexInner px) => Complex px -> Complex px
 conj (x :+: y) = x :+: (-y)
 {-# INLINE conj #-}
 
--- | Extracts a real part from a complex pixel -}
-real :: (Pixel px) => Complex px -> px
+{- | Extracts a real part from a complex pixel -}
+real :: (ComplexInner px) => Complex px -> px
 real (px :+: _ ) = px
 
 {-| Extracts an imaginary part of a pixel -}
-imag :: (Pixel px) => Complex px -> px
+imag :: (ComplexInner px) => Complex px -> px
 imag (_  :+: px) = px
 
 
@@ -79,38 +84,6 @@ instance ComplexInner px => Pixel (Complex px) where
   showType (px :+: _) = "Complex "++(showType px)
   
 
-realImage :: (Pixel px, Image img px, Image img (Complex px)) =>
-             img (Complex px)
-          -> img px
-realImage = map real
-{-# INLINE realImage #-}
-
-
-imagImage :: (Pixel px, Image img px, Image img (Complex px)) =>
-             img (Complex px)
-          -> img px
-imagImage = map imag
-{-# INLINE imagImage #-}
-
-
-complexImage :: (Pixel px, Image img px, Image img (Complex px)) =>
-                img px -> img px -> img (Complex px)
-complexImage = zipWith (:+:)
-{-# INLINE complexImage #-}
-
-
-toComplex :: (Pixel px, Convertable px (Complex px), Image img px, Image img (Complex px)) =>
-             img px
-          -> img (Complex px)
-toComplex = map convert
-{-# INLINE toComplex #-}
-
-
-conjImage :: (Image img (Complex px), Pixel px, Num px) =>
-             img (Complex px)
-          -> img (Complex px)
-conjImage = map conj
-{-# INLINE conjImage #-}
 
 
 
@@ -192,7 +165,7 @@ instance (Elt px, ComplexInner px) => Elt (Complex px) where
   
 
 derivingUnbox "ComplexPixel"
-    [t| (Unbox px, Unbox (Inner px), Pixel px) => (Complex px) -> (px, px) |]
+    [t| (Unbox px, Unbox (Inner px), ComplexInner px) => (Complex px) -> (px, px) |]
     [| \(px1 :+: px2) -> (px1, px2) |]
     [| \(px1, px2) -> px1 :+: px2 |]
 

@@ -56,14 +56,14 @@ instance (Elt px, Unbox px, Show px, Pixel px) => Strategy RepaStrategy Image px
 
 
 instance (Elt px, Unbox px, Show px, Pixel px) => I.Image Image px where
-  index !(ComputedImage  arr) !r !c = R.index arr (Z :. r :. c)
-  index !img !r !c                  = unsafeIndex img r c
+  index (ComputedImage !arr) !r !c = R.index arr (Z :. r :. c)
+  index !img !r !c                 = unsafeIndex img r c
   {-# INLINE index #-}
 
-  unsafeIndex (ComputedImage  arr) r c = R.unsafeIndex arr (Z :. r :. c)
-  unsafeIndex (SingletonImage arr) _ _ = R.unsafeIndex arr (Z :. 0 :. 0)
-  unsafeIndex (AbstractImage  arr) 0 0 = R.unsafeIndex arr (Z :. 0 :. 0)
-  unsafeIndex (AbstractImage    _) _ _ =
+  unsafeIndex (ComputedImage  !arr) r c = R.unsafeIndex arr (Z :. r :. c)
+  unsafeIndex (SingletonImage !arr) _ _ = R.unsafeIndex arr (Z :. 0 :. 0)
+  unsafeIndex (AbstractImage  !arr) 0 0 = R.unsafeIndex arr (Z :. 0 :. 0)
+  unsafeIndex (AbstractImage     _) _ _ =
     error "Only computed images can be referenced, call 'compute' on the Image."
   {-# INLINE unsafeIndex #-}
 

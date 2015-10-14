@@ -19,6 +19,15 @@ import Graphics.Image.Pixel.HSI
 import Graphics.Image.Pixel.Complex
 
 
+instance ComplexInner Gray where
+
+  
+instance ComplexInner RGB where
+  
+
+instance ComplexInner HSI where
+
+
 instance Convertable RGB HSI where
   convert !(RGB r g b) = HSI h s i where
     !h = if (v1 /= 0.0) then atan2 v2 v1 else 0
