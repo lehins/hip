@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
-module Graphics.Image.Interpolation (
+module Graphics.Image.Interface.Interpolation (
   Interpolation(..)
   ) where
 import Graphics.Image.Interface hiding (Interpolation)

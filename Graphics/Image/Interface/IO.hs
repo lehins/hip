@@ -1,16 +1,14 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
-module Graphics.Image.IO (
+module Graphics.Image.Interface.IO (
   readImage, writeImage, display, setDisplayProgram
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
-import Codec.Picture.Types (DynamicImage)
 import Data.Char (toUpper)
 import Data.IORef
 import Data.ByteString (readFile)
-import Graphics.Image.Conversion
-import Graphics.Image.Interface (Image, Convertable, Strategy(compute))
-import Graphics.Netpbm (PPM)
+import Graphics.Image.Interface (Image, Strategy(compute))
+import Graphics.Image.Interface.Conversion
 import qualified Data.ByteString.Lazy as BL (writeFile)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>))
@@ -19,9 +17,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Process (runCommand, waitForProcess)
 
 
-readImage :: (Image img px,
-              Convertable DynamicImage (img px),
-              Convertable PPM          (img px)) =>
+readImage :: (Image img px, Readable img px) =>
              FilePath -> IO (img px)
 readImage path = fmap ((either error id) . decodeImage) (readFile path)
 

@@ -1,22 +1,23 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
 UndecidableInstances, ViewPatterns #-}
-module Graphics.Image.Conversion where
+module Graphics.Image.Interface.Conversion (
+  Format(..), SaveOption(..), Encoder, Saveable(..), Readable, decodeImage
+  ) where
 
 import GHC.Float
 import Prelude hiding (map)
 import Graphics.Image.Interface (Convertable(..), Pixel(..), Image(..))
-import Graphics.Image.Pixel
+import Graphics.Image.Interface.Pixel hiding (Pixel)
 import Data.Word (Word8, Word16)
-import Data.Vector.Unboxed (Unbox, (!))
 import Data.Vector.Storable (Storable)
-import Codec.Picture hiding (Pixel, Image)
+import Codec.Picture hiding (Pixel, Image, decodeImage)
 import Codec.Picture.Types hiding (Pixel, Image)
 import qualified Codec.Picture as JP
 import qualified Data.ByteString.Lazy as BL (ByteString)
 import qualified Data.ByteString as B (ByteString)
 import qualified Data.Vector.Storable as VS (convert, Vector)
-import qualified Data.Vector.Unboxed as V (map)
+import qualified Data.Vector as V (map, (!))
 import qualified Graphics.Netpbm as PNM
 
 
@@ -34,7 +35,7 @@ data Format = BMP       -- ^ A BMP image with .bmp extension
             -- PPM
             deriving Show
 
-
+-- | Colorspace choice that image will be saved in.
 type Encoder img px = Format -> img px -> BL.ByteString
 
 
@@ -42,7 +43,16 @@ data SaveOption img px = Format Format
                        | Encoder (Encoder img px)
 
 
-class (Ord px, Pixel px, Image img px) => Saveable img px where
+class (Convertable JP.DynamicImage (img px),
+       Convertable PNM.PPM         (img px),
+       Pixel px, Image img px) => Readable img px where
+
+instance Image img Gray => Readable img Gray where
+
+instance Image img RGB => Readable img RGB where
+
+-- | Pixels implementing this class allow the images to be saved.
+class (Pixel px, Image img px) => Saveable img px where
   inY8 :: Encoder img px
   inY16 :: Encoder img px
   inYA8 :: Encoder img px
@@ -331,20 +341,29 @@ instance Convertable RGB PNM.PpmPixelRGB16 where
   convert (RGB r g b) = PNM.PpmPixelRGB16 (toWord16 r) (toWord16 g) (toWord16 b)
 
 
-ppmImageToImage :: (Storable px1, Unbox px1, Unbox px2, Image img px2, Pixel px2, Convertable px1 px2) =>
-             PNM.PPMHeader -> VS.Vector px1 -> img px2
+ppmImageToImage :: (Storable px1, Image img px2, Pixel px2, Convertable px1 px2) =>
+                   PNM.PPMHeader -> VS.Vector px1 -> img px2
 ppmImageToImage (PNM.PPMHeader _ c r) v = make r c getPx where
   !vectorImage = V.map convert $ VS.convert v
-  getPx i j = vectorImage ! (i*r + j)
+  getPx i j = vectorImage V.! (i*r + j)
 
 
 decodeImage :: (Convertable PNM.PPM b, Convertable DynamicImage b) =>
                B.ByteString -> Either [Char] b
-decodeImage imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
+decodeImage imstr = pnm2Image "" --(Right . convert) imstr
   where
     pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
       pnmResult2Image (Right (pnmLs, _)) = Right $ convert (head pnmLs)
-      pnmResult2Image (Left errmsgPNM) = Left (errmsgJP++errmsgPNM)
+      pnmResult2Image (Left errmsgPNM) = Left ("hip: "++errmsgJP++errmsgPNM)
+
+
+decodeImage' :: (Convertable PNM.PPM b, Convertable DynamicImage b) =>
+               B.ByteString -> Either [Char] b
+decodeImage' imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
+  where
+    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
+      pnmResult2Image (Right (pnmLs, _)) = Right $ convert (head pnmLs)
+      pnmResult2Image (Left errmsgPNM) = Left ("hip: "++errmsgJP++errmsgPNM)
 
 
 instance Image img Gray => Convertable PNM.PPM (img Gray) where

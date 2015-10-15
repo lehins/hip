@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns, TypeFamilies, UndecidableInstances #-}
 
 module Graphics.Image.Interface (
-  sum, minimum, maximum, normalize,
+  minimum, maximum, normalize,
   Convertable(..),
   Pixel(..),
   Strategy(..),
@@ -9,13 +9,15 @@ module Graphics.Image.Interface (
   Interpolation(..)
   ) where
 
-import Prelude hiding ((++), map, sum, minimum, maximum)
+import Prelude hiding (map, sum, minimum, maximum)
 
 class Convertable a b where
   convert :: a -> b
 
 
-class (Num px, Show px, Ord (Inner px), Num (Inner px)) => Pixel px where
+class (Eq px, Num px, Show px,
+       Eq (Inner px), Num (Inner px), Show (Inner px), Ord (Inner px)) =>
+      Pixel px where
   type Inner px :: *
   
   pixel :: Inner px -> px
@@ -46,6 +48,15 @@ class (Image img px, Pixel px) => Strategy strat img px where
           -> px
           -> img px
           -> px
+  {-# MINIMAL (compute, fold) #-}
+  
+  -- | Sum all pixels of the image
+  sum :: (Strategy strat img px, Image img px, Pixel px) =>
+         strat img px
+         -> img px
+         -> px
+  sum strat img = fold strat (+) 0 img
+  {-# INLINE sum #-}
 
   -- | Convert an Image to a list of lists of Pixels.
   toLists :: Pixel px =>
@@ -56,45 +67,80 @@ class (Image img px, Pixel px) => Strategy strat img px where
     [[index img' m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]] where
       img' = compute strat img
 
-
+{- | This is a core Image interface. -}
 class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
 
+  -- | Make an Image by supplying number of rows, columns and a function that
+  -- returns a pixel value at the m n location which are provided as arguments.
+  make :: Int -> Int -> (Int -> Int -> px) -> img px
+  
   -- | Get dimensions of the image. (rows, cols)
   dims :: img px -> (Int, Int)
-
-  -- | Get the number of rows in the image 
-  rows :: img px -> Int
-  rows = fst . dims
-
-  -- | Get the number of columns in the image
-  cols :: Pixel px => img px -> Int
-  cols = snd . dims
-
-  -- | Get a pixel at i-th row and j-th column
-  index :: img px
-        -> Int -> Int
-        -> px
 
   -- | Get a pixel at i-th row and j-th column without bounds check.
   unsafeIndex :: img px
               -> Int -> Int
               -> px
-  -- | Make an Image by supplying number of rows, columns and a function that
-  -- returns a pixel value at the m n location which are provided as arguments.
-  make :: Int -> Int -> (Int -> Int -> px) -> img px
+              
+  {-# MINIMAL (make, dims, unsafeIndex) #-}
+  
+  -- | Get the number of rows in the image 
+  rows :: img px -> Int
+  rows = fst . dims
+  {-# INLINE rows #-}
 
+  -- | Get the number of columns in the image
+  cols :: Pixel px => img px -> Int
+  cols = snd . dims
+  {-# INLINE cols #-}
+
+  -- | Get a pixel at @i@ and @j@ location.
+  index :: img px -- ^ Source image.
+        -> Int    -- ^ @i@th row
+        -> Int    -- ^ @j@th column.
+        -> px
+  index !img@(dims -> (m, n)) !i !j =
+    if i >= 0 && j >= 0 && i < m && j < n then unsafeIndex img i j
+    else error ("Index out of bounds for image: "++ show img++". Supplied i="++
+                show i++" and j="++show j)
+  {-# INLINE index #-}
+
+  -- | Get a pixel at @i@ @j@ location with a default pixel. If index is out of
+  -- bounds, default pixel will be returned
+  defaultIndex :: px     -- ^ Default pixel.
+               -> img px -- ^ Source image.
+               -> Int    -- ^ @i@th row
+               -> Int    -- ^ @j@th column.
+               -> px
+  defaultIndex defPx img@(dims -> (m, n)) i j =
+    if i >= 0 && j >= 0 && i < m && j < n then unsafeIndex img i j else defPx
+  {-# INLINE defaultIndex #-}
+  
+  -- | Get a pixel at @i@ @j@ location with a default pixel. If index is out of
+  -- bounds 'Nothing' is returned, @'Just' px@ otherwise.
+  maybeIndex :: img px -- ^ Source image.
+             -> Int    -- ^ @i@th row
+             -> Int    -- ^ @j@th column.
+             -> Maybe px
+  maybeIndex img@(dims -> (m, n)) i j =
+    if i >= 0 && j >= 0 && i < m && j < n then Just $ unsafeIndex img i j else Nothing
+  {-# INLINE maybeIndex #-}
+        
   {-| Map a function over an image. -}
-  map :: Pixel px1 => (px1 -> px) -> img px1 -> img px
+  map :: (Image img px1, Pixel px1) => (px1 -> px) -> img px1 -> img px
+  map !op !img@(dims -> (m, n)) = make m n getNewPx where
+    getNewPx !i !j = op $ index img i j
+    {-# INLINE getNewPx #-}
+  {-# INLINE map #-}
 
   {-| Apply a function to every pixel of an image and its index. -}
-  imap :: Pixel px1 => (Int -> Int -> px1 -> px) -> img px1 -> img px
-  imap !op !img = traverse img (,) getNewPx where
-    getNewPx !getPx !i !j = op i j (getPx i j)
+  imap :: (Image img px1, Pixel px1) => (Int -> Int -> px1 -> px) -> img px1 -> img px
+  imap !getPx !img@(dims -> (m, n)) = make m n getNewPx where
+    getNewPx !i !j = getPx i j (index img i j)
     {-# INLINE getNewPx #-}
   {-# INLINE imap #-}
   
-  -- | Zip two Images with a function. Images do not have to hold the same type
-  -- of pixels.
+  -- | Zip two Images with a function.
   zipWith :: (Pixel px1, Pixel px2) =>
              (px1 -> px2 -> px)
           -> img px1
@@ -140,12 +186,14 @@ class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
               -> img px -- ^ source image
               -> img px
 
-  -- | Crop an image retrieves a sub-image from a source image with @m@ rows and
-  -- @n@ columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
+  -- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
+  -- columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
   -- source image.
-  crop :: Int -> Int -- ^ Starting index @i@ @j@ from within an old image
-       -> Int -> Int -- ^ Dimensions of a new image @m@ and @n@.
-       -> img px   -- ^ Source image.
+  crop :: Int     -- ^ @i@ and 
+       -> Int     -- ^ @j@ starting index from within an old image.
+       -> Int     -- ^ @m@ rows and
+       -> Int     -- ^ @n@ columns. Dimensions of a new image @m@ and @n@.
+       -> img px  -- ^ Source image.
        -> img px
 
   -- | Convert a nested List of Pixels to an Image.
@@ -163,13 +211,6 @@ class Interpolation alg where
               -> px
 
 
--- | Sum all pixels of the image
-sum :: (Strategy strat img px, Image img px, Pixel px) =>
-       strat img px
-       -> img px
-       -> px
-sum strat img = fold strat (+) (index img 0 0) img
-{-# INLINE sum #-}
 
 maximum :: (Strategy strat img px, Image img px, Pixel px, Ord px) =>
            strat img px

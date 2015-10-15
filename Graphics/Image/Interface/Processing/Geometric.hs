@@ -1,5 +1,5 @@
 {-# LANGUAGE ViewPatterns, BangPatterns, FlexibleContexts #-}
-module Graphics.Image.Processing.Geometric (
+module Graphics.Image.Interface.Processing.Geometric (
   scale, resize, rotate, rotate',
   downsampleRows, downsampleCols, downsample, downsampleF,
   upsampleRows, upsampleCols, upsample, upsampleF,

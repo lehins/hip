@@ -1,13 +1,13 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
-module Graphics.Image.Complex.Fourier (
+module Graphics.Image.Interface.Complex.Fourier (
   fft, ifft
   ) where
 
 import Prelude hiding (map)
 import Data.Bits ((.&.))
 import Graphics.Image.Interface
-import Graphics.Image.Pixel.Complex
-import Graphics.Image.Processing.Geometric (leftToRight)
+import Graphics.Image.Interface.Pixel.Complex
+import Graphics.Image.Interface.Processing.Geometric (leftToRight)
 
 
 data Mode = Forward

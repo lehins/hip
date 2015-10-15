@@ -1,24 +1,37 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
 MultiParamTypeClasses, UndecidableInstances, ViewPatterns #-}
-module Graphics.Image.Pixel (
-  hsiToRgb, rgbToHsi, graysToHsi, hsiToGrays,
-  module Graphics.Image.Pixel.Binary,
-  module Graphics.Image.Pixel.Gray,
-  module Graphics.Image.Pixel.RGB,
-  module Graphics.Image.Pixel.HSI,
-  module Graphics.Image.Pixel.Complex
+module Graphics.Image.Interface.Pixel (
+  Pixel(..),
+  module Graphics.Image.Interface.Pixel.Binary,
+  module Graphics.Image.Interface.Pixel.Gray,
+  module Graphics.Image.Interface.Pixel.RGB,
+  module Graphics.Image.Interface.Pixel.HSI,
+  module Graphics.Image.Interface.Pixel.Complex,
+  module Graphics.Image.Interface.Pixel.Alpha,
+  hsiToRgb, rgbToHsi, graysToHsi, hsiToGrays
   ) where
 
 import Prelude hiding (map)
-import Graphics.Image.Interface (Convertable(..), Pixel(..), Image(..))
-import Graphics.Image.Pixel.Binary
-import Graphics.Image.Pixel.Gray
-import Graphics.Image.Pixel.RGB
-import Graphics.Image.Pixel.HSI
-import Graphics.Image.Pixel.Complex
+import Graphics.Image.Interface (Pixel(..), Convertable(..), Image(..))
+
+import Graphics.Image.Interface.Pixel.Binary
+import Graphics.Image.Interface.Pixel.Gray
+import Graphics.Image.Interface.Pixel.RGB
+import Graphics.Image.Interface.Pixel.HSI
+import Graphics.Image.Interface.Pixel.Complex
+import Graphics.Image.Interface.Pixel.Alpha
 
 
+instance AlphaInner Gray where
+
+  
+instance AlphaInner RGB where
+  
+
+instance AlphaInner HSI where
+
+  
 instance ComplexInner Gray where
 
   
@@ -27,6 +40,9 @@ instance ComplexInner RGB where
 
 instance ComplexInner HSI where
 
+
+instance (ComplexInner px, AlphaInner px) => ComplexInner (Alpha px) where
+  
 
 instance Convertable RGB HSI where
   convert !(RGB r g b) = HSI h s i where

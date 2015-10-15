@@ -1,17 +1,11 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE BangPatterns, MultiParamTypeClasses, 
-TemplateHaskell, TypeFamilies, ViewPatterns, UndecidableInstances #-}
+TypeFamilies, ViewPatterns, UndecidableInstances #-}
 
-module Graphics.Image.Pixel.Binary (
-  Binary, on, off, isOn, isOff
+module Graphics.Image.Interface.Pixel.Binary (
+  Binary(..), Bin(..), on, off, isOn, isOff
   ) where
 
 import Graphics.Image.Interface (Pixel(..))
-import Data.Array.Repa.Eval
-import Data.Vector.Unboxed.Deriving
-import Data.Vector.Unboxed (Unbox)
-import qualified Data.Vector.Generic
-import qualified Data.Vector.Generic.Mutable
 
 newtype Bin = Bin Bool deriving Eq
 
@@ -112,37 +106,4 @@ instance Show Binary where
   show (Binary y) = "<Binary:("++show y++")>"
   {-# INLINE show #-}
 
-
-instance Elt Binary where
-  touch (Binary y) = touch y
-  {-# INLINE touch #-}
-  
-  zero = 0
-  {-# INLINE zero #-}
-
-  one = 1
-  {-# INLINE one #-}
-
-
-instance Elt Bin where
-  touch (Bin y) = touch y
-  {-# INLINE touch #-}
-  
-  zero = 0
-  {-# INLINE zero #-}
-
-  one = 1
-  {-# INLINE one #-}
-
-{-
-derivingUnbox "Bin"
-    [t| Bin -> Bool |]
-    [| \(Bin y) -> y |]
-    [| \y -> Bin y |]
--}
-
-derivingUnbox "BinaryPixel"
-    [t| Binary -> Bool |]
-    [| \(Binary (Bin y)) -> y |]
-    [| \y -> Binary (Bin y) |]
 

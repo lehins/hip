@@ -2,8 +2,8 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, GADTs, MultiParamTypeClasses, ViewPatterns #-}
 
 module Graphics.Image.Repa.Internal (
-  compute, fold, index, unsafeIndex, dims, rows, cols, make, 
-  map, zipWith, traverse, traverse2, traverse3, transpose, backpermute, crop,
+  compute, fold, index, unsafeIndex, defaultIndex, maybeIndex, dims, rows, cols, make, 
+  map, imap, zipWith, traverse, traverse2, traverse3, transpose, backpermute, crop,
   fromVector, fromLists, fromArray, toVector, toLists, toArray,
   maximum, minimum, normalize, sum,
   Image(..), RepaStrategy(..)
@@ -11,36 +11,33 @@ module Graphics.Image.Repa.Internal (
 
 import Prelude hiding (map, zipWith, maximum, minimum, sum)
 import qualified Prelude as P (floor)
-import Graphics.Image.Interface hiding (Image)
+import Graphics.Image.Interface hiding (Image, Pixel)
+import Graphics.Image.Repa.Pixel (Pixel)
 import qualified Graphics.Image.Interface as I (Image)
-import Data.Array.Repa.Eval (Elt)
 import Data.Array.Repa as R hiding (
   (++), index, unsafeIndex, map, zipWith, traverse, traverse2, traverse3,
   transpose, backpermute)
 import qualified Data.Array.Repa as R (
   index, unsafeIndex, map, zipWith, traverse, traverse2, traverse3,
   transpose, backpermute)
-import Data.Vector.Unboxed (Unbox, Vector, fromList)
+import Data.Vector.Unboxed (Vector, fromList)
 
 
-{- | Image representation using Repa Arrays. -}
+{- | Image that uses Repa Unboxed Array as an underlying representation. -}
 data Image px where
-  ComputedImage  :: (Elt px, Unbox px, Pixel px) =>
-                    (Array U DIM2 px) -> Image px
-  AbstractImage  :: (Elt px, Unbox px, Pixel px) =>
-                    (Array D DIM2 px) -> Image px
-  SingletonImage :: (Elt px, Unbox px, Pixel px) =>
-                    (Array U DIM2 px) -> Image px
+  ComputedImage  :: Pixel px => !(Array U DIM2 px) -> Image px
+  AbstractImage  :: Pixel px => !(Array D DIM2 px) -> Image px
+  SingletonImage :: Pixel px => !(Array U DIM2 px) -> Image px
 
 
 data RepaStrategy img px where
-  Sequential :: (Elt px, Unbox px, Pixel px, I.Image img px) =>
+  Sequential :: (Pixel px, I.Image img px) =>
                 RepaStrategy img px
-  Parallel   :: (Elt px, Unbox px, Pixel px, I.Image img px) =>
+  Parallel   :: (Pixel px, I.Image img px) =>
                 RepaStrategy img px
 
 
-instance (Elt px, Unbox px, Show px, Pixel px) => Strategy RepaStrategy Image px where
+instance Pixel px => Strategy RepaStrategy Image px where
   compute Sequential (AbstractImage arr) = ComputedImage $ computeS arr
   compute Parallel (AbstractImage arr) =  arr' `deepSeqArray` ComputedImage arr'
     where arr' = head $ computeP arr
@@ -55,7 +52,7 @@ instance (Elt px, Unbox px, Show px, Pixel px) => Strategy RepaStrategy Image px
   {-# INLINE fold #-}
 
 
-instance (Elt px, Unbox px, Show px, Pixel px) => I.Image Image px where
+instance (Pixel px) => I.Image Image px where
   index (ComputedImage !arr) !r !c = R.index arr (Z :. r :. c)
   index !img !r !c                 = unsafeIndex img r c
   {-# INLINE index #-}
@@ -142,14 +139,7 @@ instance (Elt px, Unbox px, Show px, Pixel px) => I.Image Image px where
   {-# INLINE fromLists #-}
 
 
-getDelayed :: Pixel px => Image px -> Array D DIM2 px
-getDelayed (AbstractImage arr)  = arr
-getDelayed (ComputedImage arr)  = delay arr
-getDelayed (SingletonImage arr) = delay arr
-{-# INLINE getDelayed #-}
-
-
-instance (Elt px, Unbox px, Show px, Num px, Pixel px) => Num (Image px) where
+instance Pixel px => Num (Image px) where
   (+)           = zipWith (+)
   {-# INLINE (+) #-}
   
@@ -170,7 +160,7 @@ instance (Elt px, Unbox px, Show px, Num px, Pixel px) => Num (Image px) where
   {-# INLINE fromInteger#-}
 
 
-instance (Elt px, Unbox px, Fractional px, Pixel px) => Fractional (Image px) where
+instance (Fractional px, Pixel px) => Fractional (Image px) where
   (/)            = zipWith (/)
   {-# INLINE (/) #-}
   
@@ -179,7 +169,7 @@ instance (Elt px, Unbox px, Fractional px, Pixel px) => Fractional (Image px) wh
   {-# INLINE fromRational #-}
 
 
-instance (Elt px, Unbox px, Floating px, Pixel px) => Floating (Image px) where
+instance (Floating px, Pixel px) => Floating (Image px) where
   pi    = SingletonImage $ computeS $ fromFunction (Z :. 0 :. 0) (const pi)
   {-# INLINE pi #-}
   
@@ -220,14 +210,21 @@ instance (Elt px, Unbox px, Floating px, Pixel px) => Floating (Image px) where
   {-# INLINE acosh #-}
 
 
-instance (Elt px, Unbox px, Show px, Pixel px) => Show (Image px) where
+instance Pixel px => Show (Image px) where
   show img@(dims -> (m, n)) = "<Image "++(showType px)++": "++(show m)++"x"++(show n)++">"
     where px = index img 0 0
 
 
+getDelayed :: Image px -> Array D DIM2 px
+getDelayed (AbstractImage arr)  = arr
+getDelayed (ComputedImage arr)  = delay arr
+getDelayed (SingletonImage arr) = delay arr
+{-# INLINE getDelayed #-}
+
+
 -- | Convert an Unboxed Vector to an Image by supplying rows, columns and
 -- a vector.
-fromVector :: (Elt px, Unbox px, Pixel px) =>
+fromVector :: Pixel px =>
               Int -> Int  -- ^ Image dimension @m@ rows and @n@ columns.
            -> Vector px   -- ^ Flat vector image rpresentation with length @m*n@
            -> Image px
@@ -236,7 +233,7 @@ fromVector m n v = fromArray $ delay $ fromUnboxed (Z :. m :. n) v
 
 
 -- | Convert an Image to a Vector of length: rows*cols
-toVector :: (Elt px, Unbox px, Pixel px) =>
+toVector :: Pixel px =>
             RepaStrategy Image px
          -> Image px
          -> Vector px
@@ -245,14 +242,14 @@ toVector strat = toUnboxed . toArray strat
 
               
 -- | Create an image from a Repa Array
-fromArray :: (Source r px, Elt px, Unbox px, Pixel px) =>
+fromArray :: (Source r px, Pixel px) =>
              Array r DIM2 px
              -> Image px
 fromArray arr = AbstractImage . delay $ arr
 {-# INLINE fromArray #-}
 
 
-toArray :: (Elt px, Unbox px, Pixel px) =>
+toArray :: Pixel px =>
            RepaStrategy Image px
            -> Image px
            -> Array U DIM2 px
@@ -260,3 +257,5 @@ toArray _ (SingletonImage arr) = arr
 toArray _ (ComputedImage arr)  = arr
 toArray strat img              = toArray strat $ compute strat img
 {-# INLINE toArray #-}
+
+

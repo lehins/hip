@@ -1,15 +1,10 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# LANGUAGE BangPatterns, FlexibleContexts, TemplateHaskell, TypeFamilies, ViewPatterns, MultiParamTypeClasses, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, TypeFamilies, ViewPatterns, MultiParamTypeClasses, UndecidableInstances #-}
 
-module Graphics.Image.Pixel.RGB (
+module Graphics.Image.Interface.Pixel.RGB (
   RGB (..)
   ) where
 
 import Graphics.Image.Interface (Pixel(..))
-import Data.Array.Repa.Eval
-import Data.Vector.Unboxed.Deriving
-import qualified Data.Vector.Generic
-import qualified Data.Vector.Generic.Mutable
 
 data RGB = RGB !Double !Double !Double deriving Eq
 
@@ -90,36 +85,9 @@ instance Floating RGB where
 
 
 instance Ord RGB where
-  (strongest -> RGB m1 _ _) <= (strongest -> RGB m2 _ _) = m1 <= m2
-  {-# INLINE (<=) #-}
+  compare !(RGB r1 g1 b1) !(RGB r2 g2 b2) = compare (r1, g1, b1) (r2, g2, b2)
+  {-# INLINE compare #-}
 
 instance Show RGB where
-  {-# INLINE show #-}
   show (RGB r g b) = "<RGB:("++show r++"|"++show g++"|"++show b++")>"
-
-
-instance Elt RGB where
-  {-# INLINE touch #-}
-  touch (RGB r g b) = touch r >> touch g >> touch b
-  
-  {-# INLINE zero #-}
-  zero             = 0
-
-  {-# INLINE one #-}
-  one              = 1
-
-
-unboxRGB :: RGB -> (Double, Double, Double)
-{-# INLINE unboxRGB #-}  
-unboxRGB (RGB r g b) = (r, g, b)
-
-
-boxRGB :: (Double, Double, Double) -> RGB
-{-# INLINE boxRGB #-}
-boxRGB (r, g, b) = RGB r g b
-
-
-derivingUnbox "RGBPixel"
-    [t| RGB -> (Double, Double, Double) |]
-    [| unboxRGB |]
-    [| boxRGB |]
+  {-# INLINE show #-}

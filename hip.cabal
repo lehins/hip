@@ -38,27 +38,33 @@ Library
                   ViewPatterns
                     
   Exposed-Modules: Graphics.Image,
-                   Graphics.Image.Pixel,
                    Graphics.Image.Interface,
-                   Graphics.Image.IO,
-                   Graphics.Image.Binary,
-                   Graphics.Image.Complex,
-                   Graphics.Image.Processing,
-                   Graphics.Image.Vector,
+                   Graphics.Image.Interface.Pixel,
+                   Graphics.Image.Interface.IO,
+                   Graphics.Image.Interface.Binary,
+                   Graphics.Image.Interface.Complex,
+                   Graphics.Image.Interface.Processing,
+                   Graphics.Image.Interface.Interpolation,
                    Graphics.Image.Repa,
+                   Graphics.Image.Repa.Pixel,
+                   Graphics.Image.Repa.Fusion,
                    Graphics.Image.Repa.Parallel,
                    Graphics.Image.Repa.Sequential,
-                   Graphics.Image.Interpolation
+                   Graphics.Image.Unboxed,
+                   Graphics.Image.Unboxed.Pixel
 
-  Other-modules:   Graphics.Image.Pixel.Binary,
-                   Graphics.Image.Pixel.Gray,
-                   Graphics.Image.Pixel.RGB,
-                   Graphics.Image.Pixel.HSI,
-                   Graphics.Image.Pixel.Complex,
-                   Graphics.Image.Complex.Fourier,
-                   Graphics.Image.Repa.Internal,
-                   Graphics.Image.Conversion,
-                   Graphics.Image.Processing.Geometric
+  Other-modules:   Graphics.Image.Interface.Pixel.Binary,
+                   Graphics.Image.Interface.Pixel.Gray,
+                   Graphics.Image.Interface.Pixel.RGB,
+                   Graphics.Image.Interface.Pixel.HSI,
+                   Graphics.Image.Interface.Pixel.Alpha,
+                   Graphics.Image.Interface.Pixel.Complex,
+                   Graphics.Image.Interface.Processing.Convolution,
+                   Graphics.Image.Interface.Processing.Geometric,
+                   Graphics.Image.Interface.Complex.Fourier,
+                   Graphics.Image.Interface.Conversion,
+                   Graphics.Image.Unboxed.Internal,
+                   Graphics.Image.Repa.Internal
 
   ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
 

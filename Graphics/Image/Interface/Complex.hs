@@ -1,18 +1,19 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
-module Graphics.Image.Complex (
+module Graphics.Image.Interface.Complex (
   realPart, imagPart, complex, magnitude, conjugate,
   makeFilter,
   fft, ifft
   ) where
 
 import Prelude hiding (map, zipWith)
-import Graphics.Image.Complex.Fourier
 import Graphics.Image.Interface
-import Graphics.Image.Pixel.Complex
+import Graphics.Image.Interface.Complex.Fourier
+import Graphics.Image.Interface.Pixel.Complex
 
 
-{-| Given a complex image, returns a real image representing
-    the real part of the image.
+{-| Given a complex image, returns a real image representing the real part of the
+image.
+
     @
     harmonicSignal :: Double -> Double -> Int -> Int -> C.Complex Double
     harmonicSignal u v m n = exp (-pii*2.0 * var) where 
@@ -20,6 +21,7 @@ import Graphics.Image.Pixel.Complex
       var = (u*m' + v*n') C.:+ 0.0
       [m',n'] = map fromIntegral [m, n]
     @
+
     >>> let signal = makeImage 128 128 (harmonicSignal (3/128) (2/128)) :: ComplexImage
     <https://raw.github.com/jcollard/unm-hip/master/examples/signal.jpg>
     >>>let cosine = realPart signal

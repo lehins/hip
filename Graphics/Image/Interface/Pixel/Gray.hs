@@ -1,17 +1,12 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# LANGUAGE BangPatterns, MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
+{-# LANGUAGE BangPatterns, MultiParamTypeClasses, TypeFamilies,
 UndecidableInstances, ViewPatterns #-}
 
-module Graphics.Image.Pixel.Gray (
+module Graphics.Image.Interface.Pixel.Gray (
   Gray (..)
   ) where
 
 import Graphics.Image.Interface (Pixel(..))
-import Data.Array.Repa.Eval
-import Data.Vector.Unboxed.Deriving
-import qualified Data.Vector.Unboxed as V
-import qualified Data.Vector.Generic
-import qualified Data.Vector.Generic.Mutable
+
 
 data Gray = Gray !Double deriving Eq
 
@@ -115,21 +110,3 @@ instance Ord Gray where
 instance Show Gray where
   show (Gray y) = "<Gray:("++show y++")>"
   {-# INLINE show #-}
-
-
-instance Elt Gray where
-  touch (Gray y) = touch y
-  {-# INLINE touch #-}
-  
-  zero = 0
-  {-# INLINE zero #-}
-
-  one = 1
-  {-# INLINE one #-}
-
-
-derivingUnbox "GrayPixel"
-    [t| Gray -> Double |]
-    [| \(Gray y) -> y |]
-    [| \y -> Gray y |]
-

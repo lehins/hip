@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
-module Graphics.Image.Processing.Convolution (
+module Graphics.Image.Interface.Processing.Convolution (
   Outside(..), convolve
   ) where
 
@@ -12,7 +12,7 @@ data Outside px =
   | Wrap      -- ^ Wrap the input image (thereby making it periodic) by assuming
               -- the first column comes immediately after the last, etc.
   | Fill !px  -- ^ Fill in a constant pixel for output pixels too near the
-              -- border
+              -- border.
   | Crop      -- ^ Compute an image of redused size, by eliminating output rows
               -- and columns that cannot be computed by convolution.
   deriving Eq
@@ -71,7 +71,20 @@ convolve !out !kernel !img = traverse2 kernel img getDims stencil where
 {-# INLINE convolve #-}
 
 
+
+
 {-
+
+
+convolveRows :: (Pixel px, Num px, Unbox px, Elt px) => [px] -> I.Image px -> I.Image px
+convolveRows ls = convolve (I.fromLists [ls]) ?????????
+{-# INLINE convolveRows #-}
+
+
+convolveCols :: (Pixel px, Num px, Unbox px, Elt px) => [px] -> I.Image px -> I.Image px
+convolveCols ls = convolve (I.fromLists $ P.map (:[]) ls) ????????
+{-# INLINE convolveCols #-}
+
 convolve :: (Strategy strat img px, Image img px, Pixel px, Num px) =>
             Image px
          -> Image px
