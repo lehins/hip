@@ -4,36 +4,51 @@ module Graphics.Image.Interface.IO (
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
-import Data.Char (toUpper)
+import Data.Char (toLower)
 import Data.IORef
 import Data.ByteString (readFile)
 import Graphics.Image.Interface (Image, Strategy(compute))
 import Graphics.Image.Interface.Conversion
 import qualified Data.ByteString.Lazy as BL (writeFile)
 import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath ((</>))
+import System.FilePath ((</>), takeExtension)
 import System.IO.Temp (withSystemTempDirectory)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (runCommand, waitForProcess)
 
 
+extToFormat :: String -> Either String Format
+extToFormat ext
+  | null ext                   = Left "File extension was not supplied."
+  | ext == ".bmp"              = Right BMP
+  | ext == ".gif"              = Right GIF
+  | ext == ".hdr"              = Right HDR
+  | elem ext [".jpg", ".jpeg"] = Right $ JPG 100
+  | ext == ".png"              = Right PNG
+  | ext == ".tga"              = Right TGA
+  | elem ext [".tif", ".tiff"] = Right TIF
+  | ext == ".pbm"              = Right $ PBM RAW
+  | ext == ".pgm"              = Right $ PGM RAW
+  | ext == ".ppm"              = Right $ PPM RAW
+  | otherwise = Left $ "Unsupported file extension: "++ext
+                
+
+isNetpbm (PBM _) = True
+isNetpbm (PGM _) = True
+isNetpbm (PPM _) = True
+isNetpbm _       = False
+
+
+guessFormat :: FilePath -> Either String Format
+guessFormat path = extToFormat . P.map toLower . takeExtension $ path
+  
+
 readImage :: (Image img px, Readable img px) =>
              FilePath -> IO (img px)
-readImage path = fmap ((either error id) . decodeImage) (readFile path)
+readImage path = 
+  fmap ((either error id) . (decodeImage maybeFormat)) (readFile path) where 
+    !maybeFormat = either (const Nothing) Just $ guessFormat path  
 
-
-extToFormat :: [Char] -> Format
-extToFormat ((P.map toUpper) -> ext)
-  | ext == "BMP"             = BMP
-  | elem ext ["JPG", "JPEG"] = JPG 100
-  | ext == "PNG"             = PNG
-  | elem ext ["TIF", "TIFF"] = TIFF
-  | ext == "HDR"             = HDR
-  --  ext == "PBM"             = PBM
-  --  ext == "PGM"             = PGM
-  --  ext == "PPM"             = PPM
-  | null ext = error "File extension was not supplied"
-  | otherwise = error $ "Unsupported file extension: "++ext
 
 
 writeImage :: (Strategy strat img px, Image img px, Saveable img px) =>
@@ -47,7 +62,7 @@ writeImage !strat !path !img !options =
     !format = getFormat options
     !encoder = getEncoder options
     !ext = reverse . fst . (span ('.'/=)) . reverse $ path
-    getFormat [] = extToFormat ext
+    getFormat [] = either error id $ guessFormat path
     getFormat !((Format f):_) = f
     getFormat !(_:opts) = getFormat opts
     getEncoder [] = defaultEncoder format
@@ -57,7 +72,7 @@ writeImage !strat !path !img !options =
       BMP    -> inRGB8
       (JPG _)-> inYCbCr8
       PNG    -> inRGB8
-      TIFF   -> inRGB8
+      TIF    -> inRGB8
       HDR    -> inRGBF
       -- PBM  -> inY8
       -- PGM  -> inY8

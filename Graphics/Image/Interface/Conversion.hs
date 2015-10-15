@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
 UndecidableInstances, ViewPatterns #-}
 module Graphics.Image.Interface.Conversion (
-  Format(..), SaveOption(..), Encoder, Saveable(..), Readable, decodeImage
+  Format(..), Mode(..), SaveOption(..), Encoder, Saveable(..), Readable, decodeImage
   ) where
 
 import GHC.Float
@@ -20,20 +20,36 @@ import qualified Data.Vector.Storable as VS (convert, Vector)
 import qualified Data.Vector as V (map, (!))
 import qualified Graphics.Netpbm as PNM
 
-
--- TODO: add links to wikipedia on formats
+-- | Output mode for Netpbm formats. Note: Currently writing of Netpbm images is
+-- not supported, this is here for future compatibility only at the moment.
+data Mode = ASCII | RAW
 -- TODO: implement writing for PNM formats
+
 -- | Format types that an image can be saved in.
-data Format = BMP       -- ^ A BMP image with .bmp extension
-            | JPG Word8 -- ^ A JPG image with .jpg or .jpeg extension with
-                        -- specified quality from 0 to a 100
-            | PNG       -- ^ A PNG (Portable Network Graphics) image with .png extension
-            | TIFF      -- ^ A TIFF image with .tif or .tiff extension
-            | HDR       -- ^ A HDR image with .hdr extension
-            -- PBM
-            -- PGM
-            -- PPM
-            deriving Show
+data Format = BMP       -- ^ Bitmap image with .bmp extension.
+            | GIF       -- ^ Graphics Interchange Format image with .gif extension.
+            | HDR       -- ^ High-dynamic-range image with .hdr extension.
+            | JPG Word8 -- ^ Joint Photographic Experts Group image with .jpg or .jpeg extension. 
+                        -- Output quality factor can be specified from 0 to a 100
+            | PNG       -- ^ Portable Network Graphics image with .png extension
+            | TGA       -- ^ Truevision Graphics Adapter image with .tga extension.
+            | TIF       -- ^ Tagged Image File Format image with .tif or .tiff extension
+            | PBM Mode  -- ^ Netpbm portable bitmap image with .pbm extension.
+            | PGM Mode  -- ^ Netpbm portable graymap image with .pgm extension.
+            | PPM Mode  -- ^ Netpbm portable pixmap image with .ppm extension.
+
+instance Show Format where
+  show BMP     = "Bitmap"
+  show GIF     = "Gif"
+  show HDR     = "HDR"
+  show (JPG _) = "Jpeg"
+  show PNG     = "PNG"
+  show TGA     = "TGA"
+  show TIF     = "Tiff"
+  show (PBM _) = "PBM"
+  show (PGM _) = "PGM"
+  show (PPM _) = "PPM"
+  
 
 -- | Colorspace choice that image will be saved in.
 type Encoder img px = Format -> img px -> BL.ByteString
@@ -348,23 +364,40 @@ ppmImageToImage (PNM.PPMHeader _ c r) v = make r c getPx where
   getPx i j = vectorImage V.! (i*r + j)
 
 
-decodeImage :: (Convertable PNM.PPM b, Convertable DynamicImage b) =>
-               B.ByteString -> Either [Char] b
-decodeImage imstr = pnm2Image "" --(Right . convert) imstr
-  where
-    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
-      pnmResult2Image (Right (pnmLs, _)) = Right $ convert (head pnmLs)
-      pnmResult2Image (Left errmsgPNM) = Left ("hip: "++errmsgJP++errmsgPNM)
+decodeJPImageUsing :: (Image img px, Pixel px, Convertable DynamicImage (img px)) =>
+                      (B.ByteString -> Either String JP.DynamicImage)
+                      -> B.ByteString -> Either String (img px)
+decodeJPImageUsing decoder imgstr = 
+  either (Left . ("JuicyPixel decoding error: "++)) (Right . convert) $ decoder imgstr
 
-
-decodeImage' :: (Convertable PNM.PPM b, Convertable DynamicImage b) =>
-               B.ByteString -> Either [Char] b
-decodeImage' imstr = either pnm2Image (Right . convert) $ JP.decodeImage imstr
-  where
-    pnm2Image errmsgJP = pnmResult2Image $ PNM.parsePPM imstr where
-      pnmResult2Image (Right (pnmLs, _)) = Right $ convert (head pnmLs)
-      pnmResult2Image (Left errmsgPNM) = Left ("hip: "++errmsgJP++errmsgPNM)
-
+          
+decodeNetpbmImage :: (Image img px, Pixel px, Convertable PNM.PPM (img px)) =>
+                     B.ByteString -> Either String (img px)
+decodeNetpbmImage imgstr = pnmResultToImage $ PNM.parsePPM imgstr where
+  pnmResultToImage (Right (pnmLs, _)) = Right $ convert (head pnmLs)
+  pnmResultToImage (Left err)         = Left ("Netpbm decoding error: "++err)
+          
+          
+decodeImage :: (Image img px, Pixel px, 
+                Convertable PNM.PPM (img px), Convertable DynamicImage (img px)) =>
+               Maybe Format -> B.ByteString -> Either String (img px)
+decodeImage Nothing imgstr = either tryJP Right $ decodeNetpbmImage imgstr where
+  tryJP netpbmErr = either (Left . (unlines . (netpbmErr:) . (:[]))) Right $ 
+                    decodeJPImageUsing JP.decodeImage imgstr
+decodeImage (Just format) imgstr = updateError . decode $ format where
+  updateError (Left err) = Left ("Reading format "++show format++"failed. "++err)
+  updateError eitherImg  =  eitherImg
+  decode BMP     = decodeJPImageUsing JP.decodeBitmap imgstr
+  decode GIF     = decodeJPImageUsing JP.decodeGif imgstr
+  decode HDR     = decodeJPImageUsing JP.decodeHDR imgstr
+  decode (JPG _) = decodeJPImageUsing JP.decodeJpeg imgstr
+  decode PNG     = decodeJPImageUsing JP.decodePng imgstr
+  decode TGA     = decodeJPImageUsing JP.decodeTga imgstr
+  decode TIF     = decodeJPImageUsing JP.decodeTiff imgstr
+  decode (PBM _) = decodeNetpbmImage imgstr
+  decode (PGM _) = decodeNetpbmImage imgstr
+  decode (PPM _) = decodeNetpbmImage imgstr
+  
 
 instance Image img Gray => Convertable PNM.PPM (img Gray) where
   convert (PNM.PPM header (PNM.PpmPixelDataRGB8 v))  = ppmImageToImage header v
@@ -392,10 +425,10 @@ imageToJPImage f img@(dims -> (m, n)) =
 instance Image img Gray => Saveable img Gray where
   inY8 BMP      = JP.encodeBitmap . (imageToJPImage (convert :: Gray -> JP.Pixel8))
   inY8 PNG      = JP.encodePng    . (imageToJPImage (convert :: Gray -> JP.Pixel8))
-  inY8 TIFF     = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.Pixel8))
+  inY8 TIF     = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.Pixel8))
   inY8 f        = error $ "Cannot save "++show f++" in Y8 colorspace"
   inY16 PNG     = JP.encodePng    . (imageToJPImage (convert :: Gray -> JP.Pixel16))
-  inY16 TIFF    = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.Pixel16))
+  inY16 TIF    = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.Pixel16))
   inY16 f       = error $ "Cannot save "++show f++" in Y16 colorspace"
   inYA8 PNG     = JP.encodePng    . (imageToJPImage (convert :: Gray -> JP.PixelYA8))
   inYA8 f       = error $ "Cannot save "++show f++" in Y8 colorspace"
@@ -403,9 +436,9 @@ instance Image img Gray => Saveable img Gray where
   inYA16 f      = error $ "Cannot save "++show f++" in Y16 colorspace"
   inRGB8 BMP    = JP.encodeBitmap . (imageToJPImage (convert :: Gray -> JP.PixelRGB8))
   inRGB8 PNG    = JP.encodePng    . (imageToJPImage (convert :: Gray -> JP.PixelRGB8))
-  inRGB8 TIFF   = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.PixelRGB8))
+  inRGB8 TIF   = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.PixelRGB8))
   inRGB8 f      = error $ "Cannot save "++show f++" in RGB8 colorspace"
-  inRGB16 TIFF  = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.PixelRGB16))
+  inRGB16 TIF  = JP.encodeTiff   . (imageToJPImage (convert :: Gray -> JP.PixelRGB16))
   inRGB16 PNG   = JP.encodePng    . (imageToJPImage (convert :: Gray -> JP.PixelRGB16))
   inRGB16 f     = error $ "Cannot save "++show f++" in RGB16 colorspace"
   inRGBA8 BMP   = JP.encodeBitmap . (imageToJPImage (convert :: Gray -> JP.PixelRGBA8))
@@ -416,9 +449,9 @@ instance Image img Gray => Saveable img Gray where
   inYCbCr8 (JPG q)  =
     (JP.encodeJpegAtQuality q) . (imageToJPImage (convert :: Gray -> JP.PixelYCbCr8))
   inYCbCr8 f    = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
-  inCMYK8 TIFF  = JP.encodeTiff  . (imageToJPImage (convert :: Gray -> JP.PixelCMYK8))
+  inCMYK8 TIF  = JP.encodeTiff  . (imageToJPImage (convert :: Gray -> JP.PixelCMYK8))
   inCMYK8 f     = error $ "Cannot save "++show f++" in CMYK8 colorspace"
-  inCMYK16 TIFF = JP.encodeTiff  . (imageToJPImage (convert :: Gray -> JP.PixelCMYK16))
+  inCMYK16 TIF = JP.encodeTiff  . (imageToJPImage (convert :: Gray -> JP.PixelCMYK16))
   inCMYK16 f    = error $ "Cannot save "++show f++" in CMYK16 colorspace"
   inRGBF HDR    = JP.encodeHDR   . (imageToJPImage (convert :: Gray -> JP.PixelRGBF))
   inRGBF f      = error $ "Cannot save "++show f++" in RGBF colorspace"
@@ -427,10 +460,10 @@ instance Image img Gray => Saveable img Gray where
 instance Image img RGB => Saveable img RGB where
   inY8 BMP      = JP.encodeBitmap . (imageToJPImage (convert :: RGB -> JP.Pixel8))
   inY8 PNG      = JP.encodePng . (imageToJPImage (convert :: RGB -> JP.Pixel8))
-  inY8 TIFF     = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.Pixel8))
+  inY8 TIF     = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.Pixel8))
   inY8 f        = error $ "Cannot save "++show f++" in Y8 colorspace"
   inY16 PNG     = JP.encodePng . (imageToJPImage (convert :: RGB -> JP.Pixel16))
-  inY16 TIFF    = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.Pixel16))
+  inY16 TIF    = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.Pixel16))
   inY16 f       = error $ "Cannot save "++show f++" in Y16 colorspace"
   inYA8 PNG     = JP.encodePng . (imageToJPImage (convert :: RGB -> JP.PixelYA8))
   inYA8 f       = error $ "Cannot save "++show f++" in Y8 colorspace"
@@ -438,9 +471,9 @@ instance Image img RGB => Saveable img RGB where
   inYA16 f      = error $ "Cannot save "++show f++" in Y16 colorspace"
   inRGB8 BMP    = JP.encodeBitmap . (imageToJPImage (convert :: RGB -> JP.PixelRGB8))
   inRGB8 PNG    = JP.encodePng . (imageToJPImage (convert :: RGB -> JP.PixelRGB8))
-  inRGB8 TIFF   = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelRGB8))
+  inRGB8 TIF   = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelRGB8))
   inRGB8 f      = error $ "Cannot save "++show f++" in RGB8 colorspace"
-  inRGB16 TIFF  = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelRGB16))
+  inRGB16 TIF  = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelRGB16))
   inRGB16 PNG   = JP.encodePng . (imageToJPImage (convert :: RGB -> JP.PixelRGB16))
   inRGB16 f     = error $ "Cannot save "++show f++" in RGB16 colorspace"
   inRGBA8 BMP   = JP.encodeBitmap . (imageToJPImage (convert :: RGB -> JP.PixelRGBA8))
@@ -451,9 +484,9 @@ instance Image img RGB => Saveable img RGB where
   inYCbCr8 (JPG q)  =
     (JP.encodeJpegAtQuality q) . (imageToJPImage (convert :: RGB -> JP.PixelYCbCr8))
   inYCbCr8 f    = error $ "Cannot save "++show f++" in YCbCr8 colorspace"
-  inCMYK8 TIFF  = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelCMYK8))
+  inCMYK8 TIF  = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelCMYK8))
   inCMYK8 f     = error $ "Cannot save "++show f++" in CMYK8 colorspace"
-  inCMYK16 TIFF = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelCMYK16))
+  inCMYK16 TIF = JP.encodeTiff . (imageToJPImage (convert :: RGB -> JP.PixelCMYK16))
   inCMYK16 f    = error $ "Cannot save "++show f++" in CMYK16 colorspace"
   inRGBF HDR    = JP.encodeHDR . (imageToJPImage (convert :: RGB -> JP.PixelRGBF))
   inRGBF f      = error $ "Cannot save "++show f++" in RGBF colorspace"
