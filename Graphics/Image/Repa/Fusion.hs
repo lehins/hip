@@ -14,6 +14,8 @@ module Graphics.Image.Repa.Fusion (
   -- ** Extracting
   crop, scale,
   -- ** Convolution
+  -- * Complex
+  module Graphics.Image.Interface.Complex,
   -- * Conversion
   fromLists, fromArray,
   -- * IO
@@ -21,6 +23,7 @@ module Graphics.Image.Repa.Fusion (
   ) where
 
 import Prelude hiding (map, zipWith)
+import Graphics.Image.Interface.Complex
 import Graphics.Image.Interface.IO
 import Graphics.Image.Interface.Processing
 import Graphics.Image.Repa.Internal

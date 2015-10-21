@@ -63,9 +63,11 @@ class (Image img px, Pixel px) => Strategy strat img px where
              strat img px
              -> img px
              -> [[px]]
-  toLists strat img =
-    [[index img' m n | n <- [0..cols img - 1]] | m <- [0..rows img - 1]] where
-      img' = compute strat img
+  toLists !strat !img =
+    [[index img' i j | j <- [0..n - 1]] | i <- [0..m - 1]] where
+      !(m, n) = dims img
+      !img' = compute strat img
+      
 
 {- | This is a core Image interface. -}
 class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where

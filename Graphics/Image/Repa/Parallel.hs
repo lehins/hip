@@ -192,6 +192,8 @@ convolve' :: Pixel px => C.Outside px -> Image px -> Image px -> Image px
 convolve' outside !krn !img = compute $ C.convolve outside (compute krn) (compute img)
 
 
+-- COMPLEX
+
 fft :: ComplexInner px => Image (Complex px) -> Image (Complex px)
 fft = C.fft I.Parallel
 
@@ -200,6 +202,8 @@ ifft :: ComplexInner px =>
         Image (Complex px) -> Image (Complex px)
 ifft = C.ifft I.Parallel
 
+
+-- CONVERSION
 
 fromVector :: (Pixel px) =>
               Int
@@ -237,6 +241,9 @@ toArray :: (Pixel px) =>
            Image px
         -> Array U DIM2 px
 toArray = I.toArray I.Parallel
+
+
+-- IO
 
 
 readGrayImage :: FilePath -> IO (Image Gray)

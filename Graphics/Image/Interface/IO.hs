@@ -33,22 +33,16 @@ extToFormat ext
   | otherwise = Left $ "Unsupported file extension: "++ext
                 
 
-isNetpbm (PBM _) = True
-isNetpbm (PGM _) = True
-isNetpbm (PPM _) = True
-isNetpbm _       = False
-
-
 guessFormat :: FilePath -> Either String Format
 guessFormat path = extToFormat . P.map toLower . takeExtension $ path
   
 
 readImage :: (Image img px, Readable img px) =>
-             FilePath -> IO (img px)
+             FilePath
+          -> IO (img px)
 readImage path = 
   fmap ((either error id) . (decodeImage maybeFormat)) (readFile path) where 
     !maybeFormat = either (const Nothing) Just $ guessFormat path  
-
 
 
 writeImage :: (Strategy strat img px, Image img px, Saveable img px) =>
@@ -61,7 +55,6 @@ writeImage !strat !path !img !options =
   BL.writeFile path $ encoder format (compute strat img) where
     !format = getFormat options
     !encoder = getEncoder options
-    !ext = reverse . fst . (span ('.'/=)) . reverse $ path
     getFormat [] = either error id $ guessFormat path
     getFormat !((Format f):_) = f
     getFormat !(_:opts) = getFormat opts
@@ -69,11 +62,11 @@ writeImage !strat !path !img !options =
     getEncoder !((Encoder enc):_) = enc
     getEncoder !(_:opts) = getEncoder opts
     defaultEncoder !f = case f of
-      BMP    -> inRGB8
-      (JPG _)-> inYCbCr8
-      PNG    -> inRGB8
-      TIF    -> inRGB8
-      HDR    -> inRGBF
+      BMP     -> inRGB8
+      (JPG _) -> inYCbCr8
+      PNG     -> inRGB8
+      TIF     -> inRGB8
+      HDR     -> inRGBF
       -- PBM  -> inY8
       -- PGM  -> inY8
       -- PPM  -> inRGB8
