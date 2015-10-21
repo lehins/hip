@@ -37,8 +37,7 @@ Library
                   TypeFamilies, 
                   ViewPatterns
                     
-  Exposed-Modules: Graphics.Image,
-                   Graphics.Image.Interface,
+  Exposed-Modules: Graphics.Image.Interface,
                    Graphics.Image.Interface.Pixel,
                    Graphics.Image.Interface.IO,
                    Graphics.Image.Interface.Binary,

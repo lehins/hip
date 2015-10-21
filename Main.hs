@@ -13,12 +13,8 @@ import Graphics.Image.Repa.Parallel
 main :: IO ()  
 main = do
   setDisplayProgram "gpicview"
-  lena <- readColorImage "lena.ppm"
-  display lena
-  pad1 <- readGrayImage "lena.pgm"
-  display pad1
-  lena1 <- readColorImage "lena.jpg"
-  display lena1
+  lena <- readImageRGBA "deathclaw.png"
+  writeImage "deathclaw1.png" lena [Encoder inRGBA16]
   --let pad2 = F.scale Bilinear 0.2 pad1
  --let mask = make (rows lena) (cols lena) (\i j -> if i > j then on else off)
   --writeImage "lena_rot.png" (rotate' (compute lena) (pi/6)) []

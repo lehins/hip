@@ -46,6 +46,9 @@ instance Pixel HSI where
 -- | Unboxed Pixel  
 instance ComplexInner px => Pixel (Complex px) where
 
+-- | Unboxed Pixel  
+instance AlphaInner px => Pixel (Alpha px) where
+  
 
 -- | Unboxed Pixel  
 instance ComplexInner Gray where
@@ -56,7 +59,6 @@ instance ComplexInner RGB where
 -- | Unboxed Pixel  
 instance ComplexInner HSI where
 
-  
 -- | Unboxed Pixel  
 instance (Pixel (Alpha px), ComplexInner px, AlphaInner px) =>
          ComplexInner (Alpha px) where
@@ -70,54 +72,41 @@ instance AlphaInner RGB where
 
 -- | Unboxed Pixel  
 instance AlphaInner HSI where
+
   
-
-unboxRGB :: RGB -> (Double, Double, Double)
-unboxRGB (RGB r g b) = (r, g, b)
-{-# INLINE unboxRGB #-}  
-
-
-boxRGB :: (Double, Double, Double) -> RGB
-boxRGB (r, g, b) = RGB r g b
-{-# INLINE boxRGB #-}
-
-
-unboxHSI :: HSI -> (Double, Double, Double)
-{-# INLINE unboxHSI #-}  
-unboxHSI (HSI h s i) = (h, s, i)
-
-
-boxHSI :: (Double, Double, Double) -> HSI
-{-# INLINE boxHSI #-}
-boxHSI (h, s, i) = HSI h s i
+derivingUnbox "GrayPixel"
+    [t| Gray -> Double |]
+    [| \(Gray y) -> y  |]
+    [| \y -> Gray y    |]
 
 
 derivingUnbox "BinaryPixel"
-    [t| Binary -> Bool |]
-    [| isOn |]
+    [t| Binary -> Bool             |]
+    [| isOn                        |]
     [| \v -> if v then on else off |]
-
-
-derivingUnbox "GrayPixel"
-    [t| Gray -> Double |]
-    [| \(Gray y) -> y |]
-    [| \y -> Gray y |]
 
 
 derivingUnbox "RGBPixel"
     [t| RGB -> (Double, Double, Double) |]
-    [| unboxRGB |]
-    [| boxRGB |]
+    [| \(RGB r g b) -> (r, g, b)        |]
+    [| \(r, g, b) -> RGB r g b          |]
 
 
 derivingUnbox "HSIPixel"
     [t| HSI -> (Double, Double, Double) |]
-    [| unboxHSI |]
-    [| boxHSI |]
+    [| \(HSI h s i) -> (h, s, i)        |]
+    [| \(h, s, i) -> HSI h s i          |]
 
 
 derivingUnbox "ComplexPixel"
-    [t| (Unbox px, Unbox (Inner px), ComplexInner px) => (Complex px) -> (px, px) |]
-    [| \(px1 :+: px2) -> (px1, px2) |]
-    [| \(px1, px2) -> px1 :+: px2 |]
+    [t| ComplexInner px => Complex px -> (px, px) |]
+    [| \(px1 :+: px2) -> (px1, px2)               |]
+    [| \(px1, px2) -> px1 :+: px2                 |]
+
+
+derivingUnbox "AlphaPixel"
+    [t| AlphaInner px => Alpha px -> (Inner px, px) |]
+    [| \(Alpha a px) -> (a, px)                     |]
+    [| \(a, px) -> Alpha a px                       |]
+
 

@@ -45,6 +45,9 @@ instance Pixel HSI where
 -- | Repa Pixel  
 instance ComplexInner px => Pixel (Complex px) where
 
+-- | Repa Pixel  
+instance AlphaInner px => Pixel (Alpha px) where
+  
 
 -- | Repa Pixel  
 instance ComplexInner Gray where
@@ -117,7 +120,7 @@ instance Elt HSI where
 
 
 instance (Elt px, AlphaInner px) => Elt (Alpha px) where
-  touch (A px a) = touch px >> touch a 
+  touch (Alpha px a) = touch px >> touch a 
   {-# INLINE touch #-}
   
   zero             = 0

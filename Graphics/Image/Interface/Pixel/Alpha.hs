@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, GADTs, TypeFamilies, UndecidableInstances #-}
 module Graphics.Image.Interface.Pixel.Alpha (
-  Alpha(..), AlphaInner, fmapAlpha, combineAlpha
+  Alpha(..), AlphaInner, dropAlpha, fmapAlpha, combineAlpha
   ) where
 
 import Graphics.Image.Interface (Pixel(..))
@@ -14,7 +14,7 @@ class (Floating (Inner px), Fractional (Inner px),
 
         
 data Alpha px where
-  A :: AlphaInner px => px -> (Inner px) -> Alpha px 
+  Alpha :: AlphaInner px => (Inner px) -> px -> Alpha px 
 
 
 {- | Although 'Alpha' pixels are also 'Num', 'Floating' and 'Fractional' all of the
@@ -22,24 +22,29 @@ numeric operators affect only the underlying pixel values not the alpha
 channels. In all operations of arity two first pixel has the precedence, hence
 it's alpha channel is retained and the other one's is dropped.
 
->>> A (Gray 0.5) 0.7 + A (Gray 0.1) 0.8
-<Alpha:(<Gray:(0.6)>|0.7)>
+>>> Alpha 0.7 (Gray 0.5) + Alpha 0.8 (Gray 0.1)
+<Alpha:(0.7|<Gray:(0.6)>)>
 
 -}
 instance AlphaInner px => Pixel (Alpha px) where
   type Inner (Alpha px) = Inner px
 
-  pixel v = A (pixel v) 1
+  pixel !v = Alpha 1 (pixel v)
+  {-# INLINE pixel #-}
   
-  pxOp op (A px a) = A (pxOp op px) a
+  pxOp !op !(Alpha a px) = Alpha a (pxOp op px)
+  {-# INLINE pxOp #-}
 
-  pxOp2 op (A px1 a1) (A px2 _) = (A (pxOp2 op px1 px2) a1)
+  pxOp2 !op !(Alpha a1 px1 ) (Alpha _ px2) = Alpha a1 (pxOp2 op px1 px2) 
+  {-# INLINE pxOp2 #-}
 
-  strongest (A px a) = A (strongest px) a
+  strongest !(Alpha a px) = Alpha a (strongest px)
+  {-# INLINE strongest #-}
 
-  weakest (A px a) = A (weakest px) a
+  weakest !(Alpha a px) = Alpha a (weakest px)
+  {-# INLINE weakest #-}
 
-  showType (A px _) = (showType px)++"A"
+  showType (Alpha _ px) = (showType px)++"A"
 
 
 instance AlphaInner px => Num (Alpha px) where
@@ -64,8 +69,13 @@ instance AlphaInner px => Num (Alpha px) where
 
 instance AlphaInner px => Fractional (Alpha px) where
   (/)            = pxOp2 (/)
+  {-# INLINE (/) #-}
+  
   recip          = pxOp recip
-  fromRational n = pixel . fromRational $ n
+  {-# INLINE recip #-}
+  
+  fromRational !n = pixel . fromRational $ n
+  {-# INLINE fromRational #-}
 
 
 instance AlphaInner px => Floating (Alpha px) where
@@ -98,41 +108,48 @@ instance AlphaInner px => Floating (Alpha px) where
 
 
 instance (AlphaInner px) => Eq (Alpha px) where
-  (==) !(A px1 a1) !(A px2 a2) = px1 == px2 && a1 == a2
+  (==) !(Alpha a1 px1) !(Alpha a2 px2) = px1 == px2 && a1 == a2
+  {-# INLINE (==) #-}
 
 
 instance (AlphaInner px) => Ord (Alpha px) where
-  compare (A px1 a1) (A px2 a2) | px1 < px2 = LT
-                                | px1 > px2 = GT
-                                | a1 < a2   = LT
-                                | a1 > a2   = GT
-                                | otherwise = EQ
-  {-# INLINE (<=) #-}
+  compare !(Alpha a1 px1) !(Alpha a2 px2) | px1 < px2 = LT
+                                          | px1 > px2 = GT
+                                          | a1 < a2   = LT
+                                          | a1 > a2   = GT
+                                          | otherwise = EQ
+  {-# INLINE compare #-}
 
 
 instance AlphaInner px => Show (Alpha px) where
-  {-# INLINE show #-}
-  show (A px a) = "<Alpha:("++show px++"|"++show a++")>"
+  show (Alpha a px) = "<Alpha:("++show a++"|"++show px++")>"
+
+
+dropAlpha :: AlphaInner px =>
+             Alpha px
+             -> px
+dropAlpha (Alpha _ px) = px
+{-# INLINE dropAlpha #-}
 
 
 fmapAlpha :: AlphaInner px =>
              (Inner px -> Inner px)
              -> Alpha px
              -> Alpha px
-fmapAlpha op (A px a) = A px (op a)
+fmapAlpha f (Alpha a px) = Alpha (f a) px
 {-# INLINE fmapAlpha #-}
 
 
 {- | Combines two pixels with 'Alpha' channels in a way specified by input functions. -}
 combineAlpha :: AlphaInner px =>
                 (px -> px -> px)
-                -- ^ Function that combines the actual pixel values.
+                -- ^ Function that combixnes the actual pixel values.
              -> (Inner px -> Inner px -> Inner px)
                 -- ^ Function that combines the alpha channels for two pixel.
              -> Alpha px -- ^ First pixel
              -> Alpha px -- ^ Second Pixel
              -> Alpha px
-combineAlpha pxOp2' aOp2 (A px1 a1) (A px2 a2) = A (pxOp2' px1 px2) (aOp2 a1 a2)
+combineAlpha pxOp2' aOp2 (Alpha a1 px1) (Alpha a2 px2) = Alpha (aOp2 a1 a2) (pxOp2' px1 px2)
 {-# INLINE combineAlpha #-}
 
 

@@ -9,11 +9,11 @@ module Graphics.Image.Interface.Pixel (
   module Graphics.Image.Interface.Pixel.HSI,
   module Graphics.Image.Interface.Pixel.Complex,
   module Graphics.Image.Interface.Pixel.Alpha,
-  hsiToRgb, rgbToHsi, graysToHsi, hsiToGrays
+  graysToHsi, hsiToGrays
   ) where
 
 import Prelude hiding (map)
-import Graphics.Image.Interface (Pixel(..), Convertable(..), Image(..))
+import Graphics.Image.Interface (Pixel(..), Convertible(..), Image(..))
 
 import Graphics.Image.Interface.Pixel.Binary
 import Graphics.Image.Interface.Pixel.Gray
@@ -44,7 +44,7 @@ instance ComplexInner HSI where
 instance (ComplexInner px, AlphaInner px) => ComplexInner (Alpha px) where
   
 
-instance Convertable RGB HSI where
+instance Convertible RGB HSI where
   convert !(RGB r g b) = HSI h s i where
     !h = if (v1 /= 0.0) then atan2 v2 v1 else 0
     !s = sqrt((v1 * v1) + (v2 * v2))
@@ -55,7 +55,7 @@ instance Convertable RGB HSI where
   {-# INLINE convert #-}
   
 
-instance Convertable HSI RGB where
+instance Convertible HSI RGB where
   convert !(HSI h s i) = RGB r g b where
     !r  = i + v1
     !g  = i - (v1/2) + v2
@@ -66,53 +66,55 @@ instance Convertable HSI RGB where
   {-# INLINE convert #-}
 
 
-instance Convertable Gray RGB where
+instance Convertible Gray RGB where
   convert !(Gray g) = pixel g
   {-# INLINE convert #-}
 
 
-instance Convertable RGB Gray where
+instance Convertible RGB Gray where
   convert !(RGB r g b) = Gray ((r + g + b)/3)
   {-# INLINE convert #-}
 
   
-instance Convertable HSI Gray where
+instance Convertible HSI Gray where
   convert !(HSI _ _ i) = Gray i
   {-# INLINE convert #-}
 
 
-instance Convertable Gray HSI where
+instance Convertible Gray HSI where
   convert !(Gray y) = HSI 0 0 y
   {-# INLINE convert #-}
 
 
-instance Pixel px => Convertable Binary px where
+instance Pixel px => Convertible Binary px where
   convert !b = if isOn b then pixel 1 else pixel 0
+  {-# INLINE convert #-}
+  
+
+instance Convertible Binary Bool where
+  convert = isOn
   {-# INLINE convert #-}
 
 
-instance (Pixel px1, Image img px1, Pixel px2, Image img px2, Convertable px1 px2) =>
-         Convertable (img px1) (img px2) where
+instance Convertible Bool Binary where
+  convert !b = if b then on else off
+  {-# INLINE convert #-}
+
+
+instance (Image img px1, Image img px2, Convertible px1 px2) =>
+         Convertible (img px1) (img px2) where
   convert img = map convert img
   {-# INLINE convert #-}
 
 
-instance (ComplexInner px) => Convertable px (Complex px) where
+instance (ComplexInner px) => Convertible px (Complex px) where
   convert px = px :+: pixel 0
   {-# INLINE convert #-}
 
 
-instance (ComplexInner px) => Convertable (Complex px) px where
+instance (ComplexInner px) => Convertible (Complex px) px where
   convert (px :+: _) = px
   {-# INLINE convert #-}
-
-
-hsiToRgb :: (Image img HSI, Image img RGB) => img HSI -> img RGB
-hsiToRgb = convert
-
-
-rgbToHsi :: (Image img HSI, Image img RGB) => img RGB -> img HSI
-rgbToHsi = convert
 
 
 hsiToGrays :: (Image img HSI, Image img Gray) => img HSI -> (img Gray, img Gray, img Gray)

@@ -24,7 +24,7 @@ module Graphics.Image.Repa.Parallel (
   -- * Conversion
   fromArray, toArray, fromVector, toVector, fromLists, toLists,
   -- * IO
-  readGrayImage, readColorImage, readImage,
+  readGrayImage, readColorImage, readImageRGBA,
   SaveOption(..),
   writeImage, display
   ) where
@@ -247,15 +247,15 @@ toArray = I.toArray I.Parallel
 
 
 readGrayImage :: FilePath -> IO (Image Gray)
-readGrayImage !f = fmap compute $ IO.readImage f
+readGrayImage = fmap compute . IO.readImage
 
 
 readColorImage :: FilePath -> IO (Image RGB)
-readColorImage !f = fmap compute $ IO.readImage f
+readColorImage = fmap compute . IO.readImage
 
 
-readImage :: (Readable Image px, Pixel px) => FilePath -> IO (Image px)
-readImage !f = fmap compute $ IO.readImage f
+readImageRGBA :: FilePath -> IO (Image (Alpha RGB))
+readImageRGBA = fmap compute . IO.readImage
 
 
 writeImage :: (Saveable Image px, Pixel px) =>

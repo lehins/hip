@@ -1,8 +1,9 @@
+{-# OPTIONS_GHC -fno-warn-unrecognised-pragmas #-}
 {-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns, TypeFamilies, UndecidableInstances #-}
 
 module Graphics.Image.Interface (
   minimum, maximum, normalize,
-  Convertable(..),
+  Convertible(..),
   Pixel(..),
   Strategy(..),
   Image(..),
@@ -11,7 +12,7 @@ module Graphics.Image.Interface (
 
 import Prelude hiding (map, sum, minimum, maximum)
 
-class Convertable a b where
+class Convertible a b where
   convert :: a -> b
 
 

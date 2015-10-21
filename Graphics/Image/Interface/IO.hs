@@ -40,9 +40,8 @@ guessFormat path = extToFormat . P.map toLower . takeExtension $ path
 readImage :: (Image img px, Readable img px) =>
              FilePath
           -> IO (img px)
-readImage path = 
-  fmap ((either error id) . (decodeImage maybeFormat)) (readFile path) where 
-    !maybeFormat = either (const Nothing) Just $ guessFormat path  
+readImage path = fmap ((either error id) . (decodeImage maybeFormat)) (readFile path)
+  where !maybeFormat = either (const Nothing) Just $ guessFormat path  
 
 
 writeImage :: (Strategy strat img px, Image img px, Saveable img px) =>
