@@ -15,7 +15,7 @@ data Mode = Forward
           deriving (Show, Eq)
 
 
-fft :: (Strategy strat img (Complex px), ComplexInner px, Image img (Complex px)) =>
+fft :: (Strategy strat img (Complex px), ComplexInner px, AImage img (Complex px)) =>
        strat img (Complex px)
        -> img (Complex px)
        -> img (Complex px)
@@ -23,7 +23,7 @@ fft = fft2d Forward
 {-# INLINE fft #-}
 
 
-ifft :: (Strategy strat img (Complex px), ComplexInner px, Image img (Complex px)) =>
+ifft :: (Strategy strat img (Complex px), ComplexInner px, AImage img (Complex px)) =>
         strat img (Complex px)
         -> img (Complex px)
         -> img (Complex px)
@@ -44,7 +44,7 @@ isPowerOfTwo n = n /= 0 && (n .&. (n-1)) == 0
 
 
 -- | Compute the DFT of a matrix. Array dimensions must be powers of two else `error`.
-fft2d :: (Strategy strat img (Complex px), ComplexInner px, Image img (Complex px)) =>
+fft2d :: (Strategy strat img (Complex px), ComplexInner px, AImage img (Complex px)) =>
          Mode
       -> strat img (Complex px)
       -> img (Complex px)
@@ -66,7 +66,7 @@ fft2d mode strat img
                           fftGeneral strat sign $ fftGeneral strat sign img
 
 
-fftGeneral :: (Strategy strat img (Complex px), ComplexInner px, Image img (Complex px)) =>
+fftGeneral :: (Strategy strat img (Complex px), ComplexInner px, AImage img (Complex px)) =>
               strat img (Complex px)
            -> px
            -> img (Complex px)

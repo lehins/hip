@@ -19,7 +19,7 @@ image.
     harmonicSignal u v m n = exp (-pii*2.0 * var) where 
       pii = 0.0 C.:+ pi
       var = (u*m' + v*n') C.:+ 0.0
-      [m',n'] = map fromIntegral [m, n]
+      [m', n'] = map fromIntegral [m, n]
     @
 
     >>> let signal = makeImage 128 128 (harmonicSignal (3/128) (2/128)) :: ComplexImage
@@ -34,7 +34,7 @@ image.
  
     <https://raw.github.com/jcollard/unm-hip/master/examples/realpart2.jpg>
 -}
-realPart :: (ComplexInner px, Image img px, Image img (Complex px)) =>
+realPart :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
             img (Complex px)
          -> img px
 realPart = map real
@@ -47,7 +47,7 @@ realPart = map real
  
     <https://raw.github.com/jcollard/unm-hip/master/examples/sine.jpg>
  -}
-imagPart :: (ComplexInner px, Image img px, Image img (Complex px)) =>
+imagPart :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
              img (Complex px)
           -> img px
 imagPart = map imag
@@ -58,14 +58,14 @@ imagPart = map imag
     the magnitude of the image.
     >>>magnitude signal
  -}
-magnitude :: (ComplexInner px, Image img px, Image img (Complex px)) =>
+magnitude :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
              img (Complex px)
           -> img px
 magnitude = map mag
 {-# INLINE magnitude #-}
 
 
-complex :: (ComplexInner px, Image img px, Image img (Complex px)) =>
+complex :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
              img px -- ^ Image representing real part.
           -> img px -- ^ Image representing imaginary part.
           -> img (Complex px)
@@ -73,14 +73,14 @@ complex = zipWith (:+:)
 {-# INLINE complex #-}
 
 
-conjugate :: (ComplexInner px, Image img (Complex px)) =>
+conjugate :: (ComplexInner px, AImage img (Complex px)) =>
              img (Complex px)
           -> img (Complex px)
 conjugate = map conj
 {-# INLINE conjugate #-}
 
 
-makeFilter :: (ComplexInner px, Image img px) =>
+makeFilter :: (ComplexInner px, AImage img px) =>
               Int
            -> Int
            -> (Int -> Int -> px)

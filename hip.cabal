@@ -42,6 +42,7 @@ Library
                    Graphics.Image.Interface.IO,
                    Graphics.Image.Interface.Binary,
                    Graphics.Image.Interface.Complex,
+                   Graphics.Image.Interface.Conversion,                   
                    Graphics.Image.Interface.Processing,
                    Graphics.Image.Interface.Interpolation,
                    Graphics.Image.Repa,
@@ -61,7 +62,7 @@ Library
                    Graphics.Image.Interface.Processing.Convolution,
                    Graphics.Image.Interface.Processing.Geometric,
                    Graphics.Image.Interface.Complex.Fourier,
-                   Graphics.Image.Interface.Conversion,
+                   Graphics.Image.Interface.External,
                    Graphics.Image.Unboxed.Internal,
                    Graphics.Image.Repa.Internal
 

@@ -7,8 +7,7 @@ import qualified Graphics.Image.Interface as I (Interpolation)
 
 
 data Interpolation = None     -- ^ Linear or zero order interpolation.
-                   | Bilinear -- ^ Bilinear or first order interpolation at
-                              -- given @i@ @j@ location.
+                   | Bilinear -- ^ Bilinear or first order interpolation.
 
 
 instance I.Interpolation Interpolation where

@@ -25,18 +25,17 @@ module Graphics.Image.Repa.Sequential (
   fromArray, toArray, fromVector, toVector, fromLists, toLists,
   -- * IO
   readGrayImage, readColorImage, readImage,
-  SaveOption(..),
-  writeImage, display
+  IO.SaveOption(..),
+  writeImage, displayImage
   ) where
 
 import Prelude hiding (maximum, minimum, sum, map, zipWith)
 import Data.Array.Repa (U, DIM2, Array)
 import Data.Vector.Unboxed (Vector)
-import Graphics.Image.Interface.Conversion (Saveable, Readable, SaveOption(..))
 import Graphics.Image.Repa.Internal (Image, RepaStrategy(..))
 import Graphics.Image.Repa.Pixel
 import qualified Graphics.Image.Repa.Internal as I
-import qualified Graphics.Image.Interface.IO as IO (readImage, writeImage, display)
+import qualified Graphics.Image.Interface.IO as IO
 import qualified Graphics.Image.Interface.Processing.Convolution as C
 import qualified Graphics.Image.Interface.Complex as C
 
@@ -247,20 +246,20 @@ readColorImage :: FilePath -> IO (Image RGB)
 readColorImage !f = fmap compute $ IO.readImage f
 
 
-readImage :: (Readable Image px, Pixel px) => FilePath -> IO (Image px)
+readImage :: (IO.Readable Image px, Pixel px) => FilePath -> IO (Image px)
 readImage !f = fmap compute $ IO.readImage f
 
 
-writeImage :: (Saveable Image px, Pixel px) =>
+writeImage :: (IO.Saveable Image px, Pixel px) =>
               FilePath
            -> Image px
-           -> [SaveOption Image px]
+           -> [IO.SaveOption Image px]
            -> IO ()
 writeImage !path !img !options = IO.writeImage I.Sequential path img options
 
 
-display :: (Saveable Image px, Pixel px) =>
+displayImage :: (IO.Saveable Image px, Pixel px) =>
            Image px
         -> IO ()
-display = IO.display I.Sequential
+displayImage = IO.displayImage I.Sequential
 

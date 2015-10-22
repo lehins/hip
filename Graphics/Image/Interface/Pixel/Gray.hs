@@ -7,8 +7,8 @@ module Graphics.Image.Interface.Pixel.Gray (
 
 import Graphics.Image.Interface (Pixel(..))
 
-
-data Gray = Gray !Double deriving Eq
+-- | A Gray pixel with 'Double' precision.
+newtype Gray = Gray Double deriving Eq
 
 
 instance Pixel Gray where

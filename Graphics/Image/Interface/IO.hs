@@ -1,14 +1,15 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
 module Graphics.Image.Interface.IO (
-  readImage, writeImage, display, setDisplayProgram
+  readImage, writeImage, displayImage, setDisplayProgram,
+  OutputFormat(..), SaveOption(..), Encoder, Saveable(..), Readable
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
 import Data.Char (toLower)
 import Data.IORef
 import Data.ByteString (readFile)
-import Graphics.Image.Interface (Image, Strategy(compute))
-import Graphics.Image.Interface.Conversion
+import Graphics.Image.Interface (AImage, Strategy(compute))
+import Graphics.Image.Interface.External
 import qualified Data.ByteString.Lazy as BL (writeFile)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeExtension)
@@ -17,34 +18,57 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Process (runCommand, waitForProcess)
 
 
-extToFormat :: String -> Either String Format
-extToFormat ext
+extToInputFormat :: String -> Either String InputFormat
+extToInputFormat ext
+  | null ext                   = Left "File extension was not supplied."
+  | ext == ".bmp"              = Right BMPin
+  | ext == ".gif"              = Right GIFin
+  | ext == ".hdr"              = Right HDRin
+  | elem ext [".jpg", ".jpeg"] = Right JPGin
+  | ext == ".png"              = Right PNGin
+  | ext == ".tga"              = Right TGAin
+  | elem ext [".tif", ".tiff"] = Right TIFin
+  | ext == ".pbm"              = Right PBMin
+  | ext == ".pgm"              = Right PGMin
+  | ext == ".ppm"              = Right PPMin
+  | otherwise = Left $ "Unsupported file extension: "++ext
+
+
+extToOutputFormat :: String -> Either String OutputFormat
+extToOutputFormat ext
   | null ext                   = Left "File extension was not supplied."
   | ext == ".bmp"              = Right BMP
-  | ext == ".gif"              = Right GIF
+  -- \ | ext == ".gif"              = Right GIF
   | ext == ".hdr"              = Right HDR
   | elem ext [".jpg", ".jpeg"] = Right $ JPG 100
   | ext == ".png"              = Right PNG
-  | ext == ".tga"              = Right TGA
+  -- \ | ext == ".tga"              = Right TGA
   | elem ext [".tif", ".tiff"] = Right TIF
-  | ext == ".pbm"              = Right $ PBM RAW
-  | ext == ".pgm"              = Right $ PGM RAW
-  | ext == ".ppm"              = Right $ PPM RAW
+  -- \ | ext == ".pbm"              = Right $ PBM RAW
+  -- \ | ext == ".pgm"              = Right $ PGM RAW
+  -- \ | ext == ".ppm"              = Right $ PPM RAW
   | otherwise = Left $ "Unsupported file extension: "++ext
                 
 
-guessFormat :: FilePath -> Either String Format
-guessFormat path = extToFormat . P.map toLower . takeExtension $ path
-  
+guessFormat :: (String -> a) -> FilePath -> a
+guessFormat extToFormat path = extToFormat . P.map toLower . takeExtension $ path
 
-readImage :: (Image img px, Readable img px) =>
+guessOutputFormat :: FilePath -> Either String OutputFormat
+guessOutputFormat = guessFormat extToOutputFormat
+
+
+guessInputFormat :: FilePath -> Either String InputFormat
+guessInputFormat = guessFormat extToInputFormat
+                   
+
+readImage :: (AImage img px, Readable img px) =>
              FilePath
           -> IO (img px)
 readImage path = fmap ((either error id) . (decodeImage maybeFormat)) (readFile path)
-  where !maybeFormat = either (const Nothing) Just $ guessFormat path  
+  where !maybeFormat = either (const Nothing) Just $ guessInputFormat path  
 
 
-writeImage :: (Strategy strat img px, Image img px, Saveable img px) =>
+writeImage :: (Strategy strat img px, AImage img px, Saveable img px) =>
               strat img px
               -> FilePath
               -> img px
@@ -54,7 +78,7 @@ writeImage !strat !path !img !options =
   BL.writeFile path $ encoder format (compute strat img) where
     !format = getFormat options
     !encoder = getEncoder options
-    getFormat [] = either error id $ guessFormat path
+    getFormat [] = either error id $ guessOutputFormat path
     getFormat !((Format f):_) = f
     getFormat !(_:opts) = getFormat opts
     getEncoder [] = defaultEncoder format
@@ -100,20 +124,20 @@ displayProgram = unsafePerformIO $ do
     >>>display frog
 
  -}
-display :: (Strategy strat img px, Image img px, Saveable img px) =>
-           strat img px
-        -> img px
-        -> IO ()
-display strat img = do
+displayImage :: (Strategy strat img px, AImage img px, Saveable img px) =>
+                strat img px
+             -> img px
+             -> IO ()
+displayImage strat img = do
   program <- readIORef displayProgram
   withSystemTempDirectory "hip_" (displayUsing strat img program)
 
 
-displayUsing :: (Strategy strat img px, Image img px, Saveable img px) =>
+displayUsing :: (Strategy strat img px, AImage img px, Saveable img px) =>
                 strat img px -> img px -> String -> FilePath -> IO ()
 displayUsing strat img program tmpDir = do
   let path = tmpDir </> "tmp-img.png"
-  writeImage strat path img [Format PNG]
+  writeImage strat path img [Format PNG, Encoder inRGBA8]
   ph <- runCommand (program ++ " " ++ path)
   e <- waitForProcess ph
   let printExit ExitSuccess = return ()

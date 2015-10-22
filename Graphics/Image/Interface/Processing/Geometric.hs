@@ -22,12 +22,13 @@ import Data.Complex
 <Image RGB: 1024x1024>
 
 -}
-scale :: (Interpolation alg, Image img px, Pixel px, Num px, RealFrac (Inner px)) =>
+scale :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
          alg      -- ^ Interpolation algorithm to be used during scaling.
-      -> Inner px -- ^ Scaling factor, must be grater than 0.
+      -> Inner px -- ^ Scaling factor, must be greater than 0.
       -> img px   -- ^ Image to be scaled.
       -> img px
-scale !alg !fact !img = traverse img getNewDims getNewPx where
+scale _ ((<0) -> True) _ = error "scale: scaling factor must be greater than 0"
+scale !alg !fact !img    = traverse img getNewDims getNewPx where
   !(imgM, imgN) = dims img
   getNewDims _ _ = (round (fromIntegral imgM * fact), round (fromIntegral imgN * fact))
   {-# INLINE getNewDims #-}
@@ -46,7 +47,7 @@ scale !alg !fact !img = traverse img getNewDims getNewPx where
 <Image RGB: 256x1024>
 
 -}
-resize :: (Interpolation alg, Image img px, Pixel px, Num px, RealFrac (Inner px)) =>
+resize :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
          alg        -- ^ Interpolation algorithm to be used during resizing.
       -> Int -> Int -- ^ New image dimensions @m@ rows and @n@ columns.
       -> img px     -- ^ Image to be resized.
@@ -74,7 +75,7 @@ inside.
 <Image RGB: 700x700>
 
 -}
-rotate :: (Interpolation alg, Image img px, Pixel px, Num px, RealFloat (Inner px)) =>
+rotate :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
           alg      -- ^ Interpolation algorithm to be used during rotation.
        -> px       -- ^ Default pixel that will fill in areas that are out of bounds.
        -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
@@ -108,7 +109,7 @@ direction. Dimensions of a new image will stay unchanged.
 <Image RGB: 512x512>
 
 -}
-rotate' :: (Interpolation alg, Image img px, Pixel px, Num px, RealFloat (Inner px)) =>
+rotate' :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
            alg      -- ^ Interpolation algorithm to be used during rotation.
         -> px       -- ^ Default pixel that will fill in areas that are out of bounds.
         -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
@@ -128,14 +129,14 @@ rotate' !alg !defPx !theta !img@(dims -> !(m, n)) =  traverse img getNewDims get
 {-# INLINE rotate' #-}
 
 
-downsampleF :: Image img px => Int -> Int -> img px -> img px
+downsampleF :: AImage img px => Int -> Int -> img px -> img px
 {-# INLINE downsampleF #-}
 downsampleF !fm !fn !img = traverse img
                            (\m n -> (m `div` fm, n `div` fn))
                            (\getPx i j -> getPx (i*fm) (j*fn))
 
 
-upsampleF :: (Image img px, Ord (Inner px), Num (Inner px)) => Int -> Int -> img px -> img px
+upsampleF :: (AImage img px, Ord (Inner px), Num (Inner px)) => Int -> Int -> img px -> img px
 {-# INLINE upsampleF #-}
 upsampleF !fm !fn !img = traverse img 
                          (\m n -> (m*fm, n*fn))
@@ -145,33 +146,33 @@ upsampleF !fm !fn !img = traverse img
                            else pixel 0)
 
 -- | Removes every second row from the image starting with second one.
-downsampleRows :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+downsampleRows :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsampleRows #-}
 downsampleRows = downsampleF 2 1
 
-downsampleCols :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+downsampleCols :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsampleCols #-}
 downsampleCols = downsampleF 1 2
 
-downsample :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+downsample :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsample #-}
 downsample = downsampleF 2 2
 
-upsampleRows :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+upsampleRows :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsampleRows #-}
 upsampleRows = upsampleF 2 1
 
-upsampleCols :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+upsampleCols :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsampleCols #-}
 upsampleCols = upsampleF 1 2
 
-upsample :: (Image img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+upsample :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsample #-}
 upsample = upsampleF 2 2
 
 {- | Concatenates two images together into one. Both input images must have the
 same number of rows. -}
-leftToRight :: Image img px => img px -> img px -> img px
+leftToRight :: AImage img px => img px -> img px -> img px
 {-# INLINE leftToRight #-}
 leftToRight !img1@(cols -> !n1) !img2 = traverse2 img1 img2 newDims newPx where
   newDims !m1 _ !m2 !n2
@@ -184,7 +185,7 @@ leftToRight !img1@(cols -> !n1) !img2 = traverse2 img1 img2 newDims newPx where
 
 {- | Concatenates two images together into one. Both input images must have the
 same number of columns. -}
-topToBottom :: Image img px => img px -> img px -> img px
+topToBottom :: AImage img px => img px -> img px -> img px
 {-# INLINE topToBottom #-}
 topToBottom !img1@(rows -> !m1) !img2 = traverse2 img1 img2 newDims newPx where
   newDims _ n1 !m2 !n2
@@ -197,7 +198,7 @@ topToBottom !img1@(rows -> !m1) !img2 = traverse2 img1 img2 newDims newPx where
 
 {- | Changes dimensions of an image while padding it with a default pixel whenever
 @i@ and @j@ is out of bounds for an original image -}
-pad :: Image img px =>
+pad :: AImage img px =>
        px         -- ^ default pixel to be used for out of bounds region
     -> Int -> Int -- ^ image's new dimensions @m@ rows and @n@ columns
     -> img px     -- ^ image that is subjected to padding.

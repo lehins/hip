@@ -10,31 +10,28 @@ module Graphics.Image.Repa.Internal (
   ) where
 
 import Prelude hiding (map, zipWith, maximum, minimum, sum)
-import qualified Prelude as P (floor)
-import Graphics.Image.Interface hiding (Image, Pixel)
+import qualified Prelude as P (floor, map)
+import Graphics.Image.Interface hiding (Pixel)
 import Graphics.Image.Repa.Pixel (Pixel)
-import qualified Graphics.Image.Interface as I (Image)
 import Data.Array.Repa as R hiding (
   (++), index, unsafeIndex, map, zipWith, traverse, traverse2, traverse3,
   transpose, backpermute)
 import qualified Data.Array.Repa as R (
   index, unsafeIndex, map, zipWith, traverse, traverse2, traverse3,
   transpose, backpermute)
-import Data.Vector.Unboxed (Vector, fromList)
+import Data.Vector.Unboxed (Vector, fromList, singleton)
 
 
 {- | Image that uses Repa Unboxed Array as an underlying representation. -}
 data Image px where
   ComputedImage  :: Pixel px => !(Array U DIM2 px) -> Image px
   AbstractImage  :: Pixel px => !(Array D DIM2 px) -> Image px
-  SingletonImage :: Pixel px => !(Array U DIM2 px) -> Image px
+  Singleton      :: Pixel px => !px -> Image px
 
 
 data RepaStrategy img px where
-  Sequential :: (Pixel px, I.Image img px) =>
-                RepaStrategy img px
-  Parallel   :: (Pixel px, I.Image img px) =>
-                RepaStrategy img px
+  Sequential :: (Pixel px, AImage img px) => RepaStrategy img px
+  Parallel   :: (Pixel px, AImage img px) => RepaStrategy img px
 
 
 instance Pixel px => Strategy RepaStrategy Image px where
@@ -48,17 +45,17 @@ instance Pixel px => Strategy RepaStrategy Image px where
   fold Sequential op px (ComputedImage arr) = foldAllS op px arr
   fold Parallel op px (AbstractImage arr)   = head $ foldAllP op px arr
   fold Parallel op px (ComputedImage arr)   = head $ foldAllP op px arr
-  fold _ op px (SingletonImage arr)         = foldAllS op px arr
+  fold _ op px' (Singleton px)              = op px' px
   {-# INLINE fold #-}
 
 
-instance (Pixel px) => I.Image Image px where
-  index (ComputedImage !arr) !r !c = R.index arr (Z :. r :. c)
-  index !img !r !c                 = unsafeIndex img r c
+instance (Pixel px) => AImage Image px where
+  index (ComputedImage !arr) !i !j = R.index arr (Z :. i :. j)
+  index !img !i !j                 = unsafeIndex img i j
   {-# INLINE index #-}
 
-  unsafeIndex (ComputedImage  !arr) r c = R.unsafeIndex arr (Z :. r :. c)
-  unsafeIndex (SingletonImage !arr) _ _ = R.unsafeIndex arr (Z :. 0 :. 0)
+  unsafeIndex (ComputedImage  !arr) i j = R.unsafeIndex arr (Z :. i :. j)
+  unsafeIndex (Singleton       !px) _ _ = px
   unsafeIndex (AbstractImage  !arr) 0 0 = R.unsafeIndex arr (Z :. 0 :. 0)
   unsafeIndex (AbstractImage     _) _ _ =
     error "Only computed images can be referenced, call 'compute' on the Image."
@@ -66,27 +63,21 @@ instance (Pixel px) => I.Image Image px where
 
   dims (AbstractImage (extent -> (Z :. r :. c))) = (r, c)
   dims (ComputedImage (extent -> (Z :. r :. c))) = (r, c)
-  dims (SingletonImage _) = (1, 1)
+  dims (Singleton _) = (1, 1)
   {-# INLINE dims #-}
 
   make m n f = AbstractImage . fromFunction (Z :. m :. n) $ g where
     g (Z :. r :. c) = f r c
   {-# INLINE make #-}
     
-  map op (SingletonImage arr) = SingletonImage $ computeS $ R.map op arr
-  map op (AbstractImage arr)  = AbstractImage $ R.map op arr
-  map op (ComputedImage arr)  = AbstractImage $ R.map op arr
+  map op (Singleton      px) = Singleton $ op px
+  map op (AbstractImage arr) = AbstractImage $ R.map op arr
+  map op (ComputedImage arr) = AbstractImage $ R.map op arr
   {-# INLINE map #-}
 
-  zipWith op (SingletonImage a1) (SingletonImage a2) =
-    SingletonImage $ computeS $ fromFunction (Z :. 0 :. 0) (
-      const (op (a1 ! (Z :. 0 :. 0)) (a2 ! (Z :. 0 :. 0))))
-  zipWith op (SingletonImage a1) (AbstractImage a2) =
-    AbstractImage $ R.map (op (a1 ! (Z :. 0 :. 0))) a2
-  zipWith op i1@(AbstractImage _) i2@(SingletonImage _) = zipWith (flip op) i2 i1
-  zipWith op (SingletonImage a1) (ComputedImage a2) =
-    AbstractImage $ R.map (op (a1 ! (Z :. 0 :. 0))) a2
-  zipWith op i1@(ComputedImage _) i2@(SingletonImage _) = zipWith (flip op) i2 i1
+  zipWith op (Singleton px1) (Singleton px2) = Singleton $ op px1 px2
+  zipWith op (Singleton px1) (getDelayed -> a2) = AbstractImage $ R.map (op px1) a2
+  zipWith op (getDelayed -> a1) (Singleton px2) = AbstractImage $ R.map (flip op px2) a1
   zipWith op (getDelayed -> a1) (getDelayed -> a2) = AbstractImage $ R.zipWith op a1 a2
   {-# INLINE zipWith #-}
   
@@ -118,59 +109,61 @@ instance (Pixel px) => I.Image Image px where
       {-# INLINE newPixel #-}
   {-# INLINE traverse3 #-}
 
-  transpose !img@(SingletonImage _) = img
-  transpose (getDelayed -> !arr)    = AbstractImage . R.transpose $ arr
+  transpose !img@(Singleton _)   = img
+  transpose (getDelayed -> !arr) = AbstractImage . R.transpose $ arr
   {-# INLINE transpose #-}
-
-  backpermute _ _ _ !img@(SingletonImage _) = img
+  
+  backpermute _ _ _ !img@(Singleton _)             = img
   backpermute !m !n !newIndex (getDelayed -> !arr) =
     AbstractImage $ R.backpermute (Z :. m :. n) newShape arr where
       newShape !(Z :. i :. j) = uncurry ix2 $ newIndex i j
       {-# INLINE newShape #-}
   {-# INLINE backpermute #-}
 
-  crop _ _ _ _ !img@(SingletonImage _) = img
+  crop _ _ _ _ !img@(Singleton _)       = img
   crop !i !j !m !n (getDelayed -> !arr) =
     AbstractImage $ extract (Z :. i :. j) (Z :. m :. n) arr
   {-# INLINE crop #-}
    
-  fromLists !ls =
-    (fromVector (length ls) (length $ head ls)) . fromList . concat $ ls
+  fromLists !ls = if isSquare
+                  then (fromVector m n) . fromList . concat $ ls
+                  else error "fromLists: Inner lists do not have uniform length."
+    where
+      (m, n) = (length ls, length $ head ls)
+      isSquare = (n > 0) && (all (==2) $ P.map length ls)
   {-# INLINE fromLists #-}
 
 
 instance Pixel px => Num (Image px) where
-  (+)           = zipWith (+)
+  (+)         = zipWith (+)
   {-# INLINE (+) #-}
   
-  (-)           = zipWith (-)
+  (-)         = zipWith (-)
   {-# INLINE (-) #-}
   
-  (*)           = zipWith (*)
+  (*)         = zipWith (*)
   {-# INLINE (*) #-}
   
-  abs           = map abs
+  abs         = map abs
   {-# INLINE abs #-}
   
-  signum        = map signum
+  signum      = map signum
   {-# INLINE signum #-}
   
-  fromInteger i =
-    SingletonImage $ computeS $ fromFunction (Z :. 0 :. 0) (const . fromInteger $ i)
+  fromInteger = Singleton . fromInteger
   {-# INLINE fromInteger#-}
 
 
 instance (Fractional px, Pixel px) => Fractional (Image px) where
-  (/)            = zipWith (/)
+  (/)          = zipWith (/)
   {-# INLINE (/) #-}
   
-  fromRational r =
-    SingletonImage $ computeS $ fromFunction (Z :. 0 :. 0) (const . fromRational $ r)
+  fromRational = Singleton . fromRational 
   {-# INLINE fromRational #-}
 
 
 instance (Floating px, Pixel px) => Floating (Image px) where
-  pi    = SingletonImage $ computeS $ fromFunction (Z :. 0 :. 0) (const pi)
+  pi    = Singleton pi
   {-# INLINE pi #-}
   
   exp   = map exp
@@ -218,14 +211,15 @@ instance Pixel px => Show (Image px) where
 getDelayed :: Image px -> Array D DIM2 px
 getDelayed (AbstractImage arr)  = arr
 getDelayed (ComputedImage arr)  = delay arr
-getDelayed (SingletonImage arr) = delay arr
+getDelayed (Singleton px)       = fromFunction (Z :. 0 :. 0) (const px)
 {-# INLINE getDelayed #-}
 
 
 -- | Convert an Unboxed Vector to an Image by supplying rows, columns and
 -- a vector.
 fromVector :: Pixel px =>
-              Int -> Int  -- ^ Image dimension @m@ rows and @n@ columns.
+              Int  -- ^ Image dimensions @m@ rows
+           -> Int  -- ^ and @n@ columns.
            -> Vector px   -- ^ Flat vector image rpresentation with length @m*n@
            -> Image px
 fromVector m n v = fromArray $ delay $ fromUnboxed (Z :. m :. n) v
@@ -253,7 +247,7 @@ toArray :: Pixel px =>
            RepaStrategy Image px
            -> Image px
            -> Array U DIM2 px
-toArray _ (SingletonImage arr) = arr
+toArray _ (Singleton px)       = fromUnboxed (Z :. 0 :. 0) $ singleton px
 toArray _ (ComputedImage arr)  = arr
 toArray strat img              = toArray strat $ compute strat img
 {-# INLINE toArray #-}

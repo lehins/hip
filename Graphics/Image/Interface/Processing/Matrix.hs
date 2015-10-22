@@ -30,7 +30,7 @@ flipV img = fromDelayed . backpermute (Z :. m :. n) flipper $ arr where
 
 -- | Matrix type multiplication of two images. Dimensions must be MxN .* NxM
 -- Note that operator is exactly opposite in MATLAB.
-(.*) :: (Strategy strat img px, Image img px, Pixel px) =>
+(.*) :: (Strategy strat img px, AImage img px, Pixel px) =>
         strat img px
         -> img px
         -> img px

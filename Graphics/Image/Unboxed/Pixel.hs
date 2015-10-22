@@ -2,11 +2,31 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, TemplateHaskell,
 TypeFamilies, UndecidableInstances #-}
+-- |
+-- Module      : Graphics.Image.Unboxed.Pixel
+-- Copyright   : (c) Alexey Kuleshevich 2015
+-- License     : MIT
+--
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
+-- This module contains all available pixel types at the moment.
 module Graphics.Image.Unboxed.Pixel (
-  Pixel,
+  -- * Pixel 
+  Pixel, I.Inner,
+  -- ** Grayscale
+  Gray(..), grayToRGB, grayToHSI,
+  -- ** Color
+  RGB(..), rgbToHSI, rgbToGray,
+  HSI(..), hsiToRGB, hsiToGray,
+  -- ** Binary
   Binary, on, off, isOn, isOff,
-  Gray(..), RGB(..), HSI(..),
-  Complex(..), ComplexInner, Alpha(..), AlphaInner, fmapAlpha, combineAlpha
+  -- ** Complex
+  Complex(..), ComplexInner,
+  mag, arg, conj, real, imag, fromPolar,
+  -- ** Alpha
+  Alpha(..), AlphaInner, dropAlpha, fmapAlpha, combineAlpha
   ) where
 
 import Data.Vector.Unboxed (Unbox)
@@ -22,13 +42,15 @@ import qualified Data.Vector.Generic.Mutable
 class (Unbox px, I.Pixel px) => Pixel px where
 
 
--- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'
-class (Unbox px, Unbox (I.Inner px), P.ComplexInner px) =>
-      ComplexInner px where
+-- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'. Also
+-- Pixel that are instances of this class can be used with 'Complex' pixel.
+class (Unbox px, Unbox (I.Inner px), P.ComplexInner px
+      ) => ComplexInner px where
 
--- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'
-class (Unbox px, Unbox (I.Inner px), P.AlphaInner px) =>
-      AlphaInner px where
+-- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'. Also
+-- Pixel that are instances of this class can be used with 'Alpha' pixel.
+class (Unbox px, Unbox (I.Inner px), P.AlphaInner px
+      ) => AlphaInner px where
         
 
 -- | Unboxed Pixel  

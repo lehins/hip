@@ -28,6 +28,7 @@ instance Eq (Complex px) where
   (==) !(px1x :+: px1y) !(px2x :+: px2y) = px1x == px2x && px1y == px2y
 
 
+-- | Magnitude
 mag :: (ComplexInner px) => Complex px -> px
 mag !(pxReal :+: pxImag) = sqrt (pxReal ^ (2 :: Int) + pxImag ^ (2 :: Int))
 {-# INLINE mag #-}

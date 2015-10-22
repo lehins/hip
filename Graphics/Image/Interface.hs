@@ -6,7 +6,7 @@ module Graphics.Image.Interface (
   Convertible(..),
   Pixel(..),
   Strategy(..),
-  Image(..),
+  AImage(..),
   Interpolation(..)
   ) where
 
@@ -17,8 +17,9 @@ class Convertible a b where
 
 
 class (Eq px, Num px, Show px,
-       Eq (Inner px), Num (Inner px), Show (Inner px), Ord (Inner px)) =>
-      Pixel px where
+       Eq (Inner px), Num (Inner px), Show (Inner px), Ord (Inner px)
+      ) => Pixel px where
+  -- | Internal type used for pixel values.
   type Inner px :: *
   
   pixel :: Inner px -> px
@@ -34,15 +35,15 @@ class (Eq px, Num px, Show px,
   showType :: px -> String
 
 
-class (Image img px, Pixel px) => Strategy strat img px where
+class (AImage img px, Pixel px) => Strategy strat img px where
   
-  -- | Make sure an Image is in a computed form.
+  -- | Make sure an AImage is in a computed form.
   compute :: Pixel px =>
              strat img px -- ^ a strategy for computing this image.
              -> img px    -- ^ image to be computed.
              -> img px
 
-  -- | Fold an Image.
+  -- | Fold an AImage.
   fold :: Pixel px =>
           strat img px
           -> (px -> px -> px)
@@ -52,14 +53,14 @@ class (Image img px, Pixel px) => Strategy strat img px where
   {-# MINIMAL (compute, fold) #-}
   
   -- | Sum all pixels of the image
-  sum :: (Strategy strat img px, Image img px, Pixel px) =>
+  sum :: (Strategy strat img px, AImage img px, Pixel px) =>
          strat img px
          -> img px
          -> px
   sum strat img = fold strat (+) 0 img
   {-# INLINE sum #-}
 
-  -- | Convert an Image to a list of lists of Pixels.
+  -- | Convert an AImage to a list of lists of Pixels.
   toLists :: Pixel px =>
              strat img px
              -> img px
@@ -70,10 +71,10 @@ class (Image img px, Pixel px) => Strategy strat img px where
       !img' = compute strat img
       
 
-{- | This is a core Image interface. -}
-class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
+{- | This is an abstract image interface. -}
+class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
 
-  -- | Make an Image by supplying number of rows, columns and a function that
+  -- | Make an AImage by supplying number of rows, columns and a function that
   -- returns a pixel value at the m n location which are provided as arguments.
   make :: Int -> Int -> (Int -> Int -> px) -> img px
   
@@ -85,7 +86,10 @@ class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
               -> Int -> Int
               -> px
               
-  {-# MINIMAL (make, dims, unsafeIndex) #-}
+  -- | Convert a nested List of Pixels to an AImage.
+  fromLists :: [[px]] -> img px
+  
+  {-# MINIMAL (make, dims, unsafeIndex, fromLists) #-}
   
   -- | Get the number of rows in the image 
   rows :: img px -> Int
@@ -93,7 +97,7 @@ class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
   {-# INLINE rows #-}
 
   -- | Get the number of columns in the image
-  cols :: Pixel px => img px -> Int
+  cols :: img px -> Int
   cols = snd . dims
   {-# INLINE cols #-}
 
@@ -104,8 +108,8 @@ class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
         -> px
   index !img@(dims -> (m, n)) !i !j =
     if i >= 0 && j >= 0 && i < m && j < n then unsafeIndex img i j
-    else error ("Index out of bounds for image: "++ show img++". Supplied i="++
-                show i++" and j="++show j)
+    else error ("Index out of bounds for image: "++ show img++". Supplied i:"++
+                show i++" and j:"++show j)
   {-# INLINE index #-}
 
   -- | Get a pixel at @i@ @j@ location with a default pixel. If index is out of
@@ -129,44 +133,71 @@ class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
     if i >= 0 && j >= 0 && i < m && j < n then Just $ unsafeIndex img i j else Nothing
   {-# INLINE maybeIndex #-}
         
-  {-| Map a function over an image. -}
-  map :: (Image img px1, Pixel px1) => (px1 -> px) -> img px1 -> img px
+  -- | Map a function over an image.
+  map :: (AImage img px1) => (px1 -> px) -> img px1 -> img px
   map !op !img@(dims -> (m, n)) = make m n getNewPx where
     getNewPx !i !j = op $ index img i j
     {-# INLINE getNewPx #-}
   {-# INLINE map #-}
 
-  {-| Apply a function to every pixel of an image and its index. -}
-  imap :: (Image img px1, Pixel px1) => (Int -> Int -> px1 -> px) -> img px1 -> img px
+  -- | Apply a function to every pixel of an image and its index. 
+  imap :: (AImage img px1) => (Int -> Int -> px1 -> px) -> img px1 -> img px
   imap !getPx !img@(dims -> (m, n)) = make m n getNewPx where
     getNewPx !i !j = getPx i j (index img i j)
     {-# INLINE getNewPx #-}
   {-# INLINE imap #-}
   
-  -- | Zip two Images with a function.
-  zipWith :: (Pixel px1, Pixel px2) =>
+  -- | Zip two AImages with a function.
+  zipWith :: (AImage img px1, AImage img px2) =>
              (px1 -> px2 -> px)
           -> img px1
           -> img px2
           -> img px
+  zipWith !f !img1@(dims -> (m1, n1)) !img2@(dims -> (m2, n2)) =
+    if m1 /= m2 || n1 /= n2
+    then error ("AImages must be of the same dimensions, received: "++
+                show img1++" and "++show img2++".")
+    else make m1 n1 getPx where
+      getPx !i !j = f (unsafeIndex img1 i j) (unsafeIndex img2 i j)
+      {-# INLINE getPx #-}
+  {-# INLINE zipWith #-}
 
   -- | Traverse an image.
-  traverse :: Pixel px1 =>
+  traverse :: AImage img px1 =>
               img px1
            -> (Int -> Int -> (Int, Int))
            -> ((Int -> Int -> px1) -> Int -> Int -> px)
            -> img px
+  traverse !img@(dims -> (m, n)) getNewDims getNewPx =
+    make m' n' (getNewPx (index img)) where
+      !(m', n') = getNewDims m n
+  {-# INLINE traverse #-}
+
+  -- | Traverse an image.
+  unsafeTraverse :: AImage img px1 =>
+              img px1
+           -> (Int -> Int -> (Int, Int))
+           -> ((Int -> Int -> px1) -> Int -> Int -> px)
+           -> img px
+  unsafeTraverse !img@(dims -> (m, n)) !getNewDims !getNewPx =
+    make m' n' (getNewPx (unsafeIndex img)) where
+      !(m', n') = getNewDims m n
+  {-# INLINE unsafeTraverse #-}
 
   -- | Traverse two images.
-  traverse2 :: (Pixel px1, Pixel px2) =>
+  traverse2 :: (AImage img px1, AImage img px2) =>
                img px1
             -> img px2
             -> (Int -> Int -> Int -> Int -> (Int, Int))
             -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
             -> img px
+  traverse2 !img1@(dims -> (m1, n1)) !img2@(dims -> (m2, n2)) !getNewDims !getNewPx =
+    make m' n' (getNewPx (index img1) (index img2)) where
+      !(m', n') = getNewDims m1 n1 m2 n2
+  {-# INLINE traverse2 #-}
 
   -- | Traverse three images.
-  traverse3 :: (Pixel px1, Pixel px2, Pixel px3) =>
+  traverse3 :: (AImage img px1, AImage img px2, AImage img px3) =>
                img px1
             -> img px2
             -> img px3
@@ -176,18 +207,36 @@ class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
                 (Int -> Int -> px3) ->
                 Int -> Int -> px)
             -> img px
+  traverse3 !img1 !img2 !img3 !getNewDims !getNewPx =
+    make m' n' (getNewPx (index img1) (index img2) (index img3)) where
+      !(m1, n1) = dims img1
+      !(m2, n2) = dims img2
+      !(m3, n3) = dims img3
+      !(m', n') = getNewDims m1 n1 m2 n2 m3 n3
+  {-# INLINE traverse3 #-}
 
   -- | Transpose an image
   transpose :: img px
             -> img px
+  transpose !img@(dims -> (m, n)) = make n m getPx where
+    getPx !i !j = index img j i
+    {-# INLINE getPx #-}
+  {-# INLINE transpose #-}
 
-  -- | Backpermute an Image
+  -- | Backpermute an image. Overall size of the image should stay the same.
   backpermute :: Int -> Int -- ^ rows and columns in a new image.
               -> (Int -> Int -> (Int, Int)) -- ^ Function that maps each
                                             -- location in a new image to an old
                                             -- image
               -> img px -- ^ source image
               -> img px
+  backpermute !m !n !f !img@(dims -> (m', n')) =
+    if m * n /= m' * n'
+    then error "backpermute: input image and new dimensions do not agree in size."
+    else make m' n' getPx where
+      getPx !i !j =  uncurry (index img) $ f i j
+      {-# INLINE getPx #-}
+  {-# INLINE backpermute #-}
 
   -- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
   -- columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
@@ -198,9 +247,13 @@ class (Num (img px), Show (img px), Pixel px) => Image img px | px -> img where
        -> Int     -- ^ @n@ columns. Dimensions of a new image @m@ and @n@.
        -> img px  -- ^ Source image.
        -> img px
-
-  -- | Convert a nested List of Pixels to an Image.
-  fromLists :: [[px]] -> img px
+  crop !i !j !m !n !img@(dims -> (m', n')) =
+    if m + i > m' || n + j > n'
+    then error "crop: (m + i, n + j) are greater than old image's dimensions."
+    else make m n getPx where
+      getPx i' j' = index img (i' - i) (j' - j)
+      {-# INLINE getPx #-}
+  {-# INLINE crop #-}
 
 
 class Interpolation alg where
@@ -215,21 +268,21 @@ class Interpolation alg where
 
 
 
-maximum :: (Strategy strat img px, Image img px, Pixel px, Ord px) =>
+maximum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>
            strat img px
            -> img px
            -> px
 maximum strat img = fold strat (pxOp2 max) (index img 0 0) img
 {-# INLINE maximum #-}
 
-minimum :: (Strategy strat img px, Image img px, Pixel px, Ord px) =>
+minimum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>
            strat img px
            -> img px
            -> px
 minimum strat img = fold strat (pxOp2 min) (index img 0 0) img
 {-# INLINE minimum #-}
   
-normalize :: (Strategy strat img px, Image img px, Pixel px, Fractional px, Ord px) =>
+normalize :: (Strategy strat img px, AImage img px, Pixel px, Fractional px, Ord px) =>
              strat img px
              -> img px
              -> img px

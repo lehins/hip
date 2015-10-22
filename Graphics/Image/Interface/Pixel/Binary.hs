@@ -7,22 +7,36 @@ module Graphics.Image.Interface.Pixel.Binary (
 
 import Graphics.Image.Interface (Pixel(..))
 
+-- Need to specify a new type to avoid declaring Num for Bool
 newtype Bin = Bin Bool deriving Eq
 
--- Need to specify a new type to avoid declaring Num for Bool
-data Binary = Binary !Bin deriving Eq
+-- | This is a Binary pixel that can only be created using these *constructors*:
+--
+--   [@'on'@] Represents value 'True' or @1@ in binary.
+--
+--   [@'off'@] Represents value 'False' or @0@ in binary.
+--
+newtype Binary = Binary Bin deriving Eq
 
+-- | Represents value 'True' or @1@ in binary.
 on :: Binary
-on = Binary $ Bin True
+on = Binary . Bin $ True
 
+
+-- | Represents value 'False' or @0@ in binary.
 off :: Binary
-off = Binary $ Bin False
+off = Binary . Bin $ False
 
+
+-- | Test if Pixel's value holds 'True'
 isOn :: Binary -> Bool
 isOn (Binary (Bin v)) = v
 
+
+-- | Test if Pixel's value holds 'False'
 isOff :: Binary -> Bool
 isOff (Binary (Bin v)) = not v
+
 
 instance Num Bin where
   (Bin False) + (Bin False)  = Bin False

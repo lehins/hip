@@ -19,7 +19,7 @@ data Outside px =
 
 
 
-convolve  :: (Image img px, Pixel px) =>
+convolve  :: (AImage img px, Pixel px) =>
               Outside px   -- ^ Approach to be used near the borders.
            -> img px       -- ^ Convolution kernel image.
            -> img px       -- ^ Image that will be used to convolve the kernel.
@@ -30,7 +30,7 @@ convolve !out !kernel !img = traverse2 kernel img getDims stencil where
   !krnM2@borderUp   = krnM `div` 2
   !krnN2@borderLeft = krnN `div` 2
   !borderDown       = imgM - krnM2 - 1
-  !borderRight      = imgN - krnN2  - 1
+  !borderRight      = imgN - krnN2 - 1
   !getOutPx         = getOutFunc out
   getDims _ _ _ _   = getDims' out
   getDims' Crop     = (imgM - krnM, imgN - krnN)
@@ -85,7 +85,7 @@ convolveCols :: (Pixel px, Num px, Unbox px, Elt px) => [px] -> I.Image px -> I.
 convolveCols ls = convolve (I.fromLists $ P.map (:[]) ls) ????????
 {-# INLINE convolveCols #-}
 
-convolve :: (Strategy strat img px, Image img px, Pixel px, Num px) =>
+convolve :: (Strategy strat img px, AImage img px, Pixel px, Num px) =>
             Image px
          -> Image px
          -> Image px
@@ -106,7 +106,7 @@ convolveCols row = convolve . fromLists $ [row]
 
 
 
-convolveOut :: (Num px, Pixel px, Image img px) =>
+convolveOut :: (Num px, Pixel px, AImage img px) =>
                ((Int -> Int -> px)
                 -> Int -> Int
                 -> px)  -- ^ How to handle out-of-range elements.
@@ -143,7 +143,7 @@ convolveOut getOut kernel img = traverse img (,) stencil
 {-# INLINE convolveOut #-}
 
 
-convolve  :: (Strategy strat img px, Image img px, Pixel px, Num px) =>
+convolve  :: (Strategy strat img px, AImage img px, Pixel px, Num px) =>
              strat img px -- ^ Computation strategy to be applied.
           -> Outside px   -- ^ Approach to be used near the borders.
           -> img px       -- ^ Convolution kernel image.
