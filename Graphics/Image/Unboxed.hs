@@ -26,18 +26,17 @@ module Graphics.Image.Unboxed (
   index, maybeIndex, defaultIndex, unsafeIndex,
   -- ** Interpolation
   Interpolation(..), interpolate,
-  -- * Manipulation
-  -- ** Elementwise
-  -- map, imap, zipWith,
-  -- ** Shapewise
-  --transpose, backpermute,
+  -- * Processing
+  -- ** Pointwise
+  map, imap, zipWith,
+  -- ** Geometric
+  transpose, backpermute,
+  traverse, traverse2, traverse3,
+  --unsafeTraverse, unsafeTraverse2, unsafeTraverse3,
   --flipH, flipV,
   -- ** Traversal
-  --traverse, traverse2, traverse3,
-  --unsafeTraverse, unsafeTraverse2, unsafeTraverse3,
   -- * Composition
   --leftToRight, topToBottom,
-  -- * Processing
   -- ** Geometric
   scale,
   -- resize, rotate, rotate',
@@ -54,6 +53,7 @@ module Graphics.Image.Unboxed (
   displayImage, IO.setDisplayProgram
   ) where
 
+import Prelude hiding (map, zipWith)
 import Graphics.Image.Unboxed.Internal (Image, VectorStrategy(..), fromVector, toVector)
 import Graphics.Image.Interface.Interpolation
 import qualified Graphics.Image.Interface as I
@@ -201,15 +201,110 @@ interpolate alg defPx img@(dims -> (m, n)) i j =
   
 
 --------------------------------------------------------------------------------
----- Manipulation --------------------------------------------------------------
---------------------------------------------------------------------------------
-
-
-
---------------------------------------------------------------------------------
 ---- Processing ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- | Map a function over an image.
+map :: (Pixel px1, Pixel px) =>
+       (px1 -> px) -- ^ A function that takes a pixel of a source image and
+                   -- returns a pixel for the new image a the same location
+    -> Image px1   -- ^ Source image
+    -> Image px
+map = I.map
+
+
+-- | Map an index aware function over an image.
+imap :: (Pixel px1, Pixel px) =>
+        (Int -> Int -> px1 -> px) 
+        -- ^ A function that takes a pixel and it's @i@ and @j@ index of a
+        -- source image and returns a pixel for the new image a the same
+        -- location
+     -> Image px1 -- ^ Source image
+     -> Image px
+imap = I.imap
+
+
+-- | Zip two Images with a function.
+zipWith :: (Pixel px1, Pixel px2, Pixel px) =>
+           (px1 -> px2 -> px) 
+           -- ^ Function that takes pixeels from both source images and returns
+           -- a pixel for the new image at the same location
+        -> Image px1 -- ^ First source image
+        -> Image px2 -- ^ Second source image
+        -> Image px
+zipWith = I.zipWith
+
+
+--- Geometric
+
+-- | Transpose an image.
+--
+-- >>> displayImage lena
+-- >>> displayImage $ transpose lena
+-- 
+transpose :: Pixel px =>
+             Image px -- ^ Source image
+          -> Image px
+transpose = I.transpose          
+
+
+-- | Backpermute an Image.
+backpermute :: Pixel px =>
+               Int      -- ^ @m@ rows and
+            -> Int      -- ^ @n@ columns in a new image.
+            -> (Int -> Int -> (Int, Int)) 
+            -- ^ Function that maps each @i@-th and @j@-th location from source
+            -- image to the new location of created image.
+            -> Image px -- ^ Source image
+            -> Image px
+backpermute = I.backpermute
+
+
+-- | Traverse an image.
+traverse :: (Pixel px1, Pixel px) =>
+            Image px1 -- ^ Source image
+         -> (Int -> Int -> (Int, Int)) 
+         -- ^ Function that takes values for @m@ rows and @n@ columns of a
+         -- source image and returns dimensions of a new image.
+         -> ((Int -> Int -> px1) -> Int -> Int -> px)
+         -- ^ Function that takes an indexing function of a source image, that
+         -- can be used to retreive pixels at any location of a source image,
+         -- it also takes values for @i@-th row and @j@-th column of a new image
+         -- and returns a new pixel for this location.
+         -> Image px
+traverse = I.traverse
+
+
+-- | Traverse two images.
+traverse2 :: (Pixel px1, Pixel px2, Pixel px) =>
+             Image px1 -- ^ First source image
+          -> Image px2 -- ^ Second source image
+          -> (Int -> Int -> Int -> Int -> (Int, Int))
+          -- ^ A function that takes @m1@, @n1@, @m2@, @n2@ dimensions for both
+          -- source images and returns dimensions for new image
+          -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
+          -- ^ function that takes indexing functions for both images, @i@ and
+          -- @j@ values of the location in new image and returns the pixel for
+          -- this new location.
+          -> Image px
+traverse2 = I.traverse2
+
+
+-- | Traverse three images. Same as with 'traverse' and 'traverse2', but with
+-- three images.
+traverse3 :: (Pixel px1, Pixel px2, Pixel px3, Pixel px) =>
+             Image px1 -- ^ First source image
+          -> Image px2 -- ^ Second source image
+          -> Image px3 -- ^ Third source image
+          -> (Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int))
+          -- ^ Function that takes dimensions for source images and return
+          -- dimesnions for new image
+          -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> 
+              (Int -> Int -> px3) -> Int -> Int -> px)
+          -- ^ Function that takes indexing functions for all three source
+          -- images, @i@ and @j@ and returns new pixel.
+          -> Image px
+traverse3 = I.traverse3
 
 
 -- | Scale an image by a factor while using 'Interpolation'.
