@@ -73,6 +73,25 @@ zipWith :: (Pixel px1, Pixel px2, Pixel px) =>
 zipWith !f !img = compute . I.zipWith f img
 
 
+-- | Transpose an image
+transpose :: Pixel px =>
+             Image px -- ^ Source image
+          -> Image px
+transpose = compute . I.transpose          
+
+
+-- | Backpermute an Image
+backpermute :: Pixel px =>
+               Int                        -- ^ @m@ rows and
+            -> Int                        -- ^ @n@ columns in a new image.
+            -> (Int -> Int -> (Int, Int)) -- ^ Function that maps each location
+                                          -- from source image to a new image to 
+            -> Image px                   -- ^ Source image
+            -> Image px
+backpermute !m !n !f = compute . I.backpermute m n f
+
+
+
 -- | Traverse an image.
 traverse :: (Pixel px1, Pixel px) =>
             Image px1
@@ -105,24 +124,6 @@ traverse3 :: (Pixel px1, Pixel px2, Pixel px3, Pixel px) =>
           -> Image px
 traverse3 !img1 !img2 !img3 !f =
   compute . I.traverse3 (compute img1) (compute img2) (compute img3) f
-
-
--- | Transpose an image
-transpose :: Pixel px =>
-             Image px -- ^ Source image
-          -> Image px
-transpose = compute . I.transpose          
-
-
--- | Backpermute an Image
-backpermute :: Pixel px =>
-               Int                        -- ^ @m@ rows and
-            -> Int                        -- ^ @n@ columns in a new image.
-            -> (Int -> Int -> (Int, Int)) -- ^ Function that maps each location
-                                          -- from source image to a new image to 
-            -> Image px                   -- ^ Source image
-            -> Image px
-backpermute !m !n !f = compute . I.backpermute m n f
 
 
 -- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
