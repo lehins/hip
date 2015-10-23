@@ -173,17 +173,6 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
       !(m', n') = getNewDims m n
   {-# INLINE traverse #-}
 
-  -- | Traverse an image.
-  unsafeTraverse :: AImage img px1 =>
-              img px1
-           -> (Int -> Int -> (Int, Int))
-           -> ((Int -> Int -> px1) -> Int -> Int -> px)
-           -> img px
-  unsafeTraverse !img@(dims -> (m, n)) !getNewDims !getNewPx =
-    make m' n' (getNewPx (unsafeIndex img)) where
-      !(m', n') = getNewDims m n
-  {-# INLINE unsafeTraverse #-}
-
   -- | Traverse two images.
   traverse2 :: (AImage img px1, AImage img px2) =>
                img px1
@@ -214,6 +203,48 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
       !(m3, n3) = dims img3
       !(m', n') = getNewDims m1 n1 m2 n2 m3 n3
   {-# INLINE traverse3 #-}
+
+  -- | Traverse an image.
+  unsafeTraverse :: AImage img px1 =>
+              img px1
+           -> (Int -> Int -> (Int, Int))
+           -> ((Int -> Int -> px1) -> Int -> Int -> px)
+           -> img px
+  unsafeTraverse !img@(dims -> (m, n)) !getNewDims !getNewPx =
+    make m' n' (getNewPx (unsafeIndex img)) where
+      !(m', n') = getNewDims m n
+  {-# INLINE unsafeTraverse #-}
+
+  -- | UnsafeTraverse two images.
+  unsafeTraverse2 :: (AImage img px1, AImage img px2) =>
+               img px1
+            -> img px2
+            -> (Int -> Int -> Int -> Int -> (Int, Int))
+            -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
+            -> img px
+  unsafeTraverse2 !img1@(dims -> (m1, n1)) !img2@(dims -> (m2, n2)) !getNewDims !getNewPx =
+    make m' n' (getNewPx (unsafeIndex img1) (unsafeIndex img2)) where
+      !(m', n') = getNewDims m1 n1 m2 n2
+  {-# INLINE unsafeTraverse2 #-}
+
+  -- | UnsafeTraverse three images.
+  unsafeTraverse3 :: (AImage img px1, AImage img px2, AImage img px3) =>
+               img px1
+            -> img px2
+            -> img px3
+            -> (Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int))
+            -> ((Int -> Int -> px1) ->
+                (Int -> Int -> px2) ->
+                (Int -> Int -> px3) ->
+                Int -> Int -> px)
+            -> img px
+  unsafeTraverse3 !img1 !img2 !img3 !getNewDims !getNewPx =
+    make m' n' (getNewPx (unsafeIndex img1) (unsafeIndex img2) (unsafeIndex img3)) where
+      !(m1, n1) = dims img1
+      !(m2, n2) = dims img2
+      !(m3, n3) = dims img3
+      !(m', n') = getNewDims m1 n1 m2 n2 m3 n3
+  {-# INLINE unsafeTraverse3 #-}
 
   -- | Transpose an image
   transpose :: img px
@@ -256,10 +287,9 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
   {-# INLINE crop #-}
 
 
-class Interpolation alg where
+class Pixel px => Interpolation alg px where
   interpolate :: (RealFrac (Inner px), Pixel px) =>
                  alg                -- ^ Interpolation algorithm
-              -> px                 -- ^ Default pixel to be used when out of bound.
               -> Int -> Int         -- ^ Image dimensions @m@ rows and @n@ columns.
               -> (Int -> Int -> px) -- ^ Lookup function that returns a pixel at @i@th
                                     -- and @j@th location.

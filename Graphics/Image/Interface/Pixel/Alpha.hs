@@ -24,8 +24,8 @@ to address that issue.
 
 -}
 data Alpha px where
-  Alpha :: AlphaInner px => (Inner px) -> px -> Alpha px 
-
+  Alpha :: AlphaInner px => (Inner px) -> px -> Alpha px
+  
 
 instance AlphaInner px => Pixel (Alpha px) where
   type Inner (Alpha px) = Inner px

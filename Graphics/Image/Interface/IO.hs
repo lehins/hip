@@ -112,7 +112,7 @@ setDisplayProgram = writeIORef displayProgram
 
 displayProgram :: IORef String
 displayProgram = unsafePerformIO $ do
-  dp <- newIORef "display"
+  dp <- newIORef "gpicview"
   return dp
 
 

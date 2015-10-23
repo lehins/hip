@@ -22,18 +22,18 @@ import Data.Complex
 <Image RGB: 1024x1024>
 
 -}
-scale :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
+scale :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
          alg      -- ^ Interpolation algorithm to be used during scaling.
       -> Inner px -- ^ Scaling factor, must be greater than 0.
       -> img px   -- ^ Image to be scaled.
       -> img px
-scale _ ((<0) -> True) _ = error "scale: scaling factor must be greater than 0"
+scale _ ((0>=) -> True) _ = error "scale: scaling factor must be greater than 0"
 scale !alg !fact !img    = traverse img getNewDims getNewPx where
   !(imgM, imgN) = dims img
   getNewDims _ _ = (round (fromIntegral imgM * fact), round (fromIntegral imgN * fact))
   {-# INLINE getNewDims #-}
   getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
-    interpolate alg (pixel 0) imgM imgN getPx (i/fact) (j/fact)
+    interpolate alg imgM imgN getPx (i/fact) (j/fact)
   {-# INLINE getNewPx #-}
 {-# INLINE scale #-}
 
@@ -47,7 +47,7 @@ scale !alg !fact !img    = traverse img getNewDims getNewPx where
 <Image RGB: 256x1024>
 
 -}
-resize :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
+resize :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
          alg        -- ^ Interpolation algorithm to be used during resizing.
       -> Int -> Int -- ^ New image dimensions @m@ rows and @n@ columns.
       -> img px     -- ^ Image to be resized.
@@ -59,7 +59,7 @@ resize !alg !newM !newN !img = traverse img getNewDims getNewPx where
   getNewDims _ _ = (newM, newN)
   {-# INLINE getNewDims #-}
   getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
-    interpolate alg (pixel 0) imgM imgN getPx (i/mScale) (j/nScale)
+    interpolate alg imgM imgN getPx (i/mScale) (j/nScale)
   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
@@ -75,13 +75,12 @@ inside.
 <Image RGB: 700x700>
 
 -}
-rotate :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
+rotate :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
           alg      -- ^ Interpolation algorithm to be used during rotation.
-       -> px       -- ^ Default pixel that will fill in areas that are out of bounds.
        -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
        -> img px   -- ^ Image to be rotated.
        -> img px
-rotate !alg !defPx !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
+rotate !alg !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
   where
     !(oldM, oldN) = (fromIntegral m, fromIntegral n)
     !(newM, newN) = (oldM * cost + oldN * sint, oldN * cost + oldM * sint)
@@ -91,7 +90,7 @@ rotate !alg !defPx !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNe
     getNewDims _ _ = (ceiling newM, ceiling newN)
     {-# INLINE getNewDims #-}
     getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
-      interpolate alg defPx m n getOldPx i' j' where
+      interpolate alg m n getOldPx i' j' where
         !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
         !i' = oldMhalf + imagPart z
         !j' = oldNhalf + realPart z
@@ -109,19 +108,18 @@ direction. Dimensions of a new image will stay unchanged.
 <Image RGB: 512x512>
 
 -}
-rotate' :: (Interpolation alg, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
+rotate' :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
            alg      -- ^ Interpolation algorithm to be used during rotation.
-        -> px       -- ^ Default pixel that will fill in areas that are out of bounds.
         -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
         -> img px   -- ^ Image to be rotated.
         -> img px
-rotate' !alg !defPx !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
+rotate' !alg !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
   where
     !(newMhalf, newNhalf) = (fromIntegral $ div m 2, fromIntegral $ div n 2)
     getNewDims _ _ = (m, n)
     {-# INLINE getNewDims #-}
     getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
-      interpolate alg defPx m n getOldPx i' j' where
+      interpolate alg m n getOldPx i' j' where
         !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
         !i' = newMhalf + imagPart z
         !j' = newNhalf + realPart z

@@ -25,17 +25,16 @@ module Graphics.Image.Unboxed (
   -- ** Indexing
   index, maybeIndex, defaultIndex, unsafeIndex,
   -- ** Interpolation
-  Interpolation(..), interpolate,
+  Interpolation(..), interpolate, 
   -- * Processing
   -- ** Pointwise
   map, imap, zipWith,
   -- ** Geometric
   transpose, backpermute,
   traverse, traverse2, traverse3,
-  --unsafeTraverse, unsafeTraverse2, unsafeTraverse3,
+  unsafeTraverse, unsafeTraverse2, unsafeTraverse3,
+  crop, pad,
   --flipH, flipV,
-  -- ** Traversal
-  -- * Composition
   --leftToRight, topToBottom,
   -- ** Geometric
   scale,
@@ -190,14 +189,13 @@ unsafeIndex = I.unsafeIndex
 
 -- | Retreive an interpolated pixel at @i@-th and @j@-th location.
 interpolate :: (RealFrac (Inner px), Pixel px) =>
-               Interpolation  -- ^ 'Interpolation' algorithm
-            -> px             -- ^ Default pixel to be used when out of bounds.
-            -> Image px       -- ^ Source image
-            -> (Inner px)     -- ^ approximation of @i@ row
-            -> (Inner px)     -- ^ approximation of @j@ column
+               Interpolation px  -- ^ 'Interpolation' algorithm
+            -> Image px          -- ^ Source image
+            -> (Inner px)        -- ^ approximation of @i@ row
+            -> (Inner px)        -- ^ approximation of @j@ column
             -> px
-interpolate alg defPx img@(dims -> (m, n)) i j =
-  I.interpolate alg defPx m n (unsafeIndex img) i j
+interpolate alg img@(dims -> (m, n)) i j =
+  I.interpolate alg m n (unsafeIndex img) i j
   
 
 --------------------------------------------------------------------------------
@@ -307,6 +305,70 @@ traverse3 :: (Pixel px1, Pixel px2, Pixel px3, Pixel px) =>
 traverse3 = I.traverse3
 
 
+-- | Traverse an image. Same as 'traverse', but without bounds check.
+unsafeTraverse :: (Pixel px1, Pixel px) =>
+            Image px1
+         -> (Int -> Int -> (Int, Int)) 
+         -> ((Int -> Int -> px1) -> Int -> Int -> px)
+         -> Image px
+unsafeTraverse = I.unsafeTraverse
+
+
+-- | Traverse two images. Same as 'traverse2', but without bounds check.
+unsafeTraverse2 :: (Pixel px1, Pixel px2, Pixel px) =>
+                   Image px1
+                -> Image px2
+                -> (Int -> Int -> Int -> Int -> (Int, Int))
+                -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
+                -> Image px
+unsafeTraverse2 = I.unsafeTraverse2
+
+
+-- | Traverse three images. Same as 'traverse3', but without bounds check.
+unsafeTraverse3 :: (Pixel px1, Pixel px2, Pixel px3, Pixel px) =>
+                   Image px1
+                -> Image px2
+                -> Image px3
+                -> (Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int))
+                -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> 
+                    (Int -> Int -> px3) -> Int -> Int -> px)
+                -> Image px
+unsafeTraverse3 = I.unsafeTraverse3
+
+
+-- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
+-- columns from source image starting at @i@-th and @j@-th pixel. Make sure
+-- @(m + i, n + j)@ is not greater than dimensions of a source image.
+crop :: Pixel px =>
+        Int       -- ^ @i@ and 
+     -> Int       -- ^ @j@ starting index from within an old image.
+     -> Int       -- ^ @m@ rows and
+     -> Int       -- ^ @n@ columns. 
+     -> Image px  -- ^ Source image.
+     -> Image px
+crop = I.crop
+
+
+-- | Changes dimensions of an image while padding it with a default pixel
+-- whenever @i@ and @j@ is out of bounds for a source image.
+--
+-- >>> lena
+-- <Image RGB: 128x128>
+-- >>> let lena_pad = pad 0 100 60 lena
+-- >>> lena_pad
+-- <Image RGB: 100x160>
+-- >>> displayImage lena_pad
+--
+-- <<lena.png>> <<images/lena_pad.png>>
+--
+pad :: Pixel px =>
+       px        -- ^ default pixel to be used for out of bounds region
+    -> Int       -- ^ @m@ rows
+    -> Int       -- ^ @n@ columns
+    -> Image px  -- ^ source image.
+    -> Image px
+pad = I.pad
+    
 -- | Scale an image by a factor while using 'Interpolation'.
 --
 -- >>> lena <- readImageRGB "lena.png"
@@ -318,9 +380,9 @@ traverse3 = I.traverse3
 -- <Image RGB: 1024x1024>
 --
 scale :: (Pixel px, RealFrac (Inner px)) =>
-         Interpolation -- ^ 'Interpolation' algorithm to be used during scaling.
-      -> Inner px      -- ^ Scaling factor, must be greater than 0.
-      -> Image px      -- ^ Image to be scaled.
+         Interpolation px -- ^ 'Interpolation' algorithm to be used during scaling.
+      -> Inner px         -- ^ Scaling factor, must be greater than 0.
+      -> Image px         -- ^ Image to be scaled.
       -> Image px
 scale = I.scale
 

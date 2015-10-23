@@ -12,6 +12,7 @@ Description:
   The University of New Mexico's Haskell Image Processing library contains functionality for performing manipulations on binary, grayscale, color, and complex images. The library was designed for use in UNM's Digital Image Processing class but it can be used for a wide range of image processing purposes.
 Cabal-Version:     >= 1.6
 Build-Type:        Simple
+extra-doc-files:   images/*.png
 
 Library
   Build-Depends:  JuicyPixels >= 3.1
