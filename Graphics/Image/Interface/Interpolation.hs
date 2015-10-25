@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Interface.Interpolation (
   Interpolation(..), Method(..)

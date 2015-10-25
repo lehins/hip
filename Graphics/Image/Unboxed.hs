@@ -78,14 +78,14 @@ readImageRGB = IO.readImage
 
 -- | Same as 'readGrayImage', but reads it in with an alpha channel. If an image
 -- file doesn't have an alpha channel, it will be added with opacity set to
--- '1.0'.
+-- @1.0@.
 readImageGrayA :: FilePath -> IO (Image (Alpha RGB))
 readImageGrayA = IO.readImage
 
 
 -- | Same as 'readGrayRGB', but reads it in with an alpha channel. If an image
 -- file doesn't have an alpha channel, it will be added with opacity set to
--- '1.0'.
+-- @1.0@.
 readImageRGBA :: FilePath -> IO (Image (Alpha RGB))
 readImageRGBA = IO.readImage
 
@@ -210,8 +210,8 @@ index = I.index
 -- out of bounds 'Nothing' is returned, @'Just' px@ otherwise.
 maybeIndex :: Pixel px =>
               Image px -- ^ Source image.
-           -> Int    -- ^ @i@th row
-           -> Int    -- ^ @j@th column.
+           -> Int    -- ^ @i@-th row
+           -> Int    -- ^ @j@-th column.
            -> Maybe px
 maybeIndex = I.maybeIndex
 
@@ -221,8 +221,8 @@ maybeIndex = I.maybeIndex
 defaultIndex :: Pixel px =>
                 px       -- ^ Default pixel
              -> Image px -- ^ Source image
-             -> Int      -- ^ @i@th row
-             -> Int      -- ^ @j@th column
+             -> Int      -- ^ @i@-th row
+             -> Int      -- ^ @j@-th column
              -> px
 defaultIndex = I.defaultIndex
 
@@ -241,8 +241,8 @@ unsafeIndex = I.unsafeIndex
 interpolate :: (I.Interpolation method px, RealFrac (Inner px), Pixel px) =>
                method     -- ^ One of the interpolation 'Method's.
             -> Image px   -- ^ Source image
-            -> (Inner px) -- ^ approximation of @i@ row
-            -> (Inner px) -- ^ approximation of @j@ column
+            -> (Inner px) -- ^ approximation of @i@-th row
+            -> (Inner px) -- ^ approximation of @j@-th column
             -> px
 interpolate alg img@(dims -> (m, n)) i j =
   I.interpolate alg m n (unsafeIndex img) i j
@@ -566,16 +566,18 @@ upsample = I.upsample
               
 -- | Scale an image by a positive factor.
 --
--- >>> lena <- readImageRGB "lena.png"
--- >>> lena
--- <Image RGB: 128x128>
--- >>> scale Bilinear 0.5 lena
--- <Image RGB: 64x64>
--- >>> scale Bilinear 2 lena
--- <Image RGB: 1024x1024>
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog
+-- <Image RGB: 200x320>
+-- >>> scale (Bilinear 1) 0.5 frog
+-- <Image RGB: 100x160>
+-- >>> writeImage "images/frog_scale_nearest.jpg" (scale (Nearest 1) 1.5 frog) []
+-- >>> writeImage "images/frog_scale_bilinear.jpg" (scale (Bilinear 1) 1.5 frog) []
+-- 
+-- <<images/frog.jpg>> <<images/frog_scale_nearest.jpg>> <<images/frog_scale_bilinear.jpg>>
 --
-scale :: (Pixel px, RealFrac (Inner px)) =>
-         I.Method px    -- ^ One of the interpolation 'Method's to be used during
+scale :: (I.Interpolation method px, Pixel px, RealFrac (Inner px)) =>
+         method    -- ^ One of the interpolation 'Method's to be used during
                    -- scaling.
       -> Inner px  -- ^ Scaling factor, must be greater than 0.
       -> Image px  -- ^ Image to be scaled.
@@ -585,11 +587,14 @@ scale = I.scale
 
 -- | Resize an image.
 --
--- >>> lena
--- <Image RGB: 512x512>
--- >>> let lenaResize = resize Bilinear 256 1024 lena
--- >>> lenaResize
--- <Image RGB: 256x1024>
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog
+-- <Image RGB: 200x320>
+-- >>> resize (Bilinear 1) 100 400 frog
+-- <Image RGB: 100x400>
+-- >>> writeImage "images/frog_resize.jpg" (resize (Bilinear 1) 100 400 frog) []
+--
+-- <<images/frog.jpg>> <<images/frog_resize.jpg>> 
 --
 resize :: (I.Interpolation method px, Pixel px, RealFrac (Inner px)) =>
          method   -- ^ One of the interpolation 'Method's to be used during
@@ -605,11 +610,10 @@ resize = I.resize
 -- direction. Dimensions of a new image are adjusted in such a way that rotated
 -- image fully fits inside.
 --
--- >>> lena
--- <Image RGB: 512x512>
--- >>> let lena30deg = rotate Bilinear 0 (pi/6) lena
--- >>> lena30deg
--- <Image RGB: 700x700>
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/frog_rotate.jpg" (rotate (Bilinear (RGB 0 0.3 0)) (pi/6) frog) []
+--
+-- <<images/frog.jpg>> <<images/frog_rotate.jpg>> 
 --
 rotate :: (I.Interpolation method px, Pixel px, RealFloat (Inner px)) =>
           method   -- ^ One of the interpolation 'Method's to be used during
@@ -624,11 +628,10 @@ rotate = I.rotate
 -- | Rotate an image around it's center by an angle Θ in counterclockwise
 -- direction. Dimensions of a new image will stay unchanged.
 --
--- >>> lena
--- <Image RGB: 512x512>
--- >>> let lena30deg = rotate Bilinear 0 (pi/6) lena
--- >>> lena30deg
--- <Image RGB: 512x512>
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/frog_rotate'.jpg" (rotate' (Bilinear (RGB 0 0 0.5)) (pi/6) frog) []
+--
+-- <<images/frog.jpg>> <<images/frog_rotate'.jpg>> 
 --
 rotate' :: (I.Interpolation method px, Pixel px, RealFloat (Inner px)) =>
           method    -- ^ One of the interpolation 'Method's to be used during

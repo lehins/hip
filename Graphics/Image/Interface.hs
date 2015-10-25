@@ -279,7 +279,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
   {-# INLINE crop #-}
 
 
-class Pixel px => Interpolation method px where
+class Pixel px => Interpolation method px | px -> method where
   interpolate :: (RealFrac (Inner px), Pixel px) =>
                  method             -- ^ Interpolation method
               -> Int -> Int         -- ^ Image dimensions @m@ rows and @n@ columns.
