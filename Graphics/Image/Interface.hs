@@ -86,10 +86,17 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
               -> Int -> Int
               -> px
               
+  -- | Zip two AImages with a function.
+  zipWith :: (AImage img px1, AImage img px2) =>
+             (px1 -> px2 -> px)
+          -> img px1
+          -> img px2
+          -> img px
+          
   -- | Convert a nested List of Pixels to an AImage.
   fromLists :: [[px]] -> img px
   
-  {-# MINIMAL (make, dims, unsafeIndex, fromLists) #-}
+  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromLists) #-}
   
   -- | Get the number of rows in the image 
   rows :: img px -> Int
@@ -147,21 +154,6 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
     {-# INLINE getNewPx #-}
   {-# INLINE imap #-}
   
-  -- | Zip two AImages with a function.
-  zipWith :: (AImage img px1, AImage img px2) =>
-             (px1 -> px2 -> px)
-          -> img px1
-          -> img px2
-          -> img px
-  zipWith !f !img1@(dims -> (m1, n1)) !img2@(dims -> (m2, n2)) =
-    if m1 /= m2 || n1 /= n2
-    then error ("AImages must be of the same dimensions, received: "++
-                show img1++" and "++show img2++".")
-    else make m1 n1 getPx where
-      getPx !i !j = f (unsafeIndex img1 i j) (unsafeIndex img2 i j)
-      {-# INLINE getPx #-}
-  {-# INLINE zipWith #-}
-
   -- | Traverse an image.
   traverse :: AImage img px1 =>
               img px1
@@ -275,21 +267,21 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
   crop :: Int     -- ^ @i@ and 
        -> Int     -- ^ @j@ starting index from within an old image.
        -> Int     -- ^ @m@ rows and
-       -> Int     -- ^ @n@ columns. Dimensions of a new image @m@ and @n@.
+       -> Int     -- ^ @n@ columns - dimensions of a new image.
        -> img px  -- ^ Source image.
        -> img px
   crop !i !j !m !n !img@(dims -> (m', n')) =
     if m + i > m' || n + j > n'
     then error "crop: (m + i, n + j) are greater than old image's dimensions."
     else make m n getPx where
-      getPx i' j' = index img (i' - i) (j' - j)
+      getPx i' j' = index img (i' + i) (j' + j)
       {-# INLINE getPx #-}
   {-# INLINE crop #-}
 
 
-class Pixel px => Interpolation alg px where
+class Pixel px => Interpolation method px where
   interpolate :: (RealFrac (Inner px), Pixel px) =>
-                 alg                -- ^ Interpolation algorithm
+                 method             -- ^ Interpolation method
               -> Int -> Int         -- ^ Image dimensions @m@ rows and @n@ columns.
               -> (Int -> Int -> px) -- ^ Lookup function that returns a pixel at @i@th
                                     -- and @j@th location.

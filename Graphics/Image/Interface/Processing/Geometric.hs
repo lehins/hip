@@ -22,18 +22,18 @@ import Data.Complex
 <Image RGB: 1024x1024>
 
 -}
-scale :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
-         alg      -- ^ Interpolation algorithm to be used during scaling.
+scale :: (Interpolation meth px, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
+         meth      -- ^ Interpolation method to be used during scaling.
       -> Inner px -- ^ Scaling factor, must be greater than 0.
       -> img px   -- ^ Image to be scaled.
       -> img px
 scale _ ((0>=) -> True) _ = error "scale: scaling factor must be greater than 0"
-scale !alg !fact !img    = traverse img getNewDims getNewPx where
+scale !meth !fact !img    = traverse img getNewDims getNewPx where
   !(imgM, imgN) = dims img
   getNewDims _ _ = (round (fromIntegral imgM * fact), round (fromIntegral imgN * fact))
   {-# INLINE getNewDims #-}
   getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
-    interpolate alg imgM imgN getPx (i/fact) (j/fact)
+    interpolate meth imgM imgN getPx (i/fact) (j/fact)
   {-# INLINE getNewPx #-}
 {-# INLINE scale #-}
 
@@ -47,19 +47,19 @@ scale !alg !fact !img    = traverse img getNewDims getNewPx where
 <Image RGB: 256x1024>
 
 -}
-resize :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
-         alg        -- ^ Interpolation algorithm to be used during resizing.
-      -> Int -> Int -- ^ New image dimensions @m@ rows and @n@ columns.
-      -> img px     -- ^ Image to be resized.
-      -> img px
-resize !alg !newM !newN !img = traverse img getNewDims getNewPx where
+resize :: (Interpolation method px, AImage img px, RealFrac (Inner px)) =>
+          method     -- ^ Interpolation method to be used during resizing.
+       -> Int -> Int -- ^ New image dimensions @m@ rows and @n@ columns.
+       -> img px     -- ^ Image to be resized.
+       -> img px
+resize !meth !newM !newN !img = traverse img getNewDims getNewPx where
   !(imgM, imgN) = dims img
   !(mScale, nScale) = (fromIntegral newM / fromIntegral imgM,
                        fromIntegral newN / fromIntegral imgN)
   getNewDims _ _ = (newM, newN)
   {-# INLINE getNewDims #-}
   getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
-    interpolate alg imgM imgN getPx (i/mScale) (j/nScale)
+    interpolate meth imgM imgN getPx (i/mScale) (j/nScale)
   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
@@ -75,12 +75,12 @@ inside.
 <Image RGB: 700x700>
 
 -}
-rotate :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
-          alg      -- ^ Interpolation algorithm to be used during rotation.
+rotate :: (Interpolation method px, AImage img px, RealFloat (Inner px)) =>
+          method   -- ^ Interpolation method to be used during rotation.
        -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
        -> img px   -- ^ Image to be rotated.
        -> img px
-rotate !alg !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
+rotate !meth !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
   where
     !(oldM, oldN) = (fromIntegral m, fromIntegral n)
     !(newM, newN) = (oldM * cost + oldN * sint, oldN * cost + oldM * sint)
@@ -90,7 +90,7 @@ rotate !alg !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
     getNewDims _ _ = (ceiling newM, ceiling newN)
     {-# INLINE getNewDims #-}
     getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
-      interpolate alg m n getOldPx i' j' where
+      interpolate meth m n getOldPx i' j' where
         !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
         !i' = oldMhalf + imagPart z
         !j' = oldNhalf + realPart z
@@ -108,18 +108,18 @@ direction. Dimensions of a new image will stay unchanged.
 <Image RGB: 512x512>
 
 -}
-rotate' :: (Interpolation alg px, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
-           alg      -- ^ Interpolation algorithm to be used during rotation.
+rotate' :: (Interpolation method px, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
+           method   -- ^ Interpolation method to be used during rotation.
         -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
         -> img px   -- ^ Image to be rotated.
         -> img px
-rotate' !alg !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
+rotate' !meth !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
   where
     !(newMhalf, newNhalf) = (fromIntegral $ div m 2, fromIntegral $ div n 2)
     getNewDims _ _ = (m, n)
     {-# INLINE getNewDims #-}
     getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
-      interpolate alg m n getOldPx i' j' where
+      interpolate meth m n getOldPx i' j' where
         !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
         !i' = newMhalf + imagPart z
         !j' = newNhalf + realPart z
@@ -143,33 +143,40 @@ upsampleF !fm !fn !img = traverse img
                            then getPx (i `div` fm) (j `div` fn)
                            else pixel 0)
 
+
 -- | Removes every second row from the image starting with second one.
 downsampleRows :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsampleRows #-}
 downsampleRows = downsampleF 2 1
 
+
 downsampleCols :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsampleCols #-}
 downsampleCols = downsampleF 1 2
+
 
 downsample :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE downsample #-}
 downsample = downsampleF 2 2
 
+
 upsampleRows :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsampleRows #-}
 upsampleRows = upsampleF 2 1
+
 
 upsampleCols :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsampleCols #-}
 upsampleCols = upsampleF 1 2
 
+
 upsample :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
 {-# INLINE upsample #-}
 upsample = upsampleF 2 2
 
-{- | Concatenates two images together into one. Both input images must have the
-same number of rows. -}
+
+-- | Concatenate two images together into one. Both input images must have the
+-- same number of rows.
 leftToRight :: AImage img px => img px -> img px -> img px
 {-# INLINE leftToRight #-}
 leftToRight !img1@(cols -> !n1) !img2 = traverse2 img1 img2 newDims newPx where
@@ -181,8 +188,9 @@ leftToRight !img1@(cols -> !n1) !img2 = traverse2 img1 img2 newDims newPx where
   newPx !getPx1 !getPx2 !i !j = if j < n1 then getPx1 i j else getPx2 i (j-n1)
   {-# INLINE newPx #-}
 
-{- | Concatenates two images together into one. Both input images must have the
-same number of columns. -}
+
+-- | Concatenate two images together into one. Both input images must have the
+-- same number of columns.
 topToBottom :: AImage img px => img px -> img px -> img px
 {-# INLINE topToBottom #-}
 topToBottom !img1@(rows -> !m1) !img2 = traverse2 img1 img2 newDims newPx where
@@ -193,6 +201,7 @@ topToBottom !img1@(rows -> !m1) !img2 = traverse2 img1 img2 newDims newPx where
   {-# INLINE newDims #-}
   newPx !getPx1 !getPx2 !i !j = if i < m1 then getPx1 i j else getPx2 (i-m1) j
   {-# INLINE newPx #-}
+
 
 {- | Changes dimensions of an image while padding it with a default pixel whenever
 @i@ and @j@ is out of bounds for an original image -}

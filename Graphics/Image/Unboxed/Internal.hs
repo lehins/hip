@@ -13,12 +13,17 @@ import Graphics.Image.Unboxed.Pixel (Pixel)
 -- | This is a concrete representation of an image that can hold any of the
 -- pixels that are an instance of a 'Pixel'. It is also installed in 'Num's,
 -- 'Floating' and 'Fractional', so you can perform regular methematical
--- operations on these images. If an operation involves an image and a regular number than this opertaion will be applied to each pixel of an image, on the other hand of operation involves two images this operation will be applied to respective pixels at same locations, hene those images have to be the same size. Here are couple examples:
+-- operations on these images. If an operation involves an image and a regular
+-- number than this opertaion will be applied to each pixel of an image, on the
+-- other hand if operation involves two images this operation will be applied to
+-- respective pixels at same locations, hene those images must have the same
+-- dimensions. For example here is how you can sum two images:
 --
--- >>> lena <- readImageRGB "lena.jpg"
--- >>> display $ lena
--- >>> display $ lena / 2
--- >>> display $ lena - lena
+-- >>> centaurus <- readImageRGB "images/centaurus.jpg"
+-- >>> cluster <- readImageRGB "images/cluster.jpg"
+-- >>> writeImage "images/centaurus_cluster.jpg" ((centaurus + cluster) / 2) []
+--
+-- <<images/centaurus.jpg>> <<images/cluster.jpg>> <<images/centaurus_cluster.jpg>>
 --
 data Image px where
   VectorImage   :: Pixel px => Int -> Int -> Vector px -> Image px
@@ -57,6 +62,18 @@ instance (Pixel px) => AImage Image px where
   unsafeIndex (Singleton px)      _ _ = px
   {-# INLINE unsafeIndex #-}
 
+  zipWith !f (Singleton !px1) (Singleton !px2)        = Singleton (f px1 px2)
+  zipWith !f (Singleton !px) !img@(VectorImage _ _ _) = map (f px) img
+  zipWith !f !img@(VectorImage _ _ _) (Singleton !px) = map ((flip f) px) img
+  zipWith !f !img1@(VectorImage m1 n1 _) !img2@(VectorImage m2 n2 _) =
+    if m1 /= m2 || n1 /= n2
+    then error ("Images must be of the same dimensions, received: "++
+                show img1++" and "++show img2++".")
+    else make m1 n1 getPx where
+      getPx !i !j = f (unsafeIndex img1 i j) (unsafeIndex img2 i j)
+      {-# INLINE getPx #-}
+  {-# INLINE zipWith #-}
+  
   fromLists !ls = if isSquare
                   then (fromVector m n) . fromList . P.concat $ ls
                   else error "fromLists: Inner lists do not have uniform length."

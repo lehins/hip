@@ -1,22 +1,19 @@
 {-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Interface.Interpolation (
-  Interpolation(..)
+  Interpolation(..), Method(..)
   ) where
-import Graphics.Image.Interface.Pixel
-import Graphics.Image.Interface hiding (Interpolation)
-import qualified Graphics.Image.Interface as I (Interpolation)
 
--- | Interpolation Algorithms.
-data Interpolation px where
-  -- Nearest neighbor interpolation. Holds a default pixel to be used for out
-  -- of boundary locations.
-  Nearest  :: Pixel px => px -> Interpolation px
-  -- Bilinear or first order interpolation. Holds a default pixel to be used
-  -- for out of boundary locations.
-  Bilinear :: Pixel px => px -> Interpolation px
+import Graphics.Image.Interface (Interpolation(..), Pixel(..))
 
 
-instance Pixel px => I.Interpolation (Interpolation px) px where
+-- | Interpolation Algorithms. All of them hold a default pixel to be used for
+-- out of boundary locations.
+data Method px where
+  Nearest  :: Pixel px => px -> Method px
+  Bilinear :: Pixel px => px -> Method px
+
+
+instance Pixel px => Interpolation (Method px) px where
   interpolate (Nearest  defPx) !m !n !getPx (round -> !i) (round -> !j) =
     if i >= 0 && j >= 0 && i < m && j < n then getPx i j else defPx
           

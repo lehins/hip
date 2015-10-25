@@ -131,17 +131,33 @@ class (AImage img px, Pixel px,
        Interconvertible px PixelCMYK8,
        Interconvertible px PixelCMYK16
       ) => Saveable img px where
+  -- | Save as 8-bit grayscale. Supported formats 'BMP', 'PNG' and 'TIF'.
   inY8 :: Encoder img px
+  -- | Save as 16-bit grayscale. Supported formats 'PNG' and 'TIF'.
   inY16 :: Encoder img px
+  -- | Save as 8-bit grayscale with Alpha channel. Supported format 'PNG'.
   inYA8 :: Encoder img px
+  -- | Save as 16-bit grayscale with Alpha channel. Supported format 'PNG'.
   inYA16 :: Encoder img px
+  -- | Save in RGB colorspace with 8-bit precision. Supported formats 'BMP',
+  -- 'PNG' and 'TIF'.
   inRGB8 :: Encoder img px
+  -- | Save in RGB colorspace with 16-bit precision. Supported formats 'PNG' and
+  -- 'TIF'.
   inRGB16 :: Encoder img px
+  -- | Save in RGB colorspace with floating precision. Supported format 'HDR'.
   inRGBF :: Encoder img px
+  -- | Save in RGB colorspace and an Alpha channel with 8-bit
+  -- precision. Supported formats 'BMP' and 'PNG'.
   inRGBA8 :: Encoder img px
+  -- | Save in RGB colorspace and an Alpha channel with 16-bit
+  -- precision. Supported format 'PNG'.
   inRGBA16 :: Encoder img px
+  -- | Save in YCbCr colorspace with 8-bit precision. Supported format 'JPG'.
   inYCbCr8 :: Encoder img px
+  -- | Save in CMYK colorspace with 8-bit precision. Supported format 'TIF'.
   inCMYK8 :: Encoder img px
+  -- | Save in YCbCr colorspace with 16-bit precision. Supported format 'TIF'.
   inCMYK16 :: Encoder img px
 
 -- =============================================================================
@@ -694,8 +710,8 @@ instance AImage img RGB => Saveable img RGB where
   inRGB8 PNG   = JP.encodePng    . (imageToJPImage (convert :: RGB -> JP.PixelRGB8))
   inRGB8 TIF   = JP.encodeTiff   . (imageToJPImage (convert :: RGB -> JP.PixelRGB8))
   inRGB8 f     = error $ "Cannot save "++show f++" in RGB8 colorspace"
-  inRGB16 TIF  = JP.encodeTiff   . (imageToJPImage (convert :: RGB -> JP.PixelRGB16))
   inRGB16 PNG  = JP.encodePng    . (imageToJPImage (convert :: RGB -> JP.PixelRGB16))
+  inRGB16 TIF  = JP.encodeTiff   . (imageToJPImage (convert :: RGB -> JP.PixelRGB16))
   inRGB16 f    = error $ "Cannot save "++show f++" in RGB16 colorspace"
   inRGBF HDR   = JP.encodeHDR    . (imageToJPImage (convert :: RGB -> JP.PixelRGBF))
   inRGBF f     = error $ "Cannot save "++show f++" in RGBF colorspace"

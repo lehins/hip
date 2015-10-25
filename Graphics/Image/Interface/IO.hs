@@ -94,9 +94,8 @@ writeImage !strat !path !img !options =
       -- PGM  -> inY8
       -- PPM  -> inRGB8
 
-{-| Sets the program to use when making a call to display. By default,
-    ImageMagick (display) is the default program to use and it is read
-    using stdin.
+{-| Sets the program to use when making a call to display.  GPicView (gpicview) is
+the used as a default program.
 
     >>> setDisplayProgram "gpicview"
 
@@ -116,14 +115,13 @@ displayProgram = unsafePerformIO $ do
   return dp
 
 
-{-| Makes a call to the current display program to be displayed. If the
-    program cannot read from standard in, a file named ".tmp-img" is created
-    and used as an argument to the program.
-
-    >>>frog <- readImage "images/frog.pgm"
-    >>>display frog
-
- -}
+-- | Makes a call to the current display program to be displayed. If the program
+-- cannot read from standard in, a file named ".tmp-img" is created and used as
+-- an argument to the program.
+--
+--  >>> frog <- readImageRGB "images/frog.jpg"
+--  >>> displayImage frog
+--
 displayImage :: (Strategy strat img px, AImage img px, Saveable img px) =>
                 strat img px
              -> img px
