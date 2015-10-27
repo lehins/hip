@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
 module Graphics.Image.Interface.Complex (
-  realPart, imagPart, complex, magnitude, conjugate,
+  (.+.), realPart, imagPart, magnitude, conjugate,
   makeFilter,
   fft, ifft
   ) where
@@ -9,6 +9,20 @@ import Prelude hiding (map, zipWith)
 import Graphics.Image.Interface
 import Graphics.Image.Interface.Complex.Fourier
 import Graphics.Image.Interface.Pixel.Complex
+
+
+infix  6  .+.
+
+
+-- | Construct a complex image from two regular images.
+--
+(.+.) :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
+             img px -- ^ Image representing real part.
+          -> img px -- ^ Image representing imaginary part.
+          -> img (Complex px)
+(.+.) = zipWith (:+:)
+{-# INLINE (.+.) #-}
+
 
 
 {-| Given a complex image, returns a real image representing the real part of the
@@ -63,14 +77,6 @@ magnitude :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
           -> img px
 magnitude = map mag
 {-# INLINE magnitude #-}
-
-
-complex :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
-             img px -- ^ Image representing real part.
-          -> img px -- ^ Image representing imaginary part.
-          -> img (Complex px)
-complex = zipWith (:+:)
-{-# INLINE complex #-}
 
 
 conjugate :: (ComplexInner px, AImage img (Complex px)) =>

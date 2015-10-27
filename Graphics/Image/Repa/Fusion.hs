@@ -15,7 +15,7 @@ module Graphics.Image.Repa.Fusion (
   crop, scale,
   -- ** Convolution
   -- * Complex
-  realPart, imagPart, complex, magnitude, conjugate, makeFilter,
+  realPart, imagPart, magnitude, conjugate, makeFilter,
   -- * Conversion
   fromLists, fromArray,
   -- * IO
@@ -51,14 +51,14 @@ magnitude :: (ComplexInner px, Pixel px) =>
 magnitude = C.magnitude
 {-# INLINE magnitude #-}
 
-
+{-
 complex :: (ComplexInner px, Pixel px) =>
              Image px -- ^ Image representing real part.
           -> Image px -- ^ Image representing imaginary part.
           -> Image (Complex px)
 complex = C.complex
 {-# INLINE complex #-}
-
+-}
 
 conjugate :: (ComplexInner px, Pixel px) =>
              Image (Complex px)

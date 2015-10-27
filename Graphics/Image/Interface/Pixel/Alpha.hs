@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, GADTs, TypeFamilies, UndecidableInstances #-}
 module Graphics.Image.Interface.Pixel.Alpha (
-  Alpha(..), AlphaInner, dropAlpha, fmapAlpha, combineAlpha
+  Alpha(..), AlphaInner, addAlpha, dropAlpha, fmapAlpha, combineAlpha
   ) where
 
 import Graphics.Image.Interface (Pixel(..))
@@ -45,7 +45,7 @@ instance AlphaInner px => Pixel (Alpha px) where
   weakest !(Alpha a px) = Alpha a (weakest px)
   {-# INLINE weakest #-}
 
-  showType (Alpha _ px) = (showType px)++"A"
+  showType (Alpha _ px) = (showType px)++"-A"
 
 
 instance AlphaInner px => Num (Alpha px) where
@@ -125,16 +125,30 @@ instance (AlphaInner px) => Ord (Alpha px) where
 instance AlphaInner px => Show (Alpha px) where
   show (Alpha a px) = "<Alpha:("++show a++"|"++show px++")>"
 
--- | Remove alpha channel from the pixel.
+
+-- | Add an Alpha channel to a pixel.
+--
+-- >>> addAlpha $ RGB 0.1 0.3 0.5
+-- <Alpha:(1.0|<RGB:(0.1|0.3|0.5)>)>
+--
+addAlpha :: AlphaInner px =>
+            px
+         -> Alpha px
+addAlpha px = Alpha 1 px
+{-# INLINE addAlpha #-}
+
+
+-- | Remove alpha channel from a pixel.
 --
 -- >>> dropAlpha $ Alpha 0.2 (RGB 0.1 0.3 0.5)
 -- <RGB:(0.1|0.3|0.5)>
 --
 dropAlpha :: AlphaInner px =>
              Alpha px
-             -> px
+          -> px
 dropAlpha (Alpha _ px) = px
 {-# INLINE dropAlpha #-}
+
 
 -- | Apply a function to an alpha value.
 --

@@ -3,17 +3,12 @@
 
 module Graphics.Image.Interface (
   minimum, maximum, normalize,
-  Convertible(..),
   Pixel(..),
   Strategy(..),
-  AImage(..),
-  Interpolation(..)
+  AImage(..)
   ) where
 
 import Prelude hiding (map, sum, minimum, maximum)
-
-class Convertible a b where
-  convert :: a -> b
 
 
 class (Eq px, Num px, Show px,
@@ -277,17 +272,6 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
       getPx i' j' = index img (i' + i) (j' + j)
       {-# INLINE getPx #-}
   {-# INLINE crop #-}
-
-
-class Pixel px => Interpolation method px | px -> method where
-  interpolate :: (RealFrac (Inner px), Pixel px) =>
-                 method             -- ^ Interpolation method
-              -> Int -> Int         -- ^ Image dimensions @m@ rows and @n@ columns.
-              -> (Int -> Int -> px) -- ^ Lookup function that returns a pixel at @i@th
-                                    -- and @j@th location.
-              -> (Inner px) -> (Inner px)   -- ^ real values of @i@ and @j@ index
-              -> px
-
 
 
 maximum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>

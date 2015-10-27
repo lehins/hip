@@ -79,7 +79,7 @@ instance (Pixel px) => AImage Image px where
                   else error "fromLists: Inner lists do not have uniform length."
     where
       (m, n) = (P.length ls, P.length $ P.head ls)
-      isSquare = (n > 0) && (P.all (==2) $ P.map P.length ls)
+      isSquare = (n > 0) && (P.all (==n) $ P.map P.length ls)
   {-# INLINE fromLists #-}
 
 
@@ -152,13 +152,18 @@ instance (Floating px, Pixel px) => Floating (Image px) where
   acosh = map acosh
   {-# INLINE acosh #-}
 
+
   
 instance (Pixel px) => Show (Image px) where
   show img@(dims -> (m, n)) = "<Image "++(showType px)++": "++(show m)++"x"++(show n)++">"
     where px = index img 0 0  
   
 
--- | Convert an image to a flattened 'Vector'. It is a O(1) opeartion. 
+-- | Convert an image to a flattened 'Vector'. It is a O(1) opeartion.
+--
+-- >>> toVector $ make 3 2 (\i j -> Gray $ fromIntegral (i+j))
+-- fromList [<Gray:(0.0)>,<Gray:(1.0)>,<Gray:(1.0)>,<Gray:(2.0)>,<Gray:(2.0)>,<Gray:(3.0)>]
+--
 toVector :: Pixel px => Image px -> Vector px
 toVector (VectorImage _ _ v) = v
 toVector (Singleton px)      = singleton px
@@ -167,6 +172,12 @@ toVector (Singleton px)      = singleton px
 -- | Construct a two dimensional image with @m@ rows and @n@ columns from a one
 -- dimensional 'Vector' of length @k@. It is a O(1) opeartion. Make sure that @m
 -- * n = k@.
+--
+-- >>> fromVector 200 300 $ generate 60000 (\i -> Gray $ fromIntegral i / 60000)
+-- <Image Gray: 200x300>
+--
+-- <<images/grad_fromVector.png>>
+-- 
 fromVector :: Pixel px =>
             Int       -- ^ @m@ rows
          -> Int       -- ^ @n@ columns

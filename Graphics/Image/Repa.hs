@@ -13,7 +13,6 @@ module Graphics.Image.Repa (
 
 import Prelude
 
-import Graphics.Image.Interface (interpolate)
 import Graphics.Image.Interface.IO
 import Graphics.Image.Repa.Internal (
   Image, dims, rows, cols, index, unsafeIndex, defaultIndex, maybeIndex)

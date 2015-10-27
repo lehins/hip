@@ -9,6 +9,7 @@ import GHC.Float
 import Prelude hiding (map)
 import Graphics.Image.Interface (Pixel(..), AImage(..))
 import Graphics.Image.Interface.Pixel hiding (Pixel)
+import qualified Graphics.Image.Interface.Binary as B (fromBinary)
 import Data.Word (Word8, Word16)
 import Data.Vector.Storable (Storable)
 import Codec.Picture hiding (Pixel, Image, decodeImage)
@@ -117,46 +118,33 @@ instance (
   
   
 -- | Pixels implementing this class allow the images to be saved.
-class (AImage img px, Pixel px,
-       Interconvertible px Pixel8,
-       Interconvertible px Pixel16,
-       Interconvertible px PixelYA8,
-       Interconvertible px PixelYA16,
-       Interconvertible px PixelRGB8,
-       Interconvertible px PixelRGB16,
-       Interconvertible px PixelRGBA8,
-       Interconvertible px PixelRGBA16,
-       Interconvertible px PixelRGBF,
-       Interconvertible px PixelYCbCr8,
-       Interconvertible px PixelCMYK8,
-       Interconvertible px PixelCMYK16
-      ) => Saveable img px where
+class (AImage img px, Pixel px) => Saveable img px where
   -- | Save as 8-bit grayscale. Supported formats 'BMP', 'PNG' and 'TIF'.
-  inY8 :: Encoder img px
+  inY8     :: Encoder img px
   -- | Save as 16-bit grayscale. Supported formats 'PNG' and 'TIF'.
-  inY16 :: Encoder img px
+  inY16    :: Encoder img px
   -- | Save as 8-bit grayscale with Alpha channel. Supported format 'PNG'.
-  inYA8 :: Encoder img px
+  inYA8    :: Encoder img px
   -- | Save as 16-bit grayscale with Alpha channel. Supported format 'PNG'.
-  inYA16 :: Encoder img px
+  inYA16   :: Encoder img px
   -- | Save in RGB colorspace with 8-bit precision. Supported formats 'BMP',
   -- 'PNG' and 'TIF'.
-  inRGB8 :: Encoder img px
+  inRGB8   :: Encoder img px
   -- | Save in RGB colorspace with 16-bit precision. Supported formats 'PNG' and
   -- 'TIF'.
-  inRGB16 :: Encoder img px
+  inRGB16  :: Encoder img px
   -- | Save in RGB colorspace with floating precision. Supported format 'HDR'.
-  inRGBF :: Encoder img px
+  inRGBF   :: Encoder img px
   -- | Save in RGB colorspace and an Alpha channel with 8-bit
   -- precision. Supported formats 'BMP' and 'PNG'.
-  inRGBA8 :: Encoder img px
+  inRGBA8  :: Encoder img px
   -- | Save in RGB colorspace and an Alpha channel with 16-bit
   -- precision. Supported format 'PNG'.
   inRGBA16 :: Encoder img px
   -- | Save in YCbCr colorspace with 8-bit precision. Supported format 'JPG'.
   inYCbCr8 :: Encoder img px
   -- | Save in CMYK colorspace with 8-bit precision. Supported format 'TIF'.
-  inCMYK8 :: Encoder img px
+  inCMYK8  :: Encoder img px
   -- | Save in YCbCr colorspace with 16-bit precision. Supported format 'TIF'.
   inCMYK16 :: Encoder img px
 
@@ -175,19 +163,6 @@ fromWord16 :: Word16 -> Double
 fromWord16 px = fromIntegral px / 65535
 toWord16 :: Double -> Word16
 toWord16 px = round (65535*px)
-
-
--- Internal --------------------------------------------------------------------
-
-
-instance Interconvertible Gray RGB where
-  convert !(Gray g) = pixel g
-  {-# INLINE convert #-}
-
-
-instance Interconvertible RGB Gray where
-  convert !(RGB r g b) = Gray ((r + g + b)/3)
-  {-# INLINE convert #-}
 
 
 --------------------------------------------------------------------------------
@@ -242,13 +217,13 @@ instance Interconvertible PixelCMYK16 Gray where
 -- Gray -> Color
 
 instance Interconvertible Word8 RGB where
-  convert = convert . (convert :: Word8 -> Gray)
+  convert = grayToRGB . (convert :: Word8 -> Gray)
 
 instance Interconvertible Word16 RGB where
-  convert = convert . (convert :: Word16 -> Gray)
+  convert = grayToRGB . (convert :: Word16 -> Gray)
 
 instance Interconvertible Float RGB where
-  convert = convert . (convert :: Float -> Gray)
+  convert = grayToRGB . (convert :: Float -> Gray)
 
 instance Interconvertible PixelYA8 RGB where
   convert = convert . dropTransparency
@@ -308,6 +283,7 @@ instance (
 
 ---- to JuicyPixels -----
 
+
 -- Gray -> Gray
 
 instance Interconvertible Gray Word8 where
@@ -325,48 +301,48 @@ instance Interconvertible Gray PixelYA8 where
 instance Interconvertible Gray PixelYA16 where
   convert = promotePixel . (convert :: Gray -> Word16)
 
--- Color -> Gray
+-- Gray -> Color
 
 instance Interconvertible Gray PixelRGB8 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PixelRGB16 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PixelRGBA8 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PixelRGBA16 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PixelRGBF where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PixelYCbCr8 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PixelCMYK8 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PixelCMYK16 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 -- Color -> Gray
 
 instance Interconvertible RGB Word8 where
-  convert = convert . (convert :: RGB -> Gray)
+  convert = convert . rgbToGray
 
 instance Interconvertible RGB Word16 where
-  convert = convert . (convert :: RGB -> Gray)
+  convert = convert . rgbToGray
   
 instance Interconvertible RGB Float where
-  convert = convert . (convert :: RGB -> Gray)
+  convert = convert . rgbToGray
 
 instance Interconvertible RGB PixelYA8 where
-  convert = convert . (convert :: RGB -> Gray)
+  convert = convert . rgbToGray
 
 instance Interconvertible RGB PixelYA16 where
-  convert = convert . (convert :: RGB -> Gray)
+  convert = convert . rgbToGray
 
 -- Color -> Color
 
@@ -529,19 +505,19 @@ instance Interconvertible PNM.PgmPixel16 Gray where
   convert (PNM.PgmPixel16 w16) = convert w16
 
 instance Interconvertible PNM.PpmPixelRGB8 Gray where
-  convert = convert . (convert :: PNM.PpmPixelRGB8 -> RGB)
+  convert = rgbToGray . (convert :: PNM.PpmPixelRGB8 -> RGB)
 
 instance Interconvertible PNM.PpmPixelRGB16 Gray where
-  convert = convert . (convert :: PNM.PpmPixelRGB16 -> RGB)
+  convert = rgbToGray . (convert :: PNM.PpmPixelRGB16 -> RGB)
 
 instance Interconvertible PNM.PbmPixel RGB where
-  convert = convert . (convert :: PNM.PbmPixel -> Gray)
+  convert = grayToRGB . (convert :: PNM.PbmPixel -> Gray)
   
 instance Interconvertible PNM.PgmPixel8 RGB where
-  convert = convert . (convert :: PNM.PgmPixel8 -> Gray)
+  convert = grayToRGB . (convert :: PNM.PgmPixel8 -> Gray)
 
 instance Interconvertible PNM.PgmPixel16 RGB where
-  convert = convert . (convert :: PNM.PgmPixel16 -> Gray)
+  convert = grayToRGB . (convert :: PNM.PgmPixel16 -> Gray)
 
 instance Interconvertible PNM.PpmPixelRGB8 RGB where
   convert (PNM.PpmPixelRGB8 r g b) = RGB (fromWord8 r) (fromWord8 g) (fromWord8 b)
@@ -559,16 +535,16 @@ instance Interconvertible Gray PNM.PgmPixel16 where
   convert (Gray g) = PNM.PgmPixel16 $ toWord16 g
 
 instance Interconvertible Gray PNM.PpmPixelRGB8 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible Gray PNM.PpmPixelRGB16 where
-  convert = convert . (convert :: Gray -> RGB)
+  convert = convert . grayToRGB
 
 instance Interconvertible RGB PNM.PgmPixel8 where
-  convert = convert . (convert :: RGB -> Gray)
+  convert = convert . rgbToGray
 
 instance Interconvertible RGB PNM.PgmPixel16 where
-  convert = convert . (convert :: RGB -> Gray)
+  convert = convert . rgbToGray
 
 instance Interconvertible RGB PNM.PpmPixelRGB8 where
   convert (RGB r g b) = PNM.PpmPixelRGB8 (toWord8 r) (toWord8 g) (toWord8 b)
@@ -659,6 +635,24 @@ imageToJPImage f img@(dims -> (m, n)) =
     g j i = f $ index img i j
 
 
+fromBinary :: (AImage img Binary, AImage img Gray) => img Binary -> img Gray
+fromBinary = B.fromBinary
+
+
+instance (AImage img Gray, AImage img Binary) => Saveable img Binary where
+  inY8 f     = inY8 f . fromBinary
+  inY16 f    = inY16 f . fromBinary
+  inYA8 f    = inYA8 f . fromBinary
+  inYA16 f   = inYA16 f . fromBinary
+  inRGB8 f   = inRGB8 f . fromBinary 
+  inRGB16 f  = inRGB16 f . fromBinary 
+  inRGBF f   = inRGBF f . fromBinary 
+  inRGBA8 f  = inRGBA8 f . fromBinary 
+  inRGBA16 f = inRGBA16 f . fromBinary 
+  inYCbCr8 f = inYCbCr8 f . fromBinary 
+  inCMYK8 f  = inCMYK8 f . fromBinary 
+  inCMYK16 f = inCMYK16 f . fromBinary 
+
 instance AImage img Gray => Saveable img Gray where
   inY8 BMP     = JP.encodeBitmap . (imageToJPImage (convert :: Gray -> JP.Pixel8))
   inY8 PNG     = JP.encodePng    . (imageToJPImage (convert :: Gray -> JP.Pixel8))
@@ -729,8 +723,20 @@ instance AImage img RGB => Saveable img RGB where
   inCMYK16 f   = error $ "Cannot save "++show f++" in CMYK16 colorspace"
 
 
-instance (Saveable img px, AlphaInner px, AImage img (Alpha px), Double ~ Inner px)
-         => Saveable img (Alpha px) where
+instance (Saveable img px, AlphaInner px, AImage img (Alpha px), Double ~ Inner px,
+          Interconvertible px Pixel8,
+          Interconvertible px Pixel16,
+          Interconvertible px PixelYA8,
+          Interconvertible px PixelYA16,
+          Interconvertible px PixelRGB8,
+          Interconvertible px PixelRGB16,
+          Interconvertible px PixelRGBA8,
+          Interconvertible px PixelRGBA16,
+          Interconvertible px PixelRGBF,
+          Interconvertible px PixelYCbCr8,
+          Interconvertible px PixelCMYK8,
+          Interconvertible px PixelCMYK16
+         ) => Saveable img (Alpha px) where
   inY8 BMP     = JP.encodeBitmap . (
     imageToJPImage (convert :: Interconvertible px Pixel8 => px -> Pixel8))
   inY8 PNG     = JP.encodePng    . (

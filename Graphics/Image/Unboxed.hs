@@ -37,7 +37,15 @@ module Graphics.Image.Unboxed (
   leftToRight, topToBottom,
   scale, resize,
   rotate, rotate',
+  -- * Reduction
+  maximum, minimum,
+  -- * Binary
+  module Graphics.Image.Unboxed.Binary,
   -- * Conversion
+  toGrayImage, toRGBImage, toHSIImage,
+  toAlphaImage, fromAlphaImage,
+  toComplexImage, fromComplexImage,
+  graysToRGB, graysToHSI, rgbToGrays, hsiToGrays,
   fromVector, toVector,
   fromLists, toLists,
   -- * Input/Output
@@ -50,12 +58,14 @@ module Graphics.Image.Unboxed (
   IO.SaveOption(..), IO.OutputFormat(..), IO.Saveable(..)
   ) where
 
-import Prelude hiding (map, zipWith)
+import Prelude hiding (map, zipWith, maximum, minimum)
 import Graphics.Image.Unboxed.Internal (Image, VectorStrategy(..), fromVector, toVector)
-import qualified Graphics.Image.Interface.Interpolation as I
 import qualified Graphics.Image.Interface as I
+import qualified Graphics.Image.Interface.Conversion as C
+import qualified Graphics.Image.Interface.Interpolation as I
 import qualified Graphics.Image.Interface.Processing as I
 import qualified Graphics.Image.Interface.IO as IO
+import Graphics.Image.Unboxed.Binary
 import Graphics.Image.Unboxed.Pixel
 
 
@@ -239,7 +249,7 @@ unsafeIndex = I.unsafeIndex
 
 -- | Retreive an interpolated pixel at @i@-th and @j@-th location.
 interpolate :: (I.Interpolation method px, RealFrac (Inner px), Pixel px) =>
-               method     -- ^ One of the interpolation 'Method's.
+               method     -- ^ One of the interpolation 'I.Method's.
             -> Image px   -- ^ Source image
             -> (Inner px) -- ^ approximation of @i@-th row
             -> (Inner px) -- ^ approximation of @j@-th column
@@ -574,10 +584,10 @@ upsample = I.upsample
 -- >>> writeImage "images/frog_scale_nearest.jpg" (scale (Nearest 1) 1.5 frog) []
 -- >>> writeImage "images/frog_scale_bilinear.jpg" (scale (Bilinear 1) 1.5 frog) []
 -- 
--- <<images/frog.jpg>> <<images/frog_scale_nearest.jpg>> <<images/frog_scale_bilinear.jpg>>
+-- <<images/frog_scale_nearest.jpg>> <<images/frog_scale_bilinear.jpg>>
 --
 scale :: (I.Interpolation method px, Pixel px, RealFrac (Inner px)) =>
-         method    -- ^ One of the interpolation 'Method's to be used during
+         method    -- ^ One of the interpolation 'I.Method's to be used during
                    -- scaling.
       -> Inner px  -- ^ Scaling factor, must be greater than 0.
       -> Image px  -- ^ Image to be scaled.
@@ -597,7 +607,7 @@ scale = I.scale
 -- <<images/frog.jpg>> <<images/frog_resize.jpg>> 
 --
 resize :: (I.Interpolation method px, Pixel px, RealFrac (Inner px)) =>
-         method   -- ^ One of the interpolation 'Method's to be used during
+         method   -- ^ One of the interpolation 'I.Method's to be used during
                   -- resizing.
       -> Int      -- ^ @m@ rows.
       -> Int      -- ^ @n@ columns.
@@ -616,7 +626,7 @@ resize = I.resize
 -- <<images/frog.jpg>> <<images/frog_rotate.jpg>> 
 --
 rotate :: (I.Interpolation method px, Pixel px, RealFloat (Inner px)) =>
-          method   -- ^ One of the interpolation 'Method's to be used during
+          method   -- ^ One of the interpolation 'I.Method's to be used during
                    -- rotation.
        -> Inner px -- ^ Angle @theta@ in radians, that an image should be
                    -- rotated by.
@@ -634,7 +644,7 @@ rotate = I.rotate
 -- <<images/frog.jpg>> <<images/frog_rotate'.jpg>> 
 --
 rotate' :: (I.Interpolation method px, Pixel px, RealFloat (Inner px)) =>
-          method    -- ^ One of the interpolation 'Method's to be used during
+          method    -- ^ One of the interpolation 'I.Method's to be used during
                     -- rotation.
         -> Inner px -- ^ Angle @theta@ in radians, that an image should be
                     -- rotated by.
@@ -642,13 +652,142 @@ rotate' :: (I.Interpolation method px, Pixel px, RealFloat (Inner px)) =>
         -> Image px
 rotate' = I.rotate'
 
+--------------------------------------------------------------------------------
+---- Reduction -----------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+maximum :: (Pixel px, Ord px) => Image px -> px
+maximum = I.maximum Identity
+
+minimum :: (Pixel px, Ord px) => Image px -> px
+minimum = I.minimum Identity
 
 --------------------------------------------------------------------------------
 ---- Conversion ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- | Converts an image to gray image.
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog
+-- <Image RGB: 200x320>
+-- >>> toGrayImage frog
+-- <Image Gray: 200x320>
+-- 
+toGrayImage :: (C.Convertible px Gray, Pixel px) =>
+               Image px -- ^ Source image.
+            -> Image Gray
+toGrayImage = C.toGrayImage
+
+-- | Convert an image to RGB image.
+--
+-- >>> toRGBImage $ toGrayImage frog
+-- <Image RGB: 200x320>
+-- 
+toRGBImage :: (C.Convertible px RGB, Pixel px) =>
+               Image px -- ^ Source image.
+            -> Image RGB
+toRGBImage = C.toRGBImage
+
+
+-- | Convert an image to HSI image.
+--
+-- >>> toHSIImage frog
+-- <Image HSI: 200x320>
+-- 
+toHSIImage :: (C.Convertible px HSI, Pixel px) =>
+               Image px -- ^ Source image.
+            -> Image HSI
+toHSIImage = C.toHSIImage
+
+
+-- |  Add an alpha channel to a regular image.
+--
+-- >>> toAlphaImage frog
+-- <Image RGB-A: 200x320>
+-- 
+toAlphaImage :: (Pixel px, AlphaInner px) =>
+                Image px -> Image (Alpha px)
+toAlphaImage = C.toAlphaImage
+
+
+-- |  Discard an alpha channel from an image.
+--
+-- >>> fromAlphaImage $ toAlphaImage frog
+-- <Image RGB: 200x320>
+-- 
+fromAlphaImage :: (Pixel px, AlphaInner px) =>
+                Image (Alpha px) -> Image px
+fromAlphaImage = C.fromAlphaImage
+
+
+-- | Convert a regular image to a Complex image by adding an all zero pixel imaginary
+-- image.
+toComplexImage :: (Pixel px, ComplexInner px) =>
+                  Image px -> Image (Complex px)
+toComplexImage = C.toComplexImage
+
+
+-- | Convert Complex image to a regular image by dropping imaginary image.
+fromComplexImage :: (Pixel px, ComplexInner px) =>
+                    Image (Complex px) -> Image px
+fromComplexImage = C.fromComplexImage
+
+
+-- | Convert an RGB image to a three tuple of images containing (Red, Green, Blue)
+-- values as 'Gray' values.
+--
+-- >>> let (red, green, blue) = rgbToGrays frog
+-- writeImage "images/frog_red.png" red []
+-- writeImage "images/frog_green.png" green []
+-- writeImage "images/frog_blue.png" blue []
+--
+-- <<images/frog_red.png>> <<images/frog_green.png>> <<images/frog_blue.png>>
+--
+rgbToGrays :: Image RGB -> (Image Gray, Image Gray, Image Gray)
+rgbToGrays = C.rgbToGrays
+
+
+-- | Convert an HSI image to a three tuple of images containing (Hue, Saturation, Intensity)
+-- values as 'Gray' values.
+--
+-- >>> let (hue, saturation, intensity) = hsiToGrays $ toHSIImage frog
+-- >>> writeImage "images/frog_hue.png" ((hue + pi) / (2 * pi)) []
+-- >>> writeImage "images/frog_saturation.png" saturation []
+-- >>> writeImage "images/frog_intensity.png" intensity []
+--
+-- <<images/frog_hue.png>> <<images/frog_saturation.png>> <<images/frog_intensity.png>>
+-- 
+hsiToGrays :: Image HSI -> (Image Gray, Image Gray, Image Gray)
+hsiToGrays = C.hsiToGrays
+
+
+-- | Convert a three tuple of Gray images into an RGB image. All images must have
+-- the same dimensions.
+--
+-- >>> graysToRGB $ rgbToGrays frog
+-- <Image RGB: 200x320>
+--
+graysToRGB :: (Image Gray, Image Gray, Image Gray) -> Image RGB
+graysToRGB = C.graysToRGB
+
+
+-- | Convert a three tuple of Gray images into an HSI image. All images must have
+-- the same dimensions.
+--
+-- >>> graysToHSI $ hsiToGrays $ toHSIImage frog
+-- <Image HSI: 200x320>
+--
+graysToHSI :: (Image Gray, Image Gray, Image Gray) -> Image HSI
+graysToHSI = C.graysToHSI
+
+
 -- | Convert an image into a nested list of pixel. Outer layer will be of length
 -- @m@ and inner all lists will be of length @n@.
+--
+-- >>> toLists $ make 2 3 (\i j -> Gray $ fromIntegral (i+j))
+-- [[<Gray:(0.0)>,<Gray:(1.0)>,<Gray:(2.0)>],[<Gray:(1.0)>,<Gray:(2.0)>,<Gray:(3.0)>]]
+--
 toLists :: Pixel px => Image px -> [[px]]
 toLists = I.toLists Identity
 
@@ -656,6 +795,13 @@ toLists = I.toLists Identity
 -- | Convert double nested lists into a two dimensional image. Length of an
 -- outer list will constitute @m@ rows and length of inner lists - @n@
 -- columns. All inner lists have to be the same length greater than 0.
+--
+-- >>> fromLists [[Gray $ fromIntegral (i*j) | j <- [0..300]] | i <- [0..200]] / 60000
+-- <Image Gray: 200x300>
+--
+-- <<images/grad_fromLists.png>>
+--
 fromLists :: Pixel px => [[px]] -> Image px
 fromLists = I.fromLists
+
 

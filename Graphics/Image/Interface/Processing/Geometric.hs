@@ -8,6 +8,7 @@ module Graphics.Image.Interface.Processing.Geometric (
 
 import Prelude hiding (map, zipWith)
 import Graphics.Image.Interface
+import Graphics.Image.Interface.Interpolation
 import Data.Complex
 
 {- | Scale an image by a factor while using interpolation.

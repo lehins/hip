@@ -1,10 +1,19 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Interface.Interpolation (
   Interpolation(..), Method(..)
   ) where
 
-import Graphics.Image.Interface (Interpolation(..), Pixel(..))
+import Graphics.Image.Interface (Pixel(..))
+
+
+class Pixel px => Interpolation method px | px -> method where
+  interpolate :: (RealFrac (Inner px), Pixel px) =>
+                 method             -- ^ Interpolation method
+              -> Int -> Int         -- ^ Image dimensions @m@ rows and @n@ columns.
+              -> (Int -> Int -> px) -- ^ Lookup function that returns a pixel at @i@th
+                                    -- and @j@th location.
+              -> (Inner px) -> (Inner px)   -- ^ real values of @i@ and @j@ index
+              -> px
 
 
 -- | Interpolation Algorithms. All of them hold a default pixel to be used for

@@ -16,24 +16,35 @@ module Graphics.Image.Unboxed.Pixel (
   -- * Pixel 
   Pixel, I.Inner,
   -- ** Grayscale
-  Gray(..), grayToRGB, grayToHSI,
+  module Graphics.Image.Interface.Pixel.Gray,
   -- ** Color
-  RGB(..), rgbToHSI, rgbToGray,
-  HSI(..), hsiToRGB, hsiToGray,
+  module Graphics.Image.Interface.Pixel.RGB,
+  rgbToHSI, rgbToGray,
+  module Graphics.Image.Interface.Pixel.HSI,
+  hsiToRGB, hsiToGray,
   -- ** Binary
-  Binary, on, off, isOn, isOff,
+  module Graphics.Image.Interface.Pixel.Binary,
   -- ** Complex
-  Complex(..), ComplexInner,
-  mag, arg, conj, real, imag, fromPolar,
+  module Graphics.Image.Interface.Pixel.Complex,
+  ComplexInner,
   -- ** Alpha
-  Alpha(..), AlphaInner, dropAlpha, fmapAlpha, combineAlpha
+  module Graphics.Image.Interface.Pixel.Alpha,
+  AlphaInner
   ) where
 
 import Data.Vector.Unboxed (Unbox)
 import Data.Vector.Unboxed.Deriving
-import Graphics.Image.Interface.Pixel hiding (Pixel, ComplexInner, AlphaInner)
+import Graphics.Image.Interface.Pixel (
+  grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Inner)
 import qualified Graphics.Image.Interface.Pixel as P (ComplexInner, AlphaInner)
 import qualified Graphics.Image.Interface as I (Pixel(..))
+import Graphics.Image.Interface.Pixel.Binary
+import Graphics.Image.Interface.Pixel.Gray
+import Graphics.Image.Interface.Pixel.RGB
+import Graphics.Image.Interface.Pixel.HSI
+import Graphics.Image.Interface.Pixel.Complex hiding (ComplexInner)
+import Graphics.Image.Interface.Pixel.Alpha hiding (AlphaInner)
+
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
 
@@ -44,12 +55,12 @@ class (Unbox px, I.Pixel px) => Pixel px where
 
 -- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'. Also
 -- Pixel that are instances of this class can be used with 'Complex' pixel.
-class (Unbox px, Unbox (I.Inner px), P.ComplexInner px
+class (Unbox px, Unbox (Inner px), P.ComplexInner px
       ) => ComplexInner px where
 
 -- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'. Also
 -- Pixel that are instances of this class can be used with 'Alpha' pixel.
-class (Unbox px, Unbox (I.Inner px), P.AlphaInner px
+class (Unbox px, Unbox (Inner px), P.AlphaInner px
       ) => AlphaInner px where
         
 

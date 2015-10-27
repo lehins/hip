@@ -66,6 +66,7 @@ Library
                    Graphics.Image.Interface.Complex.Fourier,
                    Graphics.Image.Interface.External,
                    Graphics.Image.Unboxed.Internal,
+                   Graphics.Image.Unboxed.Binary,
                    Graphics.Image.Repa.Internal
 
   ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3

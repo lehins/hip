@@ -1,4 +1,0 @@
-module Graphics.Image.Vector.Binary (
-  ) where
-
-data Image = Image

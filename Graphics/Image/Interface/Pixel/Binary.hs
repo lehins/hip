@@ -2,7 +2,7 @@
 TypeFamilies, ViewPatterns, UndecidableInstances #-}
 
 module Graphics.Image.Interface.Pixel.Binary (
-  Binary(..), Bin(..), on, off, isOn, isOff
+  Binary(..), Bin(..), on, off, fromBool, isOn, isOff, inverted
   ) where
 
 import Graphics.Image.Interface (Pixel(..))
@@ -10,7 +10,7 @@ import Graphics.Image.Interface (Pixel(..))
 -- Need to specify a new type to avoid declaring Num for Bool
 newtype Bin = Bin Bool deriving Eq
 
--- | This is a Binary pixel that can only be created using these *constructors*:
+-- | This is a Binary pixel that can be created using these *constructors*:
 --
 --   [@'on'@] Represents value 'True' or @1@ in binary.
 --
@@ -21,21 +21,36 @@ newtype Binary = Binary Bin deriving Eq
 -- | Represents value 'True' or @1@ in binary.
 on :: Binary
 on = Binary . Bin $ True
+{-# INLINE on #-}
 
 
 -- | Represents value 'False' or @0@ in binary.
 off :: Binary
 off = Binary . Bin $ False
+{-# INLINE off #-}
+
+
+-- | Convert a 'Bool' to a 'Binary' pixel. @True == isOn $ fromBool True@
+fromBool :: Bool -> Binary
+fromBool = Binary . Bin
+{-# INLINE fromBool #-}
 
 
 -- | Test if Pixel's value holds 'True'
 isOn :: Binary -> Bool
 isOn (Binary (Bin v)) = v
+{-# INLINE isOn #-}
 
 
 -- | Test if Pixel's value holds 'False'
 isOff :: Binary -> Bool
 isOff (Binary (Bin v)) = not v
+{-# INLINE isOff #-}
+
+
+inverted :: Binary -> Binary
+inverted (Binary (Bin v)) = fromBool . not $ v
+{-# INLINE inverted #-}
 
 
 instance Num Bin where
