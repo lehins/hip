@@ -23,7 +23,6 @@ Library
                 , netpbm >= 1.0.1
                 , process >= 1.1.0.0
                 , repa >= 3.0.0.1
-                , repa-algorithms >= 3.0.0.1
                 , temporary >= 1.1.1
                 , vector >= 0.9
                 , vector-th-unbox >= 0.2.1.0
