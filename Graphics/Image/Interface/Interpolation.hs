@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns #-}
 module Graphics.Image.Interface.Interpolation (
   Interpolation(..), Method(..)
   ) where

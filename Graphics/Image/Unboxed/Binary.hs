@@ -5,7 +5,6 @@ module Graphics.Image.Unboxed.Binary (
 
 import Prelude hiding (zipWith)
 import qualified Graphics.Image.Interface.Binary as B
-import Graphics.Image.Interface.Pixel (pixel)
 import Graphics.Image.Unboxed.Pixel
 import Graphics.Image.Unboxed.Internal
 
@@ -52,6 +51,7 @@ instance (Pixel px, Ord px) => B.Compareble (Image px) (Image px) Image where
   (.<=.) = toBinary2 (<=)
   (.>.)  = toBinary2 (>)
   (.>=.) = toBinary2 (>=)
+  
 
 instance (Pixel px, Ord px) => B.Compareble px (Image px) Image where
   (.==.) !px = toBinary (==px)
@@ -70,19 +70,3 @@ instance (Pixel px, Ord px) => B.Compareble (Image px) px Image where
   (.>.)  !img !px = toBinary (> px) img
   (.>=.) !img !px = toBinary (>=px) img
 
-instance (Pixel px, Ord px, Inner px ~ Double) => B.Compareble Double (Image px) Image where
-  (.==.) !a = toBinary (==pixel a)
-  (./=.) !a = toBinary (/=pixel a)
-  (.<.)  !a = toBinary (< pixel a)
-  (.<=.) !a = toBinary (<=pixel a)
-  (.>.)  !a = toBinary (> pixel a)
-  (.>=.) !a = toBinary (>=pixel a)
-
-
-instance (Pixel px, Ord px, Inner px ~ Double) => B.Compareble (Image px) Double Image where
-  (.==.) !img !a = toBinary (==pixel a) img
-  (./=.) !img !a = toBinary (/=pixel a) img
-  (.<.)  !img !a = toBinary (< pixel a) img
-  (.<=.) !img !a = toBinary (<=pixel a) img
-  (.>.)  !img !a = toBinary (> pixel a) img
-  (.>=.) !img !a = toBinary (>=pixel a) img

@@ -10,7 +10,7 @@ module Graphics.Image.Repa.Internal (
   ) where
 
 import Prelude hiding (map, zipWith, maximum, minimum, sum)
-import qualified Prelude as P (floor, map)
+import qualified Prelude as P (map)
 import Graphics.Image.Interface hiding (Pixel)
 import Graphics.Image.Repa.Pixel (Pixel)
 import Data.Array.Repa as R hiding (
@@ -19,12 +19,12 @@ import Data.Array.Repa as R hiding (
 import qualified Data.Array.Repa as R (
   index, unsafeIndex, map, zipWith, traverse, traverse2, traverse3,
   transpose, backpermute)
-import Data.Vector.Unboxed (Vector, fromList, singleton)
+import Data.Vector.Unboxed (Unbox, Vector, fromList, singleton)
 
 
 {- | Image that uses Repa Unboxed Array as an underlying representation. -}
 data Image px where
-  ComputedImage  :: Pixel px => !(Array U DIM2 px) -> Image px
+  ComputedImage  :: (Unbox px, Pixel px) => !(Array U DIM2 px) -> Image px
   AbstractImage  :: Pixel px => !(Array D DIM2 px) -> Image px
   Singleton      :: Pixel px => !px -> Image px
 
@@ -35,10 +35,10 @@ data RepaStrategy img px where
 
 
 instance Pixel px => Strategy RepaStrategy Image px where
-  compute Sequential (AbstractImage arr) = ComputedImage $ computeS arr
-  compute Parallel (AbstractImage arr) =  arr' `deepSeqArray` ComputedImage arr'
-    where arr' = head $ computeP arr
-  compute _ img = img
+  compute Sequential (AbstractImage !arr) = ComputedImage $ computeS arr
+  compute Parallel (AbstractImage !arr) =  arr' `deepSeqArray` ComputedImage arr'
+    where !arr' = head $ computeP arr
+  compute _ !img = img
   {-# INLINE compute #-}
 
   fold Sequential op px (AbstractImage arr) = foldAllS op px arr

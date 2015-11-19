@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns, FlexibleContexts, MultiParamTypeClasses #-}
 module Graphics.Image.Interface.Binary (
   Compareble (..), toBinary, toBinary2, fromBinary, invert
   ) where

@@ -6,12 +6,11 @@ module Graphics.Image.Repa (
   -- * Pixel referencing
   index, unsafeIndex, defaultIndex, maybeIndex,
   -- * Interpolation
-  Interpolation(..), interpolate,
+  Interpolation(..),
   -- * IO
   setDisplayProgram, OutputFormat(..), SaveOption(..), Encoder, Saveable(..)
   ) where
 
-import Prelude
 
 import Graphics.Image.Interface.IO
 import Graphics.Image.Repa.Internal (
