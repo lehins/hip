@@ -24,7 +24,7 @@ module Graphics.Image.Repa.Sequential (
   -- * Conversion
   fromArray, toArray, fromVector, toVector, fromLists, toLists,
   -- * IO
-  readGrayImage, readColorImage, readImage,
+  readImageGray, readImageGrayA, readImageRGB, readImageRGBA,
   IO.SaveOption(..),
   writeImage, displayImage
   ) where
@@ -238,16 +238,22 @@ toArray :: (Pixel px) =>
 toArray = I.toArray I.Sequential
 
 
-readGrayImage :: FilePath -> IO (Image Gray)
-readGrayImage !f = fmap compute $ IO.readImage f
+-- IO
+
+readImageGray :: FilePath -> IO (Image Gray)
+readImageGray = fmap compute . IO.readImage
 
 
-readColorImage :: FilePath -> IO (Image RGB)
-readColorImage !f = fmap compute $ IO.readImage f
+readImageGrayA :: FilePath -> IO (Image (Alpha Gray))
+readImageGrayA = fmap compute . IO.readImage
 
 
-readImage :: (IO.Readable Image px, Pixel px) => FilePath -> IO (Image px)
-readImage !f = fmap compute $ IO.readImage f
+readImageRGB :: FilePath -> IO (Image RGB)
+readImageRGB = fmap compute . IO.readImage
+
+
+readImageRGBA :: FilePath -> IO (Image (Alpha RGB))
+readImageRGBA = fmap compute . IO.readImage
 
 
 writeImage :: (IO.Saveable Image px, Pixel px) =>

@@ -2,7 +2,6 @@ all: Main
 
 Main: Main.hs
 	ghc $@ -i/home/lehins/github/hip/ -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
-	./Main +RTS
 
 debug: Main.hs
 	ghc Main -i/home/lehins/github/hip/ -Wall

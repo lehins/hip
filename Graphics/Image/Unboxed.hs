@@ -82,15 +82,16 @@ readImageGray :: FilePath -> IO (Image Gray)
 readImageGray = IO.readImage
 
 
--- | Read any supported image file as a color image in RGB colorspace.
-readImageRGB :: FilePath -> IO (Image RGB)
-readImageRGB = IO.readImage
-
 -- | Same as 'readGrayImage', but reads it in with an alpha channel. If an image
 -- file doesn't have an alpha channel, it will be added with opacity set to
 -- @1.0@.
-readImageGrayA :: FilePath -> IO (Image (Alpha RGB))
+readImageGrayA :: FilePath -> IO (Image (Alpha Gray))
 readImageGrayA = IO.readImage
+
+
+-- | Read any supported image file as a color image in RGB colorspace.
+readImageRGB :: FilePath -> IO (Image RGB)
+readImageRGB = IO.readImage
 
 
 -- | Same as 'readGrayRGB', but reads it in with an alpha channel. If an image

@@ -487,6 +487,17 @@ instance (AImage img RGB,
   convert (ImageRGBA16 i) = jpImageToImage i
   convert img = map (Alpha 1) $ convert img
 
+
+instance (AImage img Gray,
+          AImage img (Alpha Gray),
+          Interconvertible DynamicImage (img Gray)
+         ) => Interconvertible DynamicImage (img (Alpha Gray)) where
+  convert (ImageYA8 i) = jpImageToImage i
+  convert (ImageYA16 i) = jpImageToImage i
+  convert (ImageRGBA8 i) = jpImageToImage i
+  convert (ImageRGBA16 i) = jpImageToImage i
+  convert img = map (Alpha 1) $ convert img
+
   
 --------------------------------------------------------------------------------
 -- Netpbm ------------------------------------------------------------------
