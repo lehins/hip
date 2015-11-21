@@ -32,19 +32,20 @@ reshape' :: Array D DIM2 RGB -> Array D DIM2 RGB
 reshape' arr@(extent -> (Z :. r :. c)) = reshape (Z :. r*2 :. c `div` 2) arr
 
 
-multS :: Array U DIM2 RGB -> Array U DIM2 RGB -> Array U DIM2 RGB
-multS arr1@(extent -> (Z :. m1 :. _)) arr2@(extent -> (Z :. _ :. n2)) =
-  computeS $ fromFunction (Z :. m1 :. n2) getPx where
+mult :: Array U DIM2 RGB -> Array U DIM2 RGB -> Array D DIM2 RGB
+mult arr1@(extent -> (Z :. m1 :. _)) arr2@(extent -> (Z :. _ :. n2)) =
+  fromFunction (Z :. m1 :. n2) getPx where
     getPx (Z:. i :. j) = sumAllS $ zipWith (*)
                          (slice arr1 (Any :. (i :: Int) :. All))
                          (slice arr2 (Any :. (j :: Int)))
 
 
--- | WRONG: nested parallelism.
+
+-- | CORRECT: no nested parallelism, since sum is sequential
 multP :: Array U DIM2 RGB -> Array U DIM2 RGB -> Array U DIM2 RGB
 multP arr1@(extent -> (Z :. m1 :. _)) arr2@(extent -> (Z :. _ :. n2)) =
   head $ computeP $ fromFunction (Z :. m1 :. n2) getPx where
-    getPx (Z:. i :. j) = head $ sumAllP $ zipWith (*)
+    getPx (Z:. i :. j) = sumAllS $ (*^)
                          (slice arr1 (Any :. (i :: Int) :. All))
                          (slice arr2 (Any :. (j :: Int)))
 
@@ -53,9 +54,28 @@ multP arr1@(extent -> (Z :. m1 :. _)) arr2@(extent -> (Z :. _ :. n2)) =
 multP' :: Array U DIM2 RGB -> Array U DIM2 RGB -> Array U DIM2 RGB
 multP' arr1@(extent -> (Z :. m1 :. _)) arr2@(extent -> (Z :. _ :. n2)) =
   head $ computeP $ fromFunction (Z :. m1 :. n2) getPx where
-    getPx (Z:. i :. j) = sumAllS $ zipWith (*)
+    getPx (Z:. i :. j) = V.foldl1 (+) $ toUnboxed $ computeS $ zipWith (*)
                          (slice arr1 (Any :. (i :: Int) :. All))
                          (slice arr2 (Any :. (j :: Int)))
+
+
+multP'' :: Array U DIM2 RGB -> Array U DIM2 RGB -> Array U DIM2 RGB
+multP'' arr1 arr2 = head $ computeP $ traverse2 arr1 arr2 getSh getPx where
+  getSh (Z :. m1 :. _) (Z :. _ :. n2) = (Z :. m1 :. n2)
+  getPx _ _ (Z :. i :. j) = sumAllS $ zipWith (*)
+                            (slice arr1 (Any :. (i :: Int) :. All))
+                            (slice arr2 (Any :. (j :: Int)))
+
+
+-- | CORRECT: no nested parallelism, since sum is sequential
+multP''' :: Array U DIM2 RGB -> Array U DIM2 RGB -> Array U DIM2 RGB
+multP''' arr1@(extent -> (Z :. m1 :. _)) arr2@(extent -> (Z :. _ :. n2)) =
+  head $ computeP $ fromFunction (Z :. m1 :. n2) getPx where
+    getPx (Z:. i :. j) =
+      sumAllS $ zipWith (*)
+      ((computeS $ slice arr1 (Any :. (i :: Int) :. All)) :: Array U DIM1 RGB)
+      ((computeS $ slice arr2 (Any :. (j :: Int))) :: Array U DIM1 RGB)
+
 
 
 displayA :: (I.Saveable I.Image px, Pixel px) => Array D DIM2 px -> IO ()
@@ -66,10 +86,11 @@ displayA arr = do
 main :: IO ()  
 main = do
   frog <- I.readImageRGB "frog.jpg"
+  --let !frogA = I.toArray frog
+  {-
   centaurus <- I.readImageRGB "centaurus-galaxy.jpg" -- 400x640
   cluster <- I.readImageRGB "star-cluster.jpg" -- 624x640
 
-  let frogA = I.toArray frog
   let !centaurusA = I.toArray centaurus
   let !clusterA = I.toArray cluster
   
@@ -110,12 +131,12 @@ main = do
     (\getPx1 getPx2 idx -> (getPx1 idx + getPx2 idx) / 2)
   
   -- | What to pay attention to
-
-  -- | Expensive computation comparison:
-  -- | INCORRECT Parallel computation
-  let !frogAtC = head $ computeP $ transpose frogA
-  I.writeImage "mult_p.jpg" (I.fromArray $ multP frogA frogAtC) []
-
+  -}
+  --let !frogAtC = head $ computeP $ transpose frogA
+  --I.writeImage "mult_p.jpg" (I.fromArray $ multP frogA frogAtC) []
+  I.writeImage "mult_p.jpg" (I.mult frog $ I.transpose frog) []
+  
+  {-
   
   -- | Sequential
   let !frogAtS = computeS $ transpose frogA
@@ -125,5 +146,5 @@ main = do
   let frogAtP = head $ computeP $ transpose frogA
   I.writeImage "mult_p.jpg" (I.fromArray $ multP' frogA frogAtP) []
   I.writeImage "mult_p.jpg" (I.fromArray $ multP' frogA (deepSeqArray frogAtP frogAtP)) []
-
+  -}
   return ()

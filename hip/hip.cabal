@@ -1,0 +1,73 @@
+name:              hip
+version:           1.0.0.0
+license:           MIT
+license-file:      LICENSE
+author:            Alexey Kuleshevich, Joseph Collard, Lance Williams
+stability:         experimental
+maintainer:        lehins@yandex.ru
+category:          Image Processing
+synopsis:          An Image Processing Library.
+
+description:
+  The University of New Mexico's Haskell Image Processing library contains functionality for performing manipulations on binary, grayscale, color, and complex images. The library was designed for use in UNM's Digital Image Processing class but it can be used for a wide range of image processing purposes.
+cabal-version:     >= 1.6
+build-type:        Simple
+extra-doc-files:   images/*.jpg
+                 , images/*.png
+
+library
+  hs-source-dirs: src
+  build-depends:  base >= 4.5 && < 5
+                , bytestring >= 0.9.0.4
+                , JuicyPixels >= 3.1
+                , netpbm >= 1.0.1
+                , filepath >= 1.1
+                , process >= 1.1.0.0
+                , temporary >= 1.1.1
+                , vector >= 0.9 && < 0.11
+                , vector-th-unbox >= 0.2.1.0
+	  
+  extensions:     BangPatterns
+                , GADTs
+                , FlexibleContexts
+                , FlexibleInstances
+                , FunctionalDependencies
+                , MultiParamTypeClasses
+                , NoMonomorphismRestriction
+                , TemplateHaskell
+                , TypeFamilies
+                , ViewPatterns
+                    
+  exposed-modules: HIP
+                 , HIP.Interface
+                 , HIP.Binary
+                 , HIP.Complex
+                 , HIP.Conversion
+                 , HIP.Interpolation
+                 , HIP.IO
+                 , HIP.Processing
+                 , HIP.Pixel
+                 , Graphics.Image
+                 , Graphics.Image.Binary
+                 , Graphics.Image.Pixel
+
+  other-modules:   HIP.Binary.Pixel
+                 , HIP.Complex.Pixel
+                 , HIP.Complex.Fourier
+                 , HIP.External
+                 , HIP.Pixel.Gray
+                 , HIP.Pixel.RGB
+                 , HIP.Pixel.HSI
+                 , HIP.Pixel.Alpha
+                 , HIP.Processing.Convolution
+                 , HIP.Processing.Geometric
+                 , Graphics.Image.Internal
+
+  ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
+
+--executable examples
+--  main-is:         Main.hs
+
+source-repository head
+  type:     git
+  location: https://github.com/lehins/hip
