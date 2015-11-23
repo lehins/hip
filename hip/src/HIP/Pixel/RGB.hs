@@ -20,6 +20,15 @@ instance Pixel RGB where
   pxOp2 f (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
   {-# INLINE pxOp2 #-}
 
+  size _ = 3
+  {-# INLINE size #-}
+
+  ref 0 (RGB r _ _) = r
+  ref 1 (RGB _ g _) = g
+  ref 2 (RGB _ _ b) = b
+  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  {-# INLINE ref #-}
+
   strongest (RGB r g b) = pixel . maximum $ [r, g, b]
   {-# INLINE strongest #-}
 

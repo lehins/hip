@@ -1,13 +1,16 @@
-module HIP.Processing (
+module HIP.Algorithms (
   flipH, flipV,
-  module HIP.Processing.Convolution,
-  module HIP.Processing.Geometric
+  module HIP.Algorithms.Convolution,
+  module HIP.Algorithms.Fourier,
+  module HIP.Algorithms.Geometric,
+  module HIP.Algorithms.Interpolation
   ) where
 
 import HIP.Interface
-import HIP.Processing.Geometric
-import HIP.Processing.Convolution
-
+import HIP.Algorithms.Convolution
+import HIP.Algorithms.Fourier
+import HIP.Algorithms.Geometric
+import HIP.Algorithms.Interpolation
 
 flipV :: AImage img px => img px -> img px
 flipV !img@(dims -> (m, n)) = backpermute m n getNewIndex img where

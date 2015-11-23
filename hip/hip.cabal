@@ -26,6 +26,7 @@ library
                 , temporary >= 1.1.1
                 , vector >= 0.9 && < 0.11
                 , vector-th-unbox >= 0.2.1.0
+                , easyplot >= 1.0
 	  
   extensions:     BangPatterns
                 , GADTs
@@ -39,28 +40,29 @@ library
                 , ViewPatterns
                     
   exposed-modules: HIP
-                 , HIP.Interface
                  , HIP.Binary
                  , HIP.Complex
                  , HIP.Conversion
-                 , HIP.Interpolation
+                 , HIP.Interface
                  , HIP.IO
-                 , HIP.Processing
                  , HIP.Pixel
+                 , HIP.Algorithms
+                 , HIP.Algorithms.Convolution
+                 , HIP.Algorithms.Fourier
+                 , HIP.Algorithms.Geometric
+                 , HIP.Algorithms.Interpolation
                  , Graphics.Image
                  , Graphics.Image.Binary
                  , Graphics.Image.Pixel
 
   other-modules:   HIP.Binary.Pixel
                  , HIP.Complex.Pixel
-                 , HIP.Complex.Fourier
                  , HIP.External
+                 , HIP.Pixel.Base
                  , HIP.Pixel.Gray
                  , HIP.Pixel.RGB
                  , HIP.Pixel.HSI
                  , HIP.Pixel.Alpha
-                 , HIP.Processing.Convolution
-                 , HIP.Processing.Geometric
                  , Graphics.Image.Internal
 
   ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3

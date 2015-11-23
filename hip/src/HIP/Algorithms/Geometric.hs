@@ -1,5 +1,5 @@
 {-# LANGUAGE ViewPatterns, BangPatterns, FlexibleContexts #-}
-module HIP.Processing.Geometric (
+module HIP.Algorithms.Geometric (
   scale, resize, rotate, rotate',
   downsampleRows, downsampleCols, downsample, downsampleF,
   upsampleRows, upsampleCols, upsample, upsampleF,
@@ -9,7 +9,7 @@ module HIP.Processing.Geometric (
 import Prelude hiding (map, zipWith)
 import Data.Complex
 import HIP.Interface
-import HIP.Interpolation
+import HIP.Algorithms.Interpolation
 
 {- | Scale an image by a factor while using interpolation.
 

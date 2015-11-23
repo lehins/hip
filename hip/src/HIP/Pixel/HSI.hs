@@ -21,6 +21,15 @@ instance Pixel HSI where
   pxOp2 !f !(HSI h1 s1 i1) (HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
   {-# INLINE pxOp2 #-}
 
+  size _ = 3
+  {-# INLINE size #-}
+
+  ref 0 (HSI h _ _) = h
+  ref 1 (HSI _ s _) = s
+  ref 2 (HSI _ _ i) = i
+  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  {-# INLINE ref #-}
+
   strongest !(HSI h s i)                  = pixel . maximum $ [h, s, i]
   {-# INLINE strongest #-}
 

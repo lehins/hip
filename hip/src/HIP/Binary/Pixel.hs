@@ -54,25 +54,26 @@ inverted (Binary (Bin v)) = fromBool . not $ v
 
 
 instance Num Bin where
-  (Bin False) + (Bin False)  = Bin False
-  _     + _      = Bin True
+  (Bin False) + (Bin False) = Bin False
+  _           + _           = Bin True
   {-# INLINE (+) #-}
 
-  (Bin True)  - (Bin True)   = Bin False
-  (Bin False) - _      = Bin False
-  _     - _      = Bin True
+  (Bin True)  - (Bin True)  = Bin False
+  (Bin False) - _           = Bin False
+  _           - _           = Bin True
   {-# INLINE (-) #-}
 
-  (Bin True)  * (Bin True)   = Bin True
-  _     * _      = Bin False
+  (Bin True)  * (Bin True)  = Bin True
+  _           * _           = Bin False
   {-# INLINE (*) #-}
 
-  abs v            = v
+  abs !v            = v
   {-# INLINE abs #-}
-  signum v         = v
+  
+  signum !v         = v
   {-# INLINE signum #-}
 
-  fromInteger i = Bin $ if i == 0 then False else True
+  fromInteger !i = Bin $ if i == 0 then False else True
   {-# INLINE fromInteger #-}
 
 
@@ -92,12 +93,19 @@ instance Pixel Binary where
   pixel _                         = on
   {-# INLINE pixel #-}
   
-  pxOp f (Binary b)               = Binary (f b)
+  pxOp !f !(Binary b)               = Binary (f b)
   {-# INLINE pxOp #-}
   
-  pxOp2 f (Binary b1) (Binary b2) = Binary (f b1 b2)
+  pxOp2 !f !(Binary b1) !(Binary b2) = Binary (f b1 b2)
   {-# INLINE pxOp2 #-}
 
+  size _ = 1
+  {-# INLINE size #-}
+
+  ref 0 !(Binary y) = y
+  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  {-# INLINE ref #-}
+  
   strongest                       = id
   {-# INLINE strongest #-}
 
@@ -119,6 +127,7 @@ instance Num Binary where
 
   abs           = pxOp abs
   {-# INLINE abs #-}
+
   signum        = pxOp signum
   {-# INLINE signum #-}
 

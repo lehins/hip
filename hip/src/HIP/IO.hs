@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
 module HIP.IO (
-  readImage, writeImage, displayImage, setDisplayProgram,
+  readImage, writeImage, displayImage, displayHistograms, setDisplayProgram,
   OutputFormat(..), SaveOption(..), Encoder, Saveable(..), Readable
   ) where
 
@@ -8,8 +8,10 @@ import Prelude as P hiding (readFile, writeFile)
 import Data.Char (toLower)
 import Data.IORef
 import Data.ByteString (readFile)
-import HIP.Interface (AImage, Strategy(compute))
+import qualified Graphics.EasyPlot as Plot
+import HIP.Interface (AImage, Strategy(compute), Pixel(..))
 import HIP.External
+import HIP.Histogram (getHistograms)
 import qualified Data.ByteString.Lazy as BL (writeFile)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeExtension)
@@ -142,3 +144,29 @@ displayUsing strat img program tmpDir = do
       printExit exitCode = print exitCode
   printExit e
   
+
+
+displayHistograms :: (Strategy strat img (Inner px), AImage img px,
+                      Enum (Inner px), Fractional (Inner px), RealFrac (Inner px)) =>
+                     strat img (Inner px)
+                  -> Int 
+                  -> img px
+                  -> IO ()
+displayHistograms strat steps img = do
+  program <- readIORef displayProgram
+  let plots = getHistograms strat steps img
+  withSystemTempDirectory "hip_" (displayHistogramsUsing plots program)
+
+
+displayHistogramsUsing :: Plot.Plot a =>
+                          a -> String -> FilePath -> IO ()
+displayHistogramsUsing plots program tmpDir = do
+  let path = tmpDir </> "tmp-hist.png"
+  wrote <- Plot.plot (Plot.PNG path) plots
+  if wrote
+    then do ph <- runCommand (program ++ " " ++ path)
+            e <- waitForProcess ph
+            let printExit ExitSuccess = return ()
+                printExit exitCode = print exitCode
+            printExit e
+    else print "Was unsuccessfull in using gnuplot, make sure it is installed."

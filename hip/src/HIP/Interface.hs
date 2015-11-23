@@ -9,7 +9,7 @@ module HIP.Interface (
   ) where
 
 import Prelude hiding (map, sum, minimum, maximum)
-
+import qualified Data.Vector as V (Vector)
 
 class (Eq px, Num px, Show px,
        Eq (Inner px), Num (Inner px), Show (Inner px), Ord (Inner px)
@@ -23,6 +23,10 @@ class (Eq px, Num px, Show px,
 
   pxOp2 :: (Inner px -> Inner px -> Inner px) -> px -> px -> px
 
+  size :: px -> Int
+
+  ref :: Int -> px -> Inner px
+
   strongest :: px -> px
 
   weakest :: px -> px
@@ -30,22 +34,24 @@ class (Eq px, Num px, Show px,
   showType :: px -> String
 
 
-class (AImage img px, Pixel px) => Strategy strat img px where
+class AImage img px => Strategy strat img px where
   
   -- | Make sure an AImage is in a computed form.
-  compute :: Pixel px =>
-             strat img px -- ^ a strategy for computing this image.
+  compute :: strat img px -- ^ a strategy for computing this image.
              -> img px    -- ^ image to be computed.
              -> img px
 
   -- | Fold an AImage.
-  fold :: Pixel px =>
-          strat img px
+  fold :: strat img px
           -> (px -> px -> px)
           -> px
           -> img px
           -> px
-  {-# MINIMAL (compute, fold) #-}
+
+  -- | Convert an image to a flat Boxed Vector
+  toBoxedVector :: strat img px -> img px -> V.Vector px
+  
+  {-# MINIMAL (compute, fold, toBoxedVector) #-}
   
   -- | Sum all pixels of the image
   sum :: (Strategy strat img px, AImage img px, Pixel px) =>
@@ -56,14 +62,15 @@ class (AImage img px, Pixel px) => Strategy strat img px where
   {-# INLINE sum #-}
 
   -- | Convert an AImage to a list of lists of Pixels.
-  toLists :: Pixel px =>
-             strat img px
-             -> img px
-             -> [[px]]
-  toLists !strat !img =
+  toList :: Pixel px =>
+            strat img px
+            -> img px
+            -> [[px]]
+  toList !strat !img =
     [[index img' i j | j <- [0..n - 1]] | i <- [0..m - 1]] where
       !(m, n) = dims img
       !img' = compute strat img
+
       
 
 {- | This is an abstract image interface. -}
@@ -89,9 +96,9 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
           -> img px
           
   -- | Convert a nested List of Pixels to an AImage.
-  fromLists :: [[px]] -> img px
+  fromList :: [[px]] -> img px
   
-  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromLists) #-}
+  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromList) #-}
   
   -- | Get the number of rows in the image 
   rows :: img px -> Int

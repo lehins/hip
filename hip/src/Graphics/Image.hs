@@ -8,7 +8,7 @@
 -- Portability : non-portable
 --
 -- Haskell Image Processing (HIP) library. This implementation uses Unboxed
--- 'Vector's from <http://hackage.haskell.org/package/vector Vector> package as
+-- Vectors from <http://hackage.haskell.org/package/vector Vector> package as
 -- an underlying representation for images.
 
 module Graphics.Image (
@@ -47,14 +47,14 @@ module Graphics.Image (
   toComplexImage, fromComplexImage,
   graysToRGB, graysToHSI, rgbToGrays, hsiToGrays,
   fromVector, toVector,
-  fromLists, toLists,
+  fromList, toList,
   -- * Input/Output
   -- $io
   -- ** Reading image files
   readImageGray, readImageRGB, readImageGrayA, readImageRGBA,
   -- ** Writing or displaying images
   writeImage,
-  displayImage, IO.setDisplayProgram,
+  displayImage, displayHistograms, IO.setDisplayProgram,
   IO.SaveOption(..), IO.OutputFormat(..), IO.Saveable(..)
   ) where
 
@@ -62,12 +62,13 @@ import Prelude hiding (map, zipWith, maximum, minimum)
 import Graphics.Image.Internal (Image, VectorStrategy(..), fromVector, toVector)
 import qualified HIP.Interface as I
 import qualified HIP.Conversion as C
-import qualified HIP.Interpolation as I
-import qualified HIP.Processing as I
+import qualified HIP.Algorithms as I
 import qualified HIP.IO as IO
 import Graphics.Image.Binary
 import Graphics.Image.Pixel
 
+import HIP.Histogram
+import Graphics.EasyPlot
 
 --------------------------------------------------------------------------------
 ---- IO ------------------------------------------------------------------------
@@ -128,6 +129,15 @@ displayImage :: (IO.Saveable Image px, Pixel px) =>
                 Image px -- ^ Image to be displayed.
              -> IO ()
 displayImage = IO.displayImage Identity
+
+
+--  >>> frog <- readImageRGB "images/frog.jpg"
+--  >>> displayImage frog
+--
+--displayHistograms :: (IO.Saveable Image px, Pixel px) =>
+--                     Image px -- ^ Image to be displayed.
+--                  -> IO ()
+displayHistograms = IO.displayHistograms Identity
 
 --------------------------------------------------------------------------------
 ---- Accessing and creeating ---------------------------------------------------
@@ -736,7 +746,7 @@ fromComplexImage = C.fromComplexImage
 
 
 -- | Convert an RGB image to a three tuple of images containing (Red, Green, Blue)
--- values as 'Gray' values.
+-- values as 'Gray' pixels.
 --
 -- >>> let (red, green, blue) = rgbToGrays frog
 -- writeImage "images/frog_red.png" red []
@@ -750,7 +760,7 @@ rgbToGrays = C.rgbToGrays
 
 
 -- | Convert an HSI image to a three tuple of images containing (Hue, Saturation, Intensity)
--- values as 'Gray' values.
+-- values as 'Gray' pixels.
 --
 -- >>> let (hue, saturation, intensity) = hsiToGrays $ toHSIImage frog
 -- >>> writeImage "images/frog_hue.png" ((hue + pi) / (2 * pi)) []
@@ -786,23 +796,23 @@ graysToHSI = C.graysToHSI
 -- | Convert an image into a nested list of pixel. Outer layer will be of length
 -- @m@ and inner all lists will be of length @n@.
 --
--- >>> toLists $ make 2 3 (\i j -> Gray $ fromIntegral (i+j))
+-- >>> toList $ make 2 3 (\i j -> Gray $ fromIntegral (i+j))
 -- [[<Gray:(0.0)>,<Gray:(1.0)>,<Gray:(2.0)>],[<Gray:(1.0)>,<Gray:(2.0)>,<Gray:(3.0)>]]
 --
-toLists :: Pixel px => Image px -> [[px]]
-toLists = I.toLists Identity
+toList :: Pixel px => Image px -> [[px]]
+toList = I.toList Identity
 
 
 -- | Convert double nested lists into a two dimensional image. Length of an
 -- outer list will constitute @m@ rows and length of inner lists - @n@
 -- columns. All inner lists have to be the same length greater than 0.
 --
--- >>> fromLists [[Gray $ fromIntegral (i*j) | j <- [0..300]] | i <- [0..200]] / 60000
+-- >>> fromList [[Gray $ fromIntegral (i*j) | j <- [0..300]] | i <- [0..200]] / 60000
 -- <Image Gray: 200x300>
 --
--- <<images/grad_fromLists.png>>
+-- <<images/grad_fromList.png>>
 --
-fromLists :: Pixel px => [[px]] -> Image px
-fromLists = I.fromLists
+fromList :: Pixel px => [[px]] -> Image px
+fromList = I.fromList
 
 

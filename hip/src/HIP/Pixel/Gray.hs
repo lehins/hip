@@ -13,40 +13,47 @@ newtype Gray = Gray Double deriving Eq
 
 instance Pixel Gray where
   type Inner Gray = Double
-  pixel d                     = Gray d
+  pixel                          = Gray 
   {-# INLINE pixel #-}
   
-  pxOp f (Gray y)             = Gray (f y)
+  pxOp !f !(Gray y)              = Gray (f y)
   {-# INLINE pxOp #-}
   
-  pxOp2 f (Gray y1) (Gray y2) = Gray (f y1 y2)
+  pxOp2 !f !(Gray y1) !(Gray y2) = Gray (f y1 y2)
   {-# INLINE pxOp2 #-}
 
-  strongest                   = id
+  size _ = 1
+  {-# INLINE size #-}
+
+  ref 0 !(Gray y) = y
+  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  {-# INLINE ref #-}
+
+  strongest                      = id
   {-# INLINE strongest #-}
 
-  weakest                     = id
+  weakest                        = id
   {-# INLINE weakest #-}
 
-  showType _                  = "Gray"
+  showType _                     = "Gray"
 
 
 instance Num Gray where
-  (+)           = pxOp2 (+)
+  (+)         = pxOp2 (+)
   {-# INLINE (+) #-}
 
-  (-)           = pxOp2 (-)
+  (-)         = pxOp2 (-)
   {-# INLINE (-) #-}
 
-  (*)           = pxOp2 (*)
+  (*)         = pxOp2 (*)
   {-# INLINE (*) #-}
 
-  abs           = pxOp abs
+  abs         = pxOp abs
   {-# INLINE abs #-}
-  signum        = pxOp signum
+  signum      = pxOp signum
   {-# INLINE signum #-}
 
-  fromInteger n = Gray . fromIntegral $ n
+  fromInteger = Gray . fromIntegral
   {-# INLINE fromInteger #-}
 
 
@@ -103,7 +110,7 @@ instance Floating Gray where
 
 
 instance Ord Gray where
-  (Gray y1) <= (Gray y2) = y1 <= y2
+  (<=) !(Gray y1) !(Gray y2) = y1 <= y2
   {-# INLINE (<=) #-}
 
 

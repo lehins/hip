@@ -1,12 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Internal (
   Image, VectorStrategy(..), toVector, fromVector
   ) where
 
 import Prelude hiding (map, zipWith, length, all, head, concat, foldl)
 import qualified Prelude as P (map, length, all, head, concat)
-import Data.Vector.Unboxed hiding ((++), map, zipWith, unsafeIndex)
-import qualified Data.Vector.Unboxed as V (unsafeIndex, length)
+import Data.Vector.Unboxed hiding ((++), map, zipWith, unsafeIndex, fromList)
+import qualified Data.Vector.Unboxed as V (unsafeIndex, length, fromList)
 import HIP.Interface hiding (Pixel)
 import Graphics.Image.Pixel (Pixel)
 
@@ -38,6 +39,9 @@ instance Pixel px => Strategy VectorStrategy Image px where
   compute _ !img = img
 
   fold    _ f a !img = foldl f a $ toVector img
+
+  toBoxedVector _ img = convert $ toVector img
+  
 
 
 toIndex :: Int -> Int -> Int -> Int
@@ -74,13 +78,13 @@ instance (Pixel px) => AImage Image px where
       {-# INLINE getPx #-}
   {-# INLINE zipWith #-}
   
-  fromLists !ls = if isSquare
-                  then (fromVector m n) . fromList . P.concat $ ls
-                  else error "fromLists: Inner lists do not have uniform length."
+  fromList !ls = if isSquare
+                 then (fromVector m n) . V.fromList . P.concat $ ls
+                 else error "fromLists: Inner lists do not have uniform length."
     where
       (m, n) = (P.length ls, P.length $ P.head ls)
       isSquare = (n > 0) && (P.all (==n) $ P.map P.length ls)
-  {-# INLINE fromLists #-}
+  {-# INLINE fromList #-}
 
 
 

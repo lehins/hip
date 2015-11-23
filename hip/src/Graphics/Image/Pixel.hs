@@ -142,3 +142,6 @@ derivingUnbox "AlphaPixel"
     [| \(a, px) -> Alpha a px                       |]
 
 
+-- All base types:
+
+instance Pixel Double where

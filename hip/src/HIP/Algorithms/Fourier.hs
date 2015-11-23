@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
-module HIP.Complex.Fourier (
+module HIP.Algorithms.Fourier (
   fft, ifft
   ) where
 
@@ -7,7 +7,7 @@ import Prelude hiding (map)
 import Data.Bits ((.&.))
 import HIP.Interface
 import HIP.Complex.Pixel
-import HIP.Processing.Geometric (leftToRight)
+import HIP.Algorithms.Geometric (leftToRight)
 
 
 data Mode = Forward

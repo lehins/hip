@@ -30,7 +30,7 @@ data Alpha px where
 instance AlphaInner px => Pixel (Alpha px) where
   type Inner (Alpha px) = Inner px
 
-  pixel !v = Alpha 1 (pixel v)
+  pixel = Alpha 1 . pixel
   {-# INLINE pixel #-}
   
   pxOp !op !(Alpha a px) = Alpha a (pxOp op px)
@@ -38,6 +38,13 @@ instance AlphaInner px => Pixel (Alpha px) where
 
   pxOp2 !op !(Alpha a1 px1 ) (Alpha _ px2) = Alpha a1 (pxOp2 op px1 px2) 
   {-# INLINE pxOp2 #-}
+
+  size (Alpha _ px) = 1 + size px
+  {-# INLINE size #-}
+
+  ref 0 (Alpha a _) = a
+  ref n (Alpha _ px) = ref (n-1) px
+  {-# INLINE ref #-}
 
   strongest !(Alpha a px) = Alpha a (strongest px)
   {-# INLINE strongest #-}
@@ -49,33 +56,33 @@ instance AlphaInner px => Pixel (Alpha px) where
 
 
 instance AlphaInner px => Num (Alpha px) where
-  (+)           = pxOp2 (+)
+  (+)         = pxOp2 (+)
   {-# INLINE (+) #-}
   
-  (-)           = pxOp2 (-)
+  (-)         = pxOp2 (-)
   {-# INLINE (-) #-}
   
-  (*)           = pxOp2 (*)
+  (*)         = pxOp2 (*)
   {-# INLINE (*) #-}
   
-  abs           = pxOp abs
+  abs         = pxOp abs
   {-# INLINE abs #-}
   
-  signum        = pxOp signum
+  signum      = pxOp signum
   {-# INLINE signum #-}
   
-  fromInteger n = pixel . fromIntegral $ n
+  fromInteger = pixel . fromIntegral 
   {-# INLINE fromInteger #-}
 
 
 instance AlphaInner px => Fractional (Alpha px) where
-  (/)            = pxOp2 (/)
+  (/)          = pxOp2 (/)
   {-# INLINE (/) #-}
   
-  recip          = pxOp recip
+  recip        = pxOp recip
   {-# INLINE recip #-}
   
-  fromRational !n = pixel . fromRational $ n
+  fromRational = pixel . fromRational 
   {-# INLINE fromRational #-}
 
 
@@ -146,7 +153,7 @@ addAlpha px = Alpha 1 px
 dropAlpha :: AlphaInner px =>
              Alpha px
           -> px
-dropAlpha (Alpha _ px) = px
+dropAlpha !(Alpha _ px) = px
 {-# INLINE dropAlpha #-}
 
 
@@ -159,7 +166,7 @@ fmapAlpha :: AlphaInner px =>
              (Inner px -> Inner px)
              -> Alpha px
              -> Alpha px
-fmapAlpha f (Alpha a px) = Alpha (f a) px
+fmapAlpha !f !(Alpha a px) = Alpha (f a) px
 {-# INLINE fmapAlpha #-}
 
 
@@ -176,7 +183,7 @@ combineAlpha :: AlphaInner px =>
              -> Alpha px -- ^ First pixel
              -> Alpha px -- ^ Second Pixel
              -> Alpha px
-combineAlpha aOp2 pxOp2' (Alpha a1 px1) (Alpha a2 px2) = Alpha (aOp2 a1 a2) (pxOp2' px1 px2)
+combineAlpha !aOp2 !pxOp2' !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (aOp2 a1 a2) (pxOp2' px1 px2)
 {-# INLINE combineAlpha #-}
 
 

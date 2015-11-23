@@ -1,14 +1,12 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
 module HIP.Complex (
   (.+.), realPart, imagPart, magnitude, conjugate,
-  makeFilter,
-  fft, ifft
+  makeFilter
   ) where
 
 import Prelude hiding (map, zipWith)
 import HIP.Interface
 import HIP.Complex.Pixel
-import HIP.Complex.Fourier
 
 
 infix  6  .+.

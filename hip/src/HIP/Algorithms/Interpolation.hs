@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns #-}
-module HIP.Interpolation (
+module HIP.Algorithms.Interpolation (
   Interpolation(..), Method(..)
   ) where
 

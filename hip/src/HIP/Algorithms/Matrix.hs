@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
-module HIP.Processing.Matrix (
+module HIP.Algorithms.Matrix (
   crop,  (.*), flipH, flipV
   ) where
 

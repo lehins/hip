@@ -81,6 +81,16 @@ instance ComplexInner px => Pixel (Complex px) where
     (pxOp2 op px1 px1') :+: (pxOp2 op px2 px2')
   {-# INLINE pxOp2 #-}
 
+  size (px1 :+: px2) = size px1 + size px2
+  {-# INLINE size #-}
+
+  ref !n !px@(px1 :+: px2) =
+    if n < 0 || n >= size px
+    then error ("Referencing "++show n++"is out of bounds for "++showType px)
+    else if n < size1 then ref n px1 else ref (n-size1) px2
+    where !size1 = size px1
+  {-# INLINE ref #-}
+  
   strongest !(px1 :+: px2) = m :+: m
     where !m = pxOp2 max (strongest px1) (strongest px2)
   {-# INLINE strongest #-}
