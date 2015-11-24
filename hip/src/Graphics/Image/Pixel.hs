@@ -24,7 +24,6 @@ module Graphics.Image.Pixel (
   hsiToRGB, hsiToGray,
   -- ** Alpha
   module HIP.Pixel.Alpha,
-  AlphaInner,
   -- ** Binary
   module HIP.Binary.Pixel,
   -- ** Complex
@@ -32,19 +31,21 @@ module Graphics.Image.Pixel (
   ComplexInner
   ) where
 
+import Data.Int
+import Data.Word
 import Data.Vector.Unboxed (Unbox)
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
 import HIP.Pixel (
   grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Inner)
+import HIP.Pixel.Alpha
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
 import HIP.Pixel.HSI
-import HIP.Pixel.Alpha hiding (AlphaInner)
 import HIP.Binary.Pixel
 import HIP.Complex.Pixel hiding (ComplexInner)
-import qualified HIP.Pixel as P (ComplexInner, AlphaInner)
+import qualified HIP.Complex.Pixel as P (ComplexInner)
 import qualified HIP.Interface as I (Pixel(..))
 
 
@@ -57,11 +58,6 @@ class (Unbox px, I.Pixel px) => Pixel px where
 class (Unbox px, Unbox (Inner px), P.ComplexInner px
       ) => ComplexInner px where
 
--- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'. Also
--- Pixel that are instances of this class can be used with 'Alpha' pixel.
-class (Unbox px, Unbox (Inner px), P.AlphaInner px
-      ) => AlphaInner px where
-        
 
 -- | Unboxed Pixel  
 instance Pixel Binary where
@@ -76,10 +72,11 @@ instance Pixel RGB where
 instance Pixel HSI where
  
 -- | Unboxed Pixel  
-instance ComplexInner px => Pixel (Complex px) where
+instance (Unbox (Inner px), Pixel px) => Pixel (Alpha px) where
 
+  
 -- | Unboxed Pixel  
-instance AlphaInner px => Pixel (Alpha px) where
+instance ComplexInner px => Pixel (Complex px) where
   
 
 -- | Unboxed Pixel  
@@ -92,20 +89,9 @@ instance ComplexInner RGB where
 instance ComplexInner HSI where
 
 -- | Unboxed Pixel  
-instance (Pixel (Alpha px), ComplexInner px, AlphaInner px) =>
-         ComplexInner (Alpha px) where
+instance (Pixel (Alpha px), ComplexInner px) => ComplexInner (Alpha px) where
   
 
--- | Unboxed Pixel  
-instance AlphaInner Gray where
-
--- | Unboxed Pixel  
-instance AlphaInner RGB where
-
--- | Unboxed Pixel  
-instance AlphaInner HSI where
-
-  
 derivingUnbox "GrayPixel"
     [t| Gray -> Double |]
     [| \(Gray y) -> y  |]
@@ -137,11 +123,33 @@ derivingUnbox "ComplexPixel"
 
 
 derivingUnbox "AlphaPixel"
-    [t| AlphaInner px => Alpha px -> (Inner px, px) |]
-    [| \(Alpha a px) -> (a, px)                     |]
-    [| \(a, px) -> Alpha a px                       |]
+    [t| (Unbox (Inner px), Pixel px) => Alpha px -> (Inner px, px) |]
+    [| \(Alpha a px) -> (a, px)                                    |]
+    [| \(a, px) -> Alpha a px                                      |]
 
 
 -- All base types:
 
+instance Pixel Float where
+
 instance Pixel Double where
+
+instance Pixel Int where
+
+instance Pixel Int8 where
+
+instance Pixel Int16 where
+
+instance Pixel Int32 where
+
+instance Pixel Int64 where
+
+instance Pixel Word where
+
+instance Pixel Word8 where
+
+instance Pixel Word16 where
+
+instance Pixel Word32 where
+
+instance Pixel Word64 where

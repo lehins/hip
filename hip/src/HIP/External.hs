@@ -110,7 +110,6 @@ instance AImage img Gray => Readable img Gray where
 instance AImage img RGB => Readable img RGB where
 
 instance (
-  AlphaInner px,
   Readable img px,
   AImage img (Alpha px),
   Interconvertible DynamicImage (img (Alpha px))
@@ -261,22 +260,22 @@ instance Interconvertible PixelCMYK16 RGB where
 -- Alpha -> Alpha
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible Pixel8 px
+  Pixel px, Inner px ~ Double, Interconvertible Pixel8 px
   ) => Interconvertible PixelYA8 (Alpha px) where
   convert (PixelYA8 y a) = Alpha (fromWord8 a) (convert y)
   
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible Pixel16 px
+  Pixel px, Inner px ~ Double, Interconvertible Pixel16 px
   ) => Interconvertible PixelYA16 (Alpha px) where
   convert (PixelYA16 y a) = Alpha (fromWord16 a) (convert y)
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible PixelRGB8 px
+  Pixel px, Inner px ~ Double, Interconvertible PixelRGB8 px
   ) => Interconvertible PixelRGBA8 (Alpha px) where
   convert (PixelRGBA8 r g b a) = Alpha (fromWord8 a) $ convert (PixelRGB8 r g b)
   
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible PixelRGB16 px
+  Pixel px, Inner px ~ Double, Interconvertible PixelRGB16 px
   ) => Interconvertible PixelRGBA16 (Alpha px) where
   convert (PixelRGBA16 r g b a) = Alpha (fromWord16 a) $ convert (PixelRGB16 r g b)
 
@@ -374,65 +373,65 @@ instance Interconvertible RGB PixelCMYK16 where
 -- Alpha -> All JuicyPixels 
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px Pixel8
+  Inner px ~ Double, Interconvertible px Pixel8
   ) => Interconvertible (Alpha px) PixelYA8 where
   convert (Alpha a px) = PixelYA8 (convert px) (toWord8 a)
 
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px Pixel8
+  Inner px ~ Double, Interconvertible px Pixel8
   ) => Interconvertible (Alpha px) Pixel8 where
   convert (Alpha _ px) = convert px
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px Pixel16
+  Inner px ~ Double, Interconvertible px Pixel16
   ) => Interconvertible (Alpha px) Pixel16 where
   convert (Alpha _ px) = convert px
   
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px Pixel16
+  Inner px ~ Double, Interconvertible px Pixel16
   ) => Interconvertible (Alpha px) PixelYA16 where
   convert (Alpha a px) = PixelYA16 (convert px) (toWord16 a)
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelRGB8
+  Inner px ~ Double, Interconvertible px PixelRGB8
   ) => Interconvertible (Alpha px) PixelRGB8 where
   convert (Alpha _ px) = convert px
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelRGB16
+  Inner px ~ Double, Interconvertible px PixelRGB16
   ) => Interconvertible (Alpha px) PixelRGB16 where
   convert (Alpha _ px) = convert px
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelRGB8
+  Inner px ~ Double, Interconvertible px PixelRGB8
   ) => Interconvertible (Alpha px) PixelRGBA8 where
   convert (Alpha a px) = getPx $ convert px where
     getPx (PixelRGB8 r g b) = PixelRGBA8 r g b (toWord8 a)
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelRGB16
+  Inner px ~ Double, Interconvertible px PixelRGB16
   ) => Interconvertible (Alpha px) PixelRGBA16 where
   convert (Alpha a px) = getPx $ convert px where
     getPx (PixelRGB16 r g b) = PixelRGBA16 r g b (toWord16 a)
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelRGBF
+  Inner px ~ Double, Interconvertible px PixelRGBF
   ) => Interconvertible (Alpha px) PixelRGBF where
   convert (Alpha _ px) = convert px
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelYCbCr8
+  Inner px ~ Double, Interconvertible px PixelYCbCr8
   ) => Interconvertible (Alpha px) PixelYCbCr8 where
   convert (Alpha _ px) = convert px
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelCMYK8
+  Inner px ~ Double, Interconvertible px PixelCMYK8
   ) => Interconvertible (Alpha px) PixelCMYK8 where
   convert (Alpha _ px) = convert px
 
 instance (
-  AlphaInner px, Inner px ~ Double, Interconvertible px PixelCMYK16
+  Inner px ~ Double, Interconvertible px PixelCMYK16
   ) => Interconvertible (Alpha px) PixelCMYK16 where
   convert (Alpha _ px) = convert px
   
@@ -583,7 +582,7 @@ instance AImage img RGB => Interconvertible PNM.PPM (img RGB) where
 
 
 instance (
-  Interconvertible PNM.PPM (img px), AlphaInner px, AImage img (Alpha px), AImage img px
+  Interconvertible PNM.PPM (img px), AImage img (Alpha px), AImage img px
   ) => Interconvertible PNM.PPM (img (Alpha px)) where
   convert = map (Alpha 1) . convert
 
@@ -734,7 +733,7 @@ instance AImage img RGB => Saveable img RGB where
   inCMYK16 f   = error $ "Cannot save "++show f++" in CMYK16 colorspace"
 
 
-instance (Saveable img px, AlphaInner px, AImage img (Alpha px), Double ~ Inner px,
+instance (Saveable img px, AImage img (Alpha px), Double ~ Inner px,
           Interconvertible px Pixel8,
           Interconvertible px Pixel16,
           Interconvertible px PixelYA8,

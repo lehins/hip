@@ -48,58 +48,70 @@ instance Pixel HSI where
   
 
 instance Num HSI where
-  (+)            = pxOp2 (+)
+  (+)         = pxOp2 (+)
   {-# INLINE (+) #-}
   
-  (-)            = pxOp2 (-)
+  (-)         = pxOp2 (-)
   {-# INLINE (-) #-}
   
-  (*)            = pxOp2 (*)
+  (*)         = pxOp2 (*)
   {-# INLINE (*) #-}
   
-  abs            = pxOp abs
+  abs         = pxOp abs
   {-# INLINE abs #-}
   
-  signum         = pxOp signum
+  signum      = pxOp signum
   {-# INLINE signum #-}
   
-  fromInteger !n = pixel . fromIntegral $ n
+  fromInteger = pixel . fromIntegral 
   {-# INLINE fromInteger #-}
 
 
 instance Fractional HSI where
-  (/)             = pxOp2 (/)
-  recip           = pxOp recip
-  fromRational !n = pixel . fromRational $ n
+  (/)          = pxOp2 (/)
+  recip        = pxOp recip
+  fromRational = pixel . fromRational 
 
 
 instance Floating HSI where
+  pi    = pixel pi
   {-# INLINE pi #-}
-  pi      = pixel pi
+  
+  exp   = pxOp exp
   {-# INLINE exp #-}
-  exp     = pxOp exp
+  
+  log   = pxOp log
   {-# INLINE log #-}
-  log     = pxOp log
+  
+  sin   = pxOp sin
   {-# INLINE sin #-}
-  sin     = pxOp sin
+  
+  cos   = pxOp cos
   {-# INLINE cos #-}
-  cos     = pxOp cos
+  
+  asin  = pxOp asin
   {-# INLINE asin #-}
-  asin    = pxOp asin
+  
+  atan  = pxOp atan
   {-# INLINE atan #-}
-  atan    = pxOp atan
+  
+  acos  = pxOp acos
   {-# INLINE acos #-}
-  acos    = pxOp acos
+  
+  sinh  = pxOp sinh
   {-# INLINE sinh #-}
-  sinh    = pxOp sinh
+  
+  cosh  = pxOp cosh
   {-# INLINE cosh #-}
-  cosh    = pxOp cosh
+  
+  asinh = pxOp asinh
   {-# INLINE asinh #-}
-  asinh   = pxOp asinh
+  
+  atanh = pxOp atanh
   {-# INLINE atanh #-}
-  atanh   = pxOp atanh
+  
+  acosh = pxOp acosh
   {-# INLINE acosh #-}
-  acosh   = pxOp acosh
 
 
 instance Ord HSI where

@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
 module HIP.Complex (
-  (.+.), realPart, imagPart, magnitude, argument, conjugate,
-  makeFilter, shrink
+  (.+.), realPart, imagPart, magnitude, argument, toPolar, toRectangular, 
+  conjugate, makeFilter, shrink
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -86,6 +86,21 @@ argument = map arg
 {-# INLINE argument #-}
 
 
+
+toPolar :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
+           img (Complex px)
+        -> (img px, img px)
+toPolar !img = (magnitude img, argument img)
+{-# INLINE toPolar #-}
+
+
+toRectangular :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
+           img (Complex px)
+        -> (img px, img px)
+toRectangular !img = (realPart img, imagPart img)
+{-# INLINE toRectangular #-}
+
+
 conjugate :: (ComplexInner px, AImage img (Complex px)) =>
              img (Complex px)
           -> img (Complex px)
@@ -114,5 +129,5 @@ shrink :: (ComplexInner px, ComplexInner (Inner px), AImage img (Complex px), Or
           (Inner px) -> img (Complex px) -> img (Complex px)
 shrink !x !img = map shrinker img where
   shrinker !px = apply2c (repeat s) (mag px) (arg px) where
-    s m a = if m < x then (0, 0) else toSquare $ fromPolar (m - x) a
+    s m a = if m < x then (0, 0) else toRect $ fromPol (m - x) a
 {-# INLINE shrink #-}

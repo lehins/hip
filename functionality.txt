@@ -51,18 +51,18 @@ color-image->hsi           => colorImageToHSI               => hsiToGrays
 hsi->color-image           => hsiToColorImage               => graysToHSI
 real-part                  => realPart                      => realPart
 imag-part                  => imagPart                      => imagPart
-complex                    => complex                       => (;+;)
-complex-image->polar       => polar                         =>
-complex-image->rectangular => complexImageRectangular
-magnitude                  => magnitude
-angle                      => angle
-make-filter                => makeFilter
-fft                        => fft
-ifft                       => ifft
+complex                    => complex                       => (.+.)
+complex-image->polar       => polar                         => toPolar
+complex-image->rectangular => complexImageRectangular       => toRectangular
+magnitude                  => magnitude                     => magnitude
+angle                      => angle                         => argument
+make-filter                => makeFilter                    => makeFilter
+fft                        => fft                           => fft
+ifft                       => ifft                          => ifft
 distance-transform         => distanceTransform
 outline                    => outline
 median-filter              => medianFilter
-matrix-product             => matrixProduct
+matrix-product             => matrixProduct                 => (|*|)
 areas                      => areas
 label                      => label
 perimeters                 => perimeters

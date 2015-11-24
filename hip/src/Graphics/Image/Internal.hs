@@ -7,7 +7,7 @@ module Graphics.Image.Internal (
 import Prelude hiding (map, zipWith, length, all, head, concat, foldl)
 import qualified Prelude as P (map, length, all, head, concat)
 import Data.Vector.Unboxed hiding ((++), map, zipWith, unsafeIndex, fromList)
-import qualified Data.Vector.Unboxed as V (unsafeIndex, length, fromList)
+import qualified Data.Vector.Unboxed as V (unsafeIndex, length, fromList, zipWith, sum)
 import HIP.Interface hiding (Pixel)
 import Graphics.Image.Pixel (Pixel)
 
@@ -37,11 +37,14 @@ data VectorStrategy img px where
 
 instance Pixel px => Strategy VectorStrategy Image px where
   compute _ !img = img
+  {-# INLINE compute #-}
 
   fold    _ f a !img = foldl f a $ toVector img
+  {-# INLINE fold #-}
 
   toBoxedVector _ img = convert $ toVector img
-  
+  {-# INLINE toBoxedVector #-}
+
 
 
 toIndex :: Int -> Int -> Int -> Int
@@ -86,6 +89,17 @@ instance (Pixel px) => AImage Image px where
       isSquare = (n > 0) && (P.all (==n) $ P.map P.length ls)
   {-# INLINE fromList #-}
 
+  (|*|) !img1@(VectorImage m1 n1 v1) !img2 =
+    if n1 /= m2 
+    then  error ("Inner dimensions of multiplied images must be the same, but received: "++
+                 show img1 ++" X "++ show img2)
+    else
+      make m1 n2 getPx where
+        !(VectorImage n2 m2 v2) = transpose img2
+        getPx !i !j =
+          V.sum $ V.zipWith (*) (slice (i*n1) n1 v1) (slice (j*m2) m2 v2)
+  (|*|) _ _ = error "Images should be computed before they can be multiplied."
+  {-# INLINE (|*|) #-}
 
 
 instance (Pixel px) => Num (Image px) where

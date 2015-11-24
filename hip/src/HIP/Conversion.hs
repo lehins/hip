@@ -74,13 +74,13 @@ toHSIImage = map convert
 {-# INLINE toHSIImage #-}
 
 
-toAlphaImage :: (AImage img px, AImage img (Alpha px), AlphaInner px) =>
+toAlphaImage :: (AImage img px, AImage img (Alpha px)) =>
                 img px -> img (Alpha px)
 toAlphaImage = map addAlpha
 {-# INLINE toAlphaImage #-}
 
 
-fromAlphaImage :: (AImage img px, AImage img (Alpha px), AlphaInner px) =>
+fromAlphaImage :: (AImage img px, AImage img (Alpha px)) =>
                   img (Alpha px) -> img px
 fromAlphaImage = map dropAlpha
 {-# INLINE fromAlphaImage #-}

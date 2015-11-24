@@ -4,7 +4,7 @@ UndecidableInstances, ViewPatterns #-}
 
 module HIP.Complex.Pixel (
   Complex (..),
-  mag, arg, conj, real, imag, fromPolar, toSquare,
+  mag, arg, conj, real, imag, fromPol, toRect,
   ComplexInner (..)
   ) where
 
@@ -24,10 +24,12 @@ infix  6  :+:
 
 data Complex px where
   (:+:) :: ComplexInner px => !px -> !px -> Complex px 
+  --(:*:) :: ComplexInner px => !px -> !px -> Complex px 
 
 
 instance Eq (Complex px) where
   (==) !(px1x :+: px1y) !(px2x :+: px2y) = px1x == px2x && px1y == px2y
+  --(==) !(px1r :*: px1t) !(px2r :*: px2t) = px1r == px2r && px1t == px2t
 
 
 -- | Magnitude (or modulus, or radius)
@@ -48,13 +50,13 @@ arg !(pxX :+: pxY) = apply2 (repeat f) pxX pxY where
 
 -- | Create a complex pixel from two real pixels, which represent a magnitude
 -- and an argument, ie. radius and phase
-fromPolar :: (ComplexInner px) => px -> px -> Complex px
-fromPolar !r !theta = (r * cos theta) :+: (r * sin theta)
-{-# INLINE fromPolar #-}
+fromPol :: (ComplexInner px) => px -> px -> Complex px
+fromPol !r !theta = (r * cos theta) :+: (r * sin theta)
+{-# INLINE fromPol #-}
 
-toSquare :: (ComplexInner px) => Complex px -> (px, px)
-toSquare !(px1 :+: px2) = (px1, px2)
-{-# INLINE toSquare #-}
+toRect :: (ComplexInner px) => Complex px -> (px, px)
+toRect !(px1 :+: px2) = (px1, px2)
+{-# INLINE toRect #-}
 
 
 {- | Conjugate a complex pixel -}

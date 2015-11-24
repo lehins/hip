@@ -102,7 +102,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
   -- | Convert a nested List of Pixels to an AImage.
   fromList :: [[px]] -> img px
   
-  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromList) #-}
+  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromList, (|*|)) #-}
   
   -- | Get the number of rows in the image 
   rows :: img px -> Int
@@ -284,6 +284,9 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
       {-# INLINE getPx #-}
   {-# INLINE crop #-}
 
+  -- | Matrix multiplication of two images. Inner dimensions must agree.
+  (|*|) :: img px -> img px -> img px
+  
 
 maximum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>
            strat img px

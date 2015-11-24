@@ -134,6 +134,20 @@ instance (Pixel px) => AImage Image px where
       !isSquare = (n > 0) && (all (==2) $ P.map length ls)
   {-# INLINE fromLists #-}
 
+  (|*|) :: Pixel px => Image px -> Image px -> Image px
+  (|*|) !img1@(ComputedImage arr1) !img2@(ComputedImage arr2) =
+    if n1 /= m2 
+    then  error ("Inner dimensions of multiplied images must be the same, but received: "++
+                 show img1 ++" X "++ show img2)
+    else
+      AbstractImage $ fromFunction (Z :. m1 :. n2) getPx where
+        !(Z :. m1 :. n1) = extent arr1
+        !(Z :. m2 :. n2) = extent arr2
+        getPx !(Z:. i :. j) =
+          sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
+  (|*|) _ _ = error "Images should be computed before they can be multiplied."
+  {-# INLINE (|*|) #-}
+  
 
 instance Pixel px => Num (Image px) where
   (+)         = zipWith (+)
@@ -254,16 +268,3 @@ toArray !strat !img            = toArray strat $ compute strat img
 {-# INLINE toArray #-}
 
 
-mult :: Pixel px => Image px -> Image px -> Image px
-mult !img1@(ComputedImage arr1) !img2@(ComputedImage arr2) =
-  if n1 /= m2 
-  then  error ("Inner dimensions of multiplied images must be the same, but received: "++
-              show img1 ++" X "++ show img2)
-  else
-    AbstractImage $ fromFunction (Z :. m1 :. n2) getPx where
-      !(Z :. m1 :. n1) = extent arr1
-      !(Z :. m2 :. n2) = extent arr2
-      getPx !(Z:. i :. j) =
-        sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
-mult _ _ = error "Images should be computed before they can be multiplied."
-{-# INLINE mult #-}

@@ -27,7 +27,7 @@ module Graphics.Image (
   -- ** Pointwise
   map, imap, zipWith,
   -- ** Geometric
-  transpose, backpermute,
+  transpose, (|*|), backpermute,
   traverse, traverse2, traverse3,
   unsafeTraverse, unsafeTraverse2, unsafeTraverse3,
   crop, pad,
@@ -38,7 +38,7 @@ module Graphics.Image (
   scale, resize,
   rotate, rotate',
   -- * Reduction
-  maximum, minimum,
+  fold, sum, maximum, minimum,
   -- * Binary
   module Graphics.Image.Binary,
   -- * Conversion
@@ -52,7 +52,7 @@ module Graphics.Image (
   module Graphics.Image.IO
   ) where
 
-import Prelude hiding (map, zipWith, maximum, minimum)
+import Prelude hiding (map, zipWith, maximum, minimum, sum)
 import Graphics.Image.Internal (Image, VectorStrategy(..), fromVector, toVector)
 import Graphics.Image.Binary
 import Graphics.Image.Pixel
@@ -230,13 +230,28 @@ zipWith = I.zipWith
 
 -- | Transpose an image.
 --
--- >>> displayImage lena
--- >>> displayImage $ transpose lena
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> displayImage $ transpose frog
+--
+-- <<images/frog.jpg>>  <<images/frog_transpose.jpg>>
 -- 
 transpose :: Pixel px =>
              Image px -- ^ Source image
           -> Image px
 transpose = I.transpose          
+
+
+-- | Perform matrix multiplication of two images @A x B@. Inner dimensions of
+-- images must agree: @cols img1 == rows img2@
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> (frog, transpose frog)
+-- (<Image RGB: 200x320>,<Image RGB: 320x200>)
+-- >>> frog |*| transpose frog
+-- <Image RGB: 200x200>
+--
+(|*|) :: Pixel px => Image px -> Image px -> Image px
+(|*|) = (I.|*|)
 
 
 -- | Backpermute an Image.
@@ -589,9 +604,27 @@ rotate' = I.rotate'
 ---- Reduction -----------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- | Fold over an image
+fold :: Pixel px =>
+        (px -> px -> px) -- ^ Function to be used during folding.
+     -> px -- ^ Initial pixel.
+     -> Image px -- ^ Source image
+     -> px
+fold !f !px = I.fold Identity f px
+
+
+-- | Sum all pixels of an image.
+sum :: Pixel px =>
+       Image px -- ^ Source image.
+    -> px
+sum = I.sum Identity
+
+
+-- | Retrieve the maximum pixel from an image
 maximum :: (Pixel px, Ord px) => Image px -> px
 maximum = I.maximum Identity
 
+-- | Retrieve the minium pixel from an image
 minimum :: (Pixel px, Ord px) => Image px -> px
 minimum = I.minimum Identity
 
@@ -639,7 +672,7 @@ toHSIImage = C.toHSIImage
 -- >>> toAlphaImage frog
 -- <Image RGB-A: 200x320>
 -- 
-toAlphaImage :: (Pixel px, AlphaInner px) =>
+toAlphaImage :: (Pixel px, Pixel (Alpha px)) =>
                 Image px -> Image (Alpha px)
 toAlphaImage = C.toAlphaImage
 
@@ -649,7 +682,7 @@ toAlphaImage = C.toAlphaImage
 -- >>> fromAlphaImage $ toAlphaImage frog
 -- <Image RGB: 200x320>
 -- 
-fromAlphaImage :: (Pixel px, AlphaInner px) =>
+fromAlphaImage :: (Pixel px, Pixel (Alpha px)) =>
                 Image (Alpha px) -> Image px
 fromAlphaImage = C.fromAlphaImage
 
