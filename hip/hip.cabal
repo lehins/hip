@@ -47,6 +47,7 @@ library
                  , HIP.Interface
                  , HIP.IO
                  , HIP.Pixel
+                 , HIP.Histogram
                  , HIP.Algorithms
                  , HIP.Algorithms.Convolution
                  , HIP.Algorithms.Fourier
