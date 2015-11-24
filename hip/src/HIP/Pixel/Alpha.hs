@@ -39,12 +39,27 @@ instance AlphaInner px => Pixel (Alpha px) where
   pxOp2 !op !(Alpha a1 px1 ) (Alpha _ px2) = Alpha a1 (pxOp2 op px1 px2) 
   {-# INLINE pxOp2 #-}
 
-  size (Alpha _ px) = 1 + size px
-  {-# INLINE size #-}
+  arity (Alpha _ px) = 1 + arity px
+  {-# INLINE arity #-}
 
   ref 0 (Alpha a _) = a
   ref n (Alpha _ px) = ref (n-1) px
   {-# INLINE ref #-}
+
+  apply !(f0:rest) !(Alpha a px) = Alpha (f0 a) $ apply rest px
+  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply #-}
+
+  apply2 !(f0:rest) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (f0 a1 a2) (apply2 rest px1 px2)
+  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2 #-}
+
+  apply2t !(f0:rest) !(Alpha a1 px1) !(Alpha a2 px2) =
+    (Alpha a1' px1', Alpha a2' px2') where
+      (a1', a2') = (f0 a1 a2)
+      (px1', px2') = apply2t rest px1 px2
+  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2t #-}
 
   strongest !(Alpha a px) = Alpha a (strongest px)
   {-# INLINE strongest #-}

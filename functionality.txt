@@ -1,58 +1,58 @@
-make-image                 => makeImage 
-read-image                 => readImage
-image?                     => Haskell has types
-image-ref                  => ref
-image-set!                 => Haskell is pure
-image-rows                 => rows
-image-cols                 => cols
-image-transpose            => transpose
-convolve-rows              => convolveRows / convolveRows'
-convolve-cols              => convolveCols / convolveCols'
-convolve                   => convolve / convolve'
-downsample-cols            => downsampleCols
-downsample-rows            => downsampleRows
-downsample                 => downsample
-upsample-cols              => upsampleCols
-upsample-rows              => upsampleRows
-upsample                   => upsample
-image-pad                  => pad
-image-crop                 => crop
-left-to-right              => leftToRight / leftToRight'
-top-to-bottom              => topToBottom / topToBottom'
-image-map                  => imageMap
-read-color-image           => readColorImage
-color-image?               => Haskell has types
-color-image-red            => colorImageRed
-color-image-green          => colorImageGreen
-color-image-blue           => colorImageBlue
-rgb->color-image           => rgbToColorImage
-color-image->rgb           => colorImageToRGB
-image-normalize            => normalize
-image-shrink               => shrink
-write-image                => writeImage
-fold                       => imageFold
-array->image               => arrayToImage
-image->array               => imageToArray
-write-color-image          => writeImage
-(+)                        => (.+), (+.), (.+.)
-(-)                        => (.-), (-.), (.-.)
-(*)                        => (.*), (*.), (.*.)
-(/)                        => (./), (/.), (./.)
-(>)                        => (.>), (>.), (.>.)
-(<)                        => (.<), (<.), (.<.)
-(=)                        => (.==), (==.), (.==.)
+make-image                 => makeImage                     => make
+read-image                 => readImage                     => readImageGray
+image?                     => Haskell has types             => N/A
+image-ref                  => ref                           => index (unsafeIndex)
+image-set!                 => Haskell is pure               => N/A
+image-rows                 => rows                          => rows
+image-cols                 => cols                          => cols
+image-transpose            => transpose                     => transpose
+convolve-rows              => convolveRows / convolveRows'  => convolveRows
+convolve-cols              => convolveCols / convolveCols'  => convolveCols
+convolve                   => convolve / convolve'          => convolve 
+downsample-cols            => downsampleCols                => downsampleCols
+downsample-rows            => downsampleRows                => downsampleRows
+downsample                 => downsample                    => downsample
+upsample-cols              => upsampleCols                  => upsampleCols
+upsample-rows              => upsampleRows                  => upsampleRows
+upsample                   => upsample                      => upsample
+image-pad                  => pad                           => pad
+image-crop                 => crop                          => crop
+left-to-right              => leftToRight / leftToRight'    => leftToRight
+top-to-bottom              => topToBottom / topToBottom'    => topToBottom
+image-map                  => imageMap                      => map
+read-color-image           => readColorImage                => readImageRGB
+color-image?               => Haskell has types             => N/A
+color-image-red            => colorImageRed                 => map (ref 0) img
+color-image-green          => colorImageGreen               => map (ref 1) img
+color-image-blue           => colorImageBlue                => map (ref 2) img
+rgb->color-image           => rgbToColorImage               => graysToRGB
+color-image->rgb           => colorImageToRGB               => rgbToGrays
+image-normalize            => normalize                     => normalize
+image-shrink               => shrink                        => shrink (?)
+write-image                => writeImage                    => writeImage
+fold                       => imageFold                     => fold
+array->image               => arrayToImage                  => fromVector, fromList
+image->array               => imageToArray                  => toVector, toList
+write-color-image          => writeImage                    => writeImage
+(+)                        => (.+), (+.), (.+.)             => (+)
+(-)                        => (.-), (-.), (.-.)             => (-)
+(*)                        => (.*), (*.), (.*.)             => (*)
+(/)                        => (./), (/.), (./.)             => (/)
+(>)                        => (.>), (>.), (.>.)             => (.>.), (.=>.)
+(<)                        => (.<), (<.), (.<.)             => (.<.), (.=<.)
+(=)                        => (.==), (==.), (.==.)          => (.==.)
 dilate                     => dilate, dilate', dilate''
 erode                      => erode, erode', erode''
 open                       => open, open', open''
 close                      => close, close', close''
-rgb->hsi                   => rgbToHSI
-hsi->rgb                   => hsiToRGB
-color-image->hsi           => colorImageToHSI
-hsi->color-image           => hsiToColorImage
-real-part                  => realPart
-imag-part                  => imagPart
-complex                    => magnitude
-complex-image->polar       => polar
+rgb->hsi                   => rgbToHSI                      => toHSIImage
+hsi->rgb                   => hsiToRGB                      => toRGBImage
+color-image->hsi           => colorImageToHSI               => hsiToGrays
+hsi->color-image           => hsiToColorImage               => graysToHSI
+real-part                  => realPart                      => realPart
+imag-part                  => imagPart                      => imagPart
+complex                    => complex                       => (;+;)
+complex-image->polar       => polar                         =>
 complex-image->rectangular => complexImageRectangular
 magnitude                  => magnitude
 angle                      => angle

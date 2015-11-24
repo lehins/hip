@@ -22,12 +22,24 @@ instance Pixel Gray where
   pxOp2 !f !(Gray y1) !(Gray y2) = Gray (f y1 y2)
   {-# INLINE pxOp2 #-}
 
-  size _ = 1
-  {-# INLINE size #-}
+  arity _ = 1
+  {-# INLINE arity #-}
 
   ref 0 !(Gray y) = y
   ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
+
+  apply !(f:_) !(Gray y) = Gray $ f y
+  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply #-}
+
+  apply2 !(f:_) !(Gray y1) !(Gray y2) = Gray $ f y1 y2
+  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2 #-}
+
+  apply2t !(f1:_) !(Gray y1) !(Gray y2) = (Gray y1', Gray y2') where (y1', y2') = (f1 y1 y2)
+  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2t #-}
 
   strongest                      = id
   {-# INLINE strongest #-}

@@ -25,6 +25,11 @@ import HIP.Complex.Pixel
 import HIP.Interface (Pixel(..))
 
 
+instance AlphaInner Float where
+
+
+instance AlphaInner Double where
+
 
 instance AlphaInner Gray where
 
@@ -34,6 +39,12 @@ instance AlphaInner RGB where
 
 instance AlphaInner HSI where
 
+  
+instance ComplexInner Float where
+
+  
+instance ComplexInner Double where
+  
   
 instance ComplexInner Gray where
 

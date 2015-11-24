@@ -23,9 +23,15 @@ class (Eq px, Num px, Show px,
 
   pxOp2 :: (Inner px -> Inner px -> Inner px) -> px -> px -> px
 
-  size :: px -> Int
+  arity :: px -> Int
 
   ref :: Int -> px -> Inner px
+
+  apply :: [(Inner px -> Inner px)] -> px -> px
+
+  apply2 :: [(Inner px -> Inner px -> Inner px)] -> px -> px -> px
+
+  apply2t :: [(Inner px -> Inner px -> (Inner px, Inner px))] -> px -> px -> (px, px)
 
   strongest :: px -> px
 

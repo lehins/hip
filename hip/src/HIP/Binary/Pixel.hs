@@ -99,13 +99,26 @@ instance Pixel Binary where
   pxOp2 !f !(Binary b1) !(Binary b2) = Binary (f b1 b2)
   {-# INLINE pxOp2 #-}
 
-  size _ = 1
-  {-# INLINE size #-}
+  arity _ = 1
+  {-# INLINE arity #-}
 
-  ref 0 !(Binary y) = y
+  ref 0 !(Binary b) = b
   ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
   
+  apply !(f:_) !(Binary b) = Binary $ f b
+  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply #-}
+
+  apply2 !(f:_) !(Binary b1) !(Binary b2) = Binary $ f b1 b2
+  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2 #-}
+
+  apply2t !(f1:_) !(Binary b1) !(Binary b2) =
+    (Binary b1', Binary b2') where (b1', b2') = (f1 b1 b2)
+  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2t #-}
+
   strongest                       = id
   {-# INLINE strongest #-}
 

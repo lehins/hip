@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
 module HIP.Complex (
-  (.+.), realPart, imagPart, magnitude, conjugate,
-  makeFilter
+  (.+.), realPart, imagPart, magnitude, argument, conjugate,
+  makeFilter, shrink
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -65,7 +65,7 @@ imagPart = map imag
 
 
 {-| Given a complex image, returns a real image representing
-    the magnitude of the image.
+    the magnitude (amplitude) of the image.
     >>>magnitude signal
  -}
 magnitude :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
@@ -73,6 +73,17 @@ magnitude :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
           -> img px
 magnitude = map mag
 {-# INLINE magnitude #-}
+
+
+{-| Given a complex image, returns a real image representing
+    the argument (phase) of the image.
+    >>>argument signal
+ -}
+argument :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
+             img (Complex px)
+          -> img px
+argument = map arg 
+{-# INLINE argument #-}
 
 
 conjugate :: (ComplexInner px, AImage img (Complex px)) =>
@@ -92,3 +103,16 @@ makeFilter !m !n !getPx = make m n getPx' where
                    !j' = if j < (n `div` 2) then j else j - n
                in getPx i' j'
 {-# INLINE makeFilter #-}
+
+
+-- | Given a complex Image and a real positive value @x@, shrink returns a
+-- complex Image with the same dimensions. Let @z@ be the complex pixel of the
+-- source Image at location @(i, j)@. The value of the complex result Image at
+-- location @(i, j)@ is zero if @|z| < x@, otherwise the result has the same phase
+-- as @z@ but the amplitude is decreased by @px@.
+shrink :: (ComplexInner px, ComplexInner (Inner px), AImage img (Complex px), Ord px) =>
+          (Inner px) -> img (Complex px) -> img (Complex px)
+shrink !x !img = map shrinker img where
+  shrinker !px = uncurry (:+:) $ apply2t (repeat s) (mag px) (arg px) where
+    s m a = if m < x then (0, 0) else toSquare $ fromPolar (m - x) a
+{-# INLINE shrink #-}

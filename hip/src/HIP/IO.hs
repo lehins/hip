@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
 module HIP.IO (
-  readImage, writeImage, displayImage, displayHistograms, setDisplayProgram,
+  readImage, writeImage, displayImage,
+  displayImageHistograms, displayHistograms, setDisplayProgram, writeHistograms,
   OutputFormat(..), SaveOption(..), Encoder, Saveable(..), Readable
   ) where
 
@@ -8,10 +9,11 @@ import Prelude as P hiding (readFile, writeFile)
 import Data.Char (toLower)
 import Data.IORef
 import Data.ByteString (readFile)
-import qualified Graphics.EasyPlot as Plot
+import Graphics.EasyPlot hiding (TerminalType(..))
+import qualified Graphics.EasyPlot as Plot (TerminalType(PNG))
 import HIP.Interface (AImage, Strategy(compute), Pixel(..))
 import HIP.External
-import HIP.Histogram (getHistograms)
+import HIP.Histogram
 import qualified Data.ByteString.Lazy as BL (writeFile)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeExtension)
@@ -146,27 +148,56 @@ displayUsing strat img program tmpDir = do
   
 
 
-displayHistograms :: (Strategy strat img (Inner px), AImage img px,
-                      Enum (Inner px), Fractional (Inner px), RealFrac (Inner px)) =>
-                     strat img (Inner px)
-                  -> Int 
-                  -> img px
-                  -> IO ()
-displayHistograms strat steps img = do
+displayImageHistograms :: (Strategy strat img (Inner px), AImage img px,
+                           Enum (Inner px), RealFrac (Inner px)) =>
+                          strat img (Inner px)
+                       -> Int 
+                       -> img px
+                       -> IO ()
+displayImageHistograms strat steps img = displayHistograms $ getHistograms strat steps img
+
+
+-- | Displays a list of 'H.Histogram's supplied using an external program that can
+-- be changed with 'IO.setDisplayProgram'.
+--
+-- >>> centaurus <- readImageRGB "images/centaurus.jpg"
+-- >>> cluster <- readImageRGB "images/cluster.jpg" 
+-- >>> displayHistograms ((getHistograms 255 centaurus)++(getHistograms 255 cluster))
+--
+-- <<images/centaurus_cluster_histogram.png>>
+--
+displayHistograms :: (Show a, Num a, Fractional a, Enum a) => [Histogram a] -> IO ()
+displayHistograms hists = do
   program <- readIORef displayProgram
-  let plots = getHistograms strat steps img
-  withSystemTempDirectory "hip_" (displayHistogramsUsing plots program)
+  withSystemTempDirectory "hip_" (displayHistogramsUsing hists program)
 
 
-displayHistogramsUsing :: Plot.Plot a =>
-                          a -> String -> FilePath -> IO ()
-displayHistogramsUsing plots program tmpDir = do
+displayHistogramsUsing :: (Show a, Num a, Fractional a, Enum a) =>
+                          [Histogram a] -> String -> FilePath -> IO ()
+displayHistogramsUsing hists program tmpDir = do
   let path = tmpDir </> "tmp-hist.png"
-  wrote <- Plot.plot (Plot.PNG path) plots
+  wrote <- writeHistograms path hists
   if wrote
     then do ph <- runCommand (program ++ " " ++ path)
             e <- waitForProcess ph
             let printExit ExitSuccess = return ()
                 printExit exitCode = print exitCode
             printExit e
-    else print "Was unsuccessfull in using gnuplot, make sure it is installed."
+    else print "Was unsuccessfull in using gnuplot."
+
+
+-- | Writes histograms into a PNG file image.
+--
+-- >>> centaurus <- readImageRGB "images/centaurus.jpg"
+-- >>> cluster <- readImageRGB "images/cluster.jpg"
+-- >>> let histograms = ((getHistograms 255 centaurus)++(getHistograms 255 cluster)) 
+-- >>> writeHistograms "images/centaurus_cluster_histogram.png" histograms
+-- True
+--
+writeHistograms :: (Show a, Num a, Fractional a, Enum a) =>
+                   FilePath -- ^ PNG image file name.
+                -> [Histogram a] -- ^ List of histograms to be plotted.
+                -> IO Bool -- ^ Returns 'True' in case of success.
+writeHistograms path hists = plot (Plot.PNG path) hists
+  
+  

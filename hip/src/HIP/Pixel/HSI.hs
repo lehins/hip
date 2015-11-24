@@ -21,14 +21,30 @@ instance Pixel HSI where
   pxOp2 !f !(HSI h1 s1 i1) (HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
   {-# INLINE pxOp2 #-}
 
-  size _ = 3
-  {-# INLINE size #-}
+  arity _ = 3
+  {-# INLINE arity #-}
 
   ref 0 (HSI h _ _) = h
   ref 1 (HSI _ s _) = s
   ref 2 (HSI _ _ i) = i
   ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
+
+  apply !(f1:f2:f3:_) !(HSI h s i) = HSI (f1 h) (f2 s) (f3 i)
+  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply #-}
+
+  apply2 !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) = HSI (f1 h1 h2) (f2 s1 s2) (f3 i1 i2)
+  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2 #-}
+
+  apply2t !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) =
+    (HSI h1' s1' i1', HSI h2' s2' i2') where
+      (h1', h2') = (f1 h1 h2)
+      (s1', s2') = (f2 s1 s2)
+      (i1', i2') = (f3 i1 i2)
+  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2t #-}
 
   strongest !(HSI h s i)                  = pixel . maximum $ [h, s, i]
   {-# INLINE strongest #-}

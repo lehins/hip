@@ -4,7 +4,7 @@ UndecidableInstances, ViewPatterns #-}
 
 module HIP.Complex.Pixel (
   Complex (..),
-  mag, arg, conj, real, imag, fromPolar,
+  mag, arg, conj, real, imag, fromPolar, toSquare,
   ComplexInner
   ) where
 
@@ -28,14 +28,15 @@ instance Eq (Complex px) where
   (==) !(px1x :+: px1y) !(px2x :+: px2y) = px1x == px2x && px1y == px2y
 
 
--- | Magnitude
+-- | Magnitude (or modulus, or radius)
 mag :: (ComplexInner px) => Complex px -> px
 mag !(pxReal :+: pxImag) = sqrt (pxReal ^ (2 :: Int) + pxImag ^ (2 :: Int))
 {-# INLINE mag #-}
 
 
+-- | The principal value of Argument of a Complex pixel (or Phase).
 arg :: (ComplexInner px) => Complex px -> px
-arg !(pxX :+: pxY) = pxOp2 f pxX pxY where
+arg !(pxX :+: pxY) = apply2 (repeat f) pxX pxY where
   f !x !y | x /= 0          = atan (y / x) + (pi / 2) * (1 - signum x)
           | x == 0 && y /=0 = (pi / 2) * signum y
           | otherwise = 0
@@ -43,11 +44,15 @@ arg !(pxX :+: pxY) = pxOp2 f pxX pxY where
 {-# INLINE arg #-}
 
 
-{- | Create a complex pixel from two real pixels, which represent a magnitude and
-an argument, ie. radius and phase -}
+-- | Create a complex pixel from two real pixels, which represent a magnitude
+-- and an argument, ie. radius and phase
 fromPolar :: (ComplexInner px) => px -> px -> Complex px
 fromPolar !r !theta = (r * cos theta) :+: (r * sin theta)
 {-# INLINE fromPolar #-}
+
+toSquare :: (ComplexInner px) => Complex px -> (px, px)
+toSquare !(px1 :+: px2) = (px1, px2)
+{-# INLINE toSquare #-}
 
 
 {- | Conjugate a complex pixel -}
@@ -58,15 +63,14 @@ conj !(x :+: y) = x :+: (-y)
 
 {- | Extracts a real part from a complex pixel -}
 real :: (ComplexInner px) => Complex px -> px
-real (!px :+: _) = px
+real !(px :+: _) = px
 {-# INLINE real #-}
 
 
 {-| Extracts an imaginary part of a pixel -}
 imag :: (ComplexInner px) => Complex px -> px
-imag (_  :+: (!px)) = px
+imag !(_  :+: px) = px
 {-# INLINE imag #-}
-
 
 instance ComplexInner px => Pixel (Complex px) where
   type Inner (Complex px) = Inner px
@@ -81,16 +85,31 @@ instance ComplexInner px => Pixel (Complex px) where
     (pxOp2 op px1 px1') :+: (pxOp2 op px2 px2')
   {-# INLINE pxOp2 #-}
 
-  size (px1 :+: px2) = size px1 + size px2
-  {-# INLINE size #-}
+  arity (px1 :+: px2) = arity px1 + arity px2
+  {-# INLINE arity #-}
 
   ref !n !px@(px1 :+: px2) =
-    if n < 0 || n >= size px
+    if n < 0 || n >= arity px
     then error ("Referencing "++show n++"is out of bounds for "++showType px)
-    else if n < size1 then ref n px1 else ref (n-size1) px2
-    where !size1 = size px1
+    else if n < arity1 then ref n px1 else ref (n-arity1) px2
+    where !arity1 = arity px1
   {-# INLINE ref #-}
   
+  apply !fs !(px1 :+: px2) = apply fs1 px1 :+: apply fs2 px2
+    where !(fs1, fs2) = splitAt (arity px1) fs
+  {-# INLINE apply #-}
+
+  apply2 !fs !(px1a :+: px2a) !(px1b :+: px2b) =
+    apply2 fs1 px1a px1b :+: apply2 fs2 px2a px2b
+    where !(fs1, fs2) = splitAt (arity px1a) fs
+  {-# INLINE apply2 #-}
+
+  apply2t !fs !(px1a :+: px2a) !(px1b :+: px2b) = (px1a' :+: px2a', px1b' :+: px2b')
+      where !(fs1, fs2) = splitAt (arity px1a) fs
+            (px1a', px1b') = apply2t fs1 px1a px1b
+            (px2a', px2b') = apply2t fs2 px2a px2b
+  {-# INLINE apply2t #-}
+
   strongest !(px1 :+: px2) = m :+: m
     where !m = pxOp2 max (strongest px1) (strongest px2)
   {-# INLINE strongest #-}

@@ -49,95 +49,17 @@ module Graphics.Image (
   fromVector, toVector,
   fromList, toList,
   -- * Input/Output
-  -- $io
-  -- ** Reading image files
-  readImageGray, readImageRGB, readImageGrayA, readImageRGBA,
-  -- ** Writing or displaying images
-  writeImage,
-  displayImage, displayHistograms, IO.setDisplayProgram,
-  IO.SaveOption(..), IO.OutputFormat(..), IO.Saveable(..)
+  module Graphics.Image.IO
   ) where
 
 import Prelude hiding (map, zipWith, maximum, minimum)
 import Graphics.Image.Internal (Image, VectorStrategy(..), fromVector, toVector)
+import Graphics.Image.Binary
+import Graphics.Image.Pixel
+import Graphics.Image.IO
 import qualified HIP.Interface as I
 import qualified HIP.Conversion as C
 import qualified HIP.Algorithms as I
-import qualified HIP.IO as IO
-import Graphics.Image.Binary
-import Graphics.Image.Pixel
-
-import HIP.Histogram
-import Graphics.EasyPlot
-
---------------------------------------------------------------------------------
----- IO ------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
--- $io HIP uses <http://hackage.haskell.org/package/JuicyPixels JuicyPixels> and
--- <http://hackage.haskell.org/package/netpbm Netpbm> to encode and decode
--- image files of different formats.
-
--- | Read any supported image file as a grayscale image.
-readImageGray :: FilePath -> IO (Image Gray)
-readImageGray = IO.readImage
-
-
--- | Same as 'readGrayImage', but reads it in with an alpha channel. If an image
--- file doesn't have an alpha channel, it will be added with opacity set to
--- @1.0@.
-readImageGrayA :: FilePath -> IO (Image (Alpha Gray))
-readImageGrayA = IO.readImage
-
-
--- | Read any supported image file as a color image in RGB colorspace.
-readImageRGB :: FilePath -> IO (Image RGB)
-readImageRGB = IO.readImage
-
-
--- | Same as 'readGrayRGB', but reads it in with an alpha channel. If an image
--- file doesn't have an alpha channel, it will be added with opacity set to
--- @1.0@.
-readImageRGBA :: FilePath -> IO (Image (Alpha RGB))
-readImageRGBA = IO.readImage
-
-
--- | Write an image to file. This function will try it's best to guess an image
--- format it should be saved in by looking at the file extension.
-writeImage :: (IO.Saveable Image px, Pixel px) =>
-              FilePath -- ^ Name of the file where image will be saved.
-           -> Image px -- ^ Image to be saved.
-           -> [IO.SaveOption Image px]
-           -- ^ A list of 'IO.SaveOptions' that will specify the output format
-           -- colorspace etc. They are optional, pass an empty list to use
-           -- default options.
-           -> IO ()
-writeImage path img options = IO.writeImage Identity path img options
-
-
--- | Display an image using an external program, which you can specify using
--- 'setDisplayProgram'. By default 'gpicview' program is used. This is function
--- writes an image into a temporary file in a system defined temporary folder
--- and passes that file to an external viewer. This is also a blocking function,
--- which means, running of the program will be suspended until external viewer
--- is closed.
---
---  >>> frog <- readImageRGB "images/frog.jpg"
---  >>> displayImage frog
---
-displayImage :: (IO.Saveable Image px, Pixel px) =>
-                Image px -- ^ Image to be displayed.
-             -> IO ()
-displayImage = IO.displayImage Identity
-
-
---  >>> frog <- readImageRGB "images/frog.jpg"
---  >>> displayImage frog
---
---displayHistograms :: (IO.Saveable Image px, Pixel px) =>
---                     Image px -- ^ Image to be displayed.
---                  -> IO ()
-displayHistograms = IO.displayHistograms Identity
 
 --------------------------------------------------------------------------------
 ---- Accessing and creeating ---------------------------------------------------

@@ -143,6 +143,6 @@ graysToRGB = fromGrays RGB
 -- | Converts an image to a list of Images that contain an internal type.
 toLists :: (AImage img (Inner px), AImage img px) => img px -> [img (Inner px)]
 toLists !img = toLists' 0 where
-  !pxSize = size $ index img 0 0
-  toLists' !n = if n < pxSize then map (ref n) img:toLists' (n+1) else []
+  !pxArity = arity $ index img 0 0
+  toLists' !n = if n < pxArity then map (ref n) img:toLists' (n+1) else []
 {-# INLINE toLists #-}
