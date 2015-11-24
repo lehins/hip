@@ -113,6 +113,6 @@ makeFilter !m !n !getPx = make m n getPx' where
 shrink :: (ComplexInner px, ComplexInner (Inner px), AImage img (Complex px), Ord px) =>
           (Inner px) -> img (Complex px) -> img (Complex px)
 shrink !x !img = map shrinker img where
-  shrinker !px = uncurry (:+:) $ apply2t (repeat s) (mag px) (arg px) where
+  shrinker !px = apply2c (repeat s) (mag px) (arg px) where
     s m a = if m < x then (0, 0) else toSquare $ fromPolar (m - x) a
 {-# INLINE shrink #-}

@@ -38,14 +38,6 @@ instance Pixel HSI where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  apply2t !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) =
-    (HSI h1' s1' i1', HSI h2' s2' i2') where
-      (h1', h2') = (f1 h1 h2)
-      (s1', s2') = (f2 s1 s2)
-      (i1', i2') = (f3 i1 i2)
-  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
-  {-# INLINE apply2t #-}
-
   strongest !(HSI h s i)                  = pixel . maximum $ [h, s, i]
   {-# INLINE strongest #-}
 
@@ -117,5 +109,4 @@ instance Ord HSI where
 instance Show HSI where
   {-# INLINE show #-}
   show (HSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"
-
-
+  

@@ -37,10 +37,6 @@ instance Pixel Gray where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  apply2t !(f1:_) !(Gray y1) !(Gray y2) = (Gray y1', Gray y2') where (y1', y2') = (f1 y1 y2)
-  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
-  {-# INLINE apply2t #-}
-
   strongest                      = id
   {-# INLINE strongest #-}
 

@@ -37,14 +37,6 @@ instance Pixel RGB where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  apply2t !(f1:f2:f3:_) !(RGB r1 g1 b1) !(RGB r2 g2 b2) =
-    (RGB r1' g1' b1', RGB r2' g2' b2') where
-      (r1', r2') = (f1 r1 r2)
-      (g1', g2') = (f2 g1 g2)
-      (b1', b2') = (f3 b1 b2)
-  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
-  {-# INLINE apply2t #-}
-
   strongest (RGB r g b) = pixel . maximum $ [r, g, b]
   {-# INLINE strongest #-}
 

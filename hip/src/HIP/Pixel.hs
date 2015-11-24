@@ -25,37 +25,53 @@ import HIP.Complex.Pixel
 import HIP.Interface (Pixel(..))
 
 
-instance AlphaInner Float where
-
-
-instance AlphaInner Double where
-
-
-instance AlphaInner Gray where
-
-  
-instance AlphaInner RGB where
-  
-
-instance AlphaInner HSI where
-
-  
 instance ComplexInner Float where
+  apply2c !(f1:_) !v1 !v2 = (uncurry (:+:)) $ f1 v1 v2
+  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2c #-}
 
   
 instance ComplexInner Double where
+  apply2c !(f1:_) !v1 !v2 = (uncurry (:+:)) $ f1 v1 v2
+  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2c #-}
   
   
 instance ComplexInner Gray where
+  apply2c !(f1:_) !(Gray y1) !(Gray y2) = Gray y1' :+: Gray y2' where (y1', y2') = (f1 y1 y2)
+  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2c #-}
 
   
 instance ComplexInner RGB where
+  apply2c !(f1:f2:f3:_) !(RGB r1 g1 b1) !(RGB r2 g2 b2) =
+    RGB r1' g1' b1' :+: RGB r2' g2' b2' where
+      (r1', r2') = (f1 r1 r2)
+      (g1', g2') = (f2 g1 g2)
+      (b1', b2') = (f3 b1 b2)
+  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2c #-}
+
   
 
 instance ComplexInner HSI where
+  apply2c !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) =
+    HSI h1' s1' i1' :+: HSI h2' s2' i2' where
+      (h1', h2') = (f1 h1 h2)
+      (s1', s2') = (f2 s1 s2)
+      (i1', i2') = (f3 i1 i2)
+  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2c #-}
 
 
-instance (ComplexInner px, AlphaInner px) => ComplexInner (Alpha px) where
+instance ComplexInner px => ComplexInner (Alpha px) where
+  apply2c !(f0:rest) !(Alpha a1 px1) !(Alpha a2 px2) =
+    Alpha a1' px1' :+: Alpha a2' px2' where
+      (a1', a2') = (f0 a1 a2)
+      px1' :+: px2' = apply2c rest px1 px2
+  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  {-# INLINE apply2c #-}
+
 
   
 -- | Convert an 'Gray' pixel to 'HSI' pixel.

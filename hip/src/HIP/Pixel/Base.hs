@@ -22,43 +22,6 @@ baseApply2 _ _ px = error ("Length of the function list should be at least: "++(
 {-# INLINE baseApply2 #-}
 
 
-instance Pixel Double where
-  type Inner Double = Double
-
-  pixel = id
-  {-# INLINE pixel #-}
-
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
-  arity _ = 1
-  {-# INLINE arity #-}
-
-  ref = baseRef
-  {-# INLINE ref #-}
-
-  apply = baseApply
-  {-# INLINE apply #-}
-
-  apply2 = baseApply2
-  {-# INLINE apply2 #-}
-
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
-
-  showType _ = "Double"
-
-
-
 instance Pixel Float where
   type Inner Float = Float
 
@@ -83,9 +46,6 @@ instance Pixel Float where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
-
   strongest = id
   {-# INLINE strongest #-}
 
@@ -95,6 +55,40 @@ instance Pixel Float where
   showType _ = "Float"
   
   
+instance Pixel Double where
+  type Inner Double = Double
+
+  pixel = id
+  {-# INLINE pixel #-}
+
+  pxOp = ($)
+  {-# INLINE pxOp #-}
+
+  pxOp2 = ((.).(.)) id
+  {-# INLINE pxOp2 #-}
+
+  arity _ = 1
+  {-# INLINE arity #-}
+
+  ref = baseRef
+  {-# INLINE ref #-}
+
+  apply = baseApply
+  {-# INLINE apply #-}
+
+  apply2 = baseApply2
+  {-# INLINE apply2 #-}
+
+  strongest = id
+  {-# INLINE strongest #-}
+
+  weakest = id
+  {-# INLINE weakest #-}
+
+  showType _ = "Double"
+
+
+
 instance Pixel Int where
   type Inner Int = Int
 
@@ -118,9 +112,6 @@ instance Pixel Int where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
 
   strongest = id
   {-# INLINE strongest #-}
@@ -155,9 +146,6 @@ instance Pixel Int8 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
-
   strongest = id
   {-# INLINE strongest #-}
 
@@ -190,9 +178,6 @@ instance Pixel Int16 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
 
   strongest = id
   {-# INLINE strongest #-}
@@ -227,9 +212,6 @@ instance Pixel Int32 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
-
   strongest = id
   {-# INLINE strongest #-}
 
@@ -262,9 +244,6 @@ instance Pixel Int64 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
 
   strongest = id
   {-# INLINE strongest #-}
@@ -300,9 +279,6 @@ instance Pixel Word where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
-
   strongest = id
   {-# INLINE strongest #-}
 
@@ -335,9 +311,6 @@ instance Pixel Word8 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
 
   strongest = id
   {-# INLINE strongest #-}
@@ -372,9 +345,6 @@ instance Pixel Word16 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
-
   strongest = id
   {-# INLINE strongest #-}
 
@@ -408,9 +378,6 @@ instance Pixel Word32 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
-
   strongest = id
   {-# INLINE strongest #-}
 
@@ -443,9 +410,6 @@ instance Pixel Word64 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  apply2t = baseApply2
-  {-# INLINE apply2t #-}
 
   strongest = id
   {-# INLINE strongest #-}

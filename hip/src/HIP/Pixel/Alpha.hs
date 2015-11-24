@@ -1,17 +1,11 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, GADTs, TypeFamilies, UndecidableInstances #-}
 module HIP.Pixel.Alpha (
-  Alpha(..), AlphaInner, addAlpha, dropAlpha, fmapAlpha, combineAlpha
+  Alpha(..), addAlpha, dropAlpha, fmapAlpha, combineAlpha
   ) where
 
 import HIP.Interface (Pixel(..))
 
 
-{- | Every instance of this 'AlphaInner' class can be used as internal pixel. -}
-class (Floating (Inner px), Fractional (Inner px), 
-       Floating px, Fractional px, Ord px, Pixel px
-      ) => AlphaInner px where
-
-        
 {- | This pixel wraps other pixel types, effectively adding an opacity layer to
 it. Although 'Alpha' pixels are also 'Num', 'Floating' and 'Fractional' all of
 the numeric operators affect only the underlying pixel values not the alpha
@@ -24,10 +18,10 @@ to address that issue.
 
 -}
 data Alpha px where
-  Alpha :: AlphaInner px => (Inner px) -> px -> Alpha px
+  Alpha :: Pixel px => (Inner px) -> px -> Alpha px
   
 
-instance AlphaInner px => Pixel (Alpha px) where
+instance Pixel px => Pixel (Alpha px) where
   type Inner (Alpha px) = Inner px
 
   pixel = Alpha 1 . pixel
@@ -54,13 +48,6 @@ instance AlphaInner px => Pixel (Alpha px) where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  apply2t !(f0:rest) !(Alpha a1 px1) !(Alpha a2 px2) =
-    (Alpha a1' px1', Alpha a2' px2') where
-      (a1', a2') = (f0 a1 a2)
-      (px1', px2') = apply2t rest px1 px2
-  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
-  {-# INLINE apply2t #-}
-
   strongest !(Alpha a px) = Alpha a (strongest px)
   {-# INLINE strongest #-}
 
@@ -70,7 +57,7 @@ instance AlphaInner px => Pixel (Alpha px) where
   showType (Alpha _ px) = (showType px)++"-A"
 
 
-instance AlphaInner px => Num (Alpha px) where
+instance Pixel px => Num (Alpha px) where
   (+)         = pxOp2 (+)
   {-# INLINE (+) #-}
   
@@ -90,7 +77,7 @@ instance AlphaInner px => Num (Alpha px) where
   {-# INLINE fromInteger #-}
 
 
-instance AlphaInner px => Fractional (Alpha px) where
+instance (Pixel px, Fractional px, Fractional (Inner px)) => Fractional (Alpha px) where
   (/)          = pxOp2 (/)
   {-# INLINE (/) #-}
   
@@ -101,7 +88,7 @@ instance AlphaInner px => Fractional (Alpha px) where
   {-# INLINE fromRational #-}
 
 
-instance AlphaInner px => Floating (Alpha px) where
+instance (Pixel px, Floating px, Floating (Inner px)) => Floating (Alpha px) where
   {-# INLINE pi #-}
   pi      = pixel pi
   {-# INLINE exp #-}
@@ -130,12 +117,12 @@ instance AlphaInner px => Floating (Alpha px) where
   acosh   = pxOp acosh
 
 
-instance (AlphaInner px) => Eq (Alpha px) where
+instance Pixel px => Eq (Alpha px) where
   (==) !(Alpha a1 px1) !(Alpha a2 px2) = px1 == px2 && a1 == a2
   {-# INLINE (==) #-}
 
 
-instance (AlphaInner px) => Ord (Alpha px) where
+instance (Pixel px, Ord px) => Ord (Alpha px) where
   compare !(Alpha a1 px1) !(Alpha a2 px2) | px1 < px2 = LT
                                           | px1 > px2 = GT
                                           | a1 < a2   = LT
@@ -144,7 +131,7 @@ instance (AlphaInner px) => Ord (Alpha px) where
   {-# INLINE compare #-}
 
 
-instance AlphaInner px => Show (Alpha px) where
+instance Pixel px => Show (Alpha px) where
   show (Alpha a px) = "<Alpha:("++show a++"|"++show px++")>"
 
 
@@ -153,10 +140,10 @@ instance AlphaInner px => Show (Alpha px) where
 -- >>> addAlpha $ RGB 0.1 0.3 0.5
 -- <Alpha:(1.0|<RGB:(0.1|0.3|0.5)>)>
 --
-addAlpha :: AlphaInner px =>
+addAlpha :: Pixel px =>
             px
          -> Alpha px
-addAlpha px = Alpha 1 px
+addAlpha !px = Alpha 1 px
 {-# INLINE addAlpha #-}
 
 
@@ -165,7 +152,7 @@ addAlpha px = Alpha 1 px
 -- >>> dropAlpha $ Alpha 0.2 (RGB 0.1 0.3 0.5)
 -- <RGB:(0.1|0.3|0.5)>
 --
-dropAlpha :: AlphaInner px =>
+dropAlpha :: Pixel px =>
              Alpha px
           -> px
 dropAlpha !(Alpha _ px) = px
@@ -177,10 +164,10 @@ dropAlpha !(Alpha _ px) = px
 -- >>> fmapAlpha (*2) $ Alpha 0.2 (Gray 0.5)
 -- <Alpha:(0.4|<Gray:(0.5)>)>
 --
-fmapAlpha :: AlphaInner px =>
+fmapAlpha :: Pixel px =>
              (Inner px -> Inner px)
-             -> Alpha px
-             -> Alpha px
+          -> Alpha px
+          -> Alpha px
 fmapAlpha !f !(Alpha a px) = Alpha (f a) px
 {-# INLINE fmapAlpha #-}
 
@@ -190,8 +177,8 @@ fmapAlpha !f !(Alpha a px) = Alpha (f a) px
 -- >>> combineAlpha (/) (+) (Alpha 0.8 (Gray 0.5)) (Alpha 0.2 (Gray 0.1))
 -- <Alpha:(4.0|<Gray:(0.6)>)>
 --
-combineAlpha :: AlphaInner px =>
-             (Inner px -> Inner px -> Inner px)
+combineAlpha :: Pixel px =>
+                (Inner px -> Inner px -> Inner px)
                 -- ^ Function that combines the alpha channels for two pixel.
              -> (px -> px -> px)
                 -- ^ Function that combixnes the actual pixel values.

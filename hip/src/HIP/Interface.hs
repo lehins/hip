@@ -31,8 +31,6 @@ class (Eq px, Num px, Show px,
 
   apply2 :: [(Inner px -> Inner px -> Inner px)] -> px -> px -> px
 
-  apply2t :: [(Inner px -> Inner px -> (Inner px, Inner px))] -> px -> px -> (px, px)
-
   strongest :: px -> px
 
   weakest :: px -> px

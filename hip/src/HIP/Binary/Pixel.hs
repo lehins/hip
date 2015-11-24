@@ -114,11 +114,6 @@ instance Pixel Binary where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  apply2t !(f1:_) !(Binary b1) !(Binary b2) =
-    (Binary b1', Binary b2') where (b1', b2') = (f1 b1 b2)
-  apply2t _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
-  {-# INLINE apply2t #-}
-
   strongest                       = id
   {-# INLINE strongest #-}
 

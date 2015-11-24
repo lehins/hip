@@ -5,7 +5,7 @@ UndecidableInstances, ViewPatterns #-}
 module HIP.Complex.Pixel (
   Complex (..),
   mag, arg, conj, real, imag, fromPolar, toSquare,
-  ComplexInner
+  ComplexInner (..)
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -17,6 +17,8 @@ parts of a Complex pixel. -}
 class (Floating (Inner px), Fractional (Inner px),
        Floating px, Fractional px, Pixel px) =>
       ComplexInner px where
+  apply2c :: [(Inner px -> Inner px -> (Inner px, Inner px))] -> px -> px -> Complex px
+
 
 infix  6  :+:
 
@@ -103,12 +105,6 @@ instance ComplexInner px => Pixel (Complex px) where
     apply2 fs1 px1a px1b :+: apply2 fs2 px2a px2b
     where !(fs1, fs2) = splitAt (arity px1a) fs
   {-# INLINE apply2 #-}
-
-  apply2t !fs !(px1a :+: px2a) !(px1b :+: px2b) = (px1a' :+: px2a', px1b' :+: px2b')
-      where !(fs1, fs2) = splitAt (arity px1a) fs
-            (px1a', px1b') = apply2t fs1 px1a px1b
-            (px2a', px2b') = apply2t fs2 px2a px2b
-  {-# INLINE apply2t #-}
 
   strongest !(px1 :+: px2) = m :+: m
     where !m = pxOp2 max (strongest px1) (strongest px2)
