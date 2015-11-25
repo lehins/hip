@@ -16,6 +16,7 @@ module HIP.Pixel (
 import Prelude hiding (map)
 
 import HIP.Pixel.Base()
+import HIP.Pixel.Tuple()
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
 import HIP.Pixel.HSI

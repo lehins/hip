@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.IO (
   -- $io
   -- ** Reading image files

@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances,
+MultiParamTypeClasses, ViewPatterns #-}
 module HIP.Conversion (
   Convertible(..),
   toGrayImage, toRGBImage, toHSIImage,

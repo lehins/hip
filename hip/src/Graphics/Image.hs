@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Unboxed
 -- Copyright   : (c) Alexey Kuleshevich 2015
@@ -14,6 +15,8 @@
 module Graphics.Image (
   -- * Image
   Image,
+  -- * Pixels
+  module Graphics.Image.Pixel,
   -- * Creation
   make,
   -- * Accessors
@@ -38,7 +41,7 @@ module Graphics.Image (
   scale, resize,
   rotate, rotate',
   -- * Reduction
-  fold, sum, maximum, minimum,
+  fold, sum, --maximum, minimum,
   -- * Binary
   module Graphics.Image.Binary,
   -- * Conversion
@@ -619,7 +622,7 @@ sum :: Pixel px =>
     -> px
 sum = I.sum Identity
 
-
+{-
 -- | Retrieve the maximum pixel from an image
 maximum :: (Pixel px, Ord px) => Image px -> px
 maximum = I.maximum Identity
@@ -627,7 +630,7 @@ maximum = I.maximum Identity
 -- | Retrieve the minium pixel from an image
 minimum :: (Pixel px, Ord px) => Image px -> px
 minimum = I.minimum Identity
-
+-}
 --------------------------------------------------------------------------------
 ---- Conversion ----------------------------------------------------------------
 --------------------------------------------------------------------------------

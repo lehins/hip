@@ -87,18 +87,21 @@ instance Show Bin where
   show (Bin False) = "0"
   
 
+pxOp :: (Bin -> Bin) -> Binary -> Binary
+pxOp !f !(Binary b) = Binary (f b)
+{-# INLINE pxOp #-}
+
+pxOp2 :: (Bin -> Bin -> Bin) -> Binary -> Binary -> Binary                                    
+pxOp2 !f !(Binary b1) !(Binary b2) = Binary (f b1 b2)
+{-# INLINE pxOp2 #-}
+
+
 instance Pixel Binary where
   type Inner Binary = Bin
   pixel 0                         = off
   pixel _                         = on
   {-# INLINE pixel #-}
   
-  pxOp !f !(Binary b)               = Binary (f b)
-  {-# INLINE pxOp #-}
-  
-  pxOp2 !f !(Binary b1) !(Binary b2) = Binary (f b1 b2)
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -113,12 +116,6 @@ instance Pixel Binary where
   apply2 !(f:_) !(Binary b1) !(Binary b2) = Binary $ f b1 b2
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
-
-  strongest                       = id
-  {-# INLINE strongest #-}
-
-  weakest                         = id
-  {-# INLINE weakest #-}
 
   showType _                      = "Binary"
 

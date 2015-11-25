@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns, ViewPatterns #-}
 module HIP.Algorithms (
   flipH, flipV,
   module HIP.Algorithms.Convolution,

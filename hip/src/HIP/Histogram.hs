@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 module HIP.Histogram (
   Histogram, getHistograms, getHistogramsUsing, getHistogramVector
   ) where

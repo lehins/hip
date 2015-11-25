@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, TemplateHaskell,
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TemplateHaskell,
 TypeFamilies, UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.Unboxed.Pixel
@@ -47,8 +47,12 @@ import HIP.Binary.Pixel
 import HIP.Complex.Pixel hiding (ComplexInner)
 import qualified HIP.Complex.Pixel as P (ComplexInner)
 import qualified HIP.Interface as I (Pixel(..))
-
-
+{-
+import qualified Data.Vector.Generic            as V
+import qualified Data.Vector.Generic.Mutable    as M
+import qualified Data.Vector.Unboxed            as U
+import Control.Monad
+-}
 -- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'
 class (Unbox px, I.Pixel px) => Pixel px where
 
@@ -130,6 +134,8 @@ derivingUnbox "AlphaPixel"
 
 -- All base types:
 
+instance Pixel (Double, Double, Double) where
+
 instance Pixel Float where
 
 instance Pixel Double where
@@ -153,3 +159,54 @@ instance Pixel Word16 where
 instance Pixel Word32 where
 
 instance Pixel Word64 where
+
+{-
+instance Unbox Gray
+
+newtype instance U.MVector s Gray = MV_Gray (U.MVector s Double)
+
+instance M.MVector U.MVector Gray where
+  {-# INLINE basicLength #-}
+  {-# INLINE basicUnsafeSlice #-}
+  {-# INLINE basicOverlaps #-}
+  {-# INLINE basicUnsafeNew #-}
+  {-# INLINE basicUnsafeReplicate #-}
+  {-# INLINE basicUnsafeRead #-}
+  {-# INLINE basicUnsafeWrite #-}
+  {-# INLINE basicClear #-}
+  {-# INLINE basicSet #-}
+  {-# INLINE basicUnsafeCopy #-}
+  {-# INLINE basicUnsafeMove #-}
+  {-# INLINE basicUnsafeGrow #-}
+  basicLength (MV_Gray v) = M.basicLength v
+  basicUnsafeSlice i n (MV_Gray v) = MV_Gray (M.basicUnsafeSlice i n v)
+  basicOverlaps (MV_Gray v1) (MV_Gray v2) = M.basicOverlaps v1 v2
+  basicUnsafeNew n = (MV_Gray `liftM` M.basicUnsafeNew n)
+  basicUnsafeReplicate n (Gray y) = MV_Gray `liftM` M.basicUnsafeReplicate n y
+  basicUnsafeRead (MV_Gray v) i = Gray `liftM` M.basicUnsafeRead v i
+  basicUnsafeWrite (MV_Gray v) i (Gray y) = M.basicUnsafeWrite v i y
+  basicClear (MV_Gray v) = M.basicClear v
+  basicSet (MV_Gray v) (Gray y) = M.basicSet v y
+  basicUnsafeCopy (MV_Gray v1) (MV_Gray v2) = M.basicUnsafeCopy v1 v2
+  basicUnsafeMove (MV_Gray v1) (MV_Gray v2) = M.basicUnsafeMove v1 v2
+  basicUnsafeGrow (MV_Gray v) n = MV_Gray `liftM` M.basicUnsafeGrow v n
+          
+newtype instance U.Vector Gray = V_Gray (U.Vector Double)
+
+instance V.Vector U.Vector Gray where
+  {-# INLINE basicUnsafeFreeze #-}
+  {-# INLINE basicUnsafeThaw #-}
+  {-# INLINE basicLength #-}
+  {-# INLINE basicUnsafeSlice #-}
+  {-# INLINE basicUnsafeIndexM #-}
+  {-# INLINE basicUnsafeCopy #-}
+  {-# INLINE elemseq #-}
+  basicUnsafeFreeze (MV_Gray v) = V_Gray `liftM` V.basicUnsafeFreeze v
+  basicUnsafeThaw (V_Gray v) = MV_Gray `liftM` V.basicUnsafeThaw v
+  basicLength (V_Gray v) = V.basicLength v
+  basicUnsafeSlice i n (V_Gray v) = V_Gray (V.basicUnsafeSlice i n v)
+  basicUnsafeIndexM (V_Gray v) i = Gray  `liftM` V.basicUnsafeIndexM v i
+  basicUnsafeCopy (MV_Gray mv) (V_Gray v) = V.basicUnsafeCopy mv v
+  --elemseq (V_Gray vec) val = V.elemseq vec (\(Gray y) -> y val)
+  elemseq (V_Gray v) (Gray y) x = V.elemseq v y x
+-}

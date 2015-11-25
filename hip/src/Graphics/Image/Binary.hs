@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module Graphics.Image.Binary (
   B.Compareble (..), toBinary, toBinary2, fromBinary, invert
   ) where

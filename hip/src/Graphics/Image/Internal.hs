@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE GADTs, BangPatterns, FlexibleInstances, MultiParamTypeClasses, ViewPatterns #-}
 module Graphics.Image.Internal (
   Image, VectorStrategy(..), toVector, fromVector
   ) where
@@ -27,8 +27,8 @@ import Graphics.Image.Pixel (Pixel)
 -- <<images/centaurus.jpg>> <<images/cluster.jpg>> <<images/centaurus_cluster.jpg>>
 --
 data Image px where
-  VectorImage   :: Pixel px => Int -> Int -> Vector px -> Image px
-  Singleton     :: Pixel px => px -> Image px
+  VectorImage   :: Pixel px => !Int -> !Int -> !(Vector px) -> Image px
+  Singleton     :: Pixel px => !px -> Image px
 
 
 data VectorStrategy img px where
@@ -41,6 +41,10 @@ instance Pixel px => Strategy VectorStrategy Image px where
 
   fold    _ f a !img = foldl f a $ toVector img
   {-# INLINE fold #-}
+
+  sum _ !(VectorImage _ _ v) = V.sum v
+  sum _ !(Singleton px) = px
+  {-# INLINE sum #-}
 
   toBoxedVector _ img = convert $ toVector img
   {-# INLINE toBoxedVector #-}
@@ -91,7 +95,7 @@ instance (Pixel px) => AImage Image px where
 
   (|*|) !img1@(VectorImage m1 n1 v1) !img2 =
     if n1 /= m2 
-    then  error ("Inner dimensions of multiplied images must be the same, but received: "++
+    then  error ("Inner dimensions of multiplying images must be the same, but received: "++
                  show img1 ++" X "++ show img2)
     else
       make m1 n2 getPx where

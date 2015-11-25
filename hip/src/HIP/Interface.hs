@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns, TypeFamilies, UndecidableInstances #-}
 
 module HIP.Interface (
-  minimum, maximum, normalize,
+  --minimum, maximum, normalize,
   Pixel(..),
   Strategy(..),
   AImage(..)
@@ -19,10 +19,6 @@ class (Eq px, Num px, Show px,
   
   pixel :: Inner px -> px
        
-  pxOp :: (Inner px -> Inner px) -> px -> px
-
-  pxOp2 :: (Inner px -> Inner px -> Inner px) -> px -> px -> px
-
   arity :: px -> Int
 
   ref :: Int -> px -> Inner px
@@ -30,10 +26,6 @@ class (Eq px, Num px, Show px,
   apply :: [(Inner px -> Inner px)] -> px -> px
 
   apply2 :: [(Inner px -> Inner px -> Inner px)] -> px -> px -> px
-
-  strongest :: px -> px
-
-  weakest :: px -> px
 
   showType :: px -> String
 
@@ -287,7 +279,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
   -- | Matrix multiplication of two images. Inner dimensions must agree.
   (|*|) :: img px -> img px -> img px
   
-
+{-
 maximum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>
            strat img px
            -> img px
@@ -315,3 +307,4 @@ normalize strat img = compute strat $ if s == w
                   normalizer px = (px - w)/(s - w)
                   {-# INLINE normalizer #-}
 {-# INLINE normalize #-}
+-}

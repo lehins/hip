@@ -27,12 +27,6 @@ instance Pixel px => Pixel (Alpha px) where
   pixel = Alpha 1 . pixel
   {-# INLINE pixel #-}
   
-  pxOp !op !(Alpha a px) = Alpha a (pxOp op px)
-  {-# INLINE pxOp #-}
-
-  pxOp2 !op !(Alpha a1 px1 ) (Alpha _ px2) = Alpha a1 (pxOp2 op px1 px2) 
-  {-# INLINE pxOp2 #-}
-
   arity (Alpha _ px) = 1 + arity px
   {-# INLINE arity #-}
 
@@ -48,73 +42,79 @@ instance Pixel px => Pixel (Alpha px) where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  strongest !(Alpha a px) = Alpha a (strongest px)
-  {-# INLINE strongest #-}
-
-  weakest !(Alpha a px) = Alpha a (weakest px)
-  {-# INLINE weakest #-}
-
   showType (Alpha _ px) = (showType px)++"-A"
 
 
 instance Pixel px => Num (Alpha px) where
-  (+)         = pxOp2 (+)
+  (+) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 + a2) (px1 + px2)
   {-# INLINE (+) #-}
   
-  (-)         = pxOp2 (-)
+  (-) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 - a2) (px1 - px2)
   {-# INLINE (-) #-}
   
-  (*)         = pxOp2 (*)
+  (*) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 * a2) (px1 * px2)
   {-# INLINE (*) #-}
   
-  abs         = pxOp abs
+  abs !(Alpha a px)                   = Alpha (abs a) (abs px)
   {-# INLINE abs #-}
   
-  signum      = pxOp signum
+  signum !(Alpha a px)                = Alpha (signum a) (signum px)
   {-# INLINE signum #-}
   
-  fromInteger = pixel . fromIntegral 
+  fromInteger                         = pixel . fromIntegral 
   {-# INLINE fromInteger #-}
 
 
 instance (Pixel px, Fractional px, Fractional (Inner px)) => Fractional (Alpha px) where
-  (/)          = pxOp2 (/)
+  (/) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 / a2) (px1 / px2)
   {-# INLINE (/) #-}
   
-  recip        = pxOp recip
+  recip !(Alpha a px)                 = Alpha (recip a) (recip px)
   {-# INLINE recip #-}
   
-  fromRational = pixel . fromRational 
+  fromRational                        = pixel . fromRational 
   {-# INLINE fromRational #-}
 
 
 instance (Pixel px, Floating px, Floating (Inner px)) => Floating (Alpha px) where
+  pi                   = pixel pi
   {-# INLINE pi #-}
-  pi      = pixel pi
+  
+  exp !(Alpha a px)    = Alpha (exp a) (exp px)
   {-# INLINE exp #-}
-  exp     = pxOp exp
+  
+  log !(Alpha a px)    = Alpha (log a) (log px)
   {-# INLINE log #-}
-  log     = pxOp log
+  
+  sin !(Alpha a px)    = Alpha (sin a) (sin px)
   {-# INLINE sin #-}
-  sin     = pxOp sin
+  
+  cos !(Alpha a px)    = Alpha (cos a) (cos px)
   {-# INLINE cos #-}
-  cos     = pxOp cos
+  
+  asin !(Alpha a px)   = Alpha (asin a) (asin px)
   {-# INLINE asin #-}
-  asin    = pxOp asin
+  
+  atan !(Alpha a px)   = Alpha (atan a) (atan px)
   {-# INLINE atan #-}
-  atan    = pxOp atan
+  
+  acos !(Alpha a px)   = Alpha (acos a) (acos px)
   {-# INLINE acos #-}
-  acos    = pxOp acos
+  
+  sinh !(Alpha a px)   = Alpha (sinh a) (sinh px)
   {-# INLINE sinh #-}
-  sinh    = pxOp sinh
+  
+  cosh !(Alpha a px)   = Alpha (cosh a) (cosh px)
   {-# INLINE cosh #-}
-  cosh    = pxOp cosh
+  
+  asinh !(Alpha a px)  = Alpha (asinh a) (asinh px)
   {-# INLINE asinh #-}
-  asinh   = pxOp asinh
+  
+  atanh !(Alpha a px)  = Alpha (atanh a) (atanh px)
   {-# INLINE atanh #-}
-  atanh   = pxOp atanh
+  
+  acosh !(Alpha a px)  = Alpha (acosh a) (acosh px)
   {-# INLINE acosh #-}
-  acosh   = pxOp acosh
 
 
 instance Pixel px => Eq (Alpha px) where

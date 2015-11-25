@@ -6,19 +6,24 @@ module HIP.Pixel.RGB (
 
 import HIP.Interface (Pixel(..))
 
-data RGB = RGB !Double !Double !Double deriving Eq
+data RGB = RGB {-# UNPACK #-} !Double
+               {-# UNPACK #-} !Double
+               {-# UNPACK #-} !Double deriving Eq
+
+pxOp :: (Double -> Double) -> RGB -> RGB
+pxOp !f !(RGB r g b) = RGB (f r) (f g) (f b)
+{-# INLINE pxOp #-}
+
+pxOp2 :: (Double -> Double -> Double) -> RGB -> RGB -> RGB
+pxOp2 !f !(RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
+{-# INLINE pxOp2 #-}
 
 
 instance Pixel RGB where
   type Inner RGB = Double
+  
   pixel d = RGB d d d
   {-# INLINE pixel #-}
-
-  pxOp f (RGB r g b) = RGB (f r) (f g) (f b)
-  {-# INLINE pxOp #-}
-
-  pxOp2 f (RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
-  {-# INLINE pxOp2 #-}
 
   arity _ = 3
   {-# INLINE arity #-}
@@ -37,68 +42,79 @@ instance Pixel RGB where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  strongest (RGB r g b) = pixel . maximum $ [r, g, b]
-  {-# INLINE strongest #-}
-
-  weakest (RGB r g b) = pixel . minimum $ [r, g, b]
-  {-# INLINE weakest #-}
-
   showType _ = "RGB"
   
 
 instance Num RGB where
-  (+)           = pxOp2 (+)
+  (+)         = pxOp2 (+)
   {-# INLINE (+) #-}
   
-  (-)           = pxOp2 (-)
+  (-)         = pxOp2 (-)
   {-# INLINE (-) #-}
   
-  (*)           = pxOp2 (*)
+  (*)         = pxOp2 (*)
   {-# INLINE (*) #-}
   
-  abs           = pxOp abs
+  abs         = pxOp abs
   {-# INLINE abs #-}
-  
-  signum        = pxOp signum
+
+  signum      = pxOp signum
   {-# INLINE signum #-}
   
-  fromInteger n = pixel . fromIntegral $ n
+  fromInteger = pixel . fromIntegral
   {-# INLINE fromInteger #-}
 
 
 instance Fractional RGB where
-  (/)            = pxOp2 (/)
-  recip          = pxOp recip
-  fromRational n = pixel . fromRational $ n
+  (/)          = pxOp2 (/)
+  {-# INLINE (/) #-}
+  
+  recip        = pxOp recip
+  {-# INLINE recip #-}
+
+  fromRational = pixel . fromRational
+  {-# INLINE fromRational #-}
 
 
 instance Floating RGB where
-  {-# INLINE pi #-}
   pi      = pixel pi
-  {-# INLINE exp #-}
+  {-# INLINE pi #-}
+
   exp     = pxOp exp
-  {-# INLINE log #-}
+  {-# INLINE exp #-}
+
   log     = pxOp log
-  {-# INLINE sin #-}
+  {-# INLINE log #-}
+  
   sin     = pxOp sin
-  {-# INLINE cos #-}
+  {-# INLINE sin #-}
+  
   cos     = pxOp cos
-  {-# INLINE asin #-}
+  {-# INLINE cos #-}
+  
   asin    = pxOp asin
-  {-# INLINE atan #-}
+  {-# INLINE asin #-}
+  
   atan    = pxOp atan
-  {-# INLINE acos #-}
+  {-# INLINE atan #-}
+  
   acos    = pxOp acos
-  {-# INLINE sinh #-}
+  {-# INLINE acos #-}
+  
   sinh    = pxOp sinh
-  {-# INLINE cosh #-}
+  {-# INLINE sinh #-}
+  
   cosh    = pxOp cosh
-  {-# INLINE asinh #-}
+  {-# INLINE cosh #-}
+  
   asinh   = pxOp asinh
-  {-# INLINE atanh #-}
+  {-# INLINE asinh #-}
+  
   atanh   = pxOp atanh
-  {-# INLINE acosh #-}
+  {-# INLINE atanh #-}
+  
   acosh   = pxOp acosh
+  {-# INLINE acosh #-}
 
 
 instance Ord RGB where
@@ -107,4 +123,3 @@ instance Ord RGB where
 
 instance Show RGB where
   show (RGB r g b) = "<RGB:("++show r++"|"++show g++"|"++show b++")>"
-  {-# INLINE show #-}

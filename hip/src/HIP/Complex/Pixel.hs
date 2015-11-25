@@ -76,19 +76,22 @@ imag :: (ComplexInner px) => Complex px -> px
 imag !(_  :+: px) = px
 {-# INLINE imag #-}
 
+
+pxOp :: (ComplexInner px) => (px -> px) -> (Complex px) -> (Complex px)
+pxOp !op !(px1 :+: px2) = op px1 :+: op px2
+{-# INLINE pxOp #-}
+
+pxOp2 :: (ComplexInner px) => (px -> px -> px) -> (Complex px) -> (Complex px) -> (Complex px)
+pxOp2 !op !(px1 :+: px2) (px1' :+: px2') = op px1 px1' :+: op px2 px2'
+{-# INLINE pxOp2 #-}
+
+
 instance ComplexInner px => Pixel (Complex px) where
   type Inner (Complex px) = Inner px
 
   pixel !v = (pixel v) :+: (pixel v)
   {-# INLINE pixel #-}
   
-  pxOp !op !(px1 :+: px2) = (pxOp op px1 :+: pxOp op px2)
-  {-# INLINE pxOp #-}
-
-  pxOp2 !op !(px1 :+: px2) (px1' :+: px2') =
-    (pxOp2 op px1 px1') :+: (pxOp2 op px2 px2')
-  {-# INLINE pxOp2 #-}
-
   arity (px1 :+: px2) = arity px1 + arity px2
   {-# INLINE arity #-}
 
@@ -107,14 +110,6 @@ instance ComplexInner px => Pixel (Complex px) where
     apply2 fs1 px1a px1b :+: apply2 fs2 px2a px2b
     where !(fs1, fs2) = splitAt (arity px1a) fs
   {-# INLINE apply2 #-}
-
-  strongest !(px1 :+: px2) = m :+: m
-    where !m = pxOp2 max (strongest px1) (strongest px2)
-  {-# INLINE strongest #-}
-
-  weakest !(px1 :+: px2) = m :+: m
-    where !m = pxOp2 min (strongest px1) (strongest px2)
-  {-# INLINE weakest #-}
 
   showType (!px :+: _) = "Complex "++(showType px)
   {-# INLINE showType #-}

@@ -7,19 +7,26 @@ module HIP.Pixel.HSI (
 
 import HIP.Interface (Pixel(..))
 
-data HSI = HSI !Double !Double !Double deriving Eq
+data HSI = HSI {-# UNPACK #-} !Double
+               {-# UNPACK #-} !Double
+               {-# UNPACK #-} !Double deriving Eq
+
+
+pxOp :: (Double -> Double) -> HSI -> HSI
+pxOp !f !(HSI h s i) = HSI (f h) (f s) (f i)
+{-# INLINE pxOp #-}
+
+pxOp2 :: (Double -> Double -> Double) -> HSI -> HSI -> HSI
+pxOp2 !f !(HSI h1 s1 i1) !(HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
+{-# INLINE pxOp2 #-}
 
 
 instance Pixel HSI where
   type Inner HSI = Double
+
   pixel !d                                = HSI d d d
   {-# INLINE pixel #-}
 
-  pxOp !f !(HSI h s i)                    = HSI (f h) (f s) (f i)
-  {-# INLINE pxOp #-}
-
-  pxOp2 !f !(HSI h1 s1 i1) (HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
-  {-# INLINE pxOp2 #-}
 
   arity _ = 3
   {-# INLINE arity #-}
@@ -37,12 +44,6 @@ instance Pixel HSI where
   apply2 !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) = HSI (f1 h1 h2) (f2 s1 s2) (f3 i1 i2)
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
-
-  strongest !(HSI h s i)                  = pixel . maximum $ [h, s, i]
-  {-# INLINE strongest #-}
-
-  weakest !(HSI h s i)                    = pixel . minimum $ [h, s, i]
-  {-# INLINE weakest #-}
 
   showType _ = "HSI"
   

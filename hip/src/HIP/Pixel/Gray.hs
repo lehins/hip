@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, MultiParamTypeClasses, TypeFamilies,
-UndecidableInstances, ViewPatterns #-}
+UndecidableInstances, ViewPatterns, MagicHash #-}
 
 module HIP.Pixel.Gray (
   Gray (..)
@@ -8,7 +8,16 @@ module HIP.Pixel.Gray (
 import HIP.Interface (Pixel(..))
 
 -- | A Gray pixel with 'Double' precision.
-newtype Gray = Gray Double deriving Eq
+data Gray = Gray {-# UNPACK #-} !Double deriving Eq
+
+
+pxOp :: (Double -> Double) -> Gray -> Gray
+pxOp !f !(Gray y)              = Gray (f y)
+{-# INLINE pxOp #-}
+
+pxOp2 :: (Double -> Double -> Double) -> Gray -> Gray -> Gray
+pxOp2 !f !(Gray y1) !(Gray y2) = Gray (f y1 y2)
+{-# INLINE pxOp2 #-}
 
 
 instance Pixel Gray where
@@ -16,12 +25,6 @@ instance Pixel Gray where
   pixel                          = Gray 
   {-# INLINE pixel #-}
   
-  pxOp !f !(Gray y)              = Gray (f y)
-  {-# INLINE pxOp #-}
-  
-  pxOp2 !f !(Gray y1) !(Gray y2) = Gray (f y1 y2)
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -36,12 +39,6 @@ instance Pixel Gray where
   apply2 !(f:_) !(Gray y1) !(Gray y2) = Gray $ f y1 y2
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
-
-  strongest                      = id
-  {-# INLINE strongest #-}
-
-  weakest                        = id
-  {-# INLINE weakest #-}
 
   showType _                     = "Gray"
 
@@ -124,4 +121,3 @@ instance Ord Gray where
 
 instance Show Gray where
   show (Gray y) = "<Gray:("++show y++")>"
-  {-# INLINE show #-}

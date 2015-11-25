@@ -28,12 +28,6 @@ instance Pixel Float where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -45,12 +39,6 @@ instance Pixel Float where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Float"
   
@@ -61,12 +49,6 @@ instance Pixel Double where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -78,12 +60,6 @@ instance Pixel Double where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Double"
 
@@ -95,12 +71,6 @@ instance Pixel Int where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -112,12 +82,6 @@ instance Pixel Int where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Int"
   
@@ -128,12 +92,6 @@ instance Pixel Int8 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -145,12 +103,6 @@ instance Pixel Int8 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Int8"
   
@@ -161,12 +113,6 @@ instance Pixel Int16 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -178,12 +124,6 @@ instance Pixel Int16 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Int16"
   
@@ -194,12 +134,6 @@ instance Pixel Int32 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -211,12 +145,6 @@ instance Pixel Int32 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Int32"
 
@@ -227,12 +155,6 @@ instance Pixel Int64 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -244,12 +166,6 @@ instance Pixel Int64 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Int64"
   
@@ -261,12 +177,6 @@ instance Pixel Word where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -278,12 +188,6 @@ instance Pixel Word where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Word"
   
@@ -294,12 +198,6 @@ instance Pixel Word8 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -311,12 +209,6 @@ instance Pixel Word8 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Word8"
   
@@ -327,12 +219,6 @@ instance Pixel Word16 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -344,12 +230,6 @@ instance Pixel Word16 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Word16"
   
@@ -360,12 +240,6 @@ instance Pixel Word32 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -377,12 +251,6 @@ instance Pixel Word32 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Word32"
 
@@ -393,12 +261,6 @@ instance Pixel Word64 where
   pixel = id
   {-# INLINE pixel #-}
 
-  pxOp = ($)
-  {-# INLINE pxOp #-}
-
-  pxOp2 = ((.).(.)) id
-  {-# INLINE pxOp2 #-}
-
   arity _ = 1
   {-# INLINE arity #-}
 
@@ -410,12 +272,6 @@ instance Pixel Word64 where
 
   apply2 = baseApply2
   {-# INLINE apply2 #-}
-
-  strongest = id
-  {-# INLINE strongest #-}
-
-  weakest = id
-  {-# INLINE weakest #-}
 
   showType _ = "Word64"
   
