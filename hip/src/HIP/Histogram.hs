@@ -6,6 +6,7 @@ module HIP.Histogram (
 import Graphics.EasyPlot
 import HIP.Conversion (toLists)
 import HIP.Interface hiding (map)
+import HIP.Pixel.Base (Pixel(..))
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Generic.Mutable as GMV

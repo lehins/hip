@@ -8,8 +8,8 @@ import Prelude hiding (map, zipWith, length, all, head, concat, foldl)
 import qualified Prelude as P (map, length, all, head, concat)
 import Data.Vector.Unboxed hiding ((++), map, zipWith, unsafeIndex, fromList)
 import qualified Data.Vector.Unboxed as V (unsafeIndex, length, fromList, zipWith, sum)
-import HIP.Interface hiding (Pixel)
-import Graphics.Image.Pixel (Pixel)
+import Graphics.Image.Pixel (Pixel, showType)
+import HIP.Interface
 
 -- | This is a concrete representation of an image that can hold any of the
 -- pixels that are an instance of a 'Pixel'. It is also installed in 'Num's,
@@ -35,7 +35,7 @@ data VectorStrategy img px where
   Identity :: (Pixel px, AImage img px) => VectorStrategy img px
 
 
-instance Pixel px => Strategy VectorStrategy Image px where
+instance (Pixel px, AImage Image px) => Strategy VectorStrategy Image px where
   compute _ !img = img
   {-# INLINE compute #-}
 
@@ -173,6 +173,8 @@ instance (Floating px, Pixel px) => Floating (Image px) where
   
   acosh = map acosh
   {-# INLINE acosh #-}
+
+
 
 
   

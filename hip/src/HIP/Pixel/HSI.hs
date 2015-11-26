@@ -5,8 +5,14 @@ module HIP.Pixel.HSI (
   HSI (..)
   ) where
 
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
+-- | HSI colorspace model consists of Hue, Saturation and Intensity. When read
+-- from file or converted from a normalized image in other colorspace values
+-- will be in ranges:
+-- * Hue: @H = [0, 2*pi)@
+-- * Saturation: @S = [0, 1]@
+-- * Intensity: @I = [0, 1]@
 data HSI = HSI {-# UNPACK #-} !Double
                {-# UNPACK #-} !Double
                {-# UNPACK #-} !Double deriving Eq

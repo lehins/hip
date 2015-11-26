@@ -1,8 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, TypeFamilies #-}
 module HIP.Pixel.Base where
 
-import HIP.Interface (Pixel(..))
 import Data.Int
 import Data.Word
 
@@ -20,6 +19,25 @@ baseApply2 :: Pixel px => [(px -> px -> t)] -> px -> px -> t
 baseApply2 !(f:_) !d1 !d2 = f d1 d2
 baseApply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
 {-# INLINE baseApply2 #-}
+
+
+class (Eq px, Num px, Show px,
+       Eq (Inner px), Num (Inner px), Show (Inner px), Ord (Inner px)
+      ) => Pixel px where
+  -- | Internal type used for pixel values.
+  type Inner px :: *
+  
+  pixel :: Inner px -> px
+       
+  arity :: px -> Int
+
+  ref :: Int -> px -> Inner px
+
+  apply :: [(Inner px -> Inner px)] -> px -> px
+
+  apply2 :: [(Inner px -> Inner px -> Inner px)] -> px -> px -> px
+
+  showType :: px -> String
 
 
 instance Pixel Float where

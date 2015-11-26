@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, MultiWayIf #-}
 module HIP.Pixel (
   Pixel(..),
   module HIP.Pixel.Gray,
@@ -15,7 +15,7 @@ module HIP.Pixel (
 
 import Prelude hiding (map)
 
-import HIP.Pixel.Base()
+import HIP.Pixel.Base (Pixel(..))
 import HIP.Pixel.Tuple()
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
@@ -23,7 +23,6 @@ import HIP.Pixel.HSI
 import HIP.Pixel.Alpha
 import HIP.Binary.Pixel
 import HIP.Complex.Pixel
-import HIP.Interface (Pixel(..))
 
 
 instance ComplexInner Float where
@@ -90,12 +89,12 @@ grayToRGB !(Gray y) = RGB y y y
 -- | Convert an 'RGB' pixel to 'HSI' pixel.
 rgbToHSI :: RGB -> HSI
 rgbToHSI !(RGB r g b) = HSI h s i where
-  !h = if (v1 /= 0.0) then atan2 v2 v1 else 0
-  !s = sqrt((v1 * v1) + (v2 * v2))
+  !h' = atan2 y x
+  !h = if h' < 0 then h' + 2*pi else h'
+  !s = if i == 0 then 0 else 1 - minimum([r, g, b])/i
   !i = (r + g + b)/3
-  !v1 = (2.0*r - g - b) / c
-  !v2 = (g - b) / c
-  !c = 2.44948974278318
+  !x = (2*r - g - b)/2.449489742783178
+  !y = (g - b)/1.4142135623730951
 {-# INLINE rgbToHSI #-}
 
 
@@ -103,6 +102,59 @@ rgbToHSI !(RGB r g b) = HSI h s i where
 rgbToGray :: RGB -> Gray
 rgbToGray !(RGB r g b) = Gray ((r + g + b)/3)
 {-# INLINE rgbToGray #-}
+
+
+-- | Convert an 'HSI' pixel to 'RGB' pixel.
+hsiToRGB :: HSI -> RGB
+hsiToRGB !(HSI h s i) =
+  let !is = i*s
+      !second = i - is
+      getFirst !alpha !beta = i + is*cos alpha/cos beta
+      {-# INLINE getFirst #-}
+      getThird !v1 !v2 = i + 2*is + v1 - v2
+      {-# INLINE getThird #-}
+  in if | h < 2*pi/3 -> let !r = getFirst h (pi/3 - h)
+                            !b = second
+                            !g = getThird b r
+                        in RGB r g b
+        | h < 4*pi/3 -> let !g = getFirst (h - 2*pi/3) (h + pi)
+                            !r = second
+                            !b = getThird r g
+                        in RGB r g b
+        | h < 2*pi   -> let !b = getFirst (h - 4*pi/3) (2*pi - pi/3 - h)
+                            !g = second
+                            !r = getThird g b
+                        in RGB r g b
+        | otherwise  -> error "HSI pixel is not properly normalized" 
+{-# INLINE hsiToRGB #-}
+
+
+-- | Convert an 'HSI' pixel to 'Gray' pixel.
+hsiToGray :: HSI -> Gray
+hsiToGray (HSI _ _ i) = Gray i
+{-# INLINE hsiToGray #-}
+
+
+
+
+--rgbs :: [RGB]
+--rgbs = [RGB 1 1 1, RGB 0.5 0.5 0.5, RGB 0 0 0, RGB 1 0 0, RGB 0.75 0.75 0, RGB 0 0.5 0, RGB 0.5 1 1, RGB 0.5 0.5 1, RGB 0.75 0.25 0.75, RGB 0.628 0.643 0.142, RGB 0.255 0.104 0.918, RGB 0.116 0.675 0.255, RGB 0.941 0.785 0.053, RGB 0.704 0.187 0.897, RGB 0.931 0.463 0.316, RGB 0.998 0.974 0.532, RGB 0.099 0.795 0.591, RGB 0.211 0.149 0.597, RGB 0.495 0.493 0.721]
+
+--hsis :: [HSI]
+--hsis = fmap (\(HSI h s i) -> HSI (h*pi/180) s i) [HSI 0 0 1, HSI 0 0 0.5, HSI 0 0 0, HSI 0 1 0.333, HSI 60 1 0.5, HSI 120 1 0.167, HSI 180 0.4 0.833, HSI 240 0.25 0.667, HSI 300 0.571 0.583, HSI 61.5 0.699 0.471, HSI 250 0.756 0.426, HSI 133.8 0.667 0.349, HSI 50.5 0.911 0.593, HSI 284.8 0.686 0.596, HSI 13.2 0.446 0.57, HSI 57.4 0.363 0.835, HSI 163.4 0.8 0.495, HSI 247.3 0.533 0.319, HSI 240.4 0.135 0.57]
+
+
+{-
+-- | Convert an 'RGB' pixel to 'HSI' pixel.
+rgbToHSI' :: RGB -> HSI
+rgbToHSI' !(RGB r g b) = HSI h s i where
+  !h = if (v1 /= 0.0) then atan2 v2 v1 else 0
+  !s = sqrt((v1 * v1) + (v2 * v2))
+  !i = (r + g + b)/3
+  !v1 = (2.0*r - g - b) / c
+  !v2 = (g - b) / c
+  !c = 2.44948974278318
+{-# INLINE rgbToHSI' #-}
 
 -- | Convert an 'HSI' pixel to 'RGB' pixel.
 hsiToRGB :: HSI -> RGB
@@ -115,10 +167,4 @@ hsiToRGB !(HSI h s i) = RGB r g b where
   !c  = 2.44948974278318
 {-# INLINE hsiToRGB #-}
 
-
--- | Convert an 'HSI' pixel to 'Gray' pixel.
-hsiToGray :: HSI -> Gray
-hsiToGray (HSI _ _ i) = Gray i
-{-# INLINE hsiToGray #-}
-
-
+-}

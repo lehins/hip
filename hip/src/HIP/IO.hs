@@ -11,7 +11,8 @@ import Data.IORef
 import Data.ByteString (readFile)
 import Graphics.EasyPlot hiding (TerminalType(..))
 import qualified Graphics.EasyPlot as Plot (TerminalType(PNG))
-import HIP.Interface (AImage, Strategy(compute), Pixel(..))
+import HIP.Interface (AImage, Strategy(compute))
+import HIP.Pixel.Base (Pixel(..))
 import HIP.External
 import HIP.Histogram
 import qualified Data.ByteString.Lazy as BL (writeFile)

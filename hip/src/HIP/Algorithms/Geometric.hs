@@ -9,6 +9,7 @@ module HIP.Algorithms.Geometric (
 import Prelude hiding (map, zipWith)
 import Data.Complex
 import HIP.Interface
+import HIP.Pixel.Base (Pixel(..))
 import HIP.Algorithms.Interpolation
 
 {- | Scale an image by a factor while using interpolation.

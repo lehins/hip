@@ -3,31 +3,13 @@
 
 module HIP.Interface (
   --minimum, maximum, normalize,
-  Pixel(..),
   Strategy(..),
   AImage(..)
   ) where
 
 import Prelude hiding (map, sum, minimum, maximum)
 import qualified Data.Vector as V (Vector)
-
-class (Eq px, Num px, Show px,
-       Eq (Inner px), Num (Inner px), Show (Inner px), Ord (Inner px)
-      ) => Pixel px where
-  -- | Internal type used for pixel values.
-  type Inner px :: *
-  
-  pixel :: Inner px -> px
-       
-  arity :: px -> Int
-
-  ref :: Int -> px -> Inner px
-
-  apply :: [(Inner px -> Inner px)] -> px -> px
-
-  apply2 :: [(Inner px -> Inner px -> Inner px)] -> px -> px -> px
-
-  showType :: px -> String
+import HIP.Pixel.Base (Pixel(..))
 
 
 class AImage img px => Strategy strat img px where

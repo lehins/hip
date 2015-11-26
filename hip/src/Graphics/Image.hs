@@ -720,6 +720,7 @@ rgbToGrays = C.rgbToGrays
 -- | Convert an HSI image to a three tuple of images containing (Hue, Saturation, Intensity)
 -- values as 'Gray' pixels.
 --
+-- >>> yield <- readImageRGB "images/yield.jpg"
 -- >>> let (hue, saturation, intensity) = hsiToGrays $ toHSIImage frog
 -- >>> writeImage "images/frog_hue.png" ((hue + pi) / (2 * pi)) []
 -- >>> writeImage "images/frog_saturation.png" saturation []

@@ -3,7 +3,7 @@ module HIP.Pixel.Alpha (
   Alpha(..), addAlpha, dropAlpha, fmapAlpha, combineAlpha
   ) where
 
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
 
 {- | This pixel wraps other pixel types, effectively adding an opacity layer to

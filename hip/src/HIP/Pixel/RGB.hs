@@ -4,7 +4,7 @@ module HIP.Pixel.RGB (
   RGB (..)
   ) where
 
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
 data RGB = RGB {-# UNPACK #-} !Double
                {-# UNPACK #-} !Double

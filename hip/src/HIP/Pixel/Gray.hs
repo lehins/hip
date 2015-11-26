@@ -5,7 +5,7 @@ module HIP.Pixel.Gray (
   Gray (..)
   ) where
 
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
 -- | A Gray pixel with 'Double' precision.
 data Gray = Gray {-# UNPACK #-} !Double deriving Eq

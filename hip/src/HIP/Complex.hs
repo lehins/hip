@@ -1,24 +1,25 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
 module HIP.Complex (
-  (.+.), realPart, imagPart, magnitude, argument, toPolar, toRectangular, 
+  (!+!), realPart, imagPart, magnitude, argument, toPolar, toRectangular, 
   conjugate, makeFilter, shrink
   ) where
 
 import Prelude hiding (map, zipWith)
 import HIP.Interface
 import HIP.Complex.Pixel
+import HIP.Pixel.Base (Pixel(..))
 
 
-infix  6  .+.
+infix  6  !+!
 
 -- | Construct a complex image from two regular images.
 --
-(.+.) :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
+(!+!) :: (ComplexInner px, AImage img px, AImage img (Complex px)) =>
              img px -- ^ Image representing real part.
           -> img px -- ^ Image representing imaginary part.
           -> img (Complex px)
-(.+.) = zipWith (:+:)
-{-# INLINE (.+.) #-}
+(!+!) = zipWith (:+:)
+{-# INLINE (!+!) #-}
 
 
 {-| Given a complex image, returns a real image representing the real part of the

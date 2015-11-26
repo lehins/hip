@@ -7,8 +7,8 @@ module HIP.External (
 
 import GHC.Float
 import Prelude hiding (map)
-import HIP.Interface (Pixel(..), AImage(..))
-import HIP.Pixel hiding (Pixel)
+import HIP.Interface (AImage(..))
+import HIP.Pixel
 import HIP.Binary (fromBinary)
 import Data.Word (Word8, Word16)
 import Data.Vector.Storable (Storable)

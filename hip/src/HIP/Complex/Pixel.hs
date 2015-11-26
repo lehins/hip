@@ -3,13 +3,12 @@ TypeFamilies, MultiParamTypeClasses, NoMonomorphismRestriction,
 UndecidableInstances, ViewPatterns #-}
 
 module HIP.Complex.Pixel (
-  Complex (..),
-  mag, arg, conj, real, imag, fromPol, toRect,
-  ComplexInner (..)
+  Complex (..), ComplexInner (..),
+  mag, arg, conj, real, imag, fromPol, toRect  
   ) where
 
 import Prelude hiding (map, zipWith)
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
 
 {- | Every instance of this ComplexInner class can be used as a real and imaginary

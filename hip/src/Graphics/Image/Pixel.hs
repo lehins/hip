@@ -14,12 +14,14 @@ TypeFamilies, UndecidableInstances #-}
 -- This module contains all available pixel types at the moment.
 module Graphics.Image.Pixel (
   -- * Pixel 
-  Pixel, I.Inner,
+  Pixel, P.Inner, P.showType,
   -- ** Grayscale
   module HIP.Pixel.Gray,
   -- ** Color
+  -- *** RGB
   module HIP.Pixel.RGB,
   rgbToHSI, rgbToGray,
+  -- *** HSI
   module HIP.Pixel.HSI,
   hsiToRGB, hsiToGray,
   -- ** Alpha
@@ -45,19 +47,18 @@ import HIP.Pixel.RGB
 import HIP.Pixel.HSI
 import HIP.Binary.Pixel
 import HIP.Complex.Pixel hiding (ComplexInner)
-import qualified HIP.Complex.Pixel as P (ComplexInner)
-import qualified HIP.Interface as I (Pixel(..))
+import qualified HIP.Pixel as P (Pixel(..), ComplexInner)
 {-
 import qualified Data.Vector.Generic            as V
 import qualified Data.Vector.Generic.Mutable    as M
 import qualified Data.Vector.Unboxed            as U
 import Control.Monad
 -}
--- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'
-class (Unbox px, I.Pixel px) => Pixel px where
+-- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'
+class (Unbox px, P.Pixel px) => Pixel px where
 
 
--- | Unboxed Vector can only work with 'I.Pixel's that implement 'Unbox'. Also
+-- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'. Also
 -- Pixel that are instances of this class can be used with 'Complex' pixel.
 class (Unbox px, Unbox (Inner px), P.ComplexInner px
       ) => ComplexInner px where

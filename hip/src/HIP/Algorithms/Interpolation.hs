@@ -3,7 +3,7 @@ module HIP.Algorithms.Interpolation (
   Interpolation(..), Method(..)
   ) where
 
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
 
 class Pixel px => Interpolation method px | px -> method where

@@ -5,7 +5,7 @@ module HIP.Binary.Pixel (
   Binary(..), Bin(..), on, off, fromBool, isOn, isOff, inverted
   ) where
 
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
 -- Need to specify a new type to avoid declaring Num for Bool
 newtype Bin = Bin Bool deriving Eq

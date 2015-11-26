@@ -1,12 +1,19 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, MultiParamTypeClasses #-}
 module HIP.Binary (
-  Compareble (..), toBinary, toBinary2, fromBinary, invert
+  Compareble (..), toBinary, toBinary2, fromBinary, invert,
+  erode
   ) where
 
-import Prelude hiding (map, zipWith)
+import Prelude hiding (map, sum, zipWith)
 import HIP.Interface
+import HIP.Algorithms.Convolution
 import HIP.Binary.Pixel
+import HIP.Pixel.Base (Pixel(..))
 
+-- | This is a very convenient set of functions that allow for binary image
+-- construction. It is possible to compare either two images of same type
+-- pointwise, or an image with an individual pixel, where this pixel will be
+-- compared with each pixel in the image. For instance:
 class AImage img Binary => Compareble a b img where
   (.==.) :: a -> b -> img Binary  
   (./=.) :: a -> b -> img Binary  
@@ -14,6 +21,35 @@ class AImage img Binary => Compareble a b img where
   (.<=.) :: a -> b -> img Binary
   (.>.)  :: a -> b -> img Binary
   (.>=.) :: a -> b -> img Binary
+
+instance (Pixel px, Ord px, AImage img px, AImage img Binary)
+         => Compareble (img px) (img px) img where
+  (.==.) = toBinary2 (==)
+  (./=.) = toBinary2 (/=)
+  (.<.)  = toBinary2 (<)
+  (.<=.) = toBinary2 (<=)
+  (.>.)  = toBinary2 (>)
+  (.>=.) = toBinary2 (>=)
+  
+
+instance (Pixel px, Ord px, AImage img px, AImage img Binary)
+         => Compareble px (img px) img where
+  (.==.) !px = toBinary (==px)
+  (./=.) !px = toBinary (/=px)
+  (.<.)  !px = toBinary (< px)
+  (.<=.) !px = toBinary (<=px)
+  (.>.)  !px = toBinary (> px)
+  (.>=.) !px = toBinary (>=px)
+
+
+instance (Pixel px, Ord px, AImage img px, AImage img Binary)
+         => Compareble (img px) px img where
+  (.==.) !img !px = toBinary (==px) img
+  (./=.) !img !px = toBinary (/=px) img
+  (.<.)  !img !px = toBinary (< px) img
+  (.<=.) !img !px = toBinary (<=px) img
+  (.>.)  !img !px = toBinary (> px) img
+  (.>=.) !img !px = toBinary (>=px) img
 
 
 toBinary :: (AImage img px, AImage img Binary) =>
@@ -45,3 +81,11 @@ fromBinary !img = map toPx img where
 invert :: AImage img Binary => img Binary -> img Binary
 invert = map inverted
 {-# INLINE invert #-}
+
+
+erode :: (Compareble (img px) px img, Strategy strat img px) =>
+         strat img px -> img px -> img px -> img Binary
+erode strat !img' !img =
+  (compute strat $ convolve Wrap img' img) .==. sum strat img'
+{-# INLINE erode #-}
+

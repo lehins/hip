@@ -1,7 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module Graphics.Image.Binary (
-  B.Compareble (..), toBinary, toBinary2, fromBinary, invert
+  B.Compareble (..), toBinary, toBinary2, fromBinary, invert,
+  erode
   ) where
 
 import Prelude hiding (zipWith)
@@ -45,29 +46,8 @@ invert :: Image Binary -> Image Binary
 invert = B.invert
 
 
-instance (Pixel px, Ord px) => B.Compareble (Image px) (Image px) Image where
-  (.==.) = toBinary2 (==)
-  (./=.) = toBinary2 (/=)
-  (.<.)  = toBinary2 (<)
-  (.<=.) = toBinary2 (<=)
-  (.>.)  = toBinary2 (>)
-  (.>=.) = toBinary2 (>=)
-  
 
-instance (Pixel px, Ord px) => B.Compareble px (Image px) Image where
-  (.==.) !px = toBinary (==px)
-  (./=.) !px = toBinary (/=px)
-  (.<.)  !px = toBinary (< px)
-  (.<=.) !px = toBinary (<=px)
-  (.>.)  !px = toBinary (> px)
-  (.>=.) !px = toBinary (>=px)
+erode :: Image Binary -> Image Binary -> Image Binary
+erode !img' = B.erode Identity img'
 
-
-instance (Pixel px, Ord px) => B.Compareble (Image px) px Image where
-  (.==.) !img !px = toBinary (==px) img
-  (./=.) !img !px = toBinary (/=px) img
-  (.<.)  !img !px = toBinary (< px) img
-  (.<=.) !img !px = toBinary (<=px) img
-  (.>.)  !img !px = toBinary (> px) img
-  (.>=.) !img !px = toBinary (>=px) img
 

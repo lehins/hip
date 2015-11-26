@@ -3,7 +3,7 @@
 
 module HIP.Pixel.Tuple where
 
-import HIP.Interface (Pixel(..))
+import HIP.Pixel.Base (Pixel(..))
 
 
 pxOp :: (Double -> Double) -> (Double, Double, Double) -> (Double, Double, Double)
