@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, MultiParamTypeClasses #-}
 module HIP.Binary (
   Compareble (..), toBinary, toBinary2, fromBinary, invert,
-  erode
+  erode, dialate, open, close
   ) where
 
 import Prelude hiding (map, sum, zipWith)
@@ -83,9 +83,27 @@ invert = map inverted
 {-# INLINE invert #-}
 
 
-erode :: (Compareble (img px) px img, Strategy strat img px) =>
-         strat img px -> img px -> img px -> img Binary
+erode :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
+         strat img Binary -> img Binary -> img Binary -> img Binary
 erode strat !img' !img =
   (compute strat $ convolve Wrap img' img) .==. sum strat img'
 {-# INLINE erode #-}
 
+
+dialate :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
+           strat img Binary -> img Binary -> img Binary -> img Binary
+dialate strat !img' !img =
+  (compute strat $ convolve Wrap img' img) ./=. off
+{-# INLINE dialate #-}
+
+
+open :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
+        strat img Binary -> img Binary -> img Binary -> img Binary
+open strat img = dialate strat img . erode strat img
+{-# INLINE open #-}
+
+
+close :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
+        strat img Binary -> img Binary -> img Binary -> img Binary
+close strat img = erode strat img . dialate strat img
+{-# INLINE close #-}

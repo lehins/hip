@@ -706,10 +706,11 @@ fromComplexImage = C.fromComplexImage
 -- | Convert an RGB image to a three tuple of images containing (Red, Green, Blue)
 -- values as 'Gray' pixels.
 --
+-- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> let (red, green, blue) = rgbToGrays frog
--- writeImage "images/frog_red.png" red []
--- writeImage "images/frog_green.png" green []
--- writeImage "images/frog_blue.png" blue []
+-- >>> writeImage "images/frog_red.png" red []
+-- >>> writeImage "images/frog_green.png" green []
+-- >>> writeImage "images/frog_blue.png" blue []
 --
 -- <<images/frog_red.png>> <<images/frog_green.png>> <<images/frog_blue.png>>
 --
@@ -720,9 +721,9 @@ rgbToGrays = C.rgbToGrays
 -- | Convert an HSI image to a three tuple of images containing (Hue, Saturation, Intensity)
 -- values as 'Gray' pixels.
 --
--- >>> yield <- readImageRGB "images/yield.jpg"
+-- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> let (hue, saturation, intensity) = hsiToGrays $ toHSIImage frog
--- >>> writeImage "images/frog_hue.png" ((hue + pi) / (2 * pi)) []
+-- >>> writeImage "images/frog_hue.png" (hue / (2 * pi)) []
 -- >>> writeImage "images/frog_saturation.png" saturation []
 -- >>> writeImage "images/frog_intensity.png" intensity []
 --

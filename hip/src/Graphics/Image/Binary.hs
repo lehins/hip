@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module Graphics.Image.Binary (
   B.Compareble (..), toBinary, toBinary2, fromBinary, invert,
-  erode
+  erode, dialate, open, close
   ) where
 
 import Prelude hiding (zipWith)
@@ -39,15 +39,31 @@ toBinary2 = B.toBinary2
 
 fromBinary :: Pixel px => Image Binary -> Image px
 fromBinary = B.fromBinary
+{-# INLINE fromBinary #-}
 
 
 -- | Flips all bits in the image.
 invert :: Image Binary -> Image Binary
 invert = B.invert
-
+{-# INLINE invert #-}
 
 
 erode :: Image Binary -> Image Binary -> Image Binary
 erode !img' = B.erode Identity img'
+{-# INLINE erode #-}
 
+
+dialate :: Image Binary -> Image Binary -> Image Binary
+dialate !img' = B.dialate Identity img'
+{-# INLINE dialate #-}
+
+
+open :: Image Binary -> Image Binary -> Image Binary
+open !img' = B.open Identity img'
+{-# INLINE open #-}
+
+
+close :: Image Binary -> Image Binary -> Image Binary
+close !img' = B.close Identity img'
+{-# INLINE close #-}
 

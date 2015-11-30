@@ -69,7 +69,7 @@ library
                  , HIP.Pixel.Alpha
                  , Graphics.Image.Internal
 
-  ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
+  --ghc-options: -Wall -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -optlo-O3
 
 --executable examples
 --  main-is:         Main.hs
