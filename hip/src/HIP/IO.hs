@@ -149,9 +149,9 @@ displayUsing strat img program tmpDir = do
   
 
 
-displayImageHistograms :: (Strategy strat img (Inner px), AImage img px,
-                           Enum (Inner px), RealFrac (Inner px)) =>
-                          strat img (Inner px)
+displayImageHistograms :: (Strategy strat img (Channel px), AImage img px,
+                           Enum (Channel px), RealFrac (Channel px)) =>
+                          strat img (Channel px)
                        -> Int 
                        -> img px
                        -> IO ()

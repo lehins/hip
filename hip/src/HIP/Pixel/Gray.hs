@@ -21,7 +21,7 @@ pxOp2 !f !(Gray y1) !(Gray y2) = Gray (f y1 y2)
 
 
 instance Pixel Gray where
-  type Inner Gray = Double
+  type Channel Gray = Double
   pixel                          = Gray 
   {-# INLINE pixel #-}
   

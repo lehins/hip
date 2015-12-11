@@ -28,7 +28,7 @@ pxOp2 !f !(HSI h1 s1 i1) !(HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
 
 
 instance Pixel HSI where
-  type Inner HSI = Double
+  type Channel HSI = Double
 
   pixel !d                                = HSI d d d
   {-# INLINE pixel #-}
@@ -76,8 +76,13 @@ instance Num HSI where
 
 instance Fractional HSI where
   (/)          = pxOp2 (/)
+  {-# INLINE (/) #-}
+
   recip        = pxOp recip
+  {-# INLINE recip #-}
+  
   fromRational = pixel . fromRational 
+  {-# INLINE fromRational #-}
 
 
 instance Floating HSI where
@@ -126,6 +131,5 @@ instance Ord HSI where
   {-# INLINE compare #-}
 
 instance Show HSI where
-  {-# INLINE show #-}
   show (HSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"
   

@@ -184,11 +184,11 @@ unsafeIndex :: Pixel px =>
 unsafeIndex = I.unsafeIndex
 
 -- | Retreive an interpolated pixel at @i@-th and @j@-th location.
-interpolate :: (I.Interpolation method px, RealFrac (Inner px), Pixel px) =>
+interpolate :: (I.Interpolation method px, RealFrac (Channel px), Pixel px) =>
                method     -- ^ One of the interpolation 'I.Method's.
             -> Image px   -- ^ Source image
-            -> (Inner px) -- ^ approximation of @i@-th row
-            -> (Inner px) -- ^ approximation of @j@-th column
+            -> (Channel px) -- ^ approximation of @i@-th row
+            -> (Channel px) -- ^ approximation of @j@-th column
             -> px
 interpolate alg img@(dims -> (m, n)) i j =
   I.interpolate alg m n (unsafeIndex img) i j
@@ -244,7 +244,7 @@ transpose :: Pixel px =>
 transpose = I.transpose          
 
 
--- | Perform matrix multiplication of two images @A x B@. Inner dimensions of
+-- | Perform matrix multiplication of two images @A x B@. Channel dimensions of
 -- images must agree: @cols img1 == rows img2@
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
@@ -537,10 +537,10 @@ upsample = I.upsample
 -- 
 -- <<images/frog_scale_nearest.jpg>> <<images/frog_scale_bilinear.jpg>>
 --
-scale :: (I.Interpolation method px, Pixel px, RealFrac (Inner px)) =>
+scale :: (I.Interpolation method px, Pixel px, RealFrac (Channel px)) =>
          method    -- ^ One of the interpolation 'I.Method's to be used during
                    -- scaling.
-      -> Inner px  -- ^ Scaling factor, must be greater than 0.
+      -> Channel px  -- ^ Scaling factor, must be greater than 0.
       -> Image px  -- ^ Image to be scaled.
       -> Image px
 scale = I.scale
@@ -557,7 +557,7 @@ scale = I.scale
 --
 -- <<images/frog.jpg>> <<images/frog_resize.jpg>> 
 --
-resize :: (I.Interpolation method px, Pixel px, RealFrac (Inner px)) =>
+resize :: (I.Interpolation method px, Pixel px, RealFrac (Channel px)) =>
          method   -- ^ One of the interpolation 'I.Method's to be used during
                   -- resizing.
       -> Int      -- ^ @m@ rows.
@@ -576,10 +576,10 @@ resize = I.resize
 --
 -- <<images/frog.jpg>> <<images/frog_rotate.jpg>> 
 --
-rotate :: (I.Interpolation method px, Pixel px, RealFloat (Inner px)) =>
+rotate :: (I.Interpolation method px, Pixel px, RealFloat (Channel px)) =>
           method   -- ^ One of the interpolation 'I.Method's to be used during
                    -- rotation.
-       -> Inner px -- ^ Angle @theta@ in radians, that an image should be
+       -> Channel px -- ^ Angle @theta@ in radians, that an image should be
                    -- rotated by.
        -> Image px -- ^ Source image to be rotated.
        -> Image px
@@ -594,10 +594,10 @@ rotate = I.rotate
 --
 -- <<images/frog.jpg>> <<images/frog_rotate'.jpg>> 
 --
-rotate' :: (I.Interpolation method px, Pixel px, RealFloat (Inner px)) =>
+rotate' :: (I.Interpolation method px, Pixel px, RealFloat (Channel px)) =>
           method    -- ^ One of the interpolation 'I.Method's to be used during
                     -- rotation.
-        -> Inner px -- ^ Angle @theta@ in radians, that an image should be
+        -> Channel px -- ^ Angle @theta@ in radians, that an image should be
                     -- rotated by.
         -> Image px -- ^ Source image to be rotated.
         -> Image px
@@ -692,13 +692,13 @@ fromAlphaImage = C.fromAlphaImage
 
 -- | Convert a regular image to a Complex image by adding an all zero pixel imaginary
 -- image.
-toComplexImage :: (Pixel px, ComplexInner px) =>
+toComplexImage :: (Pixel px, ComplexChannel px) =>
                   Image px -> Image (Complex px)
 toComplexImage = C.toComplexImage
 
 
 -- | Convert Complex image to a regular image by dropping imaginary image.
-fromComplexImage :: (Pixel px, ComplexInner px) =>
+fromComplexImage :: (Pixel px, ComplexChannel px) =>
                     Image (Complex px) -> Image px
 fromComplexImage = C.fromComplexImage
 

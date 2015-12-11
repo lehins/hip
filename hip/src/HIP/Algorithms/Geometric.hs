@@ -24,9 +24,9 @@ import HIP.Algorithms.Interpolation
 <Image RGB: 1024x1024>
 
 -}
-scale :: (Interpolation meth px, AImage img px, Pixel px, Num px, RealFrac (Inner px)) =>
+scale :: (Interpolation meth px, AImage img px, Pixel px, RealFrac (Channel px)) =>
          meth      -- ^ Interpolation method to be used during scaling.
-      -> Inner px -- ^ Scaling factor, must be greater than 0.
+      -> Channel px -- ^ Scaling factor, must be greater than 0.
       -> img px   -- ^ Image to be scaled.
       -> img px
 scale _ ((0>=) -> True) _ = error "scale: scaling factor must be greater than 0"
@@ -49,7 +49,7 @@ scale !meth !fact !img    = traverse img getNewDims getNewPx where
 <Image RGB: 256x1024>
 
 -}
-resize :: (Interpolation method px, AImage img px, RealFrac (Inner px)) =>
+resize :: (Interpolation method px, AImage img px, RealFrac (Channel px)) =>
           method     -- ^ Interpolation method to be used during resizing.
        -> Int -> Int -- ^ New image dimensions @m@ rows and @n@ columns.
        -> img px     -- ^ Image to be resized.
@@ -77,9 +77,9 @@ inside.
 <Image RGB: 700x700>
 
 -}
-rotate :: (Interpolation method px, AImage img px, RealFloat (Inner px)) =>
+rotate :: (Interpolation method px, AImage img px, RealFloat (Channel px)) =>
           method   -- ^ Interpolation method to be used during rotation.
-       -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
+       -> Channel px -- ^ Angle @theta@ in radians, that an image should be rotated by.
        -> img px   -- ^ Image to be rotated.
        -> img px
 rotate !meth !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
@@ -110,9 +110,9 @@ direction. Dimensions of a new image will stay unchanged.
 <Image RGB: 512x512>
 
 -}
-rotate' :: (Interpolation method px, AImage img px, Pixel px, Num px, RealFloat (Inner px)) =>
+rotate' :: (Interpolation method px, AImage img px, Pixel px, RealFloat (Channel px)) =>
            method   -- ^ Interpolation method to be used during rotation.
-        -> Inner px -- ^ Angle @theta@ in radians, that an image should be rotated by.
+        -> Channel px -- ^ Angle @theta@ in radians, that an image should be rotated by.
         -> img px   -- ^ Image to be rotated.
         -> img px
 rotate' !meth !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
@@ -136,7 +136,7 @@ downsampleF !fm !fn !img = traverse img
                            (\getPx i j -> getPx (i*fm) (j*fn))
 
 
-upsampleF :: (AImage img px, Ord (Inner px), Num (Inner px)) => Int -> Int -> img px -> img px
+upsampleF :: AImage img px => Int -> Int -> img px -> img px
 {-# INLINE upsampleF #-}
 upsampleF !fm !fn !img = traverse img 
                          (\m n -> (m*fm, n*fn))
@@ -147,32 +147,32 @@ upsampleF !fm !fn !img = traverse img
 
 
 -- | Removes every second row from the image starting with second one.
-downsampleRows :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+downsampleRows :: AImage img px => img px -> img px
 {-# INLINE downsampleRows #-}
 downsampleRows = downsampleF 2 1
 
 
-downsampleCols :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+downsampleCols :: AImage img px => img px -> img px
 {-# INLINE downsampleCols #-}
 downsampleCols = downsampleF 1 2
 
 
-downsample :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+downsample :: AImage img px => img px -> img px
 {-# INLINE downsample #-}
 downsample = downsampleF 2 2
 
 
-upsampleRows :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+upsampleRows :: AImage img px => img px -> img px
 {-# INLINE upsampleRows #-}
 upsampleRows = upsampleF 2 1
 
 
-upsampleCols :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+upsampleCols :: AImage img px => img px -> img px
 {-# INLINE upsampleCols #-}
 upsampleCols = upsampleF 1 2
 
 
-upsample :: (AImage img px, Ord (Inner px), Num (Inner px)) => img px -> img px
+upsample :: AImage img px => img px -> img px
 {-# INLINE upsample #-}
 upsample = upsampleF 2 2
 

@@ -18,11 +18,11 @@ to address that issue.
 
 -}
 data Alpha px where
-  Alpha :: Pixel px => (Inner px) -> px -> Alpha px
+  Alpha :: Pixel px => (Channel px) -> px -> Alpha px
   
 
 instance Pixel px => Pixel (Alpha px) where
-  type Inner (Alpha px) = Inner px
+  type Channel (Alpha px) = Channel px
 
   pixel = Alpha 1 . pixel
   {-# INLINE pixel #-}
@@ -65,7 +65,7 @@ instance Pixel px => Num (Alpha px) where
   {-# INLINE fromInteger #-}
 
 
-instance (Pixel px, Fractional px, Fractional (Inner px)) => Fractional (Alpha px) where
+instance (Pixel px, Fractional px, Fractional (Channel px)) => Fractional (Alpha px) where
   (/) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 / a2) (px1 / px2)
   {-# INLINE (/) #-}
   
@@ -76,7 +76,7 @@ instance (Pixel px, Fractional px, Fractional (Inner px)) => Fractional (Alpha p
   {-# INLINE fromRational #-}
 
 
-instance (Pixel px, Floating px, Floating (Inner px)) => Floating (Alpha px) where
+instance (Pixel px, Floating px, Floating (Channel px)) => Floating (Alpha px) where
   pi                   = pixel pi
   {-# INLINE pi #-}
   
@@ -165,7 +165,7 @@ dropAlpha !(Alpha _ px) = px
 -- <Alpha:(0.4|<Gray:(0.5)>)>
 --
 fmapAlpha :: Pixel px =>
-             (Inner px -> Inner px)
+             (Channel px -> Channel px)
           -> Alpha px
           -> Alpha px
 fmapAlpha !f !(Alpha a px) = Alpha (f a) px
@@ -178,7 +178,7 @@ fmapAlpha !f !(Alpha a px) = Alpha (f a) px
 -- <Alpha:(4.0|<Gray:(0.6)>)>
 --
 combineAlpha :: Pixel px =>
-                (Inner px -> Inner px -> Inner px)
+                (Channel px -> Channel px -> Channel px)
                 -- ^ Function that combines the alpha channels for two pixel.
              -> (px -> px -> px)
                 -- ^ Function that combixnes the actual pixel values.

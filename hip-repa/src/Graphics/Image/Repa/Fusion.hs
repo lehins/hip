@@ -27,32 +27,32 @@ import HIP.IO
 import HIP.Processing
 import qualified HIP.Complex as C
 import Graphics.Image.Repa.Internal
-import Graphics.Image.Repa.Pixel (Pixel, Gray(..), RGB(..), Complex(..), ComplexInner)
+import Graphics.Image.Repa.Pixel (Pixel, Gray(..), RGB(..), Complex(..), ComplexChannel)
 
 -- COMPLEX
 
 {- | Gets real part of a complex image. Full documentation: C.realPart -}
-realPart :: (ComplexInner px, Pixel px) =>
+realPart :: (ComplexChannel px, Pixel px) =>
             Image (Complex px)
          -> Image px
 realPart = C.realPart
 {-# INLINE realPart #-}
 
-imagPart :: (ComplexInner px, Pixel px) =>
+imagPart :: (ComplexChannel px, Pixel px) =>
              Image (Complex px)
           -> Image px
 imagPart = C.imagPart
 {-# INLINE imagPart #-}
 
 
-magnitude :: (ComplexInner px, Pixel px) =>
+magnitude :: (ComplexChannel px, Pixel px) =>
              Image (Complex px)
           -> Image px
 magnitude = C.magnitude
 {-# INLINE magnitude #-}
 
 {-
-complex :: (ComplexInner px, Pixel px) =>
+complex :: (ComplexChannel px, Pixel px) =>
              Image px -- ^ Image representing real part.
           -> Image px -- ^ Image representing imaginary part.
           -> Image (Complex px)
@@ -60,14 +60,14 @@ complex = C.complex
 {-# INLINE complex #-}
 -}
 
-conjugate :: (ComplexInner px, Pixel px) =>
+conjugate :: (ComplexChannel px, Pixel px) =>
              Image (Complex px)
           -> Image (Complex px)
 conjugate = C.conjugate
 {-# INLINE conjugate #-}
 
 
-makeFilter :: (ComplexInner px, Pixel px) =>
+makeFilter :: (ComplexChannel px, Pixel px) =>
               Int
            -> Int
            -> (Int -> Int -> px)

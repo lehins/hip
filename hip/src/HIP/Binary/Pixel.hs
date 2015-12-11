@@ -97,7 +97,7 @@ pxOp2 !f !(Binary b1) !(Binary b2) = Binary (f b1 b2)
 
 
 instance Pixel Binary where
-  type Inner Binary = Bin
+  type Channel Binary = Bin
   pixel 0                         = off
   pixel _                         = on
   {-# INLINE pixel #-}

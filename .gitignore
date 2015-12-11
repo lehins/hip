@@ -1,5 +1,4 @@
 dist
-cabal-dev
 *.o
 *.p_o
 *.hi
@@ -7,5 +6,4 @@ cabal-dev
 *.chs.h
 *.dyn_o
 *.dyn_hi
-.virthualenv
 problems

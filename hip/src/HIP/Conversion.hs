@@ -51,12 +51,12 @@ instance Pixel px => Convertible Binary px where
   {-# INLINE convert #-}
   
 
-instance (ComplexInner px) => Convertible px (Complex px) where
+instance (ComplexChannel px) => Convertible px (Complex px) where
   convert !px = px :+: pixel 0
   {-# INLINE convert #-}
 
 
-instance (ComplexInner px) => Convertible (Complex px) px where
+instance (ComplexChannel px) => Convertible (Complex px) px where
   convert !(px :+: _) = px
   {-# INLINE convert #-}
 
@@ -88,13 +88,13 @@ fromAlphaImage = map dropAlpha
 
 
 
-toComplexImage :: (AImage img px, AImage img (Complex px), ComplexInner px) =>
+toComplexImage :: (AImage img px, AImage img (Complex px), ComplexChannel px) =>
                 img px -> img (Complex px)
 toComplexImage = map (:+: pixel 0)
 {-# INLINE toComplexImage #-}
 
 
-fromComplexImage :: (AImage img px, AImage img (Complex px), ComplexInner px) =>
+fromComplexImage :: (AImage img px, AImage img (Complex px), ComplexChannel px) =>
                   img (Complex px) -> img px
 fromComplexImage = map real
 {-# INLINE fromComplexImage #-}
@@ -142,7 +142,7 @@ graysToRGB = fromGrays RGB
 {-# INLINE graysToRGB #-}
 
 -- | Converts an image to a list of Images that contain an internal type.
-toLists :: (AImage img (Inner px), AImage img px) => img px -> [img (Inner px)]
+toLists :: (AImage img (Channel px), AImage img px) => img px -> [img (Channel px)]
 toLists !img = toLists' 0 where
   !pxArity = arity $ index img 0 0
   toLists' !n = if n < pxArity then map (ref n) img:toLists' (n+1) else []

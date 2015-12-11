@@ -14,7 +14,7 @@ TypeFamilies, UndecidableInstances #-}
 -- This module contains all available pixel types at the moment.
 module Graphics.Image.Pixel (
   -- * Pixel 
-  Pixel, P.Inner, P.showType,
+  Pixel, P.Channel, P.showType,
   -- ** Grayscale
   module HIP.Pixel.Gray,
   -- ** Color
@@ -30,7 +30,7 @@ module Graphics.Image.Pixel (
   module HIP.Binary.Pixel,
   -- ** Complex
   module HIP.Complex.Pixel,
-  ComplexInner
+  ComplexChannel
   ) where
 
 import Data.Int
@@ -40,14 +40,14 @@ import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
 import HIP.Pixel (
-  grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Inner)
+  grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Channel)
 import HIP.Pixel.Alpha
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
 import HIP.Pixel.HSI
 import HIP.Binary.Pixel
-import HIP.Complex.Pixel hiding (ComplexInner)
-import qualified HIP.Pixel as P (Pixel(..), ComplexInner)
+import HIP.Complex.Pixel hiding (ComplexChannel)
+import qualified HIP.Pixel as P (Pixel(..), ComplexChannel)
 {-
 import qualified Data.Vector.Generic            as V
 import qualified Data.Vector.Generic.Mutable    as M
@@ -60,8 +60,8 @@ class (Unbox px, P.Pixel px) => Pixel px where
 
 -- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'. Also
 -- Pixel that are instances of this class can be used with 'Complex' pixel.
-class (Unbox px, Unbox (Inner px), P.ComplexInner px
-      ) => ComplexInner px where
+class (Unbox px, Unbox (Channel px), P.ComplexChannel px
+      ) => ComplexChannel px where
 
 
 -- | Unboxed Pixel  
@@ -77,24 +77,24 @@ instance Pixel RGB where
 instance Pixel HSI where
  
 -- | Unboxed Pixel  
-instance (Unbox (Inner px), Pixel px) => Pixel (Alpha px) where
+instance (Unbox (Channel px), Pixel px) => Pixel (Alpha px) where
 
   
 -- | Unboxed Pixel  
-instance ComplexInner px => Pixel (Complex px) where
+instance ComplexChannel px => Pixel (Complex px) where
   
 
 -- | Unboxed Pixel  
-instance ComplexInner Gray where
+instance ComplexChannel Gray where
 
 -- | Unboxed Pixel  
-instance ComplexInner RGB where
+instance ComplexChannel RGB where
 
 -- | Unboxed Pixel  
-instance ComplexInner HSI where
+instance ComplexChannel HSI where
 
 -- | Unboxed Pixel  
-instance (Pixel (Alpha px), ComplexInner px) => ComplexInner (Alpha px) where
+instance (Pixel (Alpha px), ComplexChannel px) => ComplexChannel (Alpha px) where
   
 
 derivingUnbox "GrayPixel"
@@ -122,15 +122,15 @@ derivingUnbox "HSIPixel"
 
 
 derivingUnbox "ComplexPixel"
-    [t| ComplexInner px => Complex px -> (px, px) |]
-    [| \(px1 :+: px2) -> (px1, px2)               |]
-    [| \(px1, px2) -> px1 :+: px2                 |]
+    [t| ComplexChannel px => Complex px -> (px, px) |]
+    [| \(px1 :+: px2) -> (px1, px2)                 |]
+    [| \(px1, px2) -> px1 :+: px2                   |]
 
 
 derivingUnbox "AlphaPixel"
-    [t| (Unbox (Inner px), Pixel px) => Alpha px -> (Inner px, px) |]
-    [| \(Alpha a px) -> (a, px)                                    |]
-    [| \(a, px) -> Alpha a px                                      |]
+    [t| (Unbox (Channel px), Pixel px) => Alpha px -> (Channel px, px) |]
+    [| \(Alpha a px) -> (a, px)                                        |]
+    [| \(a, px) -> Alpha a px                                          |]
 
 
 -- All base types:

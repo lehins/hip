@@ -94,8 +94,8 @@ displayImage = IO.displayImage Identity
 --
 -- <<images/frog_histogram.png>>
 --
-displayImageHistograms :: (Pixel (Inner px), Pixel px, RealFrac (Inner px),
-                           Enum (Inner px)) =>
+displayImageHistograms :: (Pixel (Channel px), Pixel px, RealFrac (Channel px),
+                           Enum (Channel px)) =>
                           Int -- ^ Number of intervals (bins) pixels should be
                               -- counted in.
                        -> Image px -- ^ Source Image.
@@ -105,10 +105,10 @@ displayImageHistograms bins img = IO.displayHistograms $ getHistograms bins img
 
 -- | Returns a list of Histograms, one 'H.Histogram' for each color channel of the
 -- image.
-getHistograms :: (Pixel px, Pixel (Inner px), RealFrac (Inner px)) =>
+getHistograms :: (Pixel px, Pixel (Channel px), RealFrac (Channel px)) =>
                  Int -- ^ Number of intervals (bins) pixels should be counted in.
               -> Image px -- ^ Source Image.
-              -> [H.Histogram (Inner px)]
+              -> [H.Histogram (Channel px)]
 getHistograms bins img = H.getHistogramsUsing bins img maker where
   delta = 1 / fromIntegral bins
   -- here we use Unboxed Vectors to generate histograms, instead of Boxed as in

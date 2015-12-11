@@ -17,22 +17,22 @@ import Control.Monad.Primitive
 type Histogram a = Graph2D a a
 
 
-getHistograms :: (Strategy strat img (Inner px), AImage img px, RealFrac (Inner px)) =>
-                 strat img (Inner px)
+getHistograms :: (Strategy strat img (Channel px), AImage img px, RealFrac (Channel px)) =>
+                 strat img (Channel px)
               -> Int
               -> img px
-              -> [Histogram (Inner px)]
+              -> [Histogram (Channel px)]
 getHistograms strat bins img = getHistogramsUsing bins img maker where
   delta = 1 / fromIntegral bins
   maker = V.toList . getHistogramVector (bins+1) delta . toBoxedVector strat
 
 
-getHistogramsUsing :: (AImage img px, AImage img (Inner px), Fractional (Inner px)) =>
+getHistogramsUsing :: (AImage img px, AImage img (Channel px), Fractional (Channel px)) =>
                       Int -- ^ Number of bins histograms should have.
                    -> img px -- ^ Image that will have it's pixels counted for
                              -- these histograms.
-                   -> (img (Inner px) -> [(Inner px, Inner px)])
-                   -> [Histogram (Inner px)]
+                   -> (img (Channel px) -> [(Channel px, Channel px)])
+                   -> [Histogram (Channel px)]
 getHistogramsUsing bins img maker = map makeHistogram $ toLists img where
   makeHistogram = Data2D [Style Lines] [Range 0.0 $ fromIntegral bins + 1] . maker
 

@@ -20,7 +20,7 @@ pxOp2 !f !(RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
 
 
 instance Pixel RGB where
-  type Inner RGB = Double
+  type Channel RGB = Double
   
   pixel d = RGB d d d
   {-# INLINE pixel #-}

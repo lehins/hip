@@ -21,27 +21,30 @@ baseApply2 _ _ px = error ("Length of the function list should be at least: "++(
 {-# INLINE baseApply2 #-}
 
 
+
+-- Peyton shows quickcheck. recursive type classes:
+-- https://youtu.be/6COvD8oynmI?t=39m2s
 class (Eq px, Num px, Show px,
-       Eq (Inner px), Num (Inner px), Show (Inner px), Ord (Inner px)
+       Eq (Channel px), Num (Channel px), Show (Channel px), Ord (Channel px)
       ) => Pixel px where
   -- | Internal type used for pixel values.
-  type Inner px :: *
+  type Channel px :: *
   
-  pixel :: Inner px -> px
+  pixel :: Channel px -> px
        
   arity :: px -> Int
 
-  ref :: Int -> px -> Inner px
+  ref :: Int -> px -> Channel px
 
-  apply :: [(Inner px -> Inner px)] -> px -> px
+  apply :: [(Channel px -> Channel px)] -> px -> px
 
-  apply2 :: [(Inner px -> Inner px -> Inner px)] -> px -> px -> px
+  apply2 :: [(Channel px -> Channel px -> Channel px)] -> px -> px -> px
 
   showType :: px -> String
 
 
 instance Pixel Float where
-  type Inner Float = Float
+  type Channel Float = Float
 
   pixel = id
   {-# INLINE pixel #-}
@@ -62,7 +65,7 @@ instance Pixel Float where
   
   
 instance Pixel Double where
-  type Inner Double = Double
+  type Channel Double = Double
 
   pixel = id
   {-# INLINE pixel #-}
@@ -84,7 +87,7 @@ instance Pixel Double where
 
 
 instance Pixel Int where
-  type Inner Int = Int
+  type Channel Int = Int
 
   pixel = id
   {-# INLINE pixel #-}
@@ -105,7 +108,7 @@ instance Pixel Int where
   
   
 instance Pixel Int8 where
-  type Inner Int8 = Int8
+  type Channel Int8 = Int8
 
   pixel = id
   {-# INLINE pixel #-}
@@ -126,7 +129,7 @@ instance Pixel Int8 where
   
   
 instance Pixel Int16 where
-  type Inner Int16 = Int16
+  type Channel Int16 = Int16
 
   pixel = id
   {-# INLINE pixel #-}
@@ -147,7 +150,7 @@ instance Pixel Int16 where
   
   
 instance Pixel Int32 where
-  type Inner Int32 = Int32
+  type Channel Int32 = Int32
 
   pixel = id
   {-# INLINE pixel #-}
@@ -168,7 +171,7 @@ instance Pixel Int32 where
 
 
 instance Pixel Int64 where
-  type Inner Int64 = Int64
+  type Channel Int64 = Int64
 
   pixel = id
   {-# INLINE pixel #-}
@@ -190,7 +193,7 @@ instance Pixel Int64 where
   
   
 instance Pixel Word where
-  type Inner Word = Word
+  type Channel Word = Word
 
   pixel = id
   {-# INLINE pixel #-}
@@ -211,7 +214,7 @@ instance Pixel Word where
   
   
 instance Pixel Word8 where
-  type Inner Word8 = Word8
+  type Channel Word8 = Word8
 
   pixel = id
   {-# INLINE pixel #-}
@@ -232,7 +235,7 @@ instance Pixel Word8 where
   
   
 instance Pixel Word16 where
-  type Inner Word16 = Word16
+  type Channel Word16 = Word16
 
   pixel = id
   {-# INLINE pixel #-}
@@ -253,7 +256,7 @@ instance Pixel Word16 where
   
   
 instance Pixel Word32 where
-  type Inner Word32 = Word32
+  type Channel Word32 = Word32
 
   pixel = id
   {-# INLINE pixel #-}
@@ -274,7 +277,7 @@ instance Pixel Word32 where
 
 
 instance Pixel Word64 where
-  type Inner Word64 = Word64
+  type Channel Word64 = Word64
 
   pixel = id
   {-# INLINE pixel #-}

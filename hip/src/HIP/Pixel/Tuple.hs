@@ -19,7 +19,7 @@ pxOp2 f (r1, g1, b1) (r2, g2, b2) = (f r1 r2, f g1 g2, f b1 b2)
 
 
 instance Pixel (Double, Double, Double) where
-  type Inner (Double, Double, Double) = Double
+  type Channel (Double, Double, Double) = Double
   pixel d = (d, d, d)
   {-# INLINE pixel #-}
 
