@@ -24,10 +24,10 @@ import HIP.Algorithms.Interpolation
 <Image RGB: 1024x1024>
 
 -}
-scale :: (Interpolation meth px, AImage img px, Pixel px, RealFrac (Channel px)) =>
-         meth      -- ^ Interpolation method to be used during scaling.
-      -> Channel px -- ^ Scaling factor, must be greater than 0.
-      -> img px   -- ^ Image to be scaled.
+scale :: (Interpolation meth px, AImage img px, Pixel px) =>
+         meth   -- ^ Interpolation method to be used during scaling.
+      -> Double -- ^ Scaling factor, must be greater than 0.
+      -> img px -- ^ Image to be scaled.
       -> img px
 scale _ ((0>=) -> True) _ = error "scale: scaling factor must be greater than 0"
 scale !meth !fact !img    = traverse img getNewDims getNewPx where
@@ -77,10 +77,10 @@ inside.
 <Image RGB: 700x700>
 
 -}
-rotate :: (Interpolation method px, AImage img px, RealFloat (Channel px)) =>
-          method   -- ^ Interpolation method to be used during rotation.
-       -> Channel px -- ^ Angle @theta@ in radians, that an image should be rotated by.
-       -> img px   -- ^ Image to be rotated.
+rotate :: (Interpolation method px, AImage img px) =>
+          method -- ^ Interpolation method to be used during rotation.
+       -> Double -- ^ Angle @theta@ in radians, that an image should be rotated by.
+       -> img px -- ^ Image to be rotated.
        -> img px
 rotate !meth !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
   where
@@ -111,9 +111,9 @@ direction. Dimensions of a new image will stay unchanged.
 
 -}
 rotate' :: (Interpolation method px, AImage img px, Pixel px, RealFloat (Channel px)) =>
-           method   -- ^ Interpolation method to be used during rotation.
-        -> Channel px -- ^ Angle @theta@ in radians, that an image should be rotated by.
-        -> img px   -- ^ Image to be rotated.
+           method -- ^ Interpolation method to be used during rotation.
+        -> Double -- ^ Angle @theta@ in radians, that an image should be rotated by.
+        -> img px -- ^ Image to be rotated.
         -> img px
 rotate' !meth !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
   where
@@ -143,7 +143,7 @@ upsampleF !fm !fn !img = traverse img
                          (\getPx i j ->
                            if i `mod` fm == 0 && j `mod` fn == 0
                            then getPx (i `div` fm) (j `div` fn)
-                           else pixel 0)
+                           else fromDouble 0)
 
 
 -- | Removes every second row from the image starting with second one.

@@ -20,17 +20,19 @@ pxOp2 f (r1, g1, b1) (r2, g2, b2) = (f r1 r2, f g1 g2, f b1 b2)
 
 instance Pixel (Double, Double, Double) where
   type Channel (Double, Double, Double) = Double
-  pixel d = (d, d, d)
-  {-# INLINE pixel #-}
+  fromDouble d = (d, d, d)
+  {-# INLINE fromDouble #-}
 
   arity _ = 3
   {-# INLINE arity #-}
 
-  ref 0 (r, _, _) = r
-  ref 1 (_, g, _) = g
-  ref 2 (_, _, b) = b
-  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref (r, _, _) 0 = r
+  ref (_, g, _) 1 = g
+  ref (_, _, b) 2 = b
+  ref px n = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
+
+  update = undefined
 
   apply !(f1:f2:f3:_) !(r, g, b) = (f1 r, f2 g, f3 b)
   apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
@@ -59,19 +61,19 @@ instance Num (Double, Double, Double) where
   signum        = pxOp signum
   {-# INLINE signum #-}
   
-  fromInteger n = pixel . fromIntegral $ n
+  fromInteger n = fromDouble . fromIntegral $ n
   {-# INLINE fromInteger #-}
 
 
 instance Fractional (Double, Double, Double) where
   (/)            = pxOp2 (/)
   recip          = pxOp recip
-  fromRational n = pixel . fromRational $ n
+  fromRational n = fromDouble . fromRational $ n
 
 
 instance Floating (Double, Double, Double) where
   {-# INLINE pi #-}
-  pi      = pixel pi
+  pi      = fromDouble pi
   {-# INLINE exp #-}
   exp     = pxOp exp
   {-# INLINE log #-}

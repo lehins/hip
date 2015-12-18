@@ -14,6 +14,8 @@ module HIP.Pixel (
   ) where
 
 import Prelude hiding (map)
+import Data.Int
+import Data.Word
 
 import HIP.Pixel.Base (Pixel(..))
 import HIP.Pixel.Tuple()
@@ -25,25 +27,72 @@ import HIP.Binary.Pixel
 import HIP.Complex.Pixel
 
 
-instance ComplexChannel Float where
+instance AlphaPixel Int where
+
+  
+instance AlphaPixel Int8 where
+
+  
+instance AlphaPixel Int16 where
+
+  
+instance AlphaPixel Int32 where
+
+
+instance AlphaPixel Int64 where
+
+
+instance AlphaPixel Word where
+
+
+instance AlphaPixel Word8 where
+  
+  
+instance AlphaPixel Word16 where
+
+  
+instance AlphaPixel Word32 where
+
+
+instance AlphaPixel Word64 where
+
+
+instance AlphaPixel Float where
+
+
+instance AlphaPixel Double where
+
+
+instance AlphaPixel Gray where  
+  
+
+instance AlphaPixel RGB where
+
+
+instance AlphaPixel HSI where
+
+
+  
+  
+instance ComplexPixel Float where
   apply2c !(f1:_) !v1 !v2 = (uncurry (:+:)) $ f1 v1 v2
   apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2c #-}
 
   
-instance ComplexChannel Double where
+instance ComplexPixel Double where
   apply2c !(f1:_) !v1 !v2 = (uncurry (:+:)) $ f1 v1 v2
   apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2c #-}
   
   
-instance ComplexChannel Gray where
+instance ComplexPixel Gray where
   apply2c !(f1:_) !(Gray y1) !(Gray y2) = Gray y1' :+: Gray y2' where (y1', y2') = (f1 y1 y2)
   apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2c #-}
 
   
-instance ComplexChannel RGB where
+instance ComplexPixel RGB where
   apply2c !(f1:f2:f3:_) !(RGB r1 g1 b1) !(RGB r2 g2 b2) =
     RGB r1' g1' b1' :+: RGB r2' g2' b2' where
       (r1', r2') = (f1 r1 r2)
@@ -54,7 +103,7 @@ instance ComplexChannel RGB where
 
   
 
-instance ComplexChannel HSI where
+instance ComplexPixel HSI where
   apply2c !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) =
     HSI h1' s1' i1' :+: HSI h2' s2' i2' where
       (h1', h2') = (f1 h1 h2)
@@ -64,7 +113,7 @@ instance ComplexChannel HSI where
   {-# INLINE apply2c #-}
 
 
-instance ComplexChannel px => ComplexChannel (Alpha px) where
+instance (AlphaPixel px, ComplexPixel px) => ComplexPixel (Alpha px) where
   apply2c !(f0:rest) !(Alpha a1 px1) !(Alpha a2 px2) =
     Alpha a1' px1' :+: Alpha a2' px2' where
       (a1', a2') = (f0 a1 a2)
@@ -109,7 +158,7 @@ hsiToRGB :: HSI -> RGB
 hsiToRGB !(HSI h s i) =
   let !is = i*s
       !second = i - is
-      getFirst !alpha !beta = i + is*cos alpha/cos beta
+      getFirst !a !b = i + is*cos a/cos b
       {-# INLINE getFirst #-}
       getThird !v1 !v2 = i + 2*is + v1 - v2
       {-# INLINE getThird #-}

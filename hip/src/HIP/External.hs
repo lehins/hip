@@ -111,7 +111,7 @@ instance AImage img RGB => Readable img RGB where
 
 instance (
   Readable img px,
-  AImage img (Alpha px),
+  AImage img (Alpha px), AlphaPixel px,
   Interconvertible DynamicImage (img (Alpha px))
   ) => Readable img (Alpha px) where
   
@@ -260,22 +260,22 @@ instance Interconvertible PixelCMYK16 RGB where
 -- Alpha -> Alpha
 
 instance (
-  Pixel px, Channel px ~ Double, Interconvertible Pixel8 px
+  AlphaPixel px, Channel px ~ Double, Interconvertible Pixel8 px
   ) => Interconvertible PixelYA8 (Alpha px) where
   convert (PixelYA8 y a) = Alpha (fromWord8 a) (convert y)
   
 instance (
-  Pixel px, Channel px ~ Double, Interconvertible Pixel16 px
+  AlphaPixel px, Channel px ~ Double, Interconvertible Pixel16 px
   ) => Interconvertible PixelYA16 (Alpha px) where
   convert (PixelYA16 y a) = Alpha (fromWord16 a) (convert y)
 
 instance (
-  Pixel px, Channel px ~ Double, Interconvertible PixelRGB8 px
+  AlphaPixel px, Channel px ~ Double, Interconvertible PixelRGB8 px
   ) => Interconvertible PixelRGBA8 (Alpha px) where
   convert (PixelRGBA8 r g b a) = Alpha (fromWord8 a) $ convert (PixelRGB8 r g b)
   
 instance (
-  Pixel px, Channel px ~ Double, Interconvertible PixelRGB16 px
+  AlphaPixel px, Channel px ~ Double, Interconvertible PixelRGB16 px
   ) => Interconvertible PixelRGBA16 (Alpha px) where
   convert (PixelRGBA16 r g b a) = Alpha (fromWord16 a) $ convert (PixelRGB16 r g b)
 
@@ -582,7 +582,7 @@ instance AImage img RGB => Interconvertible PNM.PPM (img RGB) where
 
 
 instance (
-  Interconvertible PNM.PPM (img px), AImage img (Alpha px), AImage img px
+  Interconvertible PNM.PPM (img px), AImage img (Alpha px), AImage img px, AlphaPixel px
   ) => Interconvertible PNM.PPM (img (Alpha px)) where
   convert = map (Alpha 1) . convert
 

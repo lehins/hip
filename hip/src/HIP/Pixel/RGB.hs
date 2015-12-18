@@ -6,9 +6,10 @@ module HIP.Pixel.RGB (
 
 import HIP.Pixel.Base (Pixel(..))
 
-data RGB = RGB {-# UNPACK #-} !Double
-               {-# UNPACK #-} !Double
-               {-# UNPACK #-} !Double deriving Eq
+data RGB = RGB { red   :: {-# UNPACK #-} !Double
+               , green :: {-# UNPACK #-} !Double
+               , blue  :: {-# UNPACK #-} !Double
+               } deriving Eq
 
 pxOp :: (Double -> Double) -> RGB -> RGB
 pxOp !f !(RGB r g b) = RGB (f r) (f g) (f b)
@@ -22,17 +23,23 @@ pxOp2 !f !(RGB r1 g1 b1) (RGB r2 g2 b2) = RGB (f r1 r2) (f g1 g2) (f b1 b2)
 instance Pixel RGB where
   type Channel RGB = Double
   
-  pixel d = RGB d d d
-  {-# INLINE pixel #-}
+  fromDouble !d = RGB d d d
+  {-# INLINE fromDouble #-}
 
   arity _ = 3
   {-# INLINE arity #-}
 
-  ref 0 (RGB r _ _) = r
-  ref 1 (RGB _ g _) = g
-  ref 2 (RGB _ _ b) = b
-  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref !px 0 = red px
+  ref !px 1 = green px
+  ref !px 2 = blue px
+  ref !px n = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
+
+  update !px 0 r = px { red   = r }
+  update !px 1 g = px { green = g }
+  update !px 2 b = px { blue  = b }
+  update !px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+  {-# INLINE update #-}
 
   apply !(f1:f2:f3:_) !(RGB r g b) = RGB (f1 r) (f2 g) (f3 b)
   apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
@@ -61,7 +68,7 @@ instance Num RGB where
   signum      = pxOp signum
   {-# INLINE signum #-}
   
-  fromInteger = pixel . fromIntegral
+  fromInteger = fromDouble . fromIntegral
   {-# INLINE fromInteger #-}
 
 
@@ -72,12 +79,12 @@ instance Fractional RGB where
   recip        = pxOp recip
   {-# INLINE recip #-}
 
-  fromRational = pixel . fromRational
+  fromRational = fromDouble . fromRational
   {-# INLINE fromRational #-}
 
 
 instance Floating RGB where
-  pi      = pixel pi
+  pi      = fromDouble pi
   {-# INLINE pi #-}
 
   exp     = pxOp exp

@@ -22,15 +22,19 @@ pxOp2 !f !(Gray y1) !(Gray y2) = Gray (f y1 y2)
 
 instance Pixel Gray where
   type Channel Gray = Double
-  pixel                          = Gray 
-  {-# INLINE pixel #-}
+  fromDouble = Gray
+  {-# INLINE fromDouble #-}
   
   arity _ = 1
   {-# INLINE arity #-}
 
-  ref 0 !(Gray y) = y
-  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref !(Gray y) 0 = y
+  ref !px      !n = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
+
+  update _  0 y = Gray y
+  update px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+  {-# INLINE update #-}
 
   apply !(f:_) !(Gray y) = Gray $ f y
   apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
@@ -40,7 +44,7 @@ instance Pixel Gray where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  showType _                     = "Gray"
+  showType _ = "Gray"
 
 
 instance Num Gray where

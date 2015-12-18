@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module HIP.Binary (
   Compareble (..), toBinary, toBinary2, fromBinary, invert,
   erode, dialate, open, close
@@ -9,6 +9,10 @@ import HIP.Interface
 import HIP.Algorithms.Convolution
 import HIP.Binary.Pixel
 import HIP.Pixel.Base (Pixel(..))
+
+infix  4  .==., ./=., .<., .<=., .>=., .>.
+--infixr 3  .&&.
+--infixr 2  .||.
 
 -- | This is a very convenient set of functions that allow for binary image
 -- construction. It is possible to compare either two images of same type
@@ -52,11 +56,14 @@ instance (Pixel px, Ord px, AImage img px, AImage img Binary)
   (.>=.) !img !px = toBinary (>=px) img
 
 
+--(.&&.) :: AImage img Binary => img Binary -> img Binary -> img Binary
+--(.&&.) = zipWith (.&)
+
 toBinary :: (AImage img px, AImage img Binary) =>
             (px -> Bool)
          -> img px
          -> img Binary
-toBinary !f !img = map (fromBool . f) img
+toBinary !f !img = map (Binary . f) img
 {-# INLINE toBinary #-}
 
 
@@ -65,7 +72,7 @@ toBinary2 :: (AImage img px, AImage img Binary) =>
           -> img px
           -> img px
           -> img Binary
-toBinary2 !f =  zipWith (((.).(.)) fromBool f)
+toBinary2 !f =  zipWith (((.).(.)) Binary f)
 {-# INLINE toBinary2 #-}
 
 
@@ -73,7 +80,7 @@ fromBinary :: (AImage img Binary, AImage img px) =>
               img Binary
            -> img px
 fromBinary !img = map toPx img where
-  toPx !b = if isOn b then pixel 1 else pixel 0
+  toPx !b = if isOn b then fromDouble 1 else fromDouble 0
   {-# INLINE toPx #-}
 {-# INLINE fromBinary #-}
          
@@ -107,3 +114,11 @@ close :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
         strat img Binary -> img Binary -> img Binary -> img Binary
 close strat img = erode strat img . dialate strat img
 {-# INLINE close #-}
+
+
+
+-- | Given a binary image, distanceTransform returns an image representing the
+-- 2D distance transform of the image. The distance transform is accurate to
+-- within a 2% error for euclidean distance.
+distanceTransform :: AImage img Binary => img Binary -> img Int
+distanceTransform = undefined

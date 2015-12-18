@@ -1,14 +1,22 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, TypeFamilies #-}
-module HIP.Pixel.Base where
+module HIP.Pixel.Base (
+  Pixel(..)
+  ) where
 
 import Data.Int
 import Data.Word
+import GHC.Float
 
-baseRef :: (Pixel px) => Int -> px -> px
-baseRef 0 !y = y
-baseRef n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+baseRef :: (Pixel px) => px -> Int -> px
+baseRef !y 0 = y
+baseRef px n = error ("Referencing "++show n++"is out of bounds for "++showType px)
 {-# INLINE baseRef #-}
+
+baseUpdate :: (Pixel px, px ~ Channel px) => px -> Int -> Channel px -> px
+baseUpdate _  0 c  = c
+baseUpdate px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+{-# INLINE baseUpdate #-}
 
 baseApply :: Pixel px => [(px -> px)] -> px -> px
 baseApply !(f:_) !d = f d
@@ -21,20 +29,19 @@ baseApply2 _ _ px = error ("Length of the function list should be at least: "++(
 {-# INLINE baseApply2 #-}
 
 
-
--- Peyton shows quickcheck. recursive type classes:
--- https://youtu.be/6COvD8oynmI?t=39m2s
-class (Eq px, Num px, Show px,
-       Eq (Channel px), Num (Channel px), Show (Channel px), Ord (Channel px)
+class (Eq px, Num px, Show px
+      --Eq (Channel px), Num (Channel px), Show (Channel px), Ord (Channel px)
       ) => Pixel px where
   -- | Internal type used for pixel values.
   type Channel px :: *
+
+  fromDouble :: Double -> px
   
-  pixel :: Channel px -> px
-       
   arity :: px -> Int
 
-  ref :: Int -> px -> Channel px
+  ref :: px -> Int -> Channel px
+
+  update :: px -> Int -> Channel px -> px
 
   apply :: [(Channel px -> Channel px)] -> px -> px
 
@@ -46,14 +53,17 @@ class (Eq px, Num px, Show px,
 instance Pixel Float where
   type Channel Float = Float
 
-  pixel = id
-  {-# INLINE pixel #-}
+  fromDouble = double2Float
+  {-# INLINE fromDouble #-}
 
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -67,14 +77,17 @@ instance Pixel Float where
 instance Pixel Double where
   type Channel Double = Double
 
-  pixel = id
-  {-# INLINE pixel #-}
+  fromDouble = id
+  {-# INLINE fromDouble #-}
 
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -89,14 +102,17 @@ instance Pixel Double where
 instance Pixel Int where
   type Channel Int = Int
 
-  pixel = id
-  {-# INLINE pixel #-}
+  fromDouble = round
+  {-# INLINE fromDouble #-}
 
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -110,14 +126,17 @@ instance Pixel Int where
 instance Pixel Int8 where
   type Channel Int8 = Int8
 
-  pixel = id
-  {-# INLINE pixel #-}
+  fromDouble = round
+  {-# INLINE fromDouble #-}
 
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -131,14 +150,17 @@ instance Pixel Int8 where
 instance Pixel Int16 where
   type Channel Int16 = Int16
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -152,14 +174,17 @@ instance Pixel Int16 where
 instance Pixel Int32 where
   type Channel Int32 = Int32
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -173,14 +198,17 @@ instance Pixel Int32 where
 instance Pixel Int64 where
   type Channel Int64 = Int64
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -191,18 +219,20 @@ instance Pixel Int64 where
   showType _ = "Int64"
   
   
-  
 instance Pixel Word where
   type Channel Word = Word
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -216,14 +246,17 @@ instance Pixel Word where
 instance Pixel Word8 where
   type Channel Word8 = Word8
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -237,14 +270,17 @@ instance Pixel Word8 where
 instance Pixel Word16 where
   type Channel Word16 = Word16
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -258,14 +294,17 @@ instance Pixel Word16 where
 instance Pixel Word32 where
   type Channel Word32 = Word32
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -279,14 +318,17 @@ instance Pixel Word32 where
 instance Pixel Word64 where
   type Channel Word64 = Word64
 
-  pixel = id
-  {-# INLINE pixel #-}
-
+  fromDouble = round
+  {-# INLINE fromDouble #-}
+  
   arity _ = 1
   {-# INLINE arity #-}
 
   ref = baseRef
   {-# INLINE ref #-}
+
+  update = baseUpdate
+  {-# INLINE update #-}
 
   apply = baseApply
   {-# INLINE apply #-}
@@ -295,6 +337,3 @@ instance Pixel Word64 where
   {-# INLINE apply2 #-}
 
   showType _ = "Word64"
-  
-  
-  

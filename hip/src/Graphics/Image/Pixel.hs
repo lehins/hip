@@ -26,11 +26,12 @@ module Graphics.Image.Pixel (
   hsiToRGB, hsiToGray,
   -- ** Alpha
   module HIP.Pixel.Alpha,
+  AlphaPixel,
   -- ** Binary
   module HIP.Binary.Pixel,
   -- ** Complex
   module HIP.Complex.Pixel,
-  ComplexChannel
+  ComplexPixel
   ) where
 
 import Data.Int
@@ -41,28 +42,35 @@ import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
 import HIP.Pixel (
   grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Channel)
-import HIP.Pixel.Alpha
+import HIP.Pixel.Alpha hiding (AlphaPixel)
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
 import HIP.Pixel.HSI
 import HIP.Binary.Pixel
-import HIP.Complex.Pixel hiding (ComplexChannel)
-import qualified HIP.Pixel as P (Pixel(..), ComplexChannel)
+import HIP.Complex.Pixel hiding (ComplexPixel)
+import qualified HIP.Pixel as P (Pixel(..), ComplexPixel, AlphaPixel)
 {-
 import qualified Data.Vector.Generic            as V
 import qualified Data.Vector.Generic.Mutable    as M
 import qualified Data.Vector.Unboxed            as U
 import Control.Monad
 -}
+
 -- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'
-class (Unbox px, P.Pixel px) => Pixel px where
+class (Unbox (Channel px), Unbox px, P.Pixel px) => Pixel px where
 
 
 -- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'. Also
--- Pixel that are instances of this class can be used with 'Complex' pixel.
-class (Unbox px, Unbox (Channel px), P.ComplexChannel px
-      ) => ComplexChannel px where
+-- Pixel that are instances of this class can be used with 'Alpha' pixel.
+class (Unbox px, Unbox (Channel px), P.AlphaPixel px, Pixel px
+      ) => AlphaPixel px where
 
+  
+-- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'. Also
+-- Pixel that are instances of this class can be used with 'Complex' pixel.
+class (Unbox px, Unbox (Channel px), P.ComplexPixel px, Pixel px
+      ) => ComplexPixel px where
+  
 
 -- | Unboxed Pixel  
 instance Pixel Binary where
@@ -77,65 +85,42 @@ instance Pixel RGB where
 instance Pixel HSI where
  
 -- | Unboxed Pixel  
-instance (Unbox (Channel px), Pixel px) => Pixel (Alpha px) where
+instance (Unbox (Channel px), AlphaPixel px, Pixel px) => Pixel (Alpha px) where
 
+
+-- | Unboxed AlphaPixel  
+instance AlphaPixel Gray where
+
+-- | Unboxed AlphaPixel  
+instance AlphaPixel RGB where
+
+-- | Unboxed AlphaPixel  
+instance AlphaPixel HSI where
+  
   
 -- | Unboxed Pixel  
-instance ComplexChannel px => Pixel (Complex px) where
+instance ComplexPixel px => Pixel (Complex px) where
   
+-- | Unboxed Pixel  
+instance ComplexPixel Float where
 
 -- | Unboxed Pixel  
-instance ComplexChannel Gray where
-
--- | Unboxed Pixel  
-instance ComplexChannel RGB where
-
--- | Unboxed Pixel  
-instance ComplexChannel HSI where
-
--- | Unboxed Pixel  
-instance (Pixel (Alpha px), ComplexChannel px) => ComplexChannel (Alpha px) where
+instance ComplexPixel Double where
   
+-- | Unboxed Pixel  
+instance ComplexPixel Gray where
 
-derivingUnbox "GrayPixel"
-    [t| Gray -> Double |]
-    [| \(Gray y) -> y  |]
-    [| \y -> Gray y    |]
+-- | Unboxed Pixel  
+instance ComplexPixel RGB where
 
+-- | Unboxed Pixel  
+instance ComplexPixel HSI where
 
-derivingUnbox "BinaryPixel"
-    [t| Binary -> Bool             |]
-    [| isOn                        |]
-    [| \v -> if v then on else off |]
-
-
-derivingUnbox "RGBPixel"
-    [t| RGB -> (Double, Double, Double) |]
-    [| \(RGB r g b) -> (r, g, b)        |]
-    [| \(r, g, b) -> RGB r g b          |]
-
-
-derivingUnbox "HSIPixel"
-    [t| HSI -> (Double, Double, Double) |]
-    [| \(HSI h s i) -> (h, s, i)        |]
-    [| \(h, s, i) -> HSI h s i          |]
-
-
-derivingUnbox "ComplexPixel"
-    [t| ComplexChannel px => Complex px -> (px, px) |]
-    [| \(px1 :+: px2) -> (px1, px2)                 |]
-    [| \(px1, px2) -> px1 :+: px2                   |]
-
-
-derivingUnbox "AlphaPixel"
-    [t| (Unbox (Channel px), Pixel px) => Alpha px -> (Channel px, px) |]
-    [| \(Alpha a px) -> (a, px)                                        |]
-    [| \(a, px) -> Alpha a px                                          |]
-
+-- | Unboxed Pixel  
+instance (Pixel (Alpha px), AlphaPixel px, ComplexPixel px) => ComplexPixel (Alpha px) where
+  
 
 -- All base types:
-
-instance Pixel (Double, Double, Double) where
 
 instance Pixel Float where
 
@@ -161,6 +146,68 @@ instance Pixel Word32 where
 
 instance Pixel Word64 where
 
+instance AlphaPixel Float where
+
+instance AlphaPixel Double where
+
+instance AlphaPixel Int where
+
+instance AlphaPixel Int8 where
+
+instance AlphaPixel Int16 where
+
+instance AlphaPixel Int32 where
+
+instance AlphaPixel Int64 where
+
+instance AlphaPixel Word where
+
+instance AlphaPixel Word8 where
+
+instance AlphaPixel Word16 where
+
+instance AlphaPixel Word32 where
+
+instance AlphaPixel Word64 where
+
+  
+derivingUnbox "GrayPixel"
+    [t| Gray -> Double |]
+    [| \(Gray y) -> y  |]
+    [| \y -> Gray y    |]
+
+
+derivingUnbox "BinaryPixel"
+    [t| Binary -> Bool             |]
+    [| isOn                        |]
+    [| \v -> if v then on else off |]
+
+
+derivingUnbox "RGBPixel"
+    [t| RGB -> (Double, Double, Double) |]
+    [| \(RGB r g b) -> (r, g, b)        |]
+    [| \(r, g, b) -> RGB r g b          |]
+
+
+derivingUnbox "HSIPixel"
+    [t| HSI -> (Double, Double, Double) |]
+    [| \(HSI h s i) -> (h, s, i)        |]
+    [| \(h, s, i) -> HSI h s i          |]
+
+
+derivingUnbox "ComplexPixel"
+    [t| ComplexPixel px => Complex px -> (px, px) |]
+    [| \(px1 :+: px2) -> (px1, px2)               |]
+    [| \(px1, px2) -> px1 :+: px2                 |]
+
+
+derivingUnbox "AlphaPixel"
+    [t| (AlphaPixel px, Pixel px) => Alpha px -> (Channel px, px) |]
+    [| \(Alpha a px) -> (a, px)                                   |]
+    [| \(a, px) -> Alpha a px                                     |]
+
+
+  
 {-
 instance Unbox Gray
 

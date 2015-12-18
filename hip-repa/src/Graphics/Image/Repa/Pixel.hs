@@ -7,14 +7,14 @@ module Graphics.Image.Repa.Pixel (
   -- * Grayscale and Colors
   Gray(..), RGB(..), HSI(..),
   -- * Complex
-  Complex(..), ComplexChannel,
+  Complex(..), ComplexPixel,
   -- * Alpha
-  Alpha(..), AlphaChannel, fmapAlpha, combineAlpha
+  Alpha(..), AlphaPixel, fmapAlpha, combineAlpha
   ) where
 
 import Data.Array.Repa.Eval (Elt(..))
-import HIP.Pixel hiding (Pixel, ComplexChannel, AlphaChannel)
-import qualified Graphics.Image.Pixel as U (Pixel, ComplexChannel, AlphaChannel)
+import HIP.Pixel hiding (Pixel, ComplexPixel, AlphaPixel)
+import qualified Graphics.Image.Pixel as U (Pixel, ComplexPixel, AlphaPixel)
 
 
 -- | Repa can only work with 'I.Pixel's that implement 'Elt' and 'Unbox'
@@ -22,12 +22,12 @@ class (Elt px, U.Pixel px) => Pixel px where
 
 
 -- | Repa can only work with 'I.Pixel's that implement 'Elt' and 'Unbox'
-class (Elt px, Elt (Channel px), U.ComplexChannel px) =>
-      ComplexChannel px where
+class (Elt px, Elt (Channel px), U.ComplexPixel px) =>
+      ComplexPixel px where
 
 -- | Repa can only work with 'I.Pixel's that implement 'Elt' and 'Unbox'
-class (Elt px, Elt (Channel px), U.AlphaChannel px) =>
-      AlphaChannel px where
+class (Elt px, Elt (Channel px), U.AlphaPixel px) =>
+      AlphaPixel px where
         
 
 -- | Repa Pixel  
@@ -43,35 +43,35 @@ instance Pixel RGB where
 instance Pixel HSI where
  
 -- | Repa Pixel  
-instance ComplexChannel px => Pixel (Complex px) where
+instance ComplexPixel px => Pixel (Complex px) where
 
 -- | Repa Pixel  
-instance AlphaChannel px => Pixel (Alpha px) where
+instance AlphaPixel px => Pixel (Alpha px) where
   
 
 -- | Repa Pixel  
-instance ComplexChannel Gray where
+instance ComplexPixel Gray where
 
 -- | Repa Pixel  
-instance ComplexChannel RGB where
+instance ComplexPixel RGB where
 
 -- | Repa Pixel  
-instance ComplexChannel HSI where
+instance ComplexPixel HSI where
 
   
 -- | Repa Pixel  
-instance (Pixel (Alpha px), ComplexChannel px, AlphaChannel px) =>
-         ComplexChannel (Alpha px) where
+instance (Pixel (Alpha px), ComplexPixel px, AlphaPixel px) =>
+         ComplexPixel (Alpha px) where
   
 
 -- | Repa Pixel  
-instance AlphaChannel Gray where
+instance AlphaPixel Gray where
 
 -- | Repa Pixel  
-instance AlphaChannel RGB where
+instance AlphaPixel RGB where
 
 -- | Repa Pixel  
-instance AlphaChannel HSI where
+instance AlphaPixel HSI where
 
 
   
@@ -119,7 +119,7 @@ instance Elt HSI where
   {-# INLINE one #-}
 
 
-instance (Elt px, AlphaChannel px) => Elt (Alpha px) where
+instance (Elt px, AlphaPixel px) => Elt (Alpha px) where
   touch (Alpha px a) = touch px >> touch a 
   {-# INLINE touch #-}
   
@@ -130,7 +130,7 @@ instance (Elt px, AlphaChannel px) => Elt (Alpha px) where
   {-# INLINE one #-}
   
 
-instance (Elt px, ComplexChannel px) => Elt (Complex px) where
+instance (Elt px, ComplexPixel px) => Elt (Complex px) where
   touch (x :+: y) = touch x >> touch y
   {-# INLINE touch #-}
   

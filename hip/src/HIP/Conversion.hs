@@ -47,16 +47,16 @@ instance Convertible Gray HSI where
 
 
 instance Pixel px => Convertible Binary px where
-  convert !b = if isOn b then pixel 1 else pixel 0
+  convert !b = if isOn b then fromDouble 1 else fromDouble 0
   {-# INLINE convert #-}
   
 
-instance (ComplexChannel px) => Convertible px (Complex px) where
-  convert !px = px :+: pixel 0
+instance ComplexPixel px => Convertible px (Complex px) where
+  convert !px = px :+: fromDouble 0
   {-# INLINE convert #-}
 
 
-instance (ComplexChannel px) => Convertible (Complex px) px where
+instance ComplexPixel px => Convertible (Complex px) px where
   convert !(px :+: _) = px
   {-# INLINE convert #-}
 
@@ -75,26 +75,26 @@ toHSIImage = map convert
 {-# INLINE toHSIImage #-}
 
 
-toAlphaImage :: (AImage img px, AImage img (Alpha px)) =>
+toAlphaImage :: (AImage img px, AImage img (Alpha px), AlphaPixel px) =>
                 img px -> img (Alpha px)
 toAlphaImage = map addAlpha
 {-# INLINE toAlphaImage #-}
 
 
-fromAlphaImage :: (AImage img px, AImage img (Alpha px)) =>
+fromAlphaImage :: (AImage img px, AImage img (Alpha px), AlphaPixel px) =>
                   img (Alpha px) -> img px
 fromAlphaImage = map dropAlpha
 {-# INLINE fromAlphaImage #-}
 
 
 
-toComplexImage :: (AImage img px, AImage img (Complex px), ComplexChannel px) =>
+toComplexImage :: (AImage img px, AImage img (Complex px), ComplexPixel px) =>
                 img px -> img (Complex px)
-toComplexImage = map (:+: pixel 0)
+toComplexImage = map (:+: fromDouble 0)
 {-# INLINE toComplexImage #-}
 
 
-fromComplexImage :: (AImage img px, AImage img (Complex px), ComplexChannel px) =>
+fromComplexImage :: (AImage img px, AImage img (Complex px), ComplexPixel px) =>
                   img (Complex px) -> img px
 fromComplexImage = map real
 {-# INLINE fromComplexImage #-}
@@ -145,5 +145,5 @@ graysToRGB = fromGrays RGB
 toLists :: (AImage img (Channel px), AImage img px) => img px -> [img (Channel px)]
 toLists !img = toLists' 0 where
   !pxArity = arity $ index img 0 0
-  toLists' !n = if n < pxArity then map (ref n) img:toLists' (n+1) else []
+  toLists' !n = if n < pxArity then map (flip ref n) img:toLists' (n+1) else []
 {-# INLINE toLists #-}

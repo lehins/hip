@@ -13,9 +13,10 @@ import HIP.Pixel.Base (Pixel(..))
 -- * Hue: @H = [0, 2*pi)@
 -- * Saturation: @S = [0, 1]@
 -- * Intensity: @I = [0, 1]@
-data HSI = HSI {-# UNPACK #-} !Double
-               {-# UNPACK #-} !Double
-               {-# UNPACK #-} !Double deriving Eq
+data HSI = HSI { hue :: {-# UNPACK #-} !Double
+               , sat :: {-# UNPACK #-} !Double
+               , int :: {-# UNPACK #-} !Double
+               } deriving Eq
 
 
 pxOp :: (Double -> Double) -> HSI -> HSI
@@ -30,18 +31,23 @@ pxOp2 !f !(HSI h1 s1 i1) !(HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
 instance Pixel HSI where
   type Channel HSI = Double
 
-  pixel !d                                = HSI d d d
-  {-# INLINE pixel #-}
-
+  fromDouble !d = HSI d d d
+  {-# INLINE fromDouble #-}
 
   arity _ = 3
   {-# INLINE arity #-}
 
-  ref 0 (HSI h _ _) = h
-  ref 1 (HSI _ s _) = s
-  ref 2 (HSI _ _ i) = i
+  ref !px 0 = hue px
+  ref !px 1 = sat px
+  ref !px 2 = int px
   ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
+
+  update !px 0 h = px { hue = h }
+  update !px 1 s = px { sat = s }
+  update !px 2 i = px { int = i }
+  update !px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+  {-# INLINE update #-}
 
   apply !(f1:f2:f3:_) !(HSI h s i) = HSI (f1 h) (f2 s) (f3 i)
   apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
@@ -70,7 +76,7 @@ instance Num HSI where
   signum      = pxOp signum
   {-# INLINE signum #-}
   
-  fromInteger = pixel . fromIntegral 
+  fromInteger = fromDouble . fromIntegral 
   {-# INLINE fromInteger #-}
 
 
@@ -81,12 +87,12 @@ instance Fractional HSI where
   recip        = pxOp recip
   {-# INLINE recip #-}
   
-  fromRational = pixel . fromRational 
+  fromRational = fromDouble . fromRational 
   {-# INLINE fromRational #-}
 
 
 instance Floating HSI where
-  pi    = pixel pi
+  pi    = fromDouble pi
   {-# INLINE pi #-}
   
   exp   = pxOp exp

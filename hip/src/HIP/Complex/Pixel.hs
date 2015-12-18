@@ -3,27 +3,29 @@ TypeFamilies, MultiParamTypeClasses, NoMonomorphismRestriction,
 UndecidableInstances, ViewPatterns #-}
 
 module HIP.Complex.Pixel (
-  Complex (..), ComplexChannel (..),
-  mag, arg, conj, real, imag, fromPol, toRect  
+  Complex (..), ComplexPixel (..),
+  mag, arg, conj, fromPol, toRect  
   ) where
 
 import Prelude hiding (map, zipWith)
 import HIP.Pixel.Base (Pixel(..))
 
 
-{- | Every instance of this ComplexChannel class can be used as a real and imaginary
+{- | Every instance of this ComplexPixel class can be used as a real and imaginary
 parts of a Complex pixel. -}
-class (Floating (Channel px), Fractional (Channel px),
+class (Eq (Channel px), Ord (Channel px), Floating (Channel px), Fractional (Channel px),
        Floating px, Fractional px, Pixel px) =>
-      ComplexChannel px where
+      ComplexPixel px where
   apply2c :: [(Channel px -> Channel px -> (Channel px, Channel px))] -> px -> px -> Complex px
 
 
 infix  6  :+:
 
 data Complex px where
-  (:+:) :: ComplexChannel px => !px -> !px -> Complex px 
-  --(:*:) :: ComplexChannel px => !px -> !px -> Complex px 
+  (:+:) :: ComplexPixel px => { real :: !px
+                              , imag :: !px
+                              } -> Complex px 
+  --(:*:) :: ComplexPixel px => !px -> !px -> Complex px 
 
 
 instance Eq (Complex px) where
@@ -32,13 +34,13 @@ instance Eq (Complex px) where
 
 
 -- | Magnitude (or modulus, or radius)
-mag :: (ComplexChannel px) => Complex px -> px
+mag :: (ComplexPixel px) => Complex px -> px
 mag !(pxReal :+: pxImag) = sqrt (pxReal ^ (2 :: Int) + pxImag ^ (2 :: Int))
 {-# INLINE mag #-}
 
 
 -- | The principal value of Argument of a Complex pixel (or Phase).
-arg :: (ComplexChannel px) => Complex px -> px
+arg :: (ComplexPixel px) => Complex px -> px
 arg !(pxX :+: pxY) = apply2 (repeat f) pxX pxY where
   f !x !y | x /= 0          = atan (y / x) + (pi / 2) * (1 - signum x)
           | x == 0 && y /=0 = (pi / 2) * signum y
@@ -49,57 +51,49 @@ arg !(pxX :+: pxY) = apply2 (repeat f) pxX pxY where
 
 -- | Create a complex pixel from two real pixels, which represent a magnitude
 -- and an argument, ie. radius and phase
-fromPol :: (ComplexChannel px) => px -> px -> Complex px
+fromPol :: (ComplexPixel px) => px -> px -> Complex px
 fromPol !r !theta = (r * cos theta) :+: (r * sin theta)
 {-# INLINE fromPol #-}
 
-toRect :: (ComplexChannel px) => Complex px -> (px, px)
+toRect :: (ComplexPixel px) => Complex px -> (px, px)
 toRect !(px1 :+: px2) = (px1, px2)
 {-# INLINE toRect #-}
 
 
 {- | Conjugate a complex pixel -}
-conj :: (ComplexChannel px) => Complex px -> Complex px
+conj :: (ComplexPixel px) => Complex px -> Complex px
 conj !(x :+: y) = x :+: (-y)
 {-# INLINE conj #-}
 
 
-{- | Extracts a real part from a complex pixel -}
-real :: (ComplexChannel px) => Complex px -> px
-real !(px :+: _) = px
-{-# INLINE real #-}
-
-
-{-| Extracts an imaginary part of a pixel -}
-imag :: (ComplexChannel px) => Complex px -> px
-imag !(_  :+: px) = px
-{-# INLINE imag #-}
-
-
-pxOp :: (ComplexChannel px) => (px -> px) -> (Complex px) -> (Complex px)
+pxOp :: (ComplexPixel px) => (px -> px) -> (Complex px) -> (Complex px)
 pxOp !op !(px1 :+: px2) = op px1 :+: op px2
 {-# INLINE pxOp #-}
 
-pxOp2 :: (ComplexChannel px) => (px -> px -> px) -> (Complex px) -> (Complex px) -> (Complex px)
+pxOp2 :: (ComplexPixel px) => (px -> px -> px) -> (Complex px) -> (Complex px) -> (Complex px)
 pxOp2 !op !(px1 :+: px2) (px1' :+: px2') = op px1 px1' :+: op px2 px2'
 {-# INLINE pxOp2 #-}
 
 
-instance ComplexChannel px => Pixel (Complex px) where
+instance ComplexPixel px => Pixel (Complex px) where
   type Channel (Complex px) = Channel px
 
-  pixel !v = (pixel v) :+: (pixel v)
-  {-# INLINE pixel #-}
+  fromDouble !v = (fromDouble v) :+: (fromDouble v)
+  {-# INLINE fromDouble #-}
   
   arity (px1 :+: px2) = arity px1 + arity px2
   {-# INLINE arity #-}
 
-  ref !n !px@(px1 :+: px2) =
-    if n < 0 || n >= arity px
-    then error ("Referencing "++show n++"is out of bounds for "++showType px)
-    else if n < arity1 then ref n px1 else ref (n-arity1) px2
+  ref (px1 :+: px2) !n =
+    if n < arity1 then ref px1 n else ref px2 (n-arity1)
     where !arity1 = arity px1
   {-# INLINE ref #-}
+
+  update px@(px1 :+: px2) !n !c = if n < arity1
+                                  then px { real = update px1 n c }
+                                  else px { imag = update px2 (n-arity1) c}
+    where !arity1 = arity px1
+  {-# INLINE update #-}
   
   apply !fs !(px1 :+: px2) = apply fs1 px1 :+: apply fs2 px2
     where !(fs1, fs2) = splitAt (arity px1) fs
@@ -115,7 +109,7 @@ instance ComplexChannel px => Pixel (Complex px) where
   
 
 
-instance (ComplexChannel px) => Num (Complex px) where
+instance (ComplexPixel px) => Num (Complex px) where
   (+) = pxOp2 (+)
   {-# INLINE (+) #-}
   
@@ -141,7 +135,7 @@ instance (ComplexChannel px) => Num (Complex px) where
   {-# INLINE fromInteger #-}
 
 
-instance ComplexChannel px => Fractional (Complex px) where
+instance ComplexPixel px => Fractional (Complex px) where
   (/) !(x :+: y) !(x' :+: y') =
     ((x*x' + y*y') / mag2) :+: ((y*x' - x*y') / mag2) where
       !mag2 = x'*x' + y'*y'
@@ -154,7 +148,7 @@ instance ComplexChannel px => Fractional (Complex px) where
   {-# INLINE fromRational #-}
 
 
-instance ComplexChannel px => Floating (Complex px) where
+instance ComplexPixel px => Floating (Complex px) where
   pi             =  pi :+: 0
   {-# INLINE pi #-}
   

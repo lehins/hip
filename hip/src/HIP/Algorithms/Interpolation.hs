@@ -7,12 +7,12 @@ import HIP.Pixel.Base (Pixel(..))
 
 
 class Pixel px => Interpolation method px | px -> method where
-  interpolate :: (RealFrac (Channel px), Pixel px) =>
+  interpolate :: Pixel px =>
                  method             -- ^ Interpolation method
               -> Int -> Int         -- ^ Image dimensions @m@ rows and @n@ columns.
               -> (Int -> Int -> px) -- ^ Lookup function that returns a pixel at @i@th
                                     -- and @j@th location.
-              -> (Channel px) -> (Channel px)   -- ^ real values of @i@ and @j@ index
+              -> Double -> Double   -- ^ real values of @i@ and @j@ index
               -> px
 
 
@@ -35,8 +35,8 @@ instance Pixel px => Interpolation (Method px) px where
       !(i0, j0) = (floor i, floor j)
       !(i1, j1) = (i0 + 1, j0 + 1)
       inter = fi0 + jPx*(fi1-fi0) where
-        !iPx = pixel (i - (fromIntegral i0))
-        !jPx = pixel (j - (fromIntegral j0))
+        !iPx = fromDouble (i - (fromIntegral i0))
+        !jPx = fromDouble (j - (fromIntegral j0))
         !f00 = getPx i0 j0
         !f10 = getPx i1 j0
         !f01 = getPx i0 j1 

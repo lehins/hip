@@ -184,11 +184,11 @@ unsafeIndex :: Pixel px =>
 unsafeIndex = I.unsafeIndex
 
 -- | Retreive an interpolated pixel at @i@-th and @j@-th location.
-interpolate :: (I.Interpolation method px, RealFrac (Channel px), Pixel px) =>
-               method     -- ^ One of the interpolation 'I.Method's.
-            -> Image px   -- ^ Source image
-            -> (Channel px) -- ^ approximation of @i@-th row
-            -> (Channel px) -- ^ approximation of @j@-th column
+interpolate :: (I.Interpolation method px, Pixel px) =>
+               method   -- ^ One of the interpolation 'I.Method's.
+            -> Image px -- ^ Source image
+            -> Double   -- ^ approximation of @i@-th row
+            -> Double   -- ^ approximation of @j@-th column
             -> px
 interpolate alg img@(dims -> (m, n)) i j =
   I.interpolate alg m n (unsafeIndex img) i j
@@ -538,10 +538,10 @@ upsample = I.upsample
 -- <<images/frog_scale_nearest.jpg>> <<images/frog_scale_bilinear.jpg>>
 --
 scale :: (I.Interpolation method px, Pixel px, RealFrac (Channel px)) =>
-         method    -- ^ One of the interpolation 'I.Method's to be used during
-                   -- scaling.
-      -> Channel px  -- ^ Scaling factor, must be greater than 0.
-      -> Image px  -- ^ Image to be scaled.
+         method   -- ^ One of the interpolation 'I.Method's to be used during
+                  -- scaling.
+      -> Double   -- ^ Scaling factor, must be greater than 0.
+      -> Image px -- ^ Image to be scaled.
       -> Image px
 scale = I.scale
 
@@ -579,7 +579,7 @@ resize = I.resize
 rotate :: (I.Interpolation method px, Pixel px, RealFloat (Channel px)) =>
           method   -- ^ One of the interpolation 'I.Method's to be used during
                    -- rotation.
-       -> Channel px -- ^ Angle @theta@ in radians, that an image should be
+       -> Double   -- ^ Angle @theta@ in radians, that an image should be
                    -- rotated by.
        -> Image px -- ^ Source image to be rotated.
        -> Image px
@@ -597,7 +597,7 @@ rotate = I.rotate
 rotate' :: (I.Interpolation method px, Pixel px, RealFloat (Channel px)) =>
           method    -- ^ One of the interpolation 'I.Method's to be used during
                     -- rotation.
-        -> Channel px -- ^ Angle @theta@ in radians, that an image should be
+        -> Double   -- ^ Angle @Θ@ in radians, that an image should be
                     -- rotated by.
         -> Image px -- ^ Source image to be rotated.
         -> Image px
@@ -675,7 +675,7 @@ toHSIImage = C.toHSIImage
 -- >>> toAlphaImage frog
 -- <Image RGB-A: 200x320>
 -- 
-toAlphaImage :: (Pixel px, Pixel (Alpha px)) =>
+toAlphaImage :: AlphaPixel px =>
                 Image px -> Image (Alpha px)
 toAlphaImage = C.toAlphaImage
 
@@ -685,20 +685,20 @@ toAlphaImage = C.toAlphaImage
 -- >>> fromAlphaImage $ toAlphaImage frog
 -- <Image RGB: 200x320>
 -- 
-fromAlphaImage :: (Pixel px, Pixel (Alpha px)) =>
+fromAlphaImage :: AlphaPixel px =>
                 Image (Alpha px) -> Image px
 fromAlphaImage = C.fromAlphaImage
 
 
 -- | Convert a regular image to a Complex image by adding an all zero pixel imaginary
 -- image.
-toComplexImage :: (Pixel px, ComplexChannel px) =>
+toComplexImage :: (Pixel px, ComplexPixel px) =>
                   Image px -> Image (Complex px)
 toComplexImage = C.toComplexImage
 
 
 -- | Convert Complex image to a regular image by dropping imaginary image.
-fromComplexImage :: (Pixel px, ComplexChannel px) =>
+fromComplexImage :: (Pixel px, ComplexPixel px) =>
                     Image (Complex px) -> Image px
 fromComplexImage = C.fromComplexImage
 

@@ -2,13 +2,13 @@
 TypeFamilies, ViewPatterns, UndecidableInstances #-}
 
 module HIP.Binary.Pixel (
-  Binary(..), Bin(..), on, off, fromBool, isOn, isOff, inverted
+  Binary(..), on, off, fromBool, isOn, isOff, inverted
   ) where
 
+import Data.Bits
 import HIP.Pixel.Base (Pixel(..))
 
--- Need to specify a new type to avoid declaring Num for Bool
-newtype Bin = Bin Bool deriving Eq
+-- Need to specify a newtype Bin in order to avoid installing Bool into Num
 
 -- | This is a Binary pixel that can be created using these *constructors*:
 --
@@ -16,98 +16,61 @@ newtype Bin = Bin Bool deriving Eq
 --
 --   [@'off'@] Represents value 'False' or @0@ in binary.
 --
-newtype Binary = Binary Bin deriving Eq
+newtype Binary = Binary Bool deriving Eq
 
--- | Represents value 'True' or @1@ in binary.
+-- | Represents value 'True' or @1@ in binary. Often also called a foreground
+-- pixel of an object.
 on :: Binary
-on = Binary . Bin $ True
+on = Binary True
 {-# INLINE on #-}
 
 
--- | Represents value 'False' or @0@ in binary.
+-- | Represents value 'False' or @0@ in binary. Often also called a background
+-- pixel.
 off :: Binary
-off = Binary . Bin $ False
+off = Binary False
 {-# INLINE off #-}
 
 
 -- | Convert a 'Bool' to a 'Binary' pixel. @True == isOn $ fromBool True@
 fromBool :: Bool -> Binary
-fromBool = Binary . Bin
+fromBool = Binary
 {-# INLINE fromBool #-}
 
 
 -- | Test if Pixel's value holds 'True'
 isOn :: Binary -> Bool
-isOn (Binary (Bin v)) = v
+isOn !(Binary v) = v
 {-# INLINE isOn #-}
 
 
 -- | Test if Pixel's value holds 'False'
 isOff :: Binary -> Bool
-isOff (Binary (Bin v)) = not v
+isOff !(Binary v) = not v
 {-# INLINE isOff #-}
 
 
 inverted :: Binary -> Binary
-inverted (Binary (Bin v)) = fromBool . not $ v
+inverted !(Binary v) = fromBool . not $ v
 {-# INLINE inverted #-}
 
-
-instance Num Bin where
-  (Bin False) + (Bin False) = Bin False
-  _           + _           = Bin True
-  {-# INLINE (+) #-}
-
-  (Bin True)  - (Bin True)  = Bin False
-  (Bin False) - _           = Bin False
-  _           - _           = Bin True
-  {-# INLINE (-) #-}
-
-  (Bin True)  * (Bin True)  = Bin True
-  _           * _           = Bin False
-  {-# INLINE (*) #-}
-
-  abs !v            = v
-  {-# INLINE abs #-}
-  
-  signum !v         = v
-  {-# INLINE signum #-}
-
-  fromInteger !i = Bin $ if i == 0 then False else True
-  {-# INLINE fromInteger #-}
-
-
-instance Ord Bin where
-
-  compare (Bin v1) (Bin v2) = compare v1 v2
-
-
-instance Show Bin where
-  show (Bin True)  = "1"
-  show (Bin False) = "0"
-  
-
-pxOp :: (Bin -> Bin) -> Binary -> Binary
-pxOp !f !(Binary b) = Binary (f b)
-{-# INLINE pxOp #-}
-
-pxOp2 :: (Bin -> Bin -> Bin) -> Binary -> Binary -> Binary                                    
-pxOp2 !f !(Binary b1) !(Binary b2) = Binary (f b1 b2)
-{-# INLINE pxOp2 #-}
-
-
 instance Pixel Binary where
-  type Channel Binary = Bin
-  pixel 0                         = off
-  pixel _                         = on
-  {-# INLINE pixel #-}
+  type Channel Binary = Bool
+  
+  fromDouble 0 = Binary False
+  fromDouble _ = Binary True
+  {-# INLINE fromDouble #-}
   
   arity _ = 1
   {-# INLINE arity #-}
 
-  ref 0 !(Binary b) = b
-  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref !(Binary b) 0 = b
+  ref !px         n = error ("Referencing "++show n++"is out of bounds for "++showType px)
   {-# INLINE ref #-}
+
+  update _   0 !b = Binary b
+  update !px n _  = error ("Updating "++show n++"is out of bounds for "++showType px)
+  {-# INLINE update #-}
   
   apply !(f:_) !(Binary b) = Binary $ f b
   apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
@@ -117,36 +80,40 @@ instance Pixel Binary where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  showType _                      = "Binary"
+  showType _ = "Binary"
 
 
 instance Num Binary where
-  (+)           = pxOp2 (+)
+  (+) !(Binary False) !(Binary False) = Binary False
+  (+) _               _               = Binary True
   {-# INLINE (+) #-}
 
-  (-)           = pxOp2 (-)
+  (-) !(Binary True)  !(Binary True) = Binary False
+  (-) !(Binary False) _              = Binary False
+  (-) _               _              = Binary True
   {-# INLINE (-) #-}
 
-  (*)           = pxOp2 (*)
+  (*) !(Binary True) !(Binary True)  = Binary True
+  (*) _              _               = Binary False
   {-# INLINE (*) #-}
 
-  abs           = pxOp abs
+  abs = id
   {-# INLINE abs #-}
-
-  signum        = pxOp signum
+  
+  signum = id
   {-# INLINE signum #-}
 
-  fromInteger n = Binary . fromIntegral $ n
+  fromInteger 0 = Binary False
+  fromInteger _ = Binary True
   {-# INLINE fromInteger #-}
 
 
 instance Ord Binary where
-  (Binary y1) <= (Binary y2) = y1 <= y2
-  {-# INLINE (<=) #-}
+  compare !(Binary v1) !(Binary v2) = compare v1 v2
+  {-# INLINE compare #-}
 
 
 instance Show Binary where
-  show (Binary y) = "<Binary:("++show y++")>"
-  {-# INLINE show #-}
+  show (Binary y) = "<Binary:("++b++")>" where b = if y then "1" else "0"
 
 
