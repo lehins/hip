@@ -3,6 +3,7 @@
 
 module HIP.Interface (
   minimum, maximum, normalize,
+  Convertible(..),
   Strategy(..),
   AImage(..)
   ) where
@@ -10,6 +11,10 @@ module HIP.Interface (
 import Prelude hiding (map, sum, minimum, maximum)
 import qualified Data.Vector as V (Vector)
 import HIP.Pixel.Base (Pixel(..))
+
+
+class Convertible a b where
+  convert :: a -> b
 
 
 class AImage img px => Strategy strat img px where

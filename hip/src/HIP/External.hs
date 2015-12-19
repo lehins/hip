@@ -14,6 +14,7 @@ import Data.Word (Word8, Word16)
 import Data.Vector.Storable (Storable)
 import Codec.Picture hiding (Pixel, Image, decodeImage)
 import Codec.Picture.Types hiding (Pixel, Image)
+import qualified HIP.Interface as I (Convertible(..))
 import qualified Codec.Picture as JP
 import qualified Data.ByteString.Lazy as BL (ByteString)
 import qualified Data.ByteString as B (ByteString)
@@ -216,13 +217,13 @@ instance Interconvertible PixelCMYK16 Gray where
 -- Gray -> Color
 
 instance Interconvertible Word8 RGB where
-  convert = grayToRGB . (convert :: Word8 -> Gray)
+  convert = I.convert . (convert :: Word8 -> Gray)
 
 instance Interconvertible Word16 RGB where
-  convert = grayToRGB . (convert :: Word16 -> Gray)
+  convert = I.convert . (convert :: Word16 -> Gray)
 
 instance Interconvertible Float RGB where
-  convert = grayToRGB . (convert :: Float -> Gray)
+  convert = I.convert . (convert :: Float -> Gray)
 
 instance Interconvertible PixelYA8 RGB where
   convert = convert . dropTransparency
@@ -303,45 +304,45 @@ instance Interconvertible Gray PixelYA16 where
 -- Gray -> Color
 
 instance Interconvertible Gray PixelRGB8 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PixelRGB16 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PixelRGBA8 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PixelRGBA16 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PixelRGBF where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PixelYCbCr8 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PixelCMYK8 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PixelCMYK16 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 -- Color -> Gray
 
 instance Interconvertible RGB Word8 where
-  convert = convert . rgbToGray
+  convert = convert . (I.convert :: RGB -> Gray)
 
 instance Interconvertible RGB Word16 where
-  convert = convert . rgbToGray
+  convert = convert . (I.convert :: RGB -> Gray)
   
 instance Interconvertible RGB Float where
-  convert = convert . rgbToGray
+  convert = convert . (I.convert :: RGB -> Gray)
 
 instance Interconvertible RGB PixelYA8 where
-  convert = convert . rgbToGray
+  convert = convert . (I.convert :: RGB -> Gray)
 
 instance Interconvertible RGB PixelYA16 where
-  convert = convert . rgbToGray
+  convert = convert . (I.convert :: RGB -> Gray)
 
 -- Color -> Color
 
@@ -515,19 +516,19 @@ instance Interconvertible PNM.PgmPixel16 Gray where
   convert (PNM.PgmPixel16 w16) = convert w16
 
 instance Interconvertible PNM.PpmPixelRGB8 Gray where
-  convert = rgbToGray . (convert :: PNM.PpmPixelRGB8 -> RGB)
+  convert = I.convert . (convert :: PNM.PpmPixelRGB8 -> RGB)
 
 instance Interconvertible PNM.PpmPixelRGB16 Gray where
-  convert = rgbToGray . (convert :: PNM.PpmPixelRGB16 -> RGB)
+  convert = I.convert . (convert :: PNM.PpmPixelRGB16 -> RGB)
 
 instance Interconvertible PNM.PbmPixel RGB where
-  convert = grayToRGB . (convert :: PNM.PbmPixel -> Gray)
+  convert = I.convert . (convert :: PNM.PbmPixel -> Gray)
   
 instance Interconvertible PNM.PgmPixel8 RGB where
-  convert = grayToRGB . (convert :: PNM.PgmPixel8 -> Gray)
+  convert = I.convert . (convert :: PNM.PgmPixel8 -> Gray)
 
 instance Interconvertible PNM.PgmPixel16 RGB where
-  convert = grayToRGB . (convert :: PNM.PgmPixel16 -> Gray)
+  convert = I.convert . (convert :: PNM.PgmPixel16 -> Gray)
 
 instance Interconvertible PNM.PpmPixelRGB8 RGB where
   convert (PNM.PpmPixelRGB8 r g b) = RGB (fromWord8 r) (fromWord8 g) (fromWord8 b)
@@ -545,16 +546,16 @@ instance Interconvertible Gray PNM.PgmPixel16 where
   convert (Gray g) = PNM.PgmPixel16 $ toWord16 g
 
 instance Interconvertible Gray PNM.PpmPixelRGB8 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible Gray PNM.PpmPixelRGB16 where
-  convert = convert . grayToRGB
+  convert = convert . (I.convert :: Gray -> RGB)
 
 instance Interconvertible RGB PNM.PgmPixel8 where
-  convert = convert . rgbToGray
+  convert = convert . (I.convert :: RGB -> Gray)
 
 instance Interconvertible RGB PNM.PgmPixel16 where
-  convert = convert . rgbToGray
+  convert = convert . (I.convert :: RGB -> Gray)
 
 instance Interconvertible RGB PNM.PpmPixelRGB8 where
   convert (RGB r g b) = PNM.PpmPixelRGB8 (toWord8 r) (toWord8 g) (toWord8 b)

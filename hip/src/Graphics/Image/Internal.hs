@@ -10,7 +10,7 @@ import Data.Typeable (typeOf)
 import Data.Vector.Unboxed hiding ((++), map, zipWith, unsafeIndex, fromList)
 import qualified Data.Vector.Unboxed as V (unsafeIndex, length, fromList, zipWith, sum)
 import Graphics.Image.Pixel (Pixel)
-import HIP.Interface
+import HIP.Interface hiding (Convertible(..))
 
 -- | This is a concrete representation of an image that can hold any of the
 -- pixels that are an instance of a 'Pixel'. It is also installed in 'Num's,

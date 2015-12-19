@@ -16,14 +16,12 @@ module Graphics.Image.Pixel (
   -- * Pixel 
   Pixel, P.Channel,
   -- ** Grayscale
-  module HIP.Pixel.Gray,
+  module HIP.Pixel.Gray, toGray,
   -- ** Color
   -- *** RGB
-  module HIP.Pixel.RGB,
-  rgbToHSI, rgbToGray,
+  module HIP.Pixel.RGB, toRGB,
   -- *** HSI
-  module HIP.Pixel.HSI,
-  hsiToRGB, hsiToGray,
+  module HIP.Pixel.HSI, toHSI,
   -- ** Alpha
   module HIP.Pixel.Alpha,
   AlphaPixel,
@@ -40,7 +38,7 @@ import Data.Vector.Unboxed (Unbox)
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
-import HIP.Pixel (grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Channel)
+import HIP.Pixel (toGray, toRGB, toHSI, Channel)
 import HIP.Pixel.Alpha hiding (AlphaPixel)
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB

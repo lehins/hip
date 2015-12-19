@@ -1,21 +1,27 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, MultiWayIf #-}
 module HIP.Pixel (
+  -- * Pixel 
   Pixel(..),
-  module HIP.Pixel.Gray,
-  grayToRGB, grayToHSI,
-  module HIP.Pixel.RGB,
-  rgbToHSI, rgbToGray,
-  module HIP.Pixel.HSI,
-  hsiToRGB, hsiToGray,
+  -- ** Grayscale
+  module HIP.Pixel.Gray, toGray,
+  -- ** Color
+  -- *** RGB
+  module HIP.Pixel.RGB, toRGB,
+  -- *** HSI
+  module HIP.Pixel.HSI, toHSI,
+  -- ** Alpha
   module HIP.Pixel.Alpha,
+  -- ** Binary
   module HIP.Binary.Pixel,
+  -- ** Complex
   module HIP.Complex.Pixel
   ) where
 
 import Prelude hiding (map)
 import Data.Int
 import Data.Word
+import GHC.Float
 
 import HIP.Pixel.Base (Pixel(..))
 import HIP.Pixel.Gray
@@ -24,6 +30,7 @@ import HIP.Pixel.HSI
 import HIP.Pixel.Alpha
 import HIP.Binary.Pixel
 import HIP.Complex.Pixel
+import HIP.Interface (Convertible(..))
 
 
 instance AlphaPixel Int where
@@ -92,9 +99,9 @@ instance ComplexPixel Gray where
 instance ComplexPixel RGB where
   apply2c !(f1:f2:f3:_) !(RGB r1 g1 b1) !(RGB r2 g2 b2) =
     RGB r1' g1' b1' :+: RGB r2' g2' b2' where
-      (r1', r2') = (f1 r1 r2)
-      (g1', g2') = (f2 g1 g2)
-      (b1', b2') = (f3 b1 b2)
+      !(r1', r2') = (f1 r1 r2)
+      !(g1', g2') = (f2 g1 g2)
+      !(b1', b2') = (f3 b1 b2)
   apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2c #-}
 
@@ -118,19 +125,264 @@ instance (AlphaPixel px, ComplexPixel px) => ComplexPixel (Alpha px) where
   apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2c #-}
 
+------------------------------------
+-- Conversion ----------------------
+------------------------------------
+
+-- to Gray pixel:
+
+instance Convertible Int Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int8 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int16 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int32 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int64 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word8 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word16 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word32 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word64 Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Float Gray where
+  convert = Gray . float2Double
+  {-# INLINE convert #-}
+
+
+instance Convertible Double Gray where
+  convert = Gray
+  {-# INLINE convert #-}
+
+
+instance Convertible RGB Gray where
+  convert = rgbToGray
+  {-# INLINE convert #-}
 
   
--- | Convert an 'Gray' pixel to 'HSI' pixel.
-grayToHSI :: Gray -> HSI
-grayToHSI !(Gray y) = HSI y y y
-{-# INLINE grayToHSI #-}
+instance Convertible HSI Gray where
+  convert = hsiToGray
+  {-# INLINE convert #-}
 
 
--- | Convert an 'Gray' pixel to 'RGB' pixel.
-grayToRGB :: Gray -> RGB
-grayToRGB !(Gray y) = RGB y y y
-{-# INLINE grayToRGB #-}
+-- to RGB pixel:
 
+
+instance Convertible Int RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int8 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int16 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int32 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int64 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word8 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word16 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word32 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word64 RGB where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Float RGB where
+  convert = fromDouble . float2Double
+  {-# INLINE convert #-}
+
+
+instance Convertible Double RGB where
+  convert = fromDouble
+  {-# INLINE convert #-}
+
+
+instance Convertible Gray RGB where
+  convert !(Gray y) = fromDouble y
+  {-# INLINE convert #-}
+
+  
+instance Convertible HSI RGB where
+  convert = hsiToRGB
+  {-# INLINE convert #-}
+
+
+-- to HSI pixel:
+
+
+instance Convertible Int HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int8 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int16 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int32 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Int64 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word8 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word16 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word32 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Word64 HSI where
+  convert = fromDouble . fromIntegral
+  {-# INLINE convert #-}
+
+
+instance Convertible Float HSI where
+  convert = fromDouble . float2Double
+  {-# INLINE convert #-}
+
+
+instance Convertible Double HSI where
+  convert = fromDouble
+  {-# INLINE convert #-}
+
+
+instance Convertible Gray HSI where
+  convert !(Gray y) = fromDouble y
+  {-# INLINE convert #-}
+
+  
+instance Convertible RGB HSI where
+  convert = rgbToHSI
+  {-# INLINE convert #-}
+
+
+-- to Binary pixel
+
+
+instance Pixel px => Convertible Binary px where
+  convert !b = if isOn b then fromDouble 1 else fromDouble 0
+  {-# INLINE convert #-}
+  
+
+instance ComplexPixel px => Convertible px (Complex px) where
+  convert !px = px :+: fromDouble 0
+  {-# INLINE convert #-}
+
+
+instance ComplexPixel px => Convertible (Complex px) px where
+  convert !(px :+: _) = px
+  {-# INLINE convert #-}
+
+
+-- | Convert any type of pixel to Gray pixel.
+toGray :: Convertible px Gray => px -> Gray
+toGray = convert
+{-# INLINE toGray #-}
+
+
+-- | Convert any type of pixel to RGB pixel.
+toRGB :: Convertible px RGB => px -> RGB
+toRGB = convert
+{-# INLINE toRGB #-}
+
+
+-- | Convert any type of pixel to HSI pixel.
+toHSI :: Convertible px HSI => px -> HSI
+toHSI = convert
+{-# INLINE toHSI #-}
+
+  
                      
 -- | Convert an 'RGB' pixel to 'HSI' pixel.
 rgbToHSI :: RGB -> HSI
@@ -191,6 +443,9 @@ hsiToGray (HSI _ _ i) = Gray i
 
 
 {-
+
+-- Old and possibly incorrect implementation.
+
 -- | Convert an 'RGB' pixel to 'HSI' pixel.
 rgbToHSI' :: RGB -> HSI
 rgbToHSI' !(RGB r g b) = HSI h s i where

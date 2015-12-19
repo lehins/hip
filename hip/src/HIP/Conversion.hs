@@ -2,6 +2,7 @@
 MultiParamTypeClasses, ViewPatterns #-}
 module HIP.Conversion (
   Convertible(..),
+  toGray, toRGB, toHSI,
   toGrayImage, toRGBImage, toHSIImage,
   rgbToGrays, hsiToGrays, graysToRGB, graysToHSI,
   toAlphaImage, fromAlphaImage,
@@ -10,61 +11,12 @@ module HIP.Conversion (
   ) where
 
 import Prelude hiding (map)
-import HIP.Interface (AImage(..))
+import Data.Int
+import Data.Word
+import HIP.Interface (AImage(..), Convertible(..))
 import HIP.Pixel
 
-class Convertible a b where
-  convert :: a -> b
-
-instance Convertible RGB HSI where
-  convert = rgbToHSI
-  {-# INLINE convert #-}
   
-
-instance Convertible HSI RGB where
-  convert = hsiToRGB
-  {-# INLINE convert #-}
-
-
-instance Convertible Gray RGB where
-  convert = grayToRGB
-  {-# INLINE convert #-}
-
-
-instance Convertible Int Gray where
-  convert = Gray . fromIntegral
-  {-# INLINE convert #-}
-
-
-instance Convertible RGB Gray where
-  convert = rgbToGray
-  {-# INLINE convert #-}
-
-  
-instance Convertible HSI Gray where
-  convert = hsiToGray
-  {-# INLINE convert #-}
-
-
-instance Convertible Gray HSI where
-  convert = grayToHSI
-  {-# INLINE convert #-}
-
-
-instance Pixel px => Convertible Binary px where
-  convert !b = if isOn b then fromDouble 1 else fromDouble 0
-  {-# INLINE convert #-}
-  
-
-instance ComplexPixel px => Convertible px (Complex px) where
-  convert !px = px :+: fromDouble 0
-  {-# INLINE convert #-}
-
-
-instance ComplexPixel px => Convertible (Complex px) px where
-  convert !(px :+: _) = px
-  {-# INLINE convert #-}
-
 toGrayImage :: (Convertible px Gray, AImage img px, AImage img Gray) => img px -> img Gray
 toGrayImage = map convert
 {-# INLINE toGrayImage #-}
