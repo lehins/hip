@@ -1,10 +1,11 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses, 
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses, 
 TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module HIP.Pixel.HSI (
   HSI (..)
   ) where
 
+import Data.Data
 import HIP.Pixel.Base (Pixel(..))
 
 -- | HSI colorspace model consists of Hue, Saturation and Intensity. When read
@@ -16,7 +17,7 @@ import HIP.Pixel.Base (Pixel(..))
 data HSI = HSI { hue :: {-# UNPACK #-} !Double
                , sat :: {-# UNPACK #-} !Double
                , int :: {-# UNPACK #-} !Double
-               } deriving Eq
+               } deriving (Typeable, Data, Eq)
 
 
 pxOp :: (Double -> Double) -> HSI -> HSI
@@ -40,13 +41,13 @@ instance Pixel HSI where
   ref !px 0 = hue px
   ref !px 1 = sat px
   ref !px 2 = int px
-  ref n px = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref n px = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE ref #-}
 
   update !px 0 h = px { hue = h }
   update !px 1 s = px { sat = s }
   update !px 2 i = px { int = i }
-  update !px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+  update !px n _ = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE update #-}
 
   apply !(f1:f2:f3:_) !(HSI h s i) = HSI (f1 h) (f2 s) (f3 i)
@@ -57,7 +58,11 @@ instance Pixel HSI where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  showType _ = "HSI"
+  maxChannel !(HSI h s i) = max (max h s) i
+  {-# INLINE maxChannel #-}
+
+  minChannel !(HSI h s i) = min (min h s) i
+  {-# INLINE minChannel #-}
   
 
 instance Num HSI where

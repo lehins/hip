@@ -1,8 +1,10 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, GADTs, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, GADTs,
+StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
 module HIP.Pixel.Alpha (
   AlphaPixel, Alpha(..), addAlpha, dropAlpha, fmapAlpha, combineAlpha
   ) where
 
+import Data.Data
 import HIP.Pixel.Base (Pixel(..))
 
 
@@ -19,12 +21,14 @@ to address that issue.
 -}
 
 class (Pixel px, Eq (Channel px), Num (Channel px),
-       Show (Channel px), Ord (Channel px)) => AlphaPixel px where
+       Show (Channel px), Ord (Channel px), Data (Channel px)) => AlphaPixel px where
 
 data Alpha px where
   Alpha :: AlphaPixel px => { alpha :: Channel px
                             , opaque :: px
                             } -> Alpha px
+deriving instance Typeable (Alpha)
+deriving instance AlphaPixel px => Data (Alpha px)
   
 
 instance AlphaPixel px => Pixel (Alpha px) where
@@ -52,7 +56,14 @@ instance AlphaPixel px => Pixel (Alpha px) where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  showType (Alpha _ px) = (showType px)++"-A"
+  maxChannel !(Alpha a px) = max (maxChannel px) a
+  {-# INLINE maxChannel #-}
+
+  minChannel !(Alpha a px) = min (minChannel px) a
+  {-# INLINE minChannel #-}
+
+  fromChannel !c = Alpha c $ fromChannel c
+  {-# INLINE fromChannel #-}
 
 
 instance AlphaPixel px => Num (Alpha px) where

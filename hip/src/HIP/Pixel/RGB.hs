@@ -1,15 +1,16 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, TypeFamilies, ViewPatterns, MultiParamTypeClasses, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, TypeFamilies, ViewPatterns, MultiParamTypeClasses, UndecidableInstances #-}
 
 module HIP.Pixel.RGB (
   RGB (..)
   ) where
 
+import Data.Data
 import HIP.Pixel.Base (Pixel(..))
 
 data RGB = RGB { red   :: {-# UNPACK #-} !Double
                , green :: {-# UNPACK #-} !Double
                , blue  :: {-# UNPACK #-} !Double
-               } deriving Eq
+               } deriving (Typeable, Data, Eq)
 
 pxOp :: (Double -> Double) -> RGB -> RGB
 pxOp !f !(RGB r g b) = RGB (f r) (f g) (f b)
@@ -32,13 +33,13 @@ instance Pixel RGB where
   ref !px 0 = red px
   ref !px 1 = green px
   ref !px 2 = blue px
-  ref !px n = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref !px n = error ("Referencing "++show n++"is out of bounds for "++(show $ typeOf px))
   {-# INLINE ref #-}
 
   update !px 0 r = px { red   = r }
   update !px 1 g = px { green = g }
   update !px 2 b = px { blue  = b }
-  update !px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+  update !px n _ = error ("Updating "++show n++"is out of bounds for "++(show $ typeOf px))
   {-# INLINE update #-}
 
   apply !(f1:f2:f3:_) !(RGB r g b) = RGB (f1 r) (f2 g) (f3 b)
@@ -49,8 +50,12 @@ instance Pixel RGB where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  showType _ = "RGB"
-  
+  maxChannel !(RGB r g b) = max (max r g) b
+  {-# INLINE maxChannel #-}
+
+  minChannel !(RGB r g b) = min (min r g) b
+  {-# INLINE minChannel #-}
+
 
 instance Num RGB where
   (+)         = pxOp2 (+)

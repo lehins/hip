@@ -18,7 +18,6 @@ import Data.Int
 import Data.Word
 
 import HIP.Pixel.Base (Pixel(..))
-import HIP.Pixel.Tuple()
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
 import HIP.Pixel.HSI
@@ -71,8 +70,6 @@ instance AlphaPixel RGB where
 
 instance AlphaPixel HSI where
 
-
-  
   
 instance ComplexPixel Float where
   apply2c !(f1:_) !v1 !v2 = (uncurry (:+:)) $ f1 v1 v2

@@ -62,7 +62,6 @@ library
                  , HIP.Complex.Pixel
                  , HIP.External
                  , HIP.Pixel.Base
-                 , HIP.Pixel.Tuple
                  , HIP.Pixel.Gray
                  , HIP.Pixel.RGB
                  , HIP.Pixel.HSI

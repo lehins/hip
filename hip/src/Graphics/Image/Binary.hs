@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module Graphics.Image.Binary (
-  B.Compareble (..), toBinary, toBinary2, fromBinary, invert,
-  erode, dialate, open, close
+  B.Compareble (..), (.&&.), (.||.), toBinary, toBinary2, fromBinary, invert,
+  erode, dialate, open, close, outline4, outline8, distanceTransform
   ) where
 
 import Prelude hiding (zipWith)
@@ -14,7 +14,7 @@ import Graphics.Image.Internal
 
 -- | Convert an image to a binary image by looking at each pixel with a function.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> yield <- readImageRGB "images/yield.jpg"
 -- >>> 
 -- >>> let binFrog = toBinary (<0.9) frog
 --
@@ -42,6 +42,16 @@ fromBinary = B.fromBinary
 {-# INLINE fromBinary #-}
 
 
+(.&&.) :: Image Binary -> Image Binary -> Image Binary
+(.&&.) = (B..&&.)
+{-# INLINE (.&&.) #-}
+
+
+(.||.) :: Image Binary -> Image Binary -> Image Binary
+(.||.) = (B..||.)
+{-# INLINE (.||.) #-}
+
+
 -- | Flips all bits in the image.
 invert :: Image Binary -> Image Binary
 invert = B.invert
@@ -66,4 +76,20 @@ open !img' = B.open Identity img'
 close :: Image Binary -> Image Binary -> Image Binary
 close !img' = B.close Identity img'
 {-# INLINE close #-}
+
+
+outline4 :: Image Binary -> Image Binary
+outline4 = B.outline4
+{-# INLINE outline4 #-}
+
+
+outline8 :: Image Binary -> Image Binary
+outline8 = B.outline8
+{-# INLINE outline8 #-}
+
+
+distanceTransform :: Image Binary -> Image Int
+distanceTransform = B.distanceTransform Identity
+{-# INLINE distanceTransform #-}
+
 

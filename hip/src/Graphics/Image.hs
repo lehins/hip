@@ -28,7 +28,7 @@ module Graphics.Image (
   I.Method(..), interpolate, 
   -- * Processing
   -- ** Pointwise
-  map, imap, zipWith,
+  map, imap, zipWith, normalize,
   -- ** Geometric
   transpose, (|*|), backpermute,
   traverse, traverse2, traverse3,
@@ -41,9 +41,7 @@ module Graphics.Image (
   scale, resize,
   rotate, rotate',
   -- * Reduction
-  fold, sum, --maximum, minimum,
-  -- * Binary
-  module Graphics.Image.Binary,
+  fold, sum, maximum, minimum,
   -- * Conversion
   toGrayImage, toRGBImage, toHSIImage,
   toAlphaImage, fromAlphaImage,
@@ -51,6 +49,8 @@ module Graphics.Image (
   graysToRGB, graysToHSI, rgbToGrays, hsiToGrays,
   fromVector, toVector,
   fromList, toList,
+  -- * Binary
+  module Graphics.Image.Binary,
   -- * Input/Output
   module Graphics.Image.IO
   ) where
@@ -229,6 +229,12 @@ zipWith :: (Pixel px1, Pixel px2, Pixel px) =>
 zipWith = I.zipWith
 
 
+-- | Normalize an image. Changes the range of all image pixels to values between
+-- @[0, 1]@.
+normalize :: (Fractional px, Ord px, Pixel px) => Image px -> Image px
+normalize = I.normalize Identity
+
+
 --- Geometric
 
 -- | Transpose an image.
@@ -244,7 +250,7 @@ transpose :: Pixel px =>
 transpose = I.transpose          
 
 
--- | Perform matrix multiplication of two images @A x B@. Channel dimensions of
+-- | Perform matrix multiplication of two images @A x B@. Inner dimensions of
 -- images must agree: @cols img1 == rows img2@
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
@@ -616,21 +622,20 @@ fold :: Pixel px =>
 fold !f !px = I.fold Identity f px
 
 
--- | Sum all pixels of an image.
-sum :: Pixel px =>
-       Image px -- ^ Source image.
-    -> px
+-- | Produce a sum all image's pixels.
+sum :: Pixel px => Image px -> px
 sum = I.sum Identity
 
-{-
+
 -- | Retrieve the maximum pixel from an image
 maximum :: (Pixel px, Ord px) => Image px -> px
 maximum = I.maximum Identity
 
+
 -- | Retrieve the minium pixel from an image
 minimum :: (Pixel px, Ord px) => Image px -> px
 minimum = I.minimum Identity
--}
+
 --------------------------------------------------------------------------------
 ---- Conversion ----------------------------------------------------------------
 --------------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TemplateHaskell,
 TypeFamilies, UndecidableInstances #-}
 -- |
--- Module      : Graphics.Image.Unboxed.Pixel
+-- Module      : Graphics.Image.Pixel
 -- Copyright   : (c) Alexey Kuleshevich 2015
 -- License     : MIT
 --
@@ -14,7 +14,7 @@ TypeFamilies, UndecidableInstances #-}
 -- This module contains all available pixel types at the moment.
 module Graphics.Image.Pixel (
   -- * Pixel 
-  Pixel, P.Channel, P.showType,
+  Pixel, P.Channel,
   -- ** Grayscale
   module HIP.Pixel.Gray,
   -- ** Color
@@ -40,8 +40,7 @@ import Data.Vector.Unboxed (Unbox)
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
-import HIP.Pixel (
-  grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Channel)
+import HIP.Pixel (grayToRGB, grayToHSI, rgbToHSI, rgbToGray, hsiToRGB, hsiToGray, Channel)
 import HIP.Pixel.Alpha hiding (AlphaPixel)
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
@@ -49,12 +48,12 @@ import HIP.Pixel.HSI
 import HIP.Binary.Pixel
 import HIP.Complex.Pixel hiding (ComplexPixel)
 import qualified HIP.Pixel as P (Pixel(..), ComplexPixel, AlphaPixel)
-{-
+
 import qualified Data.Vector.Generic            as V
 import qualified Data.Vector.Generic.Mutable    as M
 import qualified Data.Vector.Unboxed            as U
 import Control.Monad
--}
+
 
 -- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'
 class (Unbox (Channel px), Unbox px, P.Pixel px) => Pixel px where
@@ -88,35 +87,35 @@ instance Pixel HSI where
 instance (Unbox (Channel px), AlphaPixel px, Pixel px) => Pixel (Alpha px) where
 
 
--- | Unboxed AlphaPixel  
+-- | Unboxed 'AlphaPixel'
 instance AlphaPixel Gray where
 
--- | Unboxed AlphaPixel  
+-- | Unboxed Alpha Pixel  
 instance AlphaPixel RGB where
 
--- | Unboxed AlphaPixel  
+-- | Unboxed Alpha Pixel  
 instance AlphaPixel HSI where
   
   
--- | Unboxed Pixel  
+-- | Unboxed Complex Pixel  
 instance ComplexPixel px => Pixel (Complex px) where
   
--- | Unboxed Pixel  
+-- | Unboxed Complex Pixel  
 instance ComplexPixel Float where
 
--- | Unboxed Pixel  
+-- | Unboxed Complex Pixel  
 instance ComplexPixel Double where
   
--- | Unboxed Pixel  
+-- | Unboxed Complex Pixel  
 instance ComplexPixel Gray where
 
--- | Unboxed Pixel  
+-- | Unboxed Complex Pixel  
 instance ComplexPixel RGB where
 
--- | Unboxed Pixel  
+-- | Unboxed Complex Pixel  
 instance ComplexPixel HSI where
 
--- | Unboxed Pixel  
+-- | Unboxed Complex Pixel  
 instance (Pixel (Alpha px), AlphaPixel px, ComplexPixel px) => ComplexPixel (Alpha px) where
   
 
@@ -170,12 +169,12 @@ instance AlphaPixel Word32 where
 
 instance AlphaPixel Word64 where
 
-  
+{-  
 derivingUnbox "GrayPixel"
     [t| Gray -> Double |]
     [| \(Gray y) -> y  |]
     [| \y -> Gray y    |]
-
+-}
 
 derivingUnbox "BinaryPixel"
     [t| Binary -> Bool             |]
@@ -208,7 +207,6 @@ derivingUnbox "AlphaPixel"
 
 
   
-{-
 instance Unbox Gray
 
 newtype instance U.MVector s Gray = MV_Gray (U.MVector s Double)
@@ -255,6 +253,4 @@ instance V.Vector U.Vector Gray where
   basicUnsafeSlice i n (V_Gray v) = V_Gray (V.basicUnsafeSlice i n v)
   basicUnsafeIndexM (V_Gray v) i = Gray  `liftM` V.basicUnsafeIndexM v i
   basicUnsafeCopy (MV_Gray mv) (V_Gray v) = V.basicUnsafeCopy mv v
-  --elemseq (V_Gray vec) val = V.elemseq vec (\(Gray y) -> y val)
   elemseq (V_Gray v) (Gray y) x = V.elemseq v y x
--}

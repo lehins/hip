@@ -31,6 +31,11 @@ instance Convertible Gray RGB where
   {-# INLINE convert #-}
 
 
+instance Convertible Int Gray where
+  convert = Gray . fromIntegral
+  {-# INLINE convert #-}
+
+
 instance Convertible RGB Gray where
   convert = rgbToGray
   {-# INLINE convert #-}

@@ -6,16 +6,17 @@ module HIP.Pixel.Base (
 
 import Data.Int
 import Data.Word
+import Data.Data
 import GHC.Float
 
 baseRef :: (Pixel px) => px -> Int -> px
 baseRef !y 0 = y
-baseRef px n = error ("Referencing "++show n++"is out of bounds for "++showType px)
+baseRef px n = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
 {-# INLINE baseRef #-}
 
 baseUpdate :: (Pixel px, px ~ Channel px) => px -> Int -> Channel px -> px
 baseUpdate _  0 c  = c
-baseUpdate px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+baseUpdate px n _ = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
 {-# INLINE baseUpdate #-}
 
 baseApply :: Pixel px => [(px -> px)] -> px -> px
@@ -29,14 +30,19 @@ baseApply2 _ _ px = error ("Length of the function list should be at least: "++(
 {-# INLINE baseApply2 #-}
 
 
-class (Eq px, Num px, Show px
-      --Eq (Channel px), Num (Channel px), Show (Channel px), Ord (Channel px)
+class (Eq px, Num px, Show px, Data px, Typeable px, Ord (Channel px), Data (Channel px)
       ) => Pixel px where
-  -- | Internal type used for pixel values.
+  -- | Internal type used for describing precision of pixel's channel values.
   type Channel px :: *
 
+  {-# MINIMAL fromDouble, arity, ref, update, apply, apply2, maxChannel, minChannel #-}
+
+  -- | Constructs a pixel from a 'Double' using the same value for all channels. ex:
+  --
+  -- @fromDouble 0.3 :: HSI == HSI 0.3 0.3 0.3@
+  --
   fromDouble :: Double -> px
-  
+
   arity :: px -> Int
 
   ref :: px -> Int -> Channel px
@@ -47,8 +53,25 @@ class (Eq px, Num px, Show px
 
   apply2 :: [(Channel px -> Channel px -> Channel px)] -> px -> px -> px
 
-  showType :: px -> String
+  -- | Retrieves the maximum channel, ex:
+  --
+  -- @maxChannel $ RGB 0.1 0.3 0.2 == 0.3@
+  maxChannel :: px -> Channel px
+  
+  -- | Retrieves the minimum channel, ex:
+  --
+  -- @minChannel $ RGB 0.1 0.3 0.2 == 0.1@
+  minChannel :: px -> Channel px
 
+  -- | Constructs a pixel from a single channel replicating the same value for
+  -- all channels. ex:
+  --
+  -- @fromChannel 0.2 :: Complex HSI == HSI 0.2 0.2 0.2 :+: HSI 0.2 0.2 0.2@
+  --
+  fromChannel :: Channel px -> px
+  fromChannel c = fromConstrB (fromConstr $ toConstr c) (toConstr c)
+  {-# INLINE fromChannel #-}
+    
 
 instance Pixel Float where
   type Channel Float = Float
@@ -71,9 +94,15 @@ instance Pixel Float where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Float"
-  
-  
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
 instance Pixel Double where
   type Channel Double = Double
 
@@ -95,8 +124,14 @@ instance Pixel Double where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Double"
+  maxChannel = id
+  {-# INLINE maxChannel #-}
 
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}
 
 
 instance Pixel Int where
@@ -120,8 +155,15 @@ instance Pixel Int where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Int"
-  
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
   
 instance Pixel Int8 where
   type Channel Int8 = Int8
@@ -144,8 +186,15 @@ instance Pixel Int8 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Int8"
-  
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
   
 instance Pixel Int16 where
   type Channel Int16 = Int16
@@ -168,8 +217,15 @@ instance Pixel Int16 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Int16"
-  
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
   
 instance Pixel Int32 where
   type Channel Int32 = Int32
@@ -192,9 +248,16 @@ instance Pixel Int32 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Int32"
+  maxChannel = id
+  {-# INLINE maxChannel #-}
 
+  minChannel = id
+  {-# INLINE minChannel #-}
 
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
+  
 instance Pixel Int64 where
   type Channel Int64 = Int64
 
@@ -216,8 +279,15 @@ instance Pixel Int64 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Int64"
-  
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
   
 instance Pixel Word where
   type Channel Word = Word
@@ -240,9 +310,16 @@ instance Pixel Word where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Word"
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
   
-  
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
+
 instance Pixel Word8 where
   type Channel Word8 = Word8
 
@@ -264,8 +341,15 @@ instance Pixel Word8 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Word8"
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
   
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
   
 instance Pixel Word16 where
   type Channel Word16 = Word16
@@ -288,9 +372,16 @@ instance Pixel Word16 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Word16"
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
   
-  
+  fromChannel = id
+  {-# INLINE fromChannel #-}
+
+
 instance Pixel Word32 where
   type Channel Word32 = Word32
 
@@ -312,7 +403,14 @@ instance Pixel Word32 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Word32"
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}
 
 
 instance Pixel Word64 where
@@ -336,4 +434,11 @@ instance Pixel Word64 where
   apply2 = baseApply2
   {-# INLINE apply2 #-}
 
-  showType _ = "Word64"
+  maxChannel = id
+  {-# INLINE maxChannel #-}
+
+  minChannel = id
+  {-# INLINE minChannel #-}
+
+  fromChannel = id
+  {-# INLINE fromChannel #-}

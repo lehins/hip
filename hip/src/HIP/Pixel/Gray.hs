@@ -1,14 +1,15 @@
-{-# LANGUAGE BangPatterns, MultiParamTypeClasses, TypeFamilies,
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, MultiParamTypeClasses, TypeFamilies,
 UndecidableInstances, ViewPatterns, MagicHash #-}
 
 module HIP.Pixel.Gray (
   Gray (..)
   ) where
 
+import Data.Data
 import HIP.Pixel.Base (Pixel(..))
 
 -- | A Gray pixel with 'Double' precision.
-data Gray = Gray {-# UNPACK #-} !Double deriving Eq
+data Gray = Gray {-# UNPACK #-} !Double deriving (Typeable, Data, Eq)
 
 
 pxOp :: (Double -> Double) -> Gray -> Gray
@@ -29,11 +30,11 @@ instance Pixel Gray where
   {-# INLINE arity #-}
 
   ref !(Gray y) 0 = y
-  ref !px      !n = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref !px      !n = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE ref #-}
 
   update _  0 y = Gray y
-  update px n _ = error ("Updating "++show n++"is out of bounds for "++showType px)
+  update px n _ = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE update #-}
 
   apply !(f:_) !(Gray y) = Gray $ f y
@@ -44,7 +45,11 @@ instance Pixel Gray where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  showType _ = "Gray"
+  maxChannel !(Gray y) = y
+  {-# INLINE maxChannel #-}
+
+  minChannel !(Gray y) = y
+  {-# INLINE minChannel #-}
 
 
 instance Num Gray where
@@ -59,6 +64,7 @@ instance Num Gray where
 
   abs         = pxOp abs
   {-# INLINE abs #-}
+  
   signum      = pxOp signum
   {-# INLINE signum #-}
 

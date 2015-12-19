@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, GADTs,
-TypeFamilies, MultiParamTypeClasses, NoMonomorphismRestriction,
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, GADTs,
+StandaloneDeriving, TypeFamilies, MultiParamTypeClasses, NoMonomorphismRestriction,
 UndecidableInstances, ViewPatterns #-}
 
 module HIP.Complex.Pixel (
@@ -8,6 +8,7 @@ module HIP.Complex.Pixel (
   ) where
 
 import Prelude hiding (map, zipWith)
+import Data.Data
 import HIP.Pixel.Base (Pixel(..))
 
 
@@ -25,7 +26,10 @@ data Complex px where
   (:+:) :: ComplexPixel px => { real :: !px
                               , imag :: !px
                               } -> Complex px 
-  --(:*:) :: ComplexPixel px => !px -> !px -> Complex px 
+  --(:*:) :: ComplexPixel px => !px -> !px -> Complex px
+  
+deriving instance Typeable (Complex)
+deriving instance ComplexPixel px => Data (Complex px)
 
 
 instance Eq (Complex px) where
@@ -33,13 +37,13 @@ instance Eq (Complex px) where
   --(==) !(px1r :*: px1t) !(px2r :*: px2t) = px1r == px2r && px1t == px2t
 
 
--- | Magnitude (or modulus, or radius)
+-- | Magnitude (i.e. modulus, radius)
 mag :: (ComplexPixel px) => Complex px -> px
 mag !(pxReal :+: pxImag) = sqrt (pxReal ^ (2 :: Int) + pxImag ^ (2 :: Int))
 {-# INLINE mag #-}
 
 
--- | The principal value of Argument of a Complex pixel (or Phase).
+-- | The principal value of Argument of a Complex pixel (i.e. phase).
 arg :: (ComplexPixel px) => Complex px -> px
 arg !(pxX :+: pxY) = apply2 (repeat f) pxX pxY where
   f !x !y | x /= 0          = atan (y / x) + (pi / 2) * (1 - signum x)
@@ -104,9 +108,14 @@ instance ComplexPixel px => Pixel (Complex px) where
     where !(fs1, fs2) = splitAt (arity px1a) fs
   {-# INLINE apply2 #-}
 
-  showType (!px :+: _) = "Complex "++(showType px)
-  {-# INLINE showType #-}
-  
+  maxChannel !(px1 :+: px2) = max (maxChannel px1) (maxChannel px2)
+  {-# INLINE maxChannel #-}
+
+  minChannel !(px1 :+: px2) = min (minChannel px1) (minChannel px2)
+  {-# INLINE minChannel #-}
+
+  fromChannel !c = fromChannel c :+: fromChannel c
+  {-# INLINE fromChannel #-}
 
 
 instance (ComplexPixel px) => Num (Complex px) where

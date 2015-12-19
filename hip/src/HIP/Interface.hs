@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns, TypeFamilies, UndecidableInstances #-}
 
 module HIP.Interface (
-  --minimum, maximum, normalize,
+  minimum, maximum, normalize,
   Strategy(..),
   AImage(..)
   ) where
@@ -76,7 +76,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
   -- | Convert a nested List of Pixels to an AImage.
   fromList :: [[px]] -> img px
   
-  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromList, (|*|)) #-}
+  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromList, fromBoxedVector, (|*|)) #-}
   
   -- | Get the number of rows in the image 
   rows :: img px -> Int
@@ -260,33 +260,52 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
 
   -- | Matrix multiplication of two images. Inner dimensions must agree.
   (|*|) :: img px -> img px -> img px
+
+
+  fromBoxedVector :: Int -> Int -> V.Vector px -> img px
   
-{-
+  
+
 maximum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>
            strat img px
            -> img px
            -> px
-maximum strat img = fold strat (pxOp2 max) (index img 0 0) img
+maximum strat img = fold strat max (index img 0 0) img
 {-# INLINE maximum #-}
 
 minimum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>
            strat img px
            -> img px
            -> px
-minimum strat img = fold strat (pxOp2 min) (index img 0 0) img
+minimum strat img = fold strat min (index img 0 0) img
 {-# INLINE minimum #-}
-  
-normalize :: (Strategy strat img px, AImage img px, Pixel px, Fractional px, Ord px) =>
-             strat img px
-             -> img px
-             -> img px
-normalize strat img = compute strat $ if s == w
-                then (if s < 0 then (map (*0)) else
-                        if s > 1 then (map (*1)) else id) img
-                else map normalizer img where
-                  !(s, w) = (strongest $ maximum strat img,
-                             weakest $ minimum strat img)
-                  normalizer px = (px - w)/(s - w)
-                  {-# INLINE normalizer #-}
+
+
+-- | Retrieves the biggest channel out of all pixels in the image.
+biggest :: (Strategy strat img px, AImage img px1, Ord px, Channel px ~ Channel px1) =>
+             strat img px -> img px1 -> px
+biggest strat img = fold strat max (index biggestImg 0 0) biggestImg  where
+  !biggestImg = map (fromChannel . maxChannel) img
+{-# INLINE biggest #-}
+
+
+-- | Retrieves the smallest channel out of all pixels in the image.
+smallest :: (Strategy strat img px, AImage img px1, Ord px, Channel px ~ Channel px1) =>
+             strat img px -> img px1 -> px
+smallest strat img = fold strat min (index smallestImg 0 0) smallestImg  where
+  !smallestImg = map (fromChannel . minChannel) img
+{-# INLINE smallest #-}
+
+
+-- | Changes the range of all pixels in the image to values between [0, 1].
+normalize :: (Strategy strat img px, Fractional px, Ord px) =>
+             strat img px -> img px -> img px
+normalize strat img =
+  if s == w
+  then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
+  else map normalizer img where
+    !(s, w) = (biggest strat img, smallest strat img)
+    normalizer !px = (px - w)/(s - w)
+    {-# INLINE normalizer #-}
 {-# INLINE normalize #-}
--}
+

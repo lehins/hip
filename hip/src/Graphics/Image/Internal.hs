@@ -6,9 +6,10 @@ module Graphics.Image.Internal (
 
 import Prelude hiding (map, zipWith, length, all, head, concat, foldl)
 import qualified Prelude as P (map, length, all, head, concat)
+import Data.Typeable (typeOf)
 import Data.Vector.Unboxed hiding ((++), map, zipWith, unsafeIndex, fromList)
 import qualified Data.Vector.Unboxed as V (unsafeIndex, length, fromList, zipWith, sum)
-import Graphics.Image.Pixel (Pixel, showType)
+import Graphics.Image.Pixel (Pixel)
 import HIP.Interface
 
 -- | This is a concrete representation of an image that can hold any of the
@@ -89,9 +90,12 @@ instance (Pixel px) => AImage Image px where
                  then (fromVector m n) . V.fromList . P.concat $ ls
                  else error "fromLists: Inner lists do not have uniform length."
     where
-      (m, n) = (P.length ls, P.length $ P.head ls)
-      isSquare = (n > 0) && (P.all (==n) $ P.map P.length ls)
+      !(m, n) = (P.length ls, P.length $ P.head ls)
+      !isSquare = (n > 0) && (P.all (==n) $ P.map P.length ls)
   {-# INLINE fromList #-}
+
+  fromBoxedVector !m !n = fromVector m n . convert 
+  {-# INLINE fromBoxedVector #-}
 
   (|*|) !img1@(VectorImage m1 n1 v1) !img2 =
     if n1 /= m2 
@@ -179,7 +183,7 @@ instance (Floating px, Pixel px) => Floating (Image px) where
 
   
 instance (Pixel px) => Show (Image px) where
-  show img@(dims -> (m, n)) = "<Image "++(showType px)++": "++(show m)++"x"++(show n)++">"
+  show img@(dims -> (m, n)) = "<Image "++(show $ typeOf px)++": "++(show m)++"x"++(show n)++">"
     where px = index img 0 0  
   
 

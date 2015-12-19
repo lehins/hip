@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, MultiParamTypeClasses, 
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, MultiParamTypeClasses, 
 TypeFamilies, ViewPatterns, UndecidableInstances #-}
 
 module HIP.Binary.Pixel (
@@ -6,6 +7,7 @@ module HIP.Binary.Pixel (
   ) where
 
 import Data.Bits
+import Data.Data
 import HIP.Pixel.Base (Pixel(..))
 
 -- Need to specify a newtype Bin in order to avoid installing Bool into Num
@@ -16,7 +18,7 @@ import HIP.Pixel.Base (Pixel(..))
 --
 --   [@'off'@] Represents value 'False' or @0@ in binary.
 --
-newtype Binary = Binary Bool deriving Eq
+newtype Binary = Binary Bool deriving (Typeable, Data, Eq)
 
 -- | Represents value 'True' or @1@ in binary. Often also called a foreground
 -- pixel of an object.
@@ -65,11 +67,11 @@ instance Pixel Binary where
   {-# INLINE arity #-}
 
   ref !(Binary b) 0 = b
-  ref !px         n = error ("Referencing "++show n++"is out of bounds for "++showType px)
+  ref !px         n = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE ref #-}
 
   update _   0 !b = Binary b
-  update !px n _  = error ("Updating "++show n++"is out of bounds for "++showType px)
+  update !px n _  = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE update #-}
   
   apply !(f:_) !(Binary b) = Binary $ f b
@@ -80,7 +82,15 @@ instance Pixel Binary where
   apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
   {-# INLINE apply2 #-}
 
-  showType _ = "Binary"
+  maxChannel !(Binary b) = b
+  {-# INLINE maxChannel #-}
+
+  minChannel !(Binary b) = b
+  {-# INLINE minChannel #-}
+  
+
+pxOp2 :: (Bool -> Bool -> Bool) -> Binary -> Binary -> Binary
+pxOp2 f !(Binary b1) !(Binary b2) = Binary $ f b1 b2
 
 
 instance Num Binary where
@@ -107,6 +117,44 @@ instance Num Binary where
   fromInteger _ = Binary True
   {-# INLINE fromInteger #-}
 
+
+instance Bits Binary where
+  (.&.) = pxOp2 (.&.)
+  {-# INLINE (.&.) #-}
+  
+  (.|.) = pxOp2 (.|.)
+  {-# INLINE (.|.) #-}
+
+  xor = pxOp2 xor
+  {-# INLINE xor #-}
+
+  complement !(Binary b) = Binary $ complement b
+  {-# INLINE complement #-}
+
+  shift !(Binary b) n = Binary $ shift b n
+  {-# INLINE shift #-}
+
+  rotate !(Binary b) n = Binary $ rotate b n
+  {-# INLINE rotate #-}
+
+  bitSize !(Binary b) = bitSize b 
+  {-# INLINE bitSize #-}
+
+  bitSizeMaybe !(Binary b) = bitSizeMaybe b 
+  {-# INLINE bitSizeMaybe #-}
+  
+  isSigned !(Binary b) = isSigned b 
+  {-# INLINE isSigned #-}
+
+  testBit !(Binary b) = testBit b 
+  {-# INLINE testBit #-}
+
+  bit = Binary . bit
+  {-# INLINE bit #-}
+
+  popCount !(Binary b) = popCount b 
+  {-# INLINE popCount #-}
+  
 
 instance Ord Binary where
   compare !(Binary v1) !(Binary v2) = compare v1 v2
