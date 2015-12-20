@@ -64,7 +64,7 @@ writeImage :: (IO.Saveable Image px, Pixel px) =>
            -- colorspace etc. They are optional, pass an empty list to use
            -- default options.
            -> IO ()
-writeImage path img options = IO.writeImage Identity path img options
+writeImage = IO.writeImage Identity
 
 
 -- | Display an image using an external program, which you can specify using

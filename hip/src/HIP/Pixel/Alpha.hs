@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, GADTs,
-StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
+             StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
 module HIP.Pixel.Alpha (
   AlphaPixel, Alpha(..), addAlpha, dropAlpha, fmapAlpha, combineAlpha
   ) where
@@ -24,10 +24,12 @@ class (Pixel px, Eq (Channel px), Num (Channel px),
        Show (Channel px), Ord (Channel px), Data (Channel px)) => AlphaPixel px where
 
 data Alpha px where
-  Alpha :: AlphaPixel px => { alpha :: Channel px
-                            , opaque :: px
+  --Alpha :: AlphaPixel px => !(Channel px) -> !px -> Alpha px
+  Alpha :: AlphaPixel px => { alpha  :: !(Channel px)
+                            , opaque :: !px
                             } -> Alpha px
-deriving instance Typeable (Alpha)
+           
+deriving instance Typeable Alpha
 deriving instance AlphaPixel px => Data (Alpha px)
   
 
@@ -44,22 +46,23 @@ instance AlphaPixel px => Pixel (Alpha px) where
   ref (Alpha _ px) n = ref px (n-1)
   {-# INLINE ref #-}
 
-  update apx 0 a = apx { alpha = a }
+  --update apx 0 a = apx { alpha = a }
+  update (Alpha _ px) 0 a = Alpha a px
   update (Alpha a px) n c = Alpha a $ update px (n-1) c
   {-# INLINE update #-}
 
-  apply !(f0:rest) !(Alpha a px) = Alpha (f0 a) $ apply rest px
-  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply (f0:rest) (Alpha a px) = Alpha (f0 a) $ apply rest px
+  apply _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply #-}
 
-  apply2 !(f0:rest) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (f0 a1 a2) (apply2 rest px1 px2)
-  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2 (f0:rest) (Alpha a1 px1) (Alpha a2 px2) = Alpha (f0 a1 a2) (apply2 rest px1 px2)
+  apply2 _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2 #-}
 
-  maxChannel !(Alpha a px) = max (maxChannel px) a
+  maxChannel (Alpha a px) = max (maxChannel px) a
   {-# INLINE maxChannel #-}
 
-  minChannel !(Alpha a px) = min (minChannel px) a
+  minChannel (Alpha a px) = min (minChannel px) a
   {-# INLINE minChannel #-}
 
   fromChannel !c = Alpha c $ fromChannel c
@@ -67,88 +70,88 @@ instance AlphaPixel px => Pixel (Alpha px) where
 
 
 instance AlphaPixel px => Num (Alpha px) where
-  (+) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 + a2) (px1 + px2)
+  (+) (Alpha a1 px1) (Alpha a2 px2) = Alpha (a1 + a2) (px1 + px2)
   {-# INLINE (+) #-}
   
-  (-) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 - a2) (px1 - px2)
+  (-) (Alpha a1 px1) (Alpha a2 px2) = Alpha (a1 - a2) (px1 - px2)
   {-# INLINE (-) #-}
   
-  (*) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 * a2) (px1 * px2)
+  (*) (Alpha a1 px1) (Alpha a2 px2) = Alpha (a1 * a2) (px1 * px2)
   {-# INLINE (*) #-}
   
-  abs !(Alpha a px)                   = Alpha (abs a) (abs px)
+  abs (Alpha a px)                  = Alpha (abs a) (abs px)
   {-# INLINE abs #-}
   
-  signum !(Alpha a px)                = Alpha (signum a) (signum px)
+  signum (Alpha a px)               = Alpha (signum a) (signum px)
   {-# INLINE signum #-}
   
-  fromInteger                         = fromDouble . fromIntegral 
+  fromInteger                       = fromDouble . fromIntegral 
   {-# INLINE fromInteger #-}
 
 
 instance (AlphaPixel px, Fractional px, Fractional (Channel px)) => Fractional (Alpha px) where
-  (/) !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (a1 / a2) (px1 / px2)
+  (/) (Alpha a1 px1) (Alpha a2 px2) = Alpha (a1 / a2) (px1 / px2)
   {-# INLINE (/) #-}
   
-  recip !(Alpha a px)                 = Alpha (recip a) (recip px)
+  recip (Alpha a px)                = Alpha (recip a) (recip px)
   {-# INLINE recip #-}
   
-  fromRational                        = fromDouble . fromRational 
+  fromRational                      = fromDouble . fromRational 
   {-# INLINE fromRational #-}
 
 
 instance (AlphaPixel px, Floating px, Floating (Channel px)) => Floating (Alpha px) where
-  pi                   = fromDouble pi
+  pi                  = fromDouble pi
   {-# INLINE pi #-}
   
-  exp !(Alpha a px)    = Alpha (exp a) (exp px)
+  exp (Alpha a px)    = Alpha (exp a) (exp px)
   {-# INLINE exp #-}
   
-  log !(Alpha a px)    = Alpha (log a) (log px)
+  log (Alpha a px)    = Alpha (log a) (log px)
   {-# INLINE log #-}
   
-  sin !(Alpha a px)    = Alpha (sin a) (sin px)
+  sin (Alpha a px)    = Alpha (sin a) (sin px)
   {-# INLINE sin #-}
   
-  cos !(Alpha a px)    = Alpha (cos a) (cos px)
+  cos (Alpha a px)    = Alpha (cos a) (cos px)
   {-# INLINE cos #-}
   
-  asin !(Alpha a px)   = Alpha (asin a) (asin px)
+  asin (Alpha a px)   = Alpha (asin a) (asin px)
   {-# INLINE asin #-}
   
-  atan !(Alpha a px)   = Alpha (atan a) (atan px)
+  atan (Alpha a px)   = Alpha (atan a) (atan px)
   {-# INLINE atan #-}
   
-  acos !(Alpha a px)   = Alpha (acos a) (acos px)
+  acos (Alpha a px)   = Alpha (acos a) (acos px)
   {-# INLINE acos #-}
   
-  sinh !(Alpha a px)   = Alpha (sinh a) (sinh px)
+  sinh (Alpha a px)   = Alpha (sinh a) (sinh px)
   {-# INLINE sinh #-}
   
-  cosh !(Alpha a px)   = Alpha (cosh a) (cosh px)
+  cosh (Alpha a px)   = Alpha (cosh a) (cosh px)
   {-# INLINE cosh #-}
   
-  asinh !(Alpha a px)  = Alpha (asinh a) (asinh px)
+  asinh (Alpha a px)  = Alpha (asinh a) (asinh px)
   {-# INLINE asinh #-}
   
-  atanh !(Alpha a px)  = Alpha (atanh a) (atanh px)
+  atanh (Alpha a px)  = Alpha (atanh a) (atanh px)
   {-# INLINE atanh #-}
   
-  acosh !(Alpha a px)  = Alpha (acosh a) (acosh px)
+  acosh (Alpha a px)  = Alpha (acosh a) (acosh px)
   {-# INLINE acosh #-}
 
 
 instance AlphaPixel px => Eq (Alpha px) where
-  (==) !(Alpha a1 px1) !(Alpha a2 px2) = px1 == px2 && a1 == a2
+  (==) (Alpha a1 px1) (Alpha a2 px2) = px1 == px2 && a1 == a2
   {-# INLINE (==) #-}
 
 
 instance (AlphaPixel px, Ord px) => Ord (Alpha px) where
-  compare !(Alpha a1 px1) !(Alpha a2 px2) | px1 < px2 = LT
-                                          | px1 > px2 = GT
-                                          | a1 < a2   = LT
-                                          | a1 > a2   = GT
-                                          | otherwise = EQ
+  compare (Alpha a1 px1) (Alpha a2 px2) | px1 < px2 = LT
+                                        | px1 > px2 = GT
+                                        | a1 < a2   = LT
+                                        | a1 > a2   = GT
+                                        | otherwise = EQ
   {-# INLINE compare #-}
 
 
@@ -176,7 +179,7 @@ addAlpha !px = Alpha 1 px
 dropAlpha :: AlphaPixel px =>
              Alpha px
           -> px
-dropAlpha !(Alpha _ px) = px
+dropAlpha (Alpha _ px) = px
 {-# INLINE dropAlpha #-}
 
 
@@ -189,7 +192,7 @@ fmapAlpha :: AlphaPixel px =>
              (Channel px -> Channel px)
           -> Alpha px
           -> Alpha px
-fmapAlpha !f !(Alpha a px) = Alpha (f a) px
+fmapAlpha !f (Alpha a px) = Alpha (f a) px
 {-# INLINE fmapAlpha #-}
 
 
@@ -206,7 +209,7 @@ combineAlpha :: AlphaPixel px =>
              -> Alpha px -- ^ First pixel
              -> Alpha px -- ^ Second Pixel
              -> Alpha px
-combineAlpha !aOp2 !pxOp2' !(Alpha a1 px1) !(Alpha a2 px2) = Alpha (aOp2 a1 a2) (pxOp2' px1 px2)
+combineAlpha !aOp2 !pxOp2' (Alpha a1 px1) (Alpha a2 px2) = Alpha (aOp2 a1 a2) (pxOp2' px1 px2)
 {-# INLINE combineAlpha #-}
 
 

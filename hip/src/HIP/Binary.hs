@@ -5,7 +5,7 @@ module HIP.Binary (
   ) where
 
 import Prelude hiding (map, sum, zipWith)
-import Data.Bits ((.&.), (.|.))
+import Data.Bits ((.&.), (.|.), complement)
 import HIP.Interface hiding (maximum, minimum)
 import HIP.Algorithms.Convolution
 import HIP.Binary.Pixel
@@ -131,21 +131,21 @@ fromBinary !img = map toPx img where
          
 
 invert :: AImage img Binary => img Binary -> img Binary
-invert = map inverted
+invert = map complement
 {-# INLINE invert #-}
 
 
 erode :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
          strat img Binary -> img Binary -> img Binary -> img Binary
 erode strat !img' !img =
-  (compute strat $ convolve Wrap img' img) .==. sum strat img'
+  compute strat (convolve Wrap img' img) .==. sum strat img'
 {-# INLINE erode #-}
 
 
 dialate :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
            strat img Binary -> img Binary -> img Binary -> img Binary
 dialate strat !img' !img =
-  (compute strat $ convolve Wrap img' img) ./=. off
+  compute strat (convolve Wrap img' img) ./=. off
 {-# INLINE dialate #-}
 
 
@@ -164,7 +164,7 @@ close strat img = erode strat img . dialate strat img
 outline' :: AImage img Binary => (Int -> Int -> [(Int, Int)]) -> img Binary -> img Binary
 outline' getIdxs img@(dims -> (m, n)) = imap initPx img where
   initPx i j px | i `mod` (m-1) /= 0 && j `mod` (n-1) /= 0 &&
-                  any ((/= px) . (uncurry (unsafeIndex img))) (getIdxs i j) = on
+                  any ((/= px) . uncurry (unsafeIndex img)) (getIdxs i j) = on
                 | otherwise = off
 {-# INLINE outline' #-}
 

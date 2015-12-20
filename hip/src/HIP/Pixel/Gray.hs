@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, MultiParamTypeClasses, TypeFamilies,
-UndecidableInstances, ViewPatterns, MagicHash #-}
+             UndecidableInstances #-}
 
 module HIP.Pixel.Gray (
   Gray (..)
@@ -13,11 +13,11 @@ data Gray = Gray {-# UNPACK #-} !Double deriving (Typeable, Data, Eq)
 
 
 pxOp :: (Double -> Double) -> Gray -> Gray
-pxOp !f !(Gray y)              = Gray (f y)
+pxOp !f (Gray y)              = Gray (f y)
 {-# INLINE pxOp #-}
 
 pxOp2 :: (Double -> Double -> Double) -> Gray -> Gray -> Gray
-pxOp2 !f !(Gray y1) !(Gray y2) = Gray (f y1 y2)
+pxOp2 !f (Gray y1) (Gray y2) = Gray (f y1 y2)
 {-# INLINE pxOp2 #-}
 
 
@@ -29,7 +29,7 @@ instance Pixel Gray where
   arity _ = 1
   {-# INLINE arity #-}
 
-  ref !(Gray y) 0 = y
+  ref (Gray y) 0 = y
   ref !px      !n = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE ref #-}
 
@@ -37,18 +37,18 @@ instance Pixel Gray where
   update px n _ = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE update #-}
 
-  apply !(f:_) !(Gray y) = Gray $ f y
-  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply (f:_) (Gray y) = Gray $ f y
+  apply _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply #-}
 
-  apply2 !(f:_) !(Gray y1) !(Gray y2) = Gray $ f y1 y2
-  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2 (f:_) (Gray y1) (Gray y2) = Gray $ f y1 y2
+  apply2 _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2 #-}
 
-  maxChannel !(Gray y) = y
+  maxChannel (Gray y) = y
   {-# INLINE maxChannel #-}
 
-  minChannel !(Gray y) = y
+  minChannel (Gray y) = y
   {-# INLINE minChannel #-}
 
 
@@ -125,8 +125,8 @@ instance Floating Gray where
 
 
 instance Ord Gray where
-  (<=) !(Gray y1) !(Gray y2) = y1 <= y2
-  {-# INLINE (<=) #-}
+  compare (Gray y1) (Gray y2) = compare y1 y2
+  {-# INLINE compare #-}
 
 
 instance Show Gray where

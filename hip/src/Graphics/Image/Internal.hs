@@ -43,8 +43,8 @@ instance (Pixel px, AImage Image px) => Strategy VectorStrategy Image px where
   fold    _ f a !img = foldl f a $ toVector img
   {-# INLINE fold #-}
 
-  sum _ !(VectorImage _ _ v) = V.sum v
-  sum _ !(Singleton px) = px
+  sum _ (VectorImage _ _ v) = V.sum v
+  sum _ (Singleton px) = px
   {-# INLINE sum #-}
 
   toBoxedVector _ img = convert $ toVector img
@@ -74,10 +74,10 @@ instance (Pixel px) => AImage Image px where
   unsafeIndex (Singleton px)      _ _ = px
   {-# INLINE unsafeIndex #-}
 
-  zipWith !f (Singleton !px1) (Singleton !px2)        = Singleton (f px1 px2)
-  zipWith !f (Singleton !px) !img@(VectorImage _ _ _) = map (f px) img
-  zipWith !f !img@(VectorImage _ _ _) (Singleton !px) = map ((flip f) px) img
-  zipWith !f !img1@(VectorImage m1 n1 _) !img2@(VectorImage m2 n2 _) =
+  zipWith !f (Singleton px1) (Singleton px2)     = Singleton (f px1 px2)
+  zipWith !f (Singleton px) img@(VectorImage {}) = map (f px) img
+  zipWith !f img@(VectorImage {}) (Singleton px) = map (`f` px) img
+  zipWith !f img1@(VectorImage m1 n1 _) img2@(VectorImage m2 n2 _) =
     if m1 /= m2 || n1 /= n2
     then error ("Images must be of the same dimensions, received: "++
                 show img1++" and "++show img2++".")
@@ -87,23 +87,23 @@ instance (Pixel px) => AImage Image px where
   {-# INLINE zipWith #-}
   
   fromList !ls = if isSquare
-                 then (fromVector m n) . V.fromList . P.concat $ ls
+                 then fromVector m n . V.fromList . P.concat $ ls
                  else error "fromLists: Inner lists do not have uniform length."
     where
       !(m, n) = (P.length ls, P.length $ P.head ls)
-      !isSquare = (n > 0) && (P.all (==n) $ P.map P.length ls)
+      !isSquare = (n > 0) && P.all (==n) (P.map P.length ls)
   {-# INLINE fromList #-}
 
   fromBoxedVector !m !n = fromVector m n . convert 
   {-# INLINE fromBoxedVector #-}
 
-  (|*|) !img1@(VectorImage m1 n1 v1) !img2 =
+  (|*|) img1@(VectorImage m1 n1 v1) !img2 =
     if n1 /= m2 
     then  error ("Inner dimensions of multiplying images must be the same, but received: "++
                  show img1 ++" X "++ show img2)
     else
       make m1 n2 getPx where
-        !(VectorImage n2 m2 v2) = transpose img2
+        (VectorImage n2 m2 v2) = transpose img2
         getPx !i !j =
           V.sum $ V.zipWith (*) (slice (i*n1) n1 v1) (slice (j*m2) m2 v2)
   (|*|) _ _ = error "Images should be computed before they can be multiplied."
@@ -127,7 +127,7 @@ instance (Pixel px) => Num (Image px) where
   {-# INLINE signum #-}
   
   fromInteger = Singleton . fromInteger
-  {-# INLINE fromInteger#-}
+  {-# INLINE fromInteger #-}
 
 
 instance (Fractional px, Pixel px) => Fractional (Image px) where
@@ -146,7 +146,7 @@ instance (Floating px, Pixel px) => Floating (Image px) where
   {-# INLINE exp #-}
   
   log   = map log
-  {-# INLINE log#-}
+  {-# INLINE log #-}
   
   sin   = map sin
   {-# INLINE sin #-}
@@ -178,13 +178,10 @@ instance (Floating px, Pixel px) => Floating (Image px) where
   acosh = map acosh
   {-# INLINE acosh #-}
 
-
-
-
   
 instance (Pixel px) => Show (Image px) where
-  show img@(dims -> (m, n)) = "<Image "++(show $ typeOf px)++": "++(show m)++"x"++(show n)++">"
-    where px = index img 0 0  
+  show img@(dims -> (m, n)) =
+    "<Image "++show (typeOf $ index img 0 0)++": "++show m++"x"++show n++">"
   
 
 -- | Convert an image to a flattened 'Vector'. It is a O(1) opeartion.

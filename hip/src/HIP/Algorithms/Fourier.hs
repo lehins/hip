@@ -31,7 +31,7 @@ ifft = fft2d Inverse
 
 
 signOfMode :: Num a => Mode -> a
-signOfMode Forward = (-1)
+signOfMode Forward = -1
 signOfMode Inverse = 1
 {-# INLINE signOfMode #-}
 
@@ -79,10 +79,8 @@ fftGeneral strat !sign !img = go n 0 1 where
                   (go (len `div` 2) (offset + stride) (stride * 2))
     where
       swivel m' j = case j of
-        0 -> (index img m' offset) +
-             (index img m' (offset + stride))
-        1 -> (index img m' offset) -
-             (index img m' (offset + stride))
+        0 -> index img m' offset + index img m' (offset + stride)
+        1 -> index img m' offset - index img m' (offset + stride)
         _ -> error "FFT: Image must have exactly 2 columns. Please, report this bug."
       combine !len' evens odds =  
         let odds' = traverse odds (,)
@@ -95,8 +93,8 @@ twiddle :: ComplexPixel px =>
            px
 	-> Int 			-- index
 	-> Int 			-- length
-	-> (Complex px)
-twiddle sign k' n' = (cos (2 * pi * k / n)) :+: (sign * sin  (2 * pi * k / n)) where
-  k = fromIntegral k'
-  n = fromIntegral n'
+	-> Complex px
+twiddle sign k n = cos alpha :+: sign * sin alpha where
+  !alpha = 2 * pi * fromIntegral k / fromIntegral n
+
 

@@ -127,7 +127,7 @@ makeFilter !m !n !getPx = make m n getPx' where
 -- location @(i, j)@ is zero if @|z| < x@, otherwise the result has the same phase
 -- as @z@ but the amplitude is decreased by @px@.
 shrink :: (ComplexPixel px, ComplexPixel (Channel px), AImage img (Complex px), Ord px) =>
-          (Channel px) -> img (Complex px) -> img (Complex px)
+          Channel px -> img (Complex px) -> img (Complex px)
 shrink !x !img = map shrinker img where
   shrinker !px = apply2c (repeat s) (mag px) (arg px) where
     s m a = if m < x then (0, 0) else toRect $ fromPol (m - x) a

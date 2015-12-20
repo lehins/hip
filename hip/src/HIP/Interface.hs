@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-unrecognised-pragmas #-}
-{-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, ViewPatterns, BangPatterns, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FunctionalDependencies,
+             MultiParamTypeClasses, TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module HIP.Interface (
   minimum, maximum, normalize,
@@ -9,6 +10,7 @@ module HIP.Interface (
   ) where
 
 import Prelude hiding (map, sum, minimum, maximum)
+import qualified Prelude as P (map)
 import qualified Data.Vector as V (Vector)
 import HIP.Pixel.Base (Pixel(..))
 
@@ -41,7 +43,7 @@ class AImage img px => Strategy strat img px where
          strat img px
          -> img px
          -> px
-  sum strat img = fold strat (+) 0 img
+  sum strat = fold strat (+) 0
   {-# INLINE sum #-}
 
   -- | Convert an AImage to a list of lists of Pixels.
@@ -145,9 +147,8 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
            -> (Int -> Int -> (Int, Int))
            -> ((Int -> Int -> px1) -> Int -> Int -> px)
            -> img px
-  traverse !img@(dims -> (m, n)) getNewDims getNewPx =
-    make m' n' (getNewPx (index img)) where
-      !(m', n') = getNewDims m n
+  traverse !img getNewDims getNewPx = make m' n' (getNewPx (index img))
+    where !(m', n') = uncurry getNewDims $ dims img
   {-# INLINE traverse #-}
 
   -- | Traverse two images.
@@ -170,15 +171,13 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
             -> (Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int))
             -> ((Int -> Int -> px1) ->
                 (Int -> Int -> px2) ->
-                (Int -> Int -> px3) ->
-                Int -> Int -> px)
+                (Int -> Int -> px3) -> Int -> Int -> px)
             -> img px
   traverse3 !img1 !img2 !img3 !getNewDims !getNewPx =
-    make m' n' (getNewPx (index img1) (index img2) (index img3)) where
-      !(m1, n1) = dims img1
-      !(m2, n2) = dims img2
-      !(m3, n3) = dims img3
-      !(m', n') = getNewDims m1 n1 m2 n2 m3 n3
+    make m' n' $ getNewPx (index img1) (index img2) (index img3) where
+      getNewDims' !(m1, n1) !(m2, n2) !(m3, n3) = getNewDims m1 n1 m2 n2 m3 n3
+      {-# INLINE getNewDims' #-}
+      !(m', n') = getNewDims' (dims img1) (dims img2) (dims img1)
   {-# INLINE traverse3 #-}
 
   -- | Traverse an image.
@@ -187,9 +186,8 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
            -> (Int -> Int -> (Int, Int))
            -> ((Int -> Int -> px1) -> Int -> Int -> px)
            -> img px
-  unsafeTraverse !img@(dims -> (m, n)) !getNewDims !getNewPx =
-    make m' n' (getNewPx (unsafeIndex img)) where
-      !(m', n') = getNewDims m n
+  unsafeTraverse !img !getNewDims !getNewPx = make m' n' $ getNewPx (unsafeIndex img)
+    where !(m', n') = uncurry getNewDims $ dims img
   {-# INLINE unsafeTraverse #-}
 
   -- | UnsafeTraverse two images.
@@ -200,7 +198,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
             -> ((Int -> Int -> px1) -> (Int -> Int -> px2) -> Int -> Int -> px)
             -> img px
   unsafeTraverse2 !img1@(dims -> (m1, n1)) !img2@(dims -> (m2, n2)) !getNewDims !getNewPx =
-    make m' n' (getNewPx (unsafeIndex img1) (unsafeIndex img2)) where
+    make m' n' $ getNewPx (unsafeIndex img1) (unsafeIndex img2) where
       !(m', n') = getNewDims m1 n1 m2 n2
   {-# INLINE unsafeTraverse2 #-}
 
@@ -212,15 +210,13 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
             -> (Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int))
             -> ((Int -> Int -> px1) ->
                 (Int -> Int -> px2) ->
-                (Int -> Int -> px3) ->
-                Int -> Int -> px)
+                (Int -> Int -> px3) -> Int -> Int -> px)
             -> img px
   unsafeTraverse3 !img1 !img2 !img3 !getNewDims !getNewPx =
     make m' n' (getNewPx (unsafeIndex img1) (unsafeIndex img2) (unsafeIndex img3)) where
-      !(m1, n1) = dims img1
-      !(m2, n2) = dims img2
-      !(m3, n3) = dims img3
-      !(m', n') = getNewDims m1 n1 m2 n2 m3 n3
+      getNewDims' !(m1, n1) !(m2, n2) !(m3, n3) = getNewDims m1 n1 m2 n2 m3 n3
+      {-# INLINE getNewDims' #-}
+      !(m', n') = getNewDims' (dims img1) (dims img2) (dims img1)
   {-# INLINE unsafeTraverse3 #-}
 
   -- | Transpose an image
@@ -268,7 +264,6 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
 
 
   fromBoxedVector :: Int -> Int -> V.Vector px -> img px
-  
   
 
 maximum :: (Strategy strat img px, AImage img px, Pixel px, Ord px) =>

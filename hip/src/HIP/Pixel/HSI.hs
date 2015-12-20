@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses, 
-TypeFamilies, UndecidableInstances, ViewPatterns #-}
+             TypeFamilies, UndecidableInstances #-}
 
 module HIP.Pixel.HSI (
   HSI (..)
@@ -21,11 +21,11 @@ data HSI = HSI { hue :: {-# UNPACK #-} !Double
 
 
 pxOp :: (Double -> Double) -> HSI -> HSI
-pxOp !f !(HSI h s i) = HSI (f h) (f s) (f i)
+pxOp !f (HSI h s i) = HSI (f h) (f s) (f i)
 {-# INLINE pxOp #-}
 
 pxOp2 :: (Double -> Double -> Double) -> HSI -> HSI -> HSI
-pxOp2 !f !(HSI h1 s1 i1) !(HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
+pxOp2 !f (HSI h1 s1 i1) (HSI h2 s2 i2) = HSI (f h1 h2) (f s1 s2) (f i1 i2)
 {-# INLINE pxOp2 #-}
 
 
@@ -50,18 +50,18 @@ instance Pixel HSI where
   update !px n _ = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE update #-}
 
-  apply !(f1:f2:f3:_) !(HSI h s i) = HSI (f1 h) (f2 s) (f3 i)
-  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply (f1:f2:f3:_) (HSI h s i) = HSI (f1 h) (f2 s) (f3 i)
+  apply _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply #-}
 
-  apply2 !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) = HSI (f1 h1 h2) (f2 s1 s2) (f3 i1 i2)
-  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2 (f1:f2:f3:_) (HSI h1 s1 i1) (HSI h2 s2 i2) = HSI (f1 h1 h2) (f2 s1 s2) (f3 i1 i2)
+  apply2 _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2 #-}
 
-  maxChannel !(HSI h s i) = max (max h s) i
+  maxChannel (HSI h s i) = max (max h s) i
   {-# INLINE maxChannel #-}
 
-  minChannel !(HSI h s i) = min (min h s) i
+  minChannel (HSI h s i) = min (min h s) i
   {-# INLINE minChannel #-}
   
 
@@ -138,7 +138,7 @@ instance Floating HSI where
 
 
 instance Ord HSI where
-  compare !(HSI h1 s1 i1) !(HSI h2 s2 i2) = compare (h1, s1, i1) (h2, s2, i2)
+  compare (HSI h1 s1 i1) (HSI h2 s2 i2) = compare (h1, s1, i1) (h2, s2, i2)
   {-# INLINE compare #-}
 
 instance Show HSI where

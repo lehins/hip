@@ -65,7 +65,7 @@ import qualified HIP.Conversion as C
 import qualified HIP.Algorithms as I
 
 --------------------------------------------------------------------------------
----- Accessing and creeating ---------------------------------------------------
+---- Accessing and creating ----------------------------------------------------
 --------------------------------------------------------------------------------
 
 -- | Create an image. Pixel type will determine what kind of image it will be.
@@ -190,8 +190,7 @@ interpolate :: (I.Interpolation method px, Pixel px) =>
             -> Double   -- ^ approximation of @i@-th row
             -> Double   -- ^ approximation of @j@-th column
             -> px
-interpolate alg img@(dims -> (m, n)) i j =
-  I.interpolate alg m n (unsafeIndex img) i j
+interpolate alg img@(dims -> (m, n)) = I.interpolate alg m n (unsafeIndex img)
   
 
 --------------------------------------------------------------------------------

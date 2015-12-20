@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 module HIP.Algorithms.Convolution (
   Outside(..), convolve,
   convolveRows, convolveCols
@@ -24,7 +24,7 @@ convolve  :: AImage img px =>
            -> img px       -- ^ Convolution kernel image.
            -> img px       -- ^ Image that will be used to convolve the kernel.
            -> img px
-convolve !out !kernel !img = traverse2 kernel img getDims stencil where
+convolve !out !kernel !img = traverse2 kernel img (getDims out) stencil where
   !(krnM, krnN)     = dims kernel        
   !(imgM, imgN)     = dims img
   !krnM2@borderUp   = krnM `div` 2
@@ -32,17 +32,17 @@ convolve !out !kernel !img = traverse2 kernel img getDims stencil where
   !borderDown       = imgM - krnM2 - 1
   !borderRight      = imgN - krnN2 - 1
   !getOutPx         = getOutFunc out
-  getDims _ _ _ _   = getDims' out
-  getDims' Crop     = (imgM - krnM, imgN - krnN)
-  getDims' _        = (imgM, imgN)
-  getOutFunc Extend     = outExtend
-  getOutFunc Wrap       = outWrap
-  getOutFunc !(Fill px) = outFill px
-  getOutFunc Crop       = outCrop
+  getDims Crop _ _ _ _ = (imgM - krnM, imgN - krnN)
+  getDims _    _ _ _ _ = (imgM, imgN)
+  {-# INLINE getDims #-}
+  getOutFunc Extend    = outExtend
+  getOutFunc Wrap      = outWrap
+  getOutFunc (Fill px) = outFill px
+  getOutFunc Crop      = outCrop
   {-# INLINE getOutFunc #-}
   outExtend !getPx !i !j = getPx
-                           (if i < 0 then 0 else if i >= imgM then (imgM-1) else i)
-                           (if j < 0 then 0 else if j >= imgN then (imgN-1) else j)
+                           (if i < 0 then 0 else if i >= imgM then imgM - 1 else i)
+                           (if j < 0 then 0 else if j >= imgN then imgN - 1 else j)
   {-# INLINE outExtend #-}
   outWrap !getPx !i !j   = getPx (i `mod` imgM) (j `mod` imgN)
   {-# INLINE outWrap #-}
@@ -73,12 +73,12 @@ convolve !out !kernel !img = traverse2 kernel img getDims stencil where
 
 
 convolveRows :: AImage img px => Outside px -> [px] -> img px -> img px
-convolveRows !out !ls !img = convolve out (transpose . fromList $ [ls]) img
+convolveRows !out !ls = convolve out . transpose . fromList $ [ls]
 {-# INLINE convolveRows #-}
 
 
 convolveCols :: AImage img px => Outside px -> [px] -> img px -> img px
-convolveCols !out !ls !img = convolve out (fromList $ [ls]) img
+convolveCols !out !ls = convolve out . fromList $ [ls]
 {-# INLINE convolveCols #-}
 
 

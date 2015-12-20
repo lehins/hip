@@ -9,7 +9,7 @@ import Data.Word
 import Data.Data
 import GHC.Float
 
-baseRef :: (Pixel px) => px -> Int -> px
+baseRef :: Pixel px => px -> Int -> px
 baseRef !y 0 = y
 baseRef px n = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
 {-# INLINE baseRef #-}
@@ -19,14 +19,14 @@ baseUpdate _  0 c  = c
 baseUpdate px n _ = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
 {-# INLINE baseUpdate #-}
 
-baseApply :: Pixel px => [(px -> px)] -> px -> px
-baseApply !(f:_) !d = f d
-baseApply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+baseApply :: Pixel px => [px -> px] -> px -> px
+baseApply (f:_) !d = f d
+baseApply _ px = error ("Length of the function list should be at least: "++show (arity px))
 {-# INLINE baseApply #-}
 
-baseApply2 :: Pixel px => [(px -> px -> t)] -> px -> px -> t
-baseApply2 !(f:_) !d1 !d2 = f d1 d2
-baseApply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+baseApply2 :: Pixel px => [px -> px -> t] -> px -> px -> t
+baseApply2 (f:_) !d1 !d2 = f d1 d2
+baseApply2 _ _ px = error ("Length of the function list should be at least: "++show (arity px))
 {-# INLINE baseApply2 #-}
 
 
@@ -49,9 +49,9 @@ class (Eq px, Num px, Show px, Data px, Typeable px, Ord (Channel px), Data (Cha
 
   update :: px -> Int -> Channel px -> px
 
-  apply :: [(Channel px -> Channel px)] -> px -> px
+  apply :: [Channel px -> Channel px] -> px -> px
 
-  apply2 :: [(Channel px -> Channel px -> Channel px)] -> px -> px -> px
+  apply2 :: [Channel px -> Channel px -> Channel px] -> px -> px -> px
 
   -- | Retrieves the maximum channel, ex:
   --

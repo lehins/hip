@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 module HIP.IO (
   readImage, writeImage, displayImage,
   displayImageHistograms, displayHistograms, setDisplayProgram, writeHistograms,
@@ -25,34 +25,34 @@ import System.Process (runCommand, waitForProcess)
 
 extToInputFormat :: String -> Either String InputFormat
 extToInputFormat ext
-  | null ext                   = Left "File extension was not supplied."
-  | ext == ".bmp"              = Right BMPin
-  | ext == ".gif"              = Right GIFin
-  | ext == ".hdr"              = Right HDRin
-  | elem ext [".jpg", ".jpeg"] = Right JPGin
-  | ext == ".png"              = Right PNGin
-  | ext == ".tga"              = Right TGAin
-  | elem ext [".tif", ".tiff"] = Right TIFin
-  | ext == ".pbm"              = Right PBMin
-  | ext == ".pgm"              = Right PGMin
-  | ext == ".ppm"              = Right PPMin
-  | otherwise = Left $ "Unsupported file extension: "++ext
+  | null ext                     = Left "File extension was not supplied."
+  | ext == ".bmp"                = Right BMPin
+  | ext == ".gif"                = Right GIFin
+  | ext == ".hdr"                = Right HDRin
+  | ext `elem` [".jpg", ".jpeg"] = Right JPGin
+  | ext == ".png"                = Right PNGin
+  | ext == ".tga"                = Right TGAin
+  | ext `elem` [".tif", ".tiff"] = Right TIFin
+  | ext == ".pbm"                = Right PBMin
+  | ext == ".pgm"                = Right PGMin
+  | ext == ".ppm"                = Right PPMin
+  | otherwise                    = Left $ "Unsupported file extension: "++ext
 
 
 extToOutputFormat :: String -> Either String OutputFormat
 extToOutputFormat ext
-  | null ext                   = Left "File extension was not supplied."
-  | ext == ".bmp"              = Right BMP
-  -- \ | ext == ".gif"              = Right GIF
-  | ext == ".hdr"              = Right HDR
-  | elem ext [".jpg", ".jpeg"] = Right $ JPG 100
-  | ext == ".png"              = Right PNG
-  -- \ | ext == ".tga"              = Right TGA
-  | elem ext [".tif", ".tiff"] = Right TIF
-  -- \ | ext == ".pbm"              = Right $ PBM RAW
-  -- \ | ext == ".pgm"              = Right $ PGM RAW
-  -- \ | ext == ".ppm"              = Right $ PPM RAW
-  | otherwise = Left $ "Unsupported file extension: "++ext
+  | null ext                     = Left "File extension was not supplied."
+  | ext == ".bmp"                = Right BMP
+  -- \ | ext == ".gif"                = Right GIF
+  | ext == ".hdr"                = Right HDR
+  | ext `elem` [".jpg", ".jpeg"] = Right $ JPG 100
+  | ext == ".png"                = Right PNG
+  -- \ | ext == ".tga"                = Right TGA
+  | ext `elem` [".tif", ".tiff"] = Right TIF
+  -- \ | ext == ".pbm"                = Right $ PBM RAW
+  -- \ | ext == ".pgm"                = Right $ PGM RAW
+  -- \ | ext == ".ppm"                = Right $ PPM RAW
+  | otherwise                         = Left $ "Unsupported file extension: "++ext
                 
 
 guessFormat :: (String -> a) -> FilePath -> a
@@ -69,7 +69,7 @@ guessInputFormat = guessFormat extToInputFormat
 readImage :: (AImage img px, Readable img px) =>
              FilePath
           -> IO (img px)
-readImage path = fmap ((either error id) . (decodeImage maybeFormat)) (readFile path)
+readImage path = fmap (either error id . decodeImage maybeFormat) (readFile path)
   where !maybeFormat = either (const Nothing) Just $ guessInputFormat path  
 
 
@@ -81,23 +81,22 @@ writeImage :: (Strategy strat img px, AImage img px, Saveable img px) =>
               -> IO ()
 writeImage !strat !path !img !options =
   BL.writeFile path $ encoder format (compute strat img) where
-    !format = getFormat options
+    !format  = getFormat options
     !encoder = getEncoder options
-    getFormat [] = either error id $ guessOutputFormat path
-    getFormat !((Format f):_) = f
-    getFormat !(_:opts) = getFormat opts
-    getEncoder [] = defaultEncoder format
-    getEncoder !((Encoder enc):_) = enc
-    getEncoder !(_:opts) = getEncoder opts
-    defaultEncoder !f = case f of
-      BMP     -> inRGB8
-      (JPG _) -> inYCbCr8
-      PNG     -> inRGB8
-      TIF     -> inRGB8
-      HDR     -> inRGBF
-      -- PBM  -> inY8
-      -- PGM  -> inY8
-      -- PPM  -> inRGB8
+    getFormat []           = either error id $ guessOutputFormat path
+    getFormat (Format f:_) = f
+    getFormat (_:opts)     = getFormat opts
+    getEncoder []              = defaultEncoder format
+    getEncoder (Encoder enc:_) = enc
+    getEncoder (_:opts)        = getEncoder opts
+    defaultEncoder !f = case f of BMP     -> inRGB8
+                                  (JPG _) -> inYCbCr8
+                                  PNG     -> inRGB8
+                                  TIF     -> inRGB8
+                                  HDR     -> inRGBF
+                                  -- PBM  -> inY8
+                                  -- PGM  -> inY8
+                                  -- PPM  -> inRGB8
 
 {-| Sets the program to use when making a call to display.  GPicView (gpicview) is
 the used as a default program.
@@ -115,9 +114,8 @@ setDisplayProgram = writeIORef displayProgram
 
 
 displayProgram :: IORef String
-displayProgram = unsafePerformIO $ do
-  dp <- newIORef "gpicview"
-  return dp
+displayProgram = unsafePerformIO . newIORef $ "gpicview"
+{-# NOINLINE displayProgram #-}
 
 
 -- | Makes a call to the current display program to be displayed. If the program
@@ -199,6 +197,6 @@ writeHistograms :: (Show a, Num a, Fractional a, Enum a) =>
                    FilePath -- ^ PNG image file name.
                 -> [Histogram a] -- ^ List of histograms to be plotted.
                 -> IO Bool -- ^ Returns 'True' in case of success.
-writeHistograms path hists = plot (Plot.PNG path) hists
+writeHistograms path = plot (Plot.PNG path)
   
   

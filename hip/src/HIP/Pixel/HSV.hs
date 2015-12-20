@@ -1,12 +1,12 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses, 
-TypeFamilies, UndecidableInstances, ViewPatterns #-}
+--{-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses, 
+--             TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module HIP.Pixel.HSV (
-  HSV (..)
+  --HSV (..)
   ) where
 
 import HIP.Pixel.Base (Pixel(..))
-
+{-
 -- | HSV colorspace model consists of Hue, Saturation and Value. When read
 -- from file or converted from a normalized image in other colorspace values
 -- will be in ranges:
@@ -136,3 +136,4 @@ instance Ord c => Ord (HSV c) where
 instance Show c => Show (HSV c) where
   show (HSV h s v) = "<HSV:("++show h++"|"++show s++"|"++show v++")>"
   
+-}

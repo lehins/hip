@@ -79,50 +79,53 @@ instance AlphaPixel HSI where
 
   
 instance ComplexPixel Float where
-  apply2c !(f1:_) !v1 !v2 = (uncurry (:+:)) $ f1 v1 v2
-  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2c (f1:_) !v1 !v2 = uncurry (:+:) $ f1 v1 v2
+  apply2c _ _ px         = error ("Length of the function list should be at least: "
+                                  ++ show (arity px))
   {-# INLINE apply2c #-}
 
   
 instance ComplexPixel Double where
-  apply2c !(f1:_) !v1 !v2 = (uncurry (:+:)) $ f1 v1 v2
-  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2c (f1:_) !v1 !v2 = uncurry (:+:) $ f1 v1 v2
+  apply2c _      _   px  = error ("Length of the function list should be at least: "
+                                  ++ show (arity px))
   {-# INLINE apply2c #-}
   
   
 instance ComplexPixel Gray where
-  apply2c !(f1:_) !(Gray y1) !(Gray y2) = Gray y1' :+: Gray y2' where (y1', y2') = (f1 y1 y2)
-  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2c (f1:_) (Gray y1) (Gray y2) =
+    Gray y1' :+: Gray y2' where (y1', y2') = f1 y1 y2
+  apply2c _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2c #-}
 
   
 instance ComplexPixel RGB where
-  apply2c !(f1:f2:f3:_) !(RGB r1 g1 b1) !(RGB r2 g2 b2) =
+  apply2c (f1:f2:f3:_) (RGB r1 g1 b1) (RGB r2 g2 b2) =
     RGB r1' g1' b1' :+: RGB r2' g2' b2' where
-      !(r1', r2') = (f1 r1 r2)
-      !(g1', g2') = (f2 g1 g2)
-      !(b1', b2') = (f3 b1 b2)
-  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+      !(r1', r2') = f1 r1 r2
+      !(g1', g2') = f2 g1 g2
+      !(b1', b2') = f3 b1 b2
+  apply2c _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2c #-}
 
   
 
 instance ComplexPixel HSI where
-  apply2c !(f1:f2:f3:_) !(HSI h1 s1 i1) !(HSI h2 s2 i2) =
+  apply2c (f1:f2:f3:_) (HSI h1 s1 i1) (HSI h2 s2 i2) =
     HSI h1' s1' i1' :+: HSI h2' s2' i2' where
-      (h1', h2') = (f1 h1 h2)
-      (s1', s2') = (f2 s1 s2)
-      (i1', i2') = (f3 i1 i2)
-  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+      (h1', h2') = f1 h1 h2
+      (s1', s2') = f2 s1 s2
+      (i1', i2') = f3 i1 i2
+  apply2c _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2c #-}
 
 
 instance (AlphaPixel px, ComplexPixel px) => ComplexPixel (Alpha px) where
-  apply2c !(f0:rest) !(Alpha a1 px1) !(Alpha a2 px2) =
+  apply2c (f0:rest) (Alpha a1 px1) (Alpha a2 px2) =
     Alpha a1' px1' :+: Alpha a2' px2' where
-      (a1', a2') = (f0 a1 a2)
+      (a1', a2') = f0 a1 a2
       px1' :+: px2' = apply2c rest px1 px2
-  apply2c _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2c _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2c #-}
 
 ------------------------------------
@@ -265,7 +268,7 @@ instance Convertible Double RGB where
 
 
 instance Convertible Gray RGB where
-  convert !(Gray y) = fromDouble y
+  convert (Gray y) = fromDouble y
   {-# INLINE convert #-}
 
   
@@ -338,7 +341,7 @@ instance Convertible Double HSI where
 
 
 instance Convertible Gray HSI where
-  convert !(Gray y) = fromDouble y
+  convert (Gray y) = fromDouble y
   {-# INLINE convert #-}
 
   
@@ -361,7 +364,7 @@ instance ComplexPixel px => Convertible px (Complex px) where
 
 
 instance ComplexPixel px => Convertible (Complex px) px where
-  convert !(px :+: _) = px
+  convert (px :+: _) = px
   {-# INLINE convert #-}
 
 
@@ -386,25 +389,25 @@ toHSI = convert
                      
 -- | Convert an 'RGB' pixel to 'HSI' pixel.
 rgbToHSI :: RGB -> HSI
-rgbToHSI !(RGB r g b) = HSI h s i where
+rgbToHSI (RGB r g b) = HSI h s i where
   !h' = atan2 y x
   !h = if h' < 0 then h' + 2*pi else h'
-  !s = if i == 0 then 0 else 1 - minimum([r, g, b])/i
-  !i = (r + g + b)/3
-  !x = (2*r - g - b)/2.449489742783178
-  !y = (g - b)/1.4142135623730951
+  !s = if i == 0 then 0 else 1 - minimum [r, g, b] / i
+  !i = (r + g + b) / 3
+  !x = (2*r - g - b) / 2.449489742783178
+  !y = (g - b) / 1.4142135623730951
 {-# INLINE rgbToHSI #-}
 
 
 -- | Convert an 'RGB' pixel to 'Gray' pixel.
 rgbToGray :: RGB -> Gray
-rgbToGray !(RGB r g b) = Gray ((r + g + b)/3)
+rgbToGray (RGB r g b) = Gray ((r + g + b)/3)
 {-# INLINE rgbToGray #-}
 
 
 -- | Convert an 'HSI' pixel to 'RGB' pixel.
 hsiToRGB :: HSI -> RGB
-hsiToRGB !(HSI h s i) =
+hsiToRGB (HSI h s i) =
   let !is = i*s
       !second = i - is
       getFirst !a !b = i + is*cos a/cos b

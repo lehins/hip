@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TemplateHaskell,
-TypeFamilies, UndecidableInstances #-}
+             TypeFamilies, UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.Pixel
 -- Copyright   : (c) Alexey Kuleshevich 2015
@@ -47,10 +47,10 @@ import HIP.Binary.Pixel
 import HIP.Complex.Pixel hiding (ComplexPixel)
 import qualified HIP.Pixel as P (Pixel(..), ComplexPixel, AlphaPixel)
 
-import qualified Data.Vector.Generic            as V
-import qualified Data.Vector.Generic.Mutable    as M
-import qualified Data.Vector.Unboxed            as U
-import Control.Monad
+--import qualified Data.Vector.Generic            as V
+--import qualified Data.Vector.Generic.Mutable    as M
+--import qualified Data.Vector.Unboxed            as U
+--import Control.Monad
 
 
 -- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'
@@ -167,17 +167,16 @@ instance AlphaPixel Word32 where
 
 instance AlphaPixel Word64 where
 
-{-  
+
 derivingUnbox "GrayPixel"
     [t| Gray -> Double |]
     [| \(Gray y) -> y  |]
-    [| \y -> Gray y    |]
--}
+    [| Gray            |]
 
 derivingUnbox "BinaryPixel"
-    [t| Binary -> Bool             |]
-    [| isOn                        |]
-    [| \v -> if v then on else off |]
+    [t| Binary -> Bool |]
+    [| isOn            |]
+    [| Binary          |]
 
 
 derivingUnbox "RGBPixel"
@@ -195,16 +194,16 @@ derivingUnbox "HSIPixel"
 derivingUnbox "ComplexPixel"
     [t| ComplexPixel px => Complex px -> (px, px) |]
     [| \(px1 :+: px2) -> (px1, px2)               |]
-    [| \(px1, px2) -> px1 :+: px2                 |]
+    [| uncurry (:+:)                              |]
 
 
 derivingUnbox "AlphaPixel"
     [t| (AlphaPixel px, Pixel px) => Alpha px -> (Channel px, px) |]
     [| \(Alpha a px) -> (a, px)                                   |]
-    [| \(a, px) -> Alpha a px                                     |]
+    [| uncurry Alpha                                              |]
 
 
-  
+{-  
 instance Unbox Gray
 
 newtype instance U.MVector s Gray = MV_Gray (U.MVector s Double)
@@ -252,3 +251,4 @@ instance V.Vector U.Vector Gray where
   basicUnsafeIndexM (V_Gray v) i = Gray  `liftM` V.basicUnsafeIndexM v i
   basicUnsafeCopy (MV_Gray mv) (V_Gray v) = V.basicUnsafeCopy mv v
   elemseq (V_Gray v) (Gray y) x = V.elemseq v y x
+-}

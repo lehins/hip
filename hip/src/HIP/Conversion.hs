@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances,
-MultiParamTypeClasses, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+             ViewPatterns #-}
 module HIP.Conversion (
   Convertible(..),
   toGray, toRGB, toHSI,
@@ -79,14 +79,14 @@ fromGrays !f !(img1@(dims -> (m1, n1)), img2@(dims -> (m2, n2)), img3@(dims -> (
   | m1 == m2 && m2 == m3 && n1 == n2 && n2 == n3 =
     let newDims _ _ _ _ _ _ = (m1, n1)
         {-# INLINE newDims #-}
-        getValue !(Gray v) = v
+        getValue (Gray v) = v
         {-# INLINE getValue #-}
         newPx !getPx1 !getPx2 !getPx3 !i !j =
           f (getValue $ getPx1 i j) (getValue $ getPx2 i j) (getValue $ getPx3 i j)
         {-# INLINE newPx #-}
           in traverse3 img1 img2 img3 newDims newPx
-  | otherwise = error ("Received images with inconsistent dimensions: "++
-                       (show img1)++", "++(show img2)++", "++(show img3))
+  | otherwise = error ("Received images with inconsistent dimensions: "
+                       ++ show img1 ++ ", " ++ show img2 ++ ", " ++ show img3)
 
 
 graysToHSI :: (AImage img HSI, AImage img Gray) => (img Gray, img Gray, img Gray) -> img HSI
@@ -102,5 +102,5 @@ graysToRGB = fromGrays RGB
 toLists :: (AImage img (Channel px), AImage img px) => img px -> [img (Channel px)]
 toLists !img = toLists' 0 where
   !pxArity = arity $ index img 0 0
-  toLists' !n = if n < pxArity then map (flip ref n) img:toLists' (n+1) else []
+  toLists' !n = if n < pxArity then map (`ref` n) img:toLists' (n+1) else []
 {-# INLINE toLists #-}

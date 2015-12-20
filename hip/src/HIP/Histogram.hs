@@ -22,9 +22,9 @@ getHistograms :: (Strategy strat img (Channel px), AImage img px, RealFrac (Chan
               -> Int
               -> img px
               -> [Histogram (Channel px)]
-getHistograms strat bins img = getHistogramsUsing bins img maker where
-  delta = 1 / fromIntegral bins
-  maker = V.toList . getHistogramVector (bins+1) delta . toBoxedVector strat
+getHistograms !strat !bins !img = getHistogramsUsing bins img maker where
+  !delta = 1 / fromIntegral bins
+  !maker = V.toList . getHistogramVector (bins+1) delta . toBoxedVector strat
 
 
 getHistogramsUsing :: (AImage img px, AImage img (Channel px), Fractional (Channel px)) =>
@@ -33,14 +33,14 @@ getHistogramsUsing :: (AImage img px, AImage img (Channel px), Fractional (Chann
                              -- these histograms.
                    -> (img (Channel px) -> [(Channel px, Channel px)])
                    -> [Histogram (Channel px)]
-getHistogramsUsing bins img maker = map makeHistogram $ toLists img where
-  makeHistogram = Data2D [Style Lines] [Range 0.0 $ fromIntegral bins + 1] . maker
+getHistogramsUsing !bins !img !maker = map makeHistogram $ toLists img where
+  !makeHistogram = Data2D [Style Lines] [Range 0.0 $ fromIntegral bins + 1] . maker
 
 
 getHistogramVector :: (GV.Vector v1 a1, GV.Vector v (a, b), GV.Vector v b,
                  GV.Vector v a, RealFrac a1, Num a, Fractional b) =>
                 Int -> a1 -> v1 a1 -> v (a, b)
-getHistogramVector bins delta v =
+getHistogramVector !bins !delta !v =
   GV.zip (GV.generate bins fromIntegral) (GV.create (count bins delta v))
 
 
@@ -51,11 +51,11 @@ count :: (GV.Vector v1 a1, GMV.MVector v a,
               -> a1
               -> v1 a1
               -> m (v (PrimState m) a)
-count bins delta v = do
+count !bins !delta !v = do
     h <- GMV.new bins
     GMV.set h 0.0
-    let counter px = do
-          let idx = round (px / delta)
+    let counter !px = do
+          let !idx = round (px / delta)
           c <- GMV.read h idx
           GMV.write h idx (c+1)
     GV.mapM_ counter v

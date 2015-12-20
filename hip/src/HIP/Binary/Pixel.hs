@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, MultiParamTypeClasses, 
-TypeFamilies, ViewPatterns, UndecidableInstances #-}
+             TypeFamilies, UndecidableInstances #-}
 
 module HIP.Binary.Pixel (
-  Binary(..), on, off, fromBool, isOn, isOff, inverted
+  Binary(..), on, off, fromBool, isOn, isOff
   ) where
 
 import Data.Bits
@@ -42,19 +42,15 @@ fromBool = Binary
 
 -- | Test if Pixel's value holds 'True'
 isOn :: Binary -> Bool
-isOn !(Binary v) = v
+isOn (Binary v) = v
 {-# INLINE isOn #-}
 
 
 -- | Test if Pixel's value holds 'False'
 isOff :: Binary -> Bool
-isOff !(Binary v) = not v
+isOff (Binary v) = not v
 {-# INLINE isOff #-}
 
-
-inverted :: Binary -> Binary
-inverted !(Binary v) = fromBool . not $ v
-{-# INLINE inverted #-}
 
 instance Pixel Binary where
   type Channel Binary = Bool
@@ -66,45 +62,45 @@ instance Pixel Binary where
   arity _ = 1
   {-# INLINE arity #-}
 
-  ref !(Binary b) 0 = b
-  ref !px         n = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
+  ref (Binary b) 0 = b
+  ref !px        n = error ("Referencing "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE ref #-}
 
   update _   0 !b = Binary b
   update !px n _  = error ("Updating "++show n++"is out of bounds for "++show (typeOf px))
   {-# INLINE update #-}
   
-  apply !(f:_) !(Binary b) = Binary $ f b
-  apply _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply (f:_) (Binary b) = Binary $ f b
+  apply _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply #-}
 
-  apply2 !(f:_) !(Binary b1) !(Binary b2) = Binary $ f b1 b2
-  apply2 _ _ px = error ("Length of the function list should be at least: "++(show $ arity px))
+  apply2 (f:_) (Binary b1) (Binary b2) = Binary $ f b1 b2
+  apply2 _ _ px = error ("Length of the function list should be at least: "++show (arity px))
   {-# INLINE apply2 #-}
 
-  maxChannel !(Binary b) = b
+  maxChannel (Binary b) = b
   {-# INLINE maxChannel #-}
 
-  minChannel !(Binary b) = b
+  minChannel (Binary b) = b
   {-# INLINE minChannel #-}
   
 
 pxOp2 :: (Bool -> Bool -> Bool) -> Binary -> Binary -> Binary
-pxOp2 f !(Binary b1) !(Binary b2) = Binary $ f b1 b2
+pxOp2 f (Binary b1) (Binary b2) = Binary $ f b1 b2
 
 
 instance Num Binary where
-  (+) !(Binary False) !(Binary False) = Binary False
-  (+) _               _               = Binary True
+  (Binary False) + (Binary False) = Binary False
+  _              + _              = Binary True
   {-# INLINE (+) #-}
 
-  (-) !(Binary True)  !(Binary True) = Binary False
-  (-) !(Binary False) _              = Binary False
-  (-) _               _              = Binary True
+  (Binary True)  - (Binary True) = Binary False
+  (Binary False) - _             = Binary False
+  _              - _             = Binary True
   {-# INLINE (-) #-}
 
-  (*) !(Binary True) !(Binary True)  = Binary True
-  (*) _              _               = Binary False
+  (Binary True) * (Binary True)  = Binary True
+  _             * _              = Binary False
   {-# INLINE (*) #-}
 
   abs = id
@@ -128,36 +124,36 @@ instance Bits Binary where
   xor = pxOp2 xor
   {-# INLINE xor #-}
 
-  complement !(Binary b) = Binary $ complement b
+  complement (Binary b) = Binary $ complement b
   {-# INLINE complement #-}
 
-  shift !(Binary b) n = Binary $ shift b n
+  shift (Binary b) n = Binary $ shift b n
   {-# INLINE shift #-}
 
-  rotate !(Binary b) n = Binary $ rotate b n
+  rotate (Binary b) n = Binary $ rotate b n
   {-# INLINE rotate #-}
 
-  bitSize !(Binary b) = bitSize b 
+  bitSize (Binary b) = bitSize b 
   {-# INLINE bitSize #-}
 
-  bitSizeMaybe !(Binary b) = bitSizeMaybe b 
+  bitSizeMaybe (Binary b) = bitSizeMaybe b 
   {-# INLINE bitSizeMaybe #-}
   
-  isSigned !(Binary b) = isSigned b 
+  isSigned (Binary b) = isSigned b 
   {-# INLINE isSigned #-}
 
-  testBit !(Binary b) = testBit b 
+  testBit (Binary b) = testBit b 
   {-# INLINE testBit #-}
 
   bit = Binary . bit
   {-# INLINE bit #-}
 
-  popCount !(Binary b) = popCount b 
+  popCount (Binary b) = popCount b 
   {-# INLINE popCount #-}
   
 
 instance Ord Binary where
-  compare !(Binary v1) !(Binary v2) = compare v1 v2
+  compare (Binary v1) (Binary v2) = compare v1 v2
   {-# INLINE compare #-}
 
 
