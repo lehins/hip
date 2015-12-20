@@ -57,9 +57,9 @@ readImageRGBA = IO.readImage
 -- | Write an image to file. This function will try it's best to guess an image
 -- format it should be saved in by looking at the file extension.
 writeImage :: (IO.Saveable Image px, Pixel px) =>
-              FilePath -- ^ Name of the file where image will be saved.
+              [IO.SaveOption Image px]
+           -> FilePath -- ^ Name of the file where image will be saved.
            -> Image px -- ^ Image to be saved.
-           -> [IO.SaveOption Image px]
            -- ^ A list of 'IO.SaveOptions' that will specify the output format
            -- colorspace etc. They are optional, pass an empty list to use
            -- default options.

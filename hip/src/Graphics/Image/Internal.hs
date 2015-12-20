@@ -6,6 +6,7 @@ module Graphics.Image.Internal (
 
 import Prelude hiding (map, zipWith, length, all, head, concat, foldl)
 import qualified Prelude as P (map, length, all, head, concat)
+import Control.DeepSeq (NFData(..))
 import Data.Typeable (typeOf)
 import Data.Vector.Unboxed hiding ((++), map, zipWith, unsafeIndex, fromList)
 import qualified Data.Vector.Unboxed as V (unsafeIndex, length, fromList, zipWith, sum)
@@ -182,6 +183,10 @@ instance (Floating px, Pixel px) => Floating (Image px) where
 instance (Pixel px) => Show (Image px) where
   show img@(dims -> (m, n)) =
     "<Image "++show (typeOf $ index img 0 0)++": "++show m++"x"++show n++">"
+
+
+instance Pixel px => NFData (Image px) where
+  rnf (VectorImage m n v) = rnf m `seq` rnf m `seq` rnf v
   
 
 -- | Convert an image to a flattened 'Vector'. It is a O(1) opeartion.

@@ -15,8 +15,9 @@ import Graphics.Image.Internal
 -- | Convert an image to a binary image by looking at each pixel with a function.
 --
 -- >>> yield <- readImageRGB "images/yield.jpg"
--- >>> 
--- >>> let binFrog = toBinary (<0.9) frog
+-- >>> writeImage [] "images/yield_bin.png" $ toBinary (\(RGB r g b) -> r < g || r < b) yield
+--
+-- <<images/yield.jpg>> <<images/yield_bin.png>>
 --
 toBinary :: Pixel px =>
             (px -> Bool) -- ^ Function that takes a pixel from a source image

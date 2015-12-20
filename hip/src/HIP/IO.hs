@@ -75,11 +75,11 @@ readImage path = fmap (either error id . decodeImage maybeFormat) (readFile path
 
 writeImage :: (Strategy strat img px, AImage img px, Saveable img px) =>
               strat img px
+              -> [SaveOption img px]
               -> FilePath
               -> img px
-              -> [SaveOption img px]
               -> IO ()
-writeImage !strat !path !img !options =
+writeImage !strat !options !path !img =
   BL.writeFile path $ encoder format (compute strat img) where
     !format  = getFormat options
     !encoder = getEncoder options
@@ -138,7 +138,7 @@ displayUsing :: (Strategy strat img px, AImage img px, Saveable img px) =>
                 strat img px -> img px -> String -> FilePath -> IO ()
 displayUsing strat img program tmpDir = do
   let path = tmpDir </> "tmp-img.png"
-  writeImage strat path img [Format PNG, Encoder inRGBA8]
+  writeImage strat [Format PNG, Encoder inRGBA8] path img
   ph <- runCommand (program ++ " " ++ path)
   e <- waitForProcess ph
   let printExit ExitSuccess = return ()

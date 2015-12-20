@@ -81,12 +81,12 @@ import qualified HIP.Algorithms as I
 -- By default 'PNG' images saved 'inRGB8' colorspace, but we can specify
 -- grayscale by supplying 'Encoder' 'inY8' as one of the 'SaveOption's.
 --
--- >>> writeImage "images/grad_gray.png" grad_gray [Encoder inY8]
+-- >>> writeImage [Encoder inY8] "images/grad_gray.png" grad_gray
 --
 -- Creating color images is just as easy.
 --
 -- >>> let grad_color = make 200 200 (\i j -> RGB ((fromIntegral i)/200) ((fromIntegral j)/200) ((fromIntegral (i + j)) / 400))
--- >>> writeImage "images/grad_color.png" grad_color [Encoder inRGB16]
+-- >>> writeImage [Encoder inRGB16] "images/grad_color.png" grad_color
 --
 -- <<images/grad_gray.png>> <<images/grad_color.png>>
 --
@@ -361,8 +361,8 @@ unsafeTraverse3 = I.unsafeTraverse3
 -- <Image Gray: 200x320>
 -- >>> crop 20 60 100 200 frog
 -- <Image Gray: 100x200>
--- >>> writeImage "images/frog_gray.jpg" frog []
--- >>> writeImage "images/frog_crop.jpg" (crop 20 60 100 200 frog) []
+-- >>> writeImage [] "images/frog_gray.jpg" frog 
+-- >>> writeImage [] "images/frog_crop.jpg" (crop 20 60 100 200 frog)
 --
 -- <<images/frog_gray.jpg>> <<images/frog_crop.jpg>>
 --
@@ -384,7 +384,7 @@ crop = I.crop
 -- <Image RGB: 200x320>
 -- >>> pad (RGB 1 0 0) 250 150 frog
 -- <Image RGB: 200x150>
--- >>> writeImage "images/frog_pad.jpg" (pad (RGB 1 0 0) 250 150 frog) []
+-- >>> writeImage [] "images/frog_pad.jpg" (pad (RGB 1 0 0) 250 150 frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_pad.jpg>>
 --
@@ -400,7 +400,7 @@ pad = I.pad
 -- | Flip an image horizontally.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_flipH.jpg" (flipH frog) []
+-- >>> writeImage [] "images/frog_flipH.jpg" (flipH frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_flipH.jpg>>
 --
@@ -411,7 +411,7 @@ flipH = I.flipH
 -- | Flip an image vertically.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_flipV.jpg" (flipV frog) []
+-- >>> writeImage [] "images/frog_flipV.jpg" (flipV frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_flipV.jpg>>
 --
@@ -444,7 +444,7 @@ topToBottom = I.topToBottom
 -- <Image RGB: 200x320>
 -- >>> downsampleRows frog
 -- <Image RGB: 100x320>
--- >>> writeImage "images/frog_downsampleRows.jpg" (downsampleRows frog) []
+-- >>> writeImage [] "images/frog_downsampleRows.jpg" (downsampleRows frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_downsampleRows.jpg>>
 --
@@ -459,7 +459,7 @@ downsampleRows = I.downsampleRows
 -- <Image RGB: 200x320>
 -- >>> downsampleCols frog
 -- <Image RGB: 200x160>
--- >>> writeImage "images/frog_downsampleCols.jpg" (downsampleCols frog) []
+-- >>> writeImage [] "images/frog_downsampleCols.jpg" (downsampleCols frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_downsampleCols.jpg>>
 --
@@ -474,7 +474,7 @@ downsampleCols = I.downsampleCols
 -- <Image RGB: 200x320>
 -- >>> downsample frog
 -- <Image RGB: 100x160>
--- >>> writeImage "images/frog_downsample.jpg" (downsample frog) []
+-- >>> writeImage [] "images/frog_downsample.jpg" (downsample frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_downsample.jpg>>
 --
@@ -490,7 +490,7 @@ downsample = I.downsample
 -- <Image RGB: 100x160>
 -- >>> upsampleRows frog
 -- <Image RGB: 200x160>
--- >>> writeImage "images/frog_upsampleRows.jpg" (upsampleRows frog) []
+-- >>> writeImage [] "images/frog_upsampleRows.jpg" (upsampleRows frog) 
 --
 -- <<images/frog_downsample.jpg>> <<images/frog_upsampleRows.jpg>>
 --
@@ -506,7 +506,7 @@ upsampleRows = I.upsampleRows
 -- <Image RGB: 100x160>
 -- >>> upsampleRows frog
 -- <Image RGB: 100x320>
--- >>> writeImage "images/frog_upsampleCols.jpg" (upsampleCols frog) []
+-- >>> writeImage [] "images/frog_upsampleCols.jpg" (upsampleCols frog) 
 --
 -- <<images/frog_downsample.jpg>> <<images/frog_upsampleCols.jpg>>
 --
@@ -522,7 +522,7 @@ upsampleCols = I.upsampleCols
 -- <Image RGB: 100x160>
 -- >>> upsampleRows frog
 -- <Image RGB: 200x320>
--- >>> writeImage "images/frog_upsample.jpg" (upsample frog) []
+-- >>> writeImage [] "images/frog_upsample.jpg" (upsample frog) 
 --
 -- <<images/frog_downsample.jpg>> <<images/frog_upsample.jpg>>
 --
@@ -537,8 +537,8 @@ upsample = I.upsample
 -- <Image RGB: 200x320>
 -- >>> scale (Bilinear 1) 0.5 frog
 -- <Image RGB: 100x160>
--- >>> writeImage "images/frog_scale_nearest.jpg" (scale (Nearest 1) 1.5 frog) []
--- >>> writeImage "images/frog_scale_bilinear.jpg" (scale (Bilinear 1) 1.5 frog) []
+-- >>> writeImage [] "images/frog_scale_nearest.jpg" (scale (Nearest 1) 1.5 frog) 
+-- >>> writeImage [] "images/frog_scale_bilinear.jpg" (scale (Bilinear 1) 1.5 frog)
 -- 
 -- <<images/frog_scale_nearest.jpg>> <<images/frog_scale_bilinear.jpg>>
 --
@@ -558,7 +558,7 @@ scale = I.scale
 -- <Image RGB: 200x320>
 -- >>> resize (Bilinear 1) 100 400 frog
 -- <Image RGB: 100x400>
--- >>> writeImage "images/frog_resize.jpg" (resize (Bilinear 1) 100 400 frog) []
+-- >>> writeImage [] "images/frog_resize.jpg" (resize (Bilinear 1) 100 400 frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_resize.jpg>> 
 --
@@ -577,7 +577,7 @@ resize = I.resize
 -- image fully fits inside.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate.jpg" (rotate (Bilinear (RGB 0 0.3 0)) (pi/6) frog) []
+-- >>> writeImage [] "images/frog_rotate.jpg" (rotate (Bilinear (RGB 0 0.3 0)) (pi/6) frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_rotate.jpg>> 
 --
@@ -595,7 +595,7 @@ rotate = I.rotate
 -- direction. Dimensions of a new image will stay unchanged.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate'.jpg" (rotate' (Bilinear (RGB 0 0 0.5)) (pi/6) frog) []
+-- >>> writeImage [] "images/frog_rotate'.jpg" (rotate' (Bilinear (RGB 0 0 0.5)) (pi/6) frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_rotate'.jpg>> 
 --
@@ -712,9 +712,9 @@ fromComplexImage = C.fromComplexImage
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> let (red, green, blue) = rgbToGrays frog
--- >>> writeImage "images/frog_red.png" red []
--- >>> writeImage "images/frog_green.png" green []
--- >>> writeImage "images/frog_blue.png" blue []
+-- >>> writeImage [] "images/frog_red.png" red 
+-- >>> writeImage [] "images/frog_green.png" green
+-- >>> writeImage [] "images/frog_blue.png" blue
 --
 -- <<images/frog_red.png>> <<images/frog_green.png>> <<images/frog_blue.png>>
 --
@@ -727,9 +727,9 @@ rgbToGrays = C.rgbToGrays
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> let (hue, saturation, intensity) = hsiToGrays $ toHSIImage frog
--- >>> writeImage "images/frog_hue.png" (hue / (2 * pi)) []
--- >>> writeImage "images/frog_saturation.png" saturation []
--- >>> writeImage "images/frog_intensity.png" intensity []
+-- >>> writeImage [] "images/frog_hue.png" (hue / (2 * pi)) 
+-- >>> writeImage [] "images/frog_saturation.png" saturation 
+-- >>> writeImage [] "images/frog_intensity.png" intensity 
 --
 -- <<images/frog_hue.png>> <<images/frog_saturation.png>> <<images/frog_intensity.png>>
 -- 
