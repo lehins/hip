@@ -54,17 +54,17 @@ convolve !out !kernel !img = traverse2 kernel img (getDims out) stencil where
     getImgPx' !i' !j' | j' < borderLeft  ||
                         j' > borderRight ||
                         i' < borderUp    ||  
-                        i' > borderDown     = getOutPx getImgPx i' j'
-                      | otherwise           = getImgPx i' j'
+                        i' > borderDown = getOutPx getImgPx i' j'
+                      | otherwise       = getImgPx i' j'
     {-# INLINE getImgPx' #-}
     !ikrnM = i - krnM2
     !jkrnN = j - krnN2
     integrate !ki !kj !acc
-      | ki == krnM            = integrate 0 (kj+1) acc
-      | ki == 0 && kj == krnN = acc
+      | kj == krnN            = integrate (ki+1) 0 acc
+      | kj == 0 && ki == krnM = acc
       | otherwise             = let !krnPx = getKrnPx ki kj
                                     !imgPx = getImgPx' (ki + ikrnM) (kj + jkrnN)
-                                in integrate (ki+1) kj (acc + krnPx * imgPx)
+                                in integrate ki (kj + 1) (acc + krnPx * imgPx)
     {-# INLINE integrate #-}
   {-# INLINE stencil #-}
     

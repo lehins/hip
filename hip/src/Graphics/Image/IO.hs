@@ -2,7 +2,7 @@
 module Graphics.Image.IO (
   -- $io
   -- ** Reading image files
-  readImageGray, readImageRGB, readImageGrayA, readImageRGBA,
+  readImageGray, readImageRGB, readImageGrayA, readImageRGBA, readImageBinary,
   -- ** Writing or displaying images
   writeImage,
   IO.SaveOption(..), IO.OutputFormat(..), IO.Saveable(..),
@@ -19,6 +19,7 @@ module Graphics.Image.IO (
 import qualified Data.Vector.Unboxed as V
 import Graphics.Image.Internal (Image, VectorStrategy(..), toVector)
 import Graphics.Image.Pixel
+import HIP.Conversion (toBinaryImage)
 import qualified HIP.IO as IO
 import qualified HIP.Histogram as H
 
@@ -52,6 +53,11 @@ readImageRGB = IO.readImage
 -- @1.0@.
 readImageRGBA :: FilePath -> IO (Image (Alpha RGB))
 readImageRGBA = IO.readImage
+
+
+-- | Read any supported image file as a grayscale image and convert it to Binary image.
+readImageBinary :: FilePath -> IO (Image Binary)
+readImageBinary = fmap toBinaryImage . readImageGray
 
 
 -- | Write an image to file. This function will try it's best to guess an image

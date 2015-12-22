@@ -3,7 +3,7 @@ module HIP.Algorithms.Geometric (
   scale, resize, rotate, rotate',
   downsampleRows, downsampleCols, downsample, downsampleF,
   upsampleRows, upsampleCols, upsample, upsampleF,
-  leftToRight, topToBottom, pad
+  leftToRight, topToBottom, pad, flipH, flipV
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -24,18 +24,18 @@ import HIP.Algorithms.Interpolation
 <Image RGB: 1024x1024>
 
 -}
-scale :: (Interpolation meth px, AImage img px, Pixel px) =>
-         meth   -- ^ Interpolation method to be used during scaling.
+scale :: (Interpolation method px, AImage img px, Pixel px) =>
+         method -- ^ Interpolation method to be used during scaling.
       -> Double -- ^ Scaling factor, must be greater than 0.
       -> img px -- ^ Image to be scaled.
       -> img px
-scale _ ((0>=) -> True) _ = error "scale: scaling factor must be greater than 0"
-scale !meth !fact !img    = traverse img getNewDims getNewPx where
+scale _ ((<=0) -> True) _ = error "scale: scaling factor must be greater than 0"
+scale !method !factor !img  = traverse img getNewDims getNewPx where
   !(imgM, imgN) = dims img
-  getNewDims _ _ = (round (fromIntegral imgM * fact), round (fromIntegral imgN * fact))
+  getNewDims _ _ = (round (fromIntegral imgM * factor), round (fromIntegral imgN * factor))
   {-# INLINE getNewDims #-}
   getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
-    interpolate meth imgM imgN getPx (i/fact) (j/fact)
+    interpolate method imgM imgN getPx (i / factor) (j / factor)
   {-# INLINE getNewPx #-}
 {-# INLINE scale #-}
 
@@ -54,14 +54,14 @@ resize :: (Interpolation method px, AImage img px, RealFrac (Channel px)) =>
        -> Int -> Int -- ^ New image dimensions @m@ rows and @n@ columns.
        -> img px     -- ^ Image to be resized.
        -> img px
-resize !meth !newM !newN !img = traverse img getNewDims getNewPx where
+resize !method !newM !newN !img = traverse img getNewDims getNewPx where
   !(imgM, imgN) = dims img
   !(mScale, nScale) = (fromIntegral newM / fromIntegral imgM,
                        fromIntegral newN / fromIntegral imgN)
   getNewDims _ _ = (newM, newN)
   {-# INLINE getNewDims #-}
   getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
-    interpolate meth imgM imgN getPx (i/mScale) (j/nScale)
+    interpolate method imgM imgN getPx (i/mScale) (j/nScale)
   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
@@ -82,7 +82,7 @@ rotate :: (Interpolation method px, AImage img px) =>
        -> Double -- ^ Angle @theta@ in radians, that an image should be rotated by.
        -> img px -- ^ Image to be rotated.
        -> img px
-rotate !meth !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
+rotate !method !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
   where
     !(oldM, oldN) = (fromIntegral m, fromIntegral n)
     !(newM, newN) = (oldM * cost + oldN * sint, oldN * cost + oldM * sint)
@@ -92,7 +92,7 @@ rotate !meth !theta !img@(dims -> !(m, n)) = traverse img getNewDims getNewPx
     getNewDims _ _ = (ceiling newM, ceiling newN)
     {-# INLINE getNewDims #-}
     getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
-      interpolate meth m n getOldPx i' j' where
+      interpolate method m n getOldPx i' j' where
         !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
         !i' = oldMhalf + imagPart z
         !j' = oldNhalf + realPart z
@@ -115,13 +115,13 @@ rotate' :: (Interpolation method px, AImage img px, Pixel px, RealFloat (Channel
         -> Double -- ^ Angle @theta@ in radians, that an image should be rotated by.
         -> img px -- ^ Image to be rotated.
         -> img px
-rotate' !meth !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
+rotate' !method !theta !img@(dims -> !(m, n)) =  traverse img getNewDims getNewPx
   where
     !(newMhalf, newNhalf) = (fromIntegral $ div m 2, fromIntegral $ div n 2)
     getNewDims _ _ = (m, n)
     {-# INLINE getNewDims #-}
     getNewPx !getOldPx (fromIntegral -> !i) (fromIntegral -> !j) =
-      interpolate meth m n getOldPx i' j' where
+      interpolate method m n getOldPx i' j' where
         !z = exp(0 :+ theta) * ((j - newNhalf) :+ (i - newMhalf))
         !i' = newMhalf + imagPart z
         !j' = newNhalf + realPart z
@@ -218,3 +218,17 @@ pad !defPx !m1 !n1 !img@(dims -> !(m, n)) =
     {-# INLINE newPx #-}
 {-# INLINE pad #-}
   
+
+flipV :: AImage img px => img px -> img px
+flipV !img@(dims -> (m, n)) = backpermute m n getNewIndex img where
+  getNewIndex !i !j = (m - 1 - i, j)
+  {-# INLINE getNewIndex #-}
+{-# INLINE flipV #-}
+
+
+flipH :: AImage img px => img px -> img px
+flipH !img@(dims -> (m, n)) = backpermute m n getNewIndex img where
+  getNewIndex !i !j = (i, n - 1 - j)
+  {-# INLINE getNewIndex #-}
+{-# INLINE flipH #-}
+

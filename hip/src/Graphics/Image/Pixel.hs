@@ -14,7 +14,7 @@
 -- This module contains all available pixel types at the moment.
 module Graphics.Image.Pixel (
   -- * Pixel 
-  Pixel, P.Channel,
+  Pixel, P.Channel, pixelGrid,
   -- ** Grayscale
   module HIP.Pixel.Gray, toGray,
   -- ** Color
@@ -22,11 +22,10 @@ module Graphics.Image.Pixel (
   module HIP.Pixel.RGB, toRGB,
   -- *** HSI
   module HIP.Pixel.HSI, toHSI,
-  -- ** Alpha
-  module HIP.Pixel.Alpha,
-  AlphaPixel,
   -- ** Binary
-  module HIP.Binary.Pixel,
+  module HIP.Binary.Pixel, toBinary,
+  -- ** Alpha
+  module HIP.Pixel.Alpha, AlphaPixel,
   -- ** Complex
   module HIP.Complex.Pixel,
   ComplexPixel
@@ -38,7 +37,7 @@ import Data.Vector.Unboxed (Unbox)
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
-import HIP.Pixel (toGray, toRGB, toHSI, Channel)
+import HIP.Pixel (toGray, toRGB, toHSI, toBinary, pixelGrid, Channel)
 import HIP.Pixel.Alpha hiding (AlphaPixel)
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB

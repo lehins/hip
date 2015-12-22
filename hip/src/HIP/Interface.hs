@@ -180,7 +180,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
       !(m', n') = getNewDims' (dims img1) (dims img2) (dims img1)
   {-# INLINE traverse3 #-}
 
-  -- | Traverse an image.
+  -- | Traverse an image without bounds checks.
   unsafeTraverse :: AImage img px1 =>
               img px1
            -> (Int -> Int -> (Int, Int))
@@ -190,7 +190,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
     where !(m', n') = uncurry getNewDims $ dims img
   {-# INLINE unsafeTraverse #-}
 
-  -- | UnsafeTraverse two images.
+  -- | Traverse two images without bounds checks.
   unsafeTraverse2 :: (AImage img px1, AImage img px2) =>
                img px1
             -> img px2
@@ -202,7 +202,7 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
       !(m', n') = getNewDims m1 n1 m2 n2
   {-# INLINE unsafeTraverse2 #-}
 
-  -- | UnsafeTraverse three images.
+  -- | UnsafeTraverse three images without bounds checks.
   unsafeTraverse3 :: (AImage img px1, AImage img px2, AImage img px3) =>
                img px1
             -> img px2

@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module HIP.Binary (
-  Compareble (..), (.&&.), (.||.), toBinary, toBinary2, fromBinary, invert,
-  erode, dialate, open, close, outline4, outline8, distanceTransform
+  Compareble (..), (.&&.), (.||.), toBinaryImageUsing, toBinaryImageUsing2,
+  invert, erode, dialate, open, close, outline4, outline8, distanceTransform
   ) where
 
 import Prelude hiding (map, sum, zipWith)
@@ -34,101 +34,94 @@ class AImage img Binary => Compareble a b img where
 
 instance (Pixel px, Ord px, AImage img px, AImage img Binary)
          => Compareble (img px) (img px) img where
-  (.==.) = toBinary2 (==)
+  (.==.) = toBinaryImageUsing2 (==)
   {-# INLINE (.==.) #-}
   
-  (./=.) = toBinary2 (/=)
+  (./=.) = toBinaryImageUsing2 (/=)
   {-# INLINE (./=.) #-}
   
-  (.<.)  = toBinary2 (<)
+  (.<.)  = toBinaryImageUsing2 (<)
   {-# INLINE (.<.) #-}
   
-  (.<=.) = toBinary2 (<=)
+  (.<=.) = toBinaryImageUsing2 (<=)
   {-# INLINE (.<=.) #-}
   
-  (.>.)  = toBinary2 (>)
+  (.>.)  = toBinaryImageUsing2 (>)
   {-# INLINE (.>.) #-}
   
-  (.>=.) = toBinary2 (>=)
+  (.>=.) = toBinaryImageUsing2 (>=)
   {-# INLINE (.>=.) #-}
   
 
 instance (Pixel px, Ord px, AImage img px, AImage img Binary)
          => Compareble px (img px) img where
-  (.==.) !px = toBinary (==px)
+  (.==.) !px = toBinaryImageUsing (==px)
   {-# INLINE (.==.) #-}
   
-  (./=.) !px = toBinary (/=px)
+  (./=.) !px = toBinaryImageUsing (/=px)
   {-# INLINE (./=.) #-}
   
-  (.<.)  !px = toBinary (< px)
+  (.<.)  !px = toBinaryImageUsing (< px)
   {-# INLINE (.<.) #-}
   
-  (.<=.) !px = toBinary (<=px)
+  (.<=.) !px = toBinaryImageUsing (<=px)
   {-# INLINE (.<=.) #-}
   
-  (.>.)  !px = toBinary (> px)
+  (.>.)  !px = toBinaryImageUsing (> px)
   {-# INLINE (.>.) #-}
   
-  (.>=.) !px = toBinary (>=px)
+  (.>=.) !px = toBinaryImageUsing (>=px)
   {-# INLINE (.>=.) #-}
   
 
 instance (Pixel px, Ord px, AImage img px, AImage img Binary)
          => Compareble (img px) px img where
-  (.==.) !img !px = toBinary (==px) img
+  (.==.) !img !px = toBinaryImageUsing (==px) img
   {-# INLINE (.==.) #-}
   
-  (./=.) !img !px = toBinary (/=px) img
+  (./=.) !img !px = toBinaryImageUsing (/=px) img
   {-# INLINE (./=.) #-}
   
-  (.<.)  !img !px = toBinary (< px) img
+  (.<.)  !img !px = toBinaryImageUsing (< px) img
   {-# INLINE (.<.) #-}
   
-  (.<=.) !img !px = toBinary (<=px) img
+  (.<=.) !img !px = toBinaryImageUsing (<=px) img
   {-# INLINE (.<=.) #-}
   
-  (.>.)  !img !px = toBinary (> px) img
+  (.>.)  !img !px = toBinaryImageUsing (> px) img
   {-# INLINE (.>.) #-}
   
-  (.>=.) !img !px = toBinary (>=px) img
+  (.>=.) !img !px = toBinaryImageUsing (>=px) img
   {-# INLINE (.>=.) #-}
   
 
+-- | Pixel wise @AND@ operator on binary images. 
 (.&&.) :: AImage img Binary => img Binary -> img Binary -> img Binary
 (.&&.) = zipWith (.&.)
 {-# INLINE (.&&.) #-}
 
+-- | Pixel wise @OR@ operator on binary images.
 (.||.) :: AImage img Binary => img Binary -> img Binary -> img Binary
 (.||.) = zipWith (.|.)
 {-# INLINE (.||.) #-}
 
 
-toBinary :: (AImage img px, AImage img Binary) =>
+toBinaryImageUsing :: (AImage img px, AImage img Binary) =>
             (px -> Bool)
          -> img px
          -> img Binary
-toBinary !f !img = map (Binary . f) img
-{-# INLINE toBinary #-}
+toBinaryImageUsing !f = map (Binary . f)
+{-# INLINE toBinaryImageUsing #-}
 
 
-toBinary2 :: (AImage img px, AImage img Binary) =>
+toBinaryImageUsing2 :: (AImage img px, AImage img Binary) =>
              (px -> px -> Bool)
           -> img px
           -> img px
           -> img Binary
-toBinary2 !f =  zipWith (((.).(.)) Binary f)
-{-# INLINE toBinary2 #-}
-
-
-fromBinary :: (AImage img Binary, AImage img px) =>
-              img Binary
-           -> img px
-fromBinary !img = map toPx img where
-  toPx !b = if isOn b then fromDouble 1 else fromDouble 0
-  {-# INLINE toPx #-}
-{-# INLINE fromBinary #-}
-         
+toBinaryImageUsing2 !f =  zipWith (((.).(.)) Binary f)
+{-# INLINE toBinaryImageUsing2 #-}
+  
 
 invert :: AImage img Binary => img Binary -> img Binary
 invert = map complement
@@ -137,27 +130,27 @@ invert = map complement
 
 erode :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
          strat img Binary -> img Binary -> img Binary -> img Binary
-erode strat !img' !img =
-  compute strat (convolve Wrap img' img) .==. sum strat img'
+erode strat !struc !img = 
+  compute strat (invert ((convolve (Fill on) struc (invert img)) ./=. off))
 {-# INLINE erode #-}
 
 
 dialate :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
            strat img Binary -> img Binary -> img Binary -> img Binary
-dialate strat !img' !img =
-  compute strat (convolve Wrap img' img) ./=. off
+dialate strat !struc !img =
+  compute strat (convolve (Fill off) struc img) ./=. off
 {-# INLINE dialate #-}
 
 
 open :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
         strat img Binary -> img Binary -> img Binary -> img Binary
-open strat img = dialate strat img . erode strat img
+open strat struc = dialate strat struc . erode strat struc
 {-# INLINE open #-}
 
 
 close :: (Compareble (img Binary) Binary img, Strategy strat img Binary) =>
         strat img Binary -> img Binary -> img Binary -> img Binary
-close strat img = erode strat img . dialate strat img
+close strat struc = erode strat struc . dialate strat struc
 {-# INLINE close #-}
 
 

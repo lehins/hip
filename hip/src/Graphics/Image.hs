@@ -43,7 +43,7 @@ module Graphics.Image (
   -- * Reduction
   fold, sum, maximum, minimum,
   -- * Conversion
-  toGrayImage, toRGBImage, toHSIImage,
+  toGrayImage, toRGBImage, toHSIImage, toBinaryImage,
   toAlphaImage, fromAlphaImage,
   toComplexImage, fromComplexImage,
   graysToRGB, graysToHSI, rgbToGrays, hsiToGrays,
@@ -674,6 +674,17 @@ toHSIImage :: (C.Convertible px HSI, Pixel px) =>
 toHSIImage = C.toHSIImage
 
 
+-- | Convert an image to Binary image.
+--
+-- >>> toBinaryImage frog
+-- <Image Binary: 200x320>
+-- 
+toBinaryImage :: (C.Convertible px Binary, Pixel px) =>
+               Image px -- ^ Source image.
+            -> Image Binary
+toBinaryImage = C.toBinaryImage
+
+
 -- |  Add an alpha channel to a regular image.
 --
 -- >>> toAlphaImage frog
@@ -780,3 +791,24 @@ fromList :: Pixel px => [[px]] -> Image px
 fromList = I.fromList
 
 
+figure :: Image Binary
+figure = fromList [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,1,0],
+                   [0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+                   [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],
+                   [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],
+                   [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+
+struct :: Image Binary
+struct = fromList [[0,1,0],[1,1,0],[0,1,0]]

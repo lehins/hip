@@ -2,8 +2,8 @@
              ViewPatterns #-}
 module HIP.Conversion (
   Convertible(..),
-  toGray, toRGB, toHSI,
-  toGrayImage, toRGBImage, toHSIImage,
+  toGray, toRGB, toHSI, toBinary,
+  toGrayImage, toRGBImage, toHSIImage, toBinaryImage,
   rgbToGrays, hsiToGrays, graysToRGB, graysToHSI,
   toAlphaImage, fromAlphaImage,
   toComplexImage, fromComplexImage,
@@ -30,6 +30,12 @@ toRGBImage = map convert
 toHSIImage :: (Convertible px HSI, AImage img px, AImage img HSI) => img px -> img HSI
 toHSIImage = map convert
 {-# INLINE toHSIImage #-}
+
+
+toBinaryImage :: (Convertible px Binary, AImage img px, AImage img Binary) =>
+                 img px -> img Binary
+toBinaryImage = map convert
+{-# INLINE toBinaryImage #-}
 
 
 toAlphaImage :: (AImage img px, AImage img (Alpha px), AlphaPixel px) =>

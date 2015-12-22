@@ -12,11 +12,17 @@ import HIP.Pixel.Base (Pixel(..))
 
 -- Need to specify a newtype Bin in order to avoid installing Bool into Num
 
--- | This is a Binary pixel that can be created using these *constructors*:
+-- | This is a Binary pixel that can be created using these __/constructors/__:
 --
---   [@'on'@] Represents value 'True' or @1@ in binary.
+--   [@'on'@] Represents value 'True' or @1@ in binary. Represents objects as
+--   black pixels when displayed.
 --
---   [@'off'@] Represents value 'False' or @0@ in binary.
+--   [@'off'@] Represents value 'False' or @0@ in binary. Represents background
+--   as white pixels when displayed.
+--
+-- Note, that values are inverted when written to or read from file, since
+-- grayscale images represent black as a @0@ value and white as @1@ on a
+-- @[0,1]@ scale.
 --
 newtype Binary = Binary Bool deriving (Typeable, Data, Eq)
 

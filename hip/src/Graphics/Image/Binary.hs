@@ -1,8 +1,17 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module Graphics.Image.Binary (
-  B.Compareble (..), (.&&.), (.||.), toBinary, toBinary2, fromBinary, invert,
-  erode, dialate, open, close, outline4, outline8, distanceTransform
+  -- * Thresholding
+  B.Compareble (..),
+  -- * Conversion
+  toBinaryImageUsing, toBinaryImageUsing2,
+  -- * Binary Operators
+  (.&&.), (.||.), invert,
+  -- * Binary Morphology
+  -- $morphology
+  erode, dialate, open, close,
+  -- * Transformations.
+  outline4, outline8, distanceTransform
   ) where
 
 import Prelude hiding (zipWith)
@@ -11,59 +20,97 @@ import Graphics.Image.Pixel
 import Graphics.Image.Internal
 
 
-
--- | Convert an image to a binary image by looking at each pixel with a function.
+-- | Convert an image to a binary image by applying a function to each pixel.
 --
 -- >>> yield <- readImageRGB "images/yield.jpg"
--- >>> writeImage [] "images/yield_bin.png" $ toBinary (\(RGB r g b) -> r < g || r < b) yield
+-- >>> writeImage [] "images/yield_bin.png" $ toBinaryImageUsing (\(RGB r g b) -> r > g && r > b) yield
 --
 -- <<images/yield.jpg>> <<images/yield_bin.png>>
 --
-toBinary :: Pixel px =>
-            (px -> Bool) -- ^ Function that takes a pixel from a source image
-                         -- and decides if new image will be 'on' or 'off' at
-                         -- the same location in new binary image.
-         -> Image px     -- ^ Source image.
-         -> Image Binary
-toBinary = B.toBinary
-{-# INLINE toBinary #-}
+toBinaryImageUsing :: Pixel px =>
+                      (px -> Bool) -- ^ Function that takes a pixel from a
+                      -- source image and decides if new image will be 'on' or
+                      -- 'off' at the same location in new binary image.
+                   -> Image px     -- ^ Source image.
+                   -> Image Binary
+toBinaryImageUsing = B.toBinaryImageUsing
+{-# INLINE toBinaryImageUsing #-}
 
 
-toBinary2 :: Pixel px =>
+toBinaryImageUsing2 :: Pixel px =>
              (px -> px -> Bool)
           -> Image px
           -> Image px
           -> Image Binary
-toBinary2 = B.toBinary2
-{-# INLINE toBinary2 #-}
+toBinaryImageUsing2 = B.toBinaryImageUsing2
+{-# INLINE toBinaryImageUsing2 #-}
 
 
-fromBinary :: Pixel px => Image Binary -> Image px
-fromBinary = B.fromBinary
-{-# INLINE fromBinary #-}
-
-
+-- | Pixel wise @AND@ operator on binary images. 
 (.&&.) :: Image Binary -> Image Binary -> Image Binary
 (.&&.) = (B..&&.)
 {-# INLINE (.&&.) #-}
 
 
+-- | Pixel wise @OR@ operator on binary images. 
 (.||.) :: Image Binary -> Image Binary -> Image Binary
 (.||.) = (B..||.)
 {-# INLINE (.||.) #-}
 
 
--- | Flips all bits in the image.
+-- | Pixel wise @NOT@ operator on binary images, i.e. creates a complement image.
 invert :: Image Binary -> Image Binary
 invert = B.invert
 {-# INLINE invert #-}
 
 
+{- $morphology In order to demonstrate how morphological operations work, a
+/binary image/ = __B__ constructed here together with a /structuring element/ =
+__S__ will be used in examples that follow.
+
+@
+figure :: Image Binary
+figure = fromList [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,1,0],
+                   [0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+                   [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],
+                   [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],
+                   [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+
+struct :: Image Binary
+struct = fromList [[0,1,0],[1,1,0],[0,1,0]]
+@
+-}
+
+
+-- | Erosion is defined as: __{E = B ⊖ S = {m,n|Sₘₙ⊆B}__
+--
+-- >>> writeImage [Encoder inY8] "images/erode.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+--
+-- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
+--
 erode :: Image Binary -> Image Binary -> Image Binary
 erode !img' = B.erode Identity img'
 {-# INLINE erode #-}
 
 
+-- | Dialation is defined as: __{D = B ⊕ S = {m,n|Sₘₙ∩B≠∅}__
+--
+-- >>> writeImage [Encoder inY8] "images/erode.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+--
+-- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
+--
 dialate :: Image Binary -> Image Binary -> Image Binary
 dialate !img' = B.dialate Identity img'
 {-# INLINE dialate #-}

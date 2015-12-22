@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns, MultiWayIf #-}
 module HIP.Pixel (
   -- * Pixel 
-  Pixel(..),
+  Pixel(..), pixelGrid,
   -- ** Grayscale
   module HIP.Pixel.Gray, toGray,
   -- ** Color
@@ -10,10 +10,10 @@ module HIP.Pixel (
   module HIP.Pixel.RGB, toRGB,
   -- *** HSI
   module HIP.Pixel.HSI, toHSI,
+  -- ** Binary
+  module HIP.Binary.Pixel, toBinary,
   -- ** Alpha
   module HIP.Pixel.Alpha,
-  -- ** Binary
-  module HIP.Binary.Pixel,
   -- ** Complex
   module HIP.Complex.Pixel
   ) where
@@ -30,7 +30,7 @@ import HIP.Pixel.HSI
 import HIP.Pixel.Alpha
 import HIP.Binary.Pixel
 import HIP.Complex.Pixel
-import HIP.Interface (Convertible(..))
+import HIP.Interface (Convertible(..), AImage(traverse))
 
 
 instance AlphaPixel Int where
@@ -194,6 +194,11 @@ instance Convertible Double Gray where
   {-# INLINE convert #-}
 
 
+instance Convertible Gray Gray where
+  convert = id
+  {-# INLINE convert #-}
+
+
 instance Convertible RGB Gray where
   convert = rgbToGray
   {-# INLINE convert #-}
@@ -269,6 +274,11 @@ instance Convertible Double RGB where
 
 instance Convertible Gray RGB where
   convert (Gray y) = fromDouble y
+  {-# INLINE convert #-}
+
+
+instance Convertible RGB RGB where
+  convert = id
   {-# INLINE convert #-}
 
   
@@ -350,11 +360,21 @@ instance Convertible RGB HSI where
   {-# INLINE convert #-}
 
 
+instance Convertible HSI HSI where
+  convert = id
+  {-# INLINE convert #-}
+
+
 -- to Binary pixel
 
 
 instance Pixel px => Convertible Binary px where
-  convert !b = if isOn b then fromDouble 1 else fromDouble 0
+  convert !b = fromDouble $ if isOn b then 0 else 1
+  {-# INLINE convert #-}
+
+
+instance Pixel px => Convertible px Binary where
+  convert !b = if b == 0 then on else off
   {-# INLINE convert #-}
   
 
@@ -384,6 +404,16 @@ toRGB = convert
 toHSI :: Convertible px HSI => px -> HSI
 toHSI = convert
 {-# INLINE toHSI #-}
+
+
+-- | Convert any type of pixel to Binary pixel. If all values within a source
+-- pixel equal to @0@ then this function will produce 'on', and 'off'
+-- otherwise. This conversion is chosen in order to follow the convention of
+-- displaying 'on' Binary pixels as black and 'off' as white. Reverse conversion
+-- using 'toGray', 'toRGB' and 'toHSI' follow the same convention.
+toBinary :: Convertible px Binary => px -> Binary
+toBinary = convert
+{-# INLINE toBinary #-}
 
   
                      
@@ -436,6 +466,24 @@ hsiToGray (HSI _ _ i) = Gray i
 {-# INLINE hsiToGray #-}
 
 
+-- | This function scales an image by a positive multiplier and draws a grid
+-- around the original pixels. It is here simply as useful inspection tool.
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage [] "images/frog_eye_grid.png" $ pixelGrid 10 $ crop 51 112 20 20 frog
+--
+-- <<images/frog.jpg>> <<images/frog_eye_grid.png>>
+--
+pixelGrid :: AImage img px =>
+             Word   -- ^ Positive multiplier.
+          -> img px -- ^ Source image.
+          -> img px
+pixelGrid !(succ . fromIntegral-> k) !img = traverse img getNewDims getNewPx where
+  getNewDims !m !n = (1 + m*k, 1 + n*k)
+  getNewPx !getPx !i !j = if i `mod` k == 0 || j `mod` k == 0
+                          then fromDouble 0.5
+                          else getPx ((i - 1) `div` k) ((j - 1) `div` k)
+{-# INLINE pixelGrid #-}
 
 
 --rgbs :: [RGB]

@@ -7,9 +7,9 @@ module HIP.External (
 
 import GHC.Float
 import Prelude hiding (map)
+import HIP.Conversion (toGrayImage)
 import HIP.Interface (AImage(..))
 import HIP.Pixel
-import HIP.Binary (fromBinary)
 import Data.Word (Word8, Word16)
 import Data.Vector.Storable (Storable)
 import Codec.Picture hiding (Pixel, Image, decodeImage)
@@ -646,23 +646,19 @@ imageToJPImage f img@(dims -> (m, n)) =
     g j i = f $ index img i j
 
 
-fromBinary' :: (AImage img Binary, AImage img Gray) => img Binary -> img Gray
-fromBinary' = fromBinary
-
-
 instance (AImage img Gray, AImage img Binary) => Saveable img Binary where
-  inY8 f     = inY8 f . fromBinary'
-  inY16 f    = inY16 f . fromBinary'
-  inYA8 f    = inYA8 f . fromBinary'
-  inYA16 f   = inYA16 f . fromBinary'
-  inRGB8 f   = inRGB8 f . fromBinary' 
-  inRGB16 f  = inRGB16 f . fromBinary' 
-  inRGBF f   = inRGBF f . fromBinary' 
-  inRGBA8 f  = inRGBA8 f . fromBinary' 
-  inRGBA16 f = inRGBA16 f . fromBinary' 
-  inYCbCr8 f = inYCbCr8 f . fromBinary' 
-  inCMYK8 f  = inCMYK8 f . fromBinary' 
-  inCMYK16 f = inCMYK16 f . fromBinary' 
+  inY8 f     = inY8 f . toGrayImage
+  inY16 f    = inY16 f . toGrayImage
+  inYA8 f    = inYA8 f . toGrayImage
+  inYA16 f   = inYA16 f . toGrayImage
+  inRGB8 f   = inRGB8 f . toGrayImage 
+  inRGB16 f  = inRGB16 f . toGrayImage
+  inRGBF f   = inRGBF f . toGrayImage 
+  inRGBA8 f  = inRGBA8 f . toGrayImage
+  inRGBA16 f = inRGBA16 f . toGrayImage
+  inYCbCr8 f = inYCbCr8 f . toGrayImage 
+  inCMYK8 f  = inCMYK8 f . toGrayImage
+  inCMYK16 f = inCMYK16 f . toGrayImage
 
 instance AImage img Gray => Saveable img Gray where
   inY8 BMP     = JP.encodeBitmap . imageToJPImage (convert :: Gray -> JP.Pixel8)
