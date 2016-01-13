@@ -7,7 +7,7 @@ module HIP.Conversion (
   rgbToGrays, hsiToGrays, graysToRGB, graysToHSI,
   toAlphaImage, fromAlphaImage,
   toComplexImage, fromComplexImage,
-  toLists
+  toList
   ) where
 
 import Prelude hiding (map)
@@ -104,9 +104,10 @@ graysToRGB :: (AImage img RGB, AImage img Gray) => (img Gray, img Gray, img Gray
 graysToRGB = fromGrays RGB
 {-# INLINE graysToRGB #-}
 
+
 -- | Converts an image to a list of Images that contain an internal type.
-toLists :: (AImage img (Channel px), AImage img px) => img px -> [img (Channel px)]
-toLists !img = toLists' 0 where
+toList :: (AImage img (Channel px), AImage img px) => img px -> [img (Channel px)]
+toList !img = toList' 0 where
   !pxArity = arity $ index img 0 0
-  toLists' !n = if n < pxArity then map (`ref` n) img:toLists' (n+1) else []
-{-# INLINE toLists #-}
+  toList' !n = if n < pxArity then map (`ref` n) img:toList' (n+1) else []
+{-# INLINE toList #-}

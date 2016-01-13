@@ -91,7 +91,6 @@ backpermute :: Pixel px =>
 backpermute !m !n !f = compute . I.backpermute m n f
 
 
-
 -- | Traverse an image.
 traverse :: (Pixel px1, Pixel px) =>
             Image px1

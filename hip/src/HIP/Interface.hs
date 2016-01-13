@@ -47,11 +47,11 @@ class AImage img px => Strategy strat img px where
   {-# INLINE sum #-}
 
   -- | Convert an AImage to a list of lists of Pixels.
-  toList :: Pixel px =>
+  toLists :: Pixel px =>
             strat img px
             -> img px
             -> [[px]]
-  toList !strat !img =
+  toLists !strat !img =
     [[index img' i j | j <- [0..n - 1]] | i <- [0..m - 1]] where
       !(m, n) = dims img
       !img' = compute strat img
@@ -81,9 +81,9 @@ class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
           -> img px
           
   -- | Convert a nested List of Pixels to an AImage.
-  fromList :: [[px]] -> img px
+  fromLists :: [[px]] -> img px
   
-  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromList, fromBoxedVector, (|*|)) #-}
+  {-# MINIMAL (make, dims, unsafeIndex, zipWith, fromLists, fromBoxedVector, (|*|)) #-}
   
   -- | Get the number of rows in the image 
   rows :: img px -> Int

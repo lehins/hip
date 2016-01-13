@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+             ViewPatterns #-}
 module HIP.Binary (
   Compareble (..), (.&&.), (.||.), toBinaryImageUsing, toBinaryImageUsing2,
   invert, erode, dialate, open, close, outline4, outline8, distanceTransform
@@ -194,9 +195,8 @@ chamfer5x5 m n mv = do
           
   mapM_ (calc mv maskR) [0..(m*n-1)]
   mapM_ (calc mv maskL) [(m*n-1),(m*n-2)..0]
+{-# INLINE chamfer5x5 #-}
 
-
---mapM f img = return $ map f img
 
 -- | Given a binary image, distanceTransform returns an image representing the
 -- 2D distance transform of the image. The distance transform uses Chamfer's 5x5
@@ -210,8 +210,6 @@ distanceTransform strat img@(dims -> (m, n)) =
     --             any ((/= unsafeIndex img i j) . (uncurry (unsafeIndex img)))
     --             [(i, j+1), (i+1, j), (i, j-1), (i-1, j)] = 0
     --           | otherwise = maxBound `div` 2
-    
-    
 {-# INLINE distanceTransform #-}
 
 

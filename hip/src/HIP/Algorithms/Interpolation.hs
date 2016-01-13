@@ -24,7 +24,7 @@ data Method px where
 
 
 instance Pixel px => Interpolation (Method px) px where
-  interpolate (Nearest  defPx) !m !n !getPx (round -> !i) (round -> !j) =
+  interpolate (Nearest defPx)  !m !n !getPx (floor -> !i) (floor -> !j) =
     if i >= 0 && j >= 0 && i < m && j < n then getPx i j else defPx
           
   interpolate (Bilinear defPx) !m !n !getPx !i !j =

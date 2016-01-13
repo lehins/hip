@@ -48,7 +48,7 @@ module Graphics.Image (
   toComplexImage, fromComplexImage,
   graysToRGB, graysToHSI, rgbToGrays, hsiToGrays,
   fromVector, toVector,
-  fromList, toList,
+  fromLists, toLists,
   -- * Binary
   module Graphics.Image.Binary,
   -- * Input/Output
@@ -771,11 +771,11 @@ graysToHSI = C.graysToHSI
 -- | Convert an image into a nested list of pixel. Outer layer will be of length
 -- @m@ and inner all lists will be of length @n@.
 --
--- >>> toList $ make 2 3 (\i j -> Gray $ fromIntegral (i+j))
+-- >>> toLists $ make 2 3 (\i j -> Gray $ fromIntegral (i+j))
 -- [[<Gray:(0.0)>,<Gray:(1.0)>,<Gray:(2.0)>],[<Gray:(1.0)>,<Gray:(2.0)>,<Gray:(3.0)>]]
 --
-toList :: Pixel px => Image px -> [[px]]
-toList = I.toList Identity
+toLists :: Pixel px => Image px -> [[px]]
+toLists = I.toLists Identity
 
 
 -- | Convert double nested lists into a two dimensional image. Length of an
@@ -787,28 +787,28 @@ toList = I.toList Identity
 --
 -- <<images/grad_fromList.png>>
 --
-fromList :: Pixel px => [[px]] -> Image px
-fromList = I.fromList
+fromLists :: Pixel px => [[px]] -> Image px
+fromLists = I.fromLists
 
 
 figure :: Image Binary
-figure = fromList [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,1,0],
-                   [0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0],
-                   [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
-                   [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
-                   [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],
-                   [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],
-                   [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+figure = fromLists [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,1,0],
+                    [0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+                    [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],
+                    [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
 
 struct :: Image Binary
-struct = fromList [[0,1,0],[1,1,0],[0,1,0]]
+struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]

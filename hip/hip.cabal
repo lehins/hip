@@ -8,9 +8,9 @@ maintainer:        lehins@yandex.ru
 category:          Image Processing
 synopsis:          Haskell Image Processing (HIP) Library.
 description:       The University of New Mexico's Haskell Image Processing library contains functionality for performing manipulations on binary, grayscale, color, and complex images. The library was designed for use in UNM's Digital Image Processing class but it can be used for a wide range of image processing purposes.
-home-page:         https://github.com/lehins/hip
+homepage:         https://github.com/lehins/hip
 bug-reports:       https://github.com/lehins/hip/issues
-cabal-version:     >= 1.6
+cabal-version:     >= 1.10
 build-type:        Simple
 extra-doc-files:   images/*.jpg
                  , images/*.png
@@ -30,16 +30,16 @@ library
                 , vector >= 0.9 && < 0.11
                 , vector-th-unbox >= 0.2.1.0
 	  
-  extensions:     BangPatterns
-                , GADTs
-                , FlexibleContexts
-                , FlexibleInstances
-                , FunctionalDependencies
-                , MultiParamTypeClasses
-                , NoMonomorphismRestriction
-                , TemplateHaskell
-                , TypeFamilies
-                , ViewPatterns
+  other-extensions: BangPatterns
+                  , GADTs
+                  , FlexibleContexts
+                  , FlexibleInstances
+                  , FunctionalDependencies
+                  , MultiParamTypeClasses
+                  , NoMonomorphismRestriction
+                  , TemplateHaskell
+                  , TypeFamilies
+                  , ViewPatterns
                     
   exposed-modules: HIP
                  , HIP.Binary

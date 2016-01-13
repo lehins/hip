@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE GADTs, BangPatterns, FlexibleInstances, MultiParamTypeClasses, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, FlexibleInstances,
+             MultiParamTypeClasses, ViewPatterns #-}
 module Graphics.Image.Internal (
   Image, VectorStrategy(..), toVector, fromVector
   ) where
@@ -87,13 +88,13 @@ instance (Pixel px) => AImage Image px where
       {-# INLINE getPx #-}
   {-# INLINE zipWith #-}
   
-  fromList !ls = if isSquare
-                 then fromVector m n . V.fromList . P.concat $ ls
-                 else error "fromLists: Inner lists do not have uniform length."
+  fromLists !ls = if isSquare
+                  then fromVector m n . V.fromList . P.concat $ ls
+                  else error "fromLists: Inner lists do not have uniform length."
     where
       !(m, n) = (P.length ls, P.length $ P.head ls)
       !isSquare = (n > 0) && P.all (==n) (P.map P.length ls)
-  {-# INLINE fromList #-}
+  {-# INLINE fromLists #-}
 
   fromBoxedVector !m !n = fromVector m n . convert 
   {-# INLINE fromBoxedVector #-}

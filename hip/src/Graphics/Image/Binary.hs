@@ -96,7 +96,7 @@ struct = fromList [[0,1,0],[1,1,0],[0,1,0]]
 
 -- | Erosion is defined as: __{E = B ⊖ S = {m,n|Sₘₙ⊆B}__
 --
--- >>> writeImage [Encoder inY8] "images/erode.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+-- >>> writeImage [Encoder inY8] "images/figure_erode.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
 --
 -- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
 --
@@ -107,7 +107,7 @@ erode !img' = B.erode Identity img'
 
 -- | Dialation is defined as: __{D = B ⊕ S = {m,n|Sₘₙ∩B≠∅}__
 --
--- >>> writeImage [Encoder inY8] "images/erode.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+-- >>> writeImage [Encoder inY8] "images/figure_dialate.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
 --
 -- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
 --
@@ -116,11 +116,23 @@ dialate !img' = B.dialate Identity img'
 {-# INLINE dialate #-}
 
 
+-- | Opening is defined as: __{B ∘ S = (B ⊖ S) ⊕ S}__
+--
+-- >>> writeImage [Encoder inY8] "images/figure_open.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+--
+-- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
+--
 open :: Image Binary -> Image Binary -> Image Binary
 open !img' = B.open Identity img'
 {-# INLINE open #-}
 
 
+-- | Closing is defined as: __{B ∙ S = (B ⊕ S) ⊖ S}__
+--
+-- >>> writeImage [Encoder inY8] "images/figure_close.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+--
+-- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
+--
 close :: Image Binary -> Image Binary -> Image Binary
 close !img' = B.close Identity img'
 {-# INLINE close #-}

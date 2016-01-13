@@ -4,7 +4,7 @@ module HIP.Histogram (
   ) where
 
 import Graphics.EasyPlot
-import HIP.Conversion (toLists)
+import HIP.Conversion (toList)
 import HIP.Interface hiding (map)
 import HIP.Pixel.Base (Pixel(..))
 import qualified Data.Vector as V
@@ -33,7 +33,7 @@ getHistogramsUsing :: (AImage img px, AImage img (Channel px), Fractional (Chann
                              -- these histograms.
                    -> (img (Channel px) -> [(Channel px, Channel px)])
                    -> [Histogram (Channel px)]
-getHistogramsUsing !bins !img !maker = map makeHistogram $ toLists img where
+getHistogramsUsing !bins !img !maker = map makeHistogram $ toList img where
   !makeHistogram = Data2D [Style Lines] [Range 0.0 $ fromIntegral bins + 1] . maker
 
 

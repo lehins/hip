@@ -22,11 +22,11 @@ import qualified Data.Array.Repa as R (
 import Data.Vector.Unboxed (Unbox, Vector, fromList, singleton)
 
 
-{- | Image that uses Repa Unboxed Array as an underlying representation. -}
+-- | Image that uses Repa Unboxed Arrays as an underlying representation.
 data Image px where
-  ComputedImage  :: (Unbox px, Pixel px) => !(Array U DIM2 px) -> Image px
-  AbstractImage  :: Pixel px => !(Array D DIM2 px) -> Image px
-  Singleton      :: Pixel px => !px -> Image px
+  ComputedImage  :: Pixel px => !(Array U DIM2 px) -> Image px
+  DelayedImage   :: Pixel px => !(Array D DIM2 px) -> Image px
+  Singleton      :: Pixel px => !px                -> Image px
 
 
 data RepaStrategy img px where
@@ -35,18 +35,18 @@ data RepaStrategy img px where
 
 
 instance Pixel px => Strategy RepaStrategy Image px where
-  compute Sequential !(AbstractImage arr) = arr' `deepSeqArray` ComputedImage arr'
+  compute Sequential !(DelayedImage arr) = arr' `deepSeqArray` ComputedImage arr'
     where !arr' = computeS arr
-  compute Parallel !(AbstractImage arr) =  arr' `deepSeqArray` ComputedImage arr'
+  compute Parallel !(DelayedImage arr)   = arr' `deepSeqArray` ComputedImage arr'
     where !arr' = head $ computeP arr
   compute _ !img = img
   {-# INLINE compute #-}
 
-  fold Sequential !op !px !(AbstractImage arr) = foldAllS op px arr
+  fold Sequential !op !px !(DelayedImage arr)  = foldAllS op px arr
   fold Sequential !op !px !(ComputedImage arr) = foldAllS op px arr
-  fold Parallel !op !px !(AbstractImage arr)   = head $ foldAllP op px arr
-  fold Parallel !op !px !(ComputedImage arr)   = head $ foldAllP op px arr
-  fold _ !op !px' !(Singleton px)              = op px' px
+  fold Parallel   !op !px !(DelayedImage arr)  = head $ foldAllP op px arr
+  fold Parallel   !op !px !(ComputedImage arr) = head $ foldAllP op px arr
+  fold _          !op !px' !(Singleton px)     = op px' px
   {-# INLINE fold #-}
 
 
@@ -55,44 +55,50 @@ instance (Pixel px) => AImage Image px where
   index !img !i !j                 = unsafeIndex img i j
   {-# INLINE index #-}
 
-  unsafeIndex !(ComputedImage  arr) i j = R.unsafeIndex arr (Z :. i :. j)
-  unsafeIndex !(Singleton       px) _ _ = px
-  unsafeIndex !(AbstractImage  arr) 0 0 = R.unsafeIndex arr (Z :. 0 :. 0)
-  unsafeIndex !(AbstractImage     _) _ _ =
+  unsafeIndex !(ComputedImage arr) !i !j = R.unsafeIndex arr (Z :. i :. j)
+  unsafeIndex !(Singleton px)       _  _ = px
+  unsafeIndex !(DelayedImage arr)   0  0 = R.unsafeIndex arr (Z :. 0 :. 0)
+  unsafeIndex !(DelayedImage     _) _  _ =
     error "Only computed images can be referenced, call 'compute' on the Image."
   {-# INLINE unsafeIndex #-}
 
-  dims !(AbstractImage !(extent -> !(Z :. r :. c))) = (r, c)
-  dims !(ComputedImage !(extent -> !(Z :. r :. c))) = (r, c)
-  dims !(Singleton _) = (1, 1)
+  dims !(DelayedImage (extent -> (Z :. r :. c)))  = (r, c)
+  dims !(ComputedImage (extent -> (Z :. r :. c))) = (r, c)
+  dims !(Singleton _)                             = (1, 1)
   {-# INLINE dims #-}
 
-  make !m !n !f = AbstractImage . fromFunction (Z :. m :. n) $ getPx where
+  make !m !n !f = DelayedImage . fromFunction (Z :. m :. n) $ getPx where
     getPx !(Z :. r :. c) = f r c
   {-# INLINE make #-}
     
-  map !op !(Singleton      px) = Singleton $ op px
-  map !op !(AbstractImage arr) = AbstractImage $ R.map op arr
-  map !op !(ComputedImage arr) = AbstractImage $ R.map op arr
+  map !op !(Singleton px)      = Singleton $ op px
+  map !op !(DelayedImage arr)  = DelayedImage $ R.map op arr
+  map !op !(ComputedImage arr) = DelayedImage $ R.map op arr
   {-# INLINE map #-}
 
-  zipWith !op !(Singleton px1) !(Singleton !px2) = Singleton $ op px1 px2
-  zipWith !op !(Singleton px1) !(getDelayed -> !a2) = AbstractImage $ R.map (op px1) a2
-  zipWith !op !(getDelayed -> !a1) !(Singleton !px2) = AbstractImage $ R.map (flip op px2) a1
-  zipWith !op !(getDelayed -> !a1) !(getDelayed -> !a2) = AbstractImage $ R.zipWith op a1 a2
+  imap !op !(Singleton px)      = Singleton $ op 0 0 px
+  imap !op !(getDelayed -> arr) = DelayedImage $ R.map op' arr' where
+    !arr' = R.zipWith (,) (R.fromFunction (extent arr) id) arr
+    op' !(Z :. i :. j, px) = op i j px 
+  {-# INLINE imap #-}
+
+  zipWith !op !(Singleton px1)    !(Singleton px2)    = Singleton $ op px1 px2
+  zipWith !op !(Singleton px1)    !(getDelayed -> a2) = DelayedImage $ R.map (op px1) a2
+  zipWith !op !(getDelayed -> a1) !(Singleton px2)    = DelayedImage $ R.map (`op` px2) a1
+  zipWith !op !(getDelayed -> a1) !(getDelayed -> a2) = DelayedImage $ R.zipWith op a1 a2
   {-# INLINE zipWith #-}
   
-  traverse !(getDelayed -> !arr) !newDims !newPx =
-    AbstractImage $ R.traverse arr newExtent newPixel where
+  traverse !(getDelayed -> arr) !newDims !newPx =
+    DelayedImage $ R.traverse arr newExtent newPixel where
     newExtent !(Z :. m :. n) = uncurry ix2 $ newDims m n
     {-# INLINE newExtent #-}
     newPixel !getPx !(Z :. i :. j) = newPx (((.).(.)) getPx ix2) i j
     {-# INLINE newPixel #-}
-      -- g i j = f (Z :. i :. j) == g = ((.).(.)) f ix2
+      -- "g i j = f (Z :. i :. j)" is equivalent to "g = ((.).(.)) f ix2"
   {-# INLINE traverse #-}
 
-  traverse2 !(getDelayed -> !arr1) !(getDelayed -> !arr2) !newDims !newPx =
-    AbstractImage $ R.traverse2 arr1 arr2 newExtent newPixel where
+  traverse2 !(getDelayed -> arr1) !(getDelayed -> arr2) !newDims !newPx =
+    DelayedImage $ R.traverse2 arr1 arr2 newExtent newPixel where
       newExtent !(Z :. m1 :. n1) !(Z :. m2 :. n2) = uncurry ix2 $ newDims m1 n1 m2 n2
       {-# INLINE newExtent #-}
       newPixel !getPx1 !getPx2 !(Z :. i :. j) =
@@ -100,8 +106,8 @@ instance (Pixel px) => AImage Image px where
       {-# INLINE newPixel #-}
   {-# INLINE traverse2 #-}
 
-  traverse3 !(getDelayed -> !arr1) !(getDelayed -> !arr2) !(getDelayed -> !arr3) !newDims !newPx =
-    AbstractImage $ R.traverse3 arr1 arr2 arr3 newExtent newPixel where
+  traverse3 !(getDelayed -> arr1) !(getDelayed -> arr2) !(getDelayed -> arr3) !newDims !newPx =
+    DelayedImage $ R.traverse3 arr1 arr2 arr3 newExtent newPixel where
       newExtent !(Z :. m1 :. n1) !(Z :. m2 :. n2) !(Z :. m3 :. n3) =
         uncurry ix2 $ newDims m1 n1 m2 n2 m3 n3
       {-# INLINE newExtent #-}
@@ -110,24 +116,24 @@ instance (Pixel px) => AImage Image px where
       {-# INLINE newPixel #-}
   {-# INLINE traverse3 #-}
 
-  transpose !img@(Singleton _)    = img
-  transpose !(getDelayed -> !arr) = AbstractImage . R.transpose $ arr
+  transpose img@(Singleton _)    = img
+  transpose !(getDelayed -> arr) = DelayedImage . R.transpose $ arr
   {-# INLINE transpose #-}
   
-  backpermute _ _ _ !img@(Singleton _)             = img
-  backpermute !m !n !newIndex !(getDelayed -> !arr) =
-    AbstractImage $ R.backpermute (Z :. m :. n) newShape arr where
+  backpermute _ _ _ img@(Singleton _)              = img
+  backpermute !m !n !newIndex !(getDelayed -> arr) =
+    DelayedImage $ R.backpermute (Z :. m :. n) newShape arr where
       newShape !(Z :. i :. j) = uncurry ix2 $ newIndex i j
       {-# INLINE newShape #-}
   {-# INLINE backpermute #-}
 
   crop _ _ _ _ !img@(Singleton _)       = img
   crop !i !j !m !n !(getDelayed -> !arr) =
-    AbstractImage $ extract (Z :. i :. j) (Z :. m :. n) arr
+    DelayedImage $ extract (Z :. i :. j) (Z :. m :. n) arr
   {-# INLINE crop #-}
    
   fromLists !ls = if isSquare
-                  then (fromVector m n) . fromList . concat $ ls
+                  then fromVector m n . fromList . concat $ ls
                   else error "fromLists: Inner lists do not have uniform length."
     where
       !(m, n) = (length ls, length $ head ls)
@@ -140,7 +146,7 @@ instance (Pixel px) => AImage Image px where
     then  error ("Inner dimensions of multiplied images must be the same, but received: "++
                  show img1 ++" X "++ show img2)
     else
-      AbstractImage $ fromFunction (Z :. m1 :. n2) getPx where
+      DelayedImage $ fromFunction (Z :. m1 :. n2) getPx where
         !(Z :. m1 :. n1) = extent arr1
         !(Z :. m2 :. n2) = extent arr2
         getPx !(Z:. i :. j) =
@@ -224,7 +230,7 @@ instance Pixel px => Show (Image px) where
 
 
 getDelayed :: Image px -> Array D DIM2 px
-getDelayed !(AbstractImage arr)  = arr
+getDelayed !(DelayedImage arr)  = arr
 getDelayed !(ComputedImage arr)  = delay arr
 getDelayed !(Singleton px)       = fromFunction (Z :. 0 :. 0) (const px)
 {-# INLINE getDelayed #-}
@@ -254,7 +260,7 @@ toVector !strat = toUnboxed . toArray strat
 fromArray :: (Source r px, Pixel px) =>
              Array r DIM2 px
              -> Image px
-fromArray !arr = AbstractImage . delay $ arr
+fromArray !arr = DelayedImage . delay $ arr
 {-# INLINE fromArray #-}
 
 

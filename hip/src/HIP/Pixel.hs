@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, MultiWayIf #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+             MultiWayIf, ViewPatterns #-}
 module HIP.Pixel (
   -- * Pixel 
   Pixel(..), pixelGrid,

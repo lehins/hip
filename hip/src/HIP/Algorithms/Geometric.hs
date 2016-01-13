@@ -34,7 +34,8 @@ scale !method !factor !img  = traverse img getNewDims getNewPx where
   !(imgM, imgN) = dims img
   getNewDims _ _ = (round (fromIntegral imgM * factor), round (fromIntegral imgN * factor))
   {-# INLINE getNewDims #-}
-  getNewPx !getPx (fromIntegral -> !i) (fromIntegral -> !j) =
+  --getNewPx !getPx !i !j = getPx (i `div` (round factor)) (j `div` (round factor))
+  getNewPx !getPx !(fromIntegral -> i) !(fromIntegral -> j) =
     interpolate method imgM imgN getPx (i / factor) (j / factor)
   {-# INLINE getNewPx #-}
 {-# INLINE scale #-}
