@@ -4,6 +4,7 @@ module HIP.Algorithms.Convolution (
   convolveRows, convolveCols
   ) where
 
+import Prelude hiding (flip)
 import HIP.Interface
 import HIP.Algorithms.Geometric
 
@@ -20,12 +21,9 @@ data Outside px =
 
 
 
-convolve  :: AImage img px =>
-              Outside px   -- ^ Approach to be used near the borders.
-           -> img px       -- ^ Convolution kernel image.
-           -> img px       -- ^ Image that will be used to convolve the kernel.
-           -> img px
-convolve !out !kernel !img = traverse2 (flipH . flipV $ kernel) img (getDims out) stencil where
+convolve'  :: AImage img px =>
+              Outside px -> img px -> img px -> img px
+convolve' !out !kernel !img = traverse2 kernel img (getDims out) stencil where
   !(krnM, krnN)     = dims kernel        
   !(imgM, imgN)     = dims img
   !krnM2@borderUp   = krnM `div` 2
@@ -68,18 +66,26 @@ convolve !out !kernel !img = traverse2 (flipH . flipV $ kernel) img (getDims out
                                 in integrate ki (kj + 1) (acc + krnPx * imgPx)
     {-# INLINE integrate #-}
   {-# INLINE stencil #-}
-    
+{-# INLINE convolve' #-}
+
+
+convolve  :: AImage img px =>
+             Outside px   -- ^ Approach to be used near the borders.
+          -> img px       -- ^ Convolution kernel image.
+          -> img px       -- ^ Image that will be convolved with the kernel.
+          -> img px
+convolve out = convolve' out . flip
 {-# INLINE convolve #-}
 
 
 
 convolveRows :: AImage img px => Outside px -> [px] -> img px -> img px
-convolveRows !out !ls = convolve out . transpose . fromLists $ [ls]
+convolveRows !out = convolve' out . fromLists . (:[]) . reverse
 {-# INLINE convolveRows #-}
 
 
 convolveCols :: AImage img px => Outside px -> [px] -> img px -> img px
-convolveCols !out !ls = convolve out . fromLists $ [ls]
+convolveCols !out = convolve' out . transpose . fromLists . (:[]) . reverse
 {-# INLINE convolveCols #-}
 
 

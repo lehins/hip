@@ -156,8 +156,8 @@ displayImageHistograms :: (Strategy strat img (Channel px), AImage img px,
 displayImageHistograms strat steps img = displayHistograms $ getHistograms strat steps img
 
 
--- | Displays a list of 'H.Histogram's supplied using an external program that can
--- be changed with 'IO.setDisplayProgram'.
+-- | Displays a list of 'Histogram's supplied using an external program that can
+-- be changed with 'setDisplayProgram'.
 --
 -- >>> centaurus <- readImageRGB "images/centaurus.jpg"
 -- >>> cluster <- readImageRGB "images/cluster.jpg" 

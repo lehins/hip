@@ -3,10 +3,10 @@ module HIP.Algorithms.Geometric (
   scale, resize, rotate, rotate',
   downsampleRows, downsampleCols, downsample, downsampleF,
   upsampleRows, upsampleCols, upsample, upsampleF,
-  leftToRight, topToBottom, pad, flipH, flipV
+  leftToRight, topToBottom, pad, flipH, flipV, flip
   ) where
 
-import Prelude hiding (map, zipWith)
+import Prelude hiding (flip, map, zipWith)
 import Data.Complex
 import HIP.Interface
 import HIP.Pixel.Base (Pixel(..))
@@ -213,13 +213,35 @@ pad :: AImage img px =>
     -> Int -> Int -- ^ image's new dimensions @m@ rows and @n@ columns
     -> img px     -- ^ image that is subjected to padding.
     -> img px
-pad !defPx !m1 !n1 !img@(dims -> !(m, n)) =
+pad !defPx !m1 !n1 !img@(dims -> (m, n)) =
   traverse img (const . const (m1, n1)) newPx where
     newPx !getPx !i !j = if i < m && j < n then getPx i j else defPx
     {-# INLINE newPx #-}
 {-# INLINE pad #-}
   
 
+
+flipUsing :: AImage img px =>
+             (Int -> Int -> Int -> Int -> (Int, Int)) -> img px -> img px
+flipUsing getNewIndex !img@(dims -> (m, n)) = backpermute m n (getNewIndex m n) img
+{-# INLINE flipUsing #-}
+
+
+flipV :: AImage img px => img px -> img px
+flipV = flipUsing (\ !m _ !i !j -> (m - 1 - i, j))
+{-# INLINE flipV #-}
+
+
+flipH :: AImage img px => img px -> img px
+flipH = flipUsing (\_ !n !i !j -> (i, n - 1 - j))
+{-# INLINE flipH #-}
+
+
+flip :: AImage img px => img px -> img px
+flip = flipUsing (\ !m !n !i !j -> (m - 1 - i, n - 1 - j))
+
+
+{-
 flipV :: AImage img px => img px -> img px
 flipV !img@(dims -> (m, n)) = backpermute m n getNewIndex img where
   getNewIndex !i !j = (m - 1 - i, j)
@@ -232,4 +254,4 @@ flipH !img@(dims -> (m, n)) = backpermute m n getNewIndex img where
   getNewIndex !i !j = (i, n - 1 - j)
   {-# INLINE getNewIndex #-}
 {-# INLINE flipH #-}
-
+-}

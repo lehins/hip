@@ -21,9 +21,8 @@ infixr 3  .&&.
 infixr 2  .||.
 
 -- | This is a very convenient set of functions that allow for binary image
--- construction. It is possible to compare either two images of same type
--- pointwise, or an image with an individual pixel, where this pixel will be
--- compared with each pixel in the image. For instance:
+-- construction, by comparing either two same size images pointwise, or a single
+-- pixel with every pixel in an image.
 class AImage img Binary => Compareble a b img where
   (.==.) :: a -> b -> img Binary  
   (./=.) :: a -> b -> img Binary  

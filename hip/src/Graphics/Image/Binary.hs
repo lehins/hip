@@ -89,52 +89,52 @@ figure = fromList [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
 
 struct :: Image Binary
-struct = fromList [[0,1,0],[1,1,0],[0,1,0]]
+struct = fromList [[0,1],[1,1],[0,1]]
 @
 -}
 
 
 -- | Erosion is defined as: __{E = B ⊖ S = {m,n|Sₘₙ⊆B}__
 --
--- >>> writeImage [Encoder inY8] "images/figure_erode.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+-- >>> writeImage [] "images/figure_erode.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
 --
 -- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
 --
 erode :: Image Binary -> Image Binary -> Image Binary
-erode !img' = B.erode Identity img'
+erode = B.erode Identity
 {-# INLINE erode #-}
 
 
 -- | Dialation is defined as: __{D = B ⊕ S = {m,n|Sₘₙ∩B≠∅}__
 --
--- >>> writeImage [Encoder inY8] "images/figure_dialate.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+-- >>> writeImage [] "images/figure_dialate.png" $ pixelGrid 10 $ toGrayImage $ dialate struct figure
 --
 -- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
 --
 dialate :: Image Binary -> Image Binary -> Image Binary
-dialate !img' = B.dialate Identity img'
+dialate = B.dialate Identity
 {-# INLINE dialate #-}
 
 
--- | Opening is defined as: __{B ∘ S = (B ⊖ S) ⊕ S}__
+-- | Opening is defined as: __{B ○ S = (B ⊖ S) ⊕ S}__
 --
--- >>> writeImage [Encoder inY8] "images/figure_open.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+-- >>> writeImage [] "images/figure_open.png" $ pixelGrid 10 $ toGrayImage $ open struct figure
 --
 -- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
 --
 open :: Image Binary -> Image Binary -> Image Binary
-open !img' = B.open Identity img'
+open = B.open Identity
 {-# INLINE open #-}
 
 
--- | Closing is defined as: __{B ∙ S = (B ⊕ S) ⊖ S}__
+-- | Closing is defined as: __{B ● S = (B ⊕ S) ⊖ S}__
 --
--- >>> writeImage [Encoder inY8] "images/figure_close.png" $ pixelGrid 10 $ toGrayImage $ erode struct figure
+-- >>> writeImage [] "images/figure_close.png" $ pixelGrid 10 $ toGrayImage $ close struct figure
 --
 -- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
 --
 close :: Image Binary -> Image Binary -> Image Binary
-close !img' = B.close Identity img'
+close = B.close Identity
 {-# INLINE close #-}
 
 

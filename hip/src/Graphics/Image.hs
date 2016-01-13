@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Unboxed
--- Copyright   : (c) Alexey Kuleshevich 2015
+-- Copyright   : (c) Alexey Kuleshevich 2016
 -- License     : MIT
 --
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
@@ -34,7 +34,7 @@ module Graphics.Image (
   traverse, traverse2, traverse3,
   unsafeTraverse, unsafeTraverse2, unsafeTraverse3,
   crop, pad,
-  flipH, flipV,
+  flipH, flipV, flip,
   downsampleRows, downsampleCols, downsample,
   upsampleRows, upsampleCols, upsample,
   leftToRight, topToBottom,
@@ -43,11 +43,17 @@ module Graphics.Image (
   -- * Reduction
   fold, sum, maximum, minimum,
   -- * Conversion
+  -- ** Colorspaces
   toGrayImage, toRGBImage, toHSIImage, toBinaryImage,
+  -- ** Alpha Channel
   toAlphaImage, fromAlphaImage,
+  -- ** Complex Images
   toComplexImage, fromComplexImage,
-  graysToRGB, graysToHSI, rgbToGrays, hsiToGrays,
-  fromVector, toVector,
+  -- ** Splitting into Gray
+  rgbToGrays, hsiToGrays, graysToRGB, graysToHSI,
+  -- ** Vectors
+  fromUnboxedVector, toUnboxedVector, fromBoxedVector, toBoxedVector,
+  -- ** Lists
   fromLists, toLists,
   -- * Binary
   module Graphics.Image.Binary,
@@ -55,14 +61,15 @@ module Graphics.Image (
   module Graphics.Image.IO
   ) where
 
-import Prelude hiding (map, zipWith, maximum, minimum, sum)
-import Graphics.Image.Internal (Image, VectorStrategy(..), fromVector, toVector)
+import Prelude hiding (map, zipWith, maximum, minimum, sum, flip)
+import Graphics.Image.Internal (Image, VectorStrategy(..), fromUnboxedVector, toUnboxedVector)
 import Graphics.Image.Binary
 import Graphics.Image.Pixel
 import Graphics.Image.IO
 import qualified HIP.Interface as I
 import qualified HIP.Conversion as C
 import qualified HIP.Algorithms as I
+import qualified Data.Vector as V
 
 --------------------------------------------------------------------------------
 ---- Accessing and creating ----------------------------------------------------
@@ -419,6 +426,18 @@ flipV :: Pixel px => Image px -> Image px
 flipV = I.flipV
 
 
+-- | Flip an image both vertically and horizontally, essentially the same as
+-- rotating an image by 180°.
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage [] "images/frog_flipV.jpg" (flipV frog) 
+--
+-- <<images/frog.jpg>> <<images/frog_flipV.jpg>>
+--
+flip :: Pixel px => Image px -> Image px
+flip = I.flip
+
+
 -- | Concatenate two images together one next to another into one. Both input
 -- images must have the same number of rows.
 leftToRight :: Pixel px =>
@@ -768,6 +787,19 @@ graysToHSI :: (Image Gray, Image Gray, Image Gray) -> Image HSI
 graysToHSI = C.graysToHSI
 
 
+-- | Same as 'toUnboxedVector' except it creates a Boxed 'V.Vector' and it's
+-- time complexity is__O(m*n)__, since it requires conversion.
+toBoxedVector :: Pixel px => Image px -> V.Vector px
+toBoxedVector = I.toBoxedVector Identity
+
+
+-- | Same as 'fromUnboxedVector' except it constructs an image from a Boxed
+-- 'V.Vector' and it's time complexity is__O(m*n)__, since it requires
+-- conversion.
+fromBoxedVector :: Pixel px => Int -> Int -> V.Vector px -> Image px
+fromBoxedVector = I.fromBoxedVector
+
+
 -- | Convert an image into a nested list of pixel. Outer layer will be of length
 -- @m@ and inner all lists will be of length @n@.
 --
@@ -790,25 +822,3 @@ toLists = I.toLists Identity
 fromLists :: Pixel px => [[px]] -> Image px
 fromLists = I.fromLists
 
-
-figure :: Image Binary
-figure = fromLists [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,1,0],
-                    [0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
-                    [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
-                    [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],
-                    [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],
-                    [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
-
-struct :: Image Binary
-struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]

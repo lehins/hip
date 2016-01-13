@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ViewPatterns #-}
 module Graphics.Image.Internal (
-  Image, VectorStrategy(..), toVector, fromVector
+  Image, VectorStrategy(..), toUnboxedVector, fromUnboxedVector
   ) where
 
 import Prelude hiding (map, zipWith, length, all, head, concat, foldl)
@@ -42,14 +42,14 @@ instance (Pixel px, AImage Image px) => Strategy VectorStrategy Image px where
   compute _ !img = img
   {-# INLINE compute #-}
 
-  fold    _ f a !img = foldl f a $ toVector img
+  fold    _ f a !img = foldl f a $ toUnboxedVector img
   {-# INLINE fold #-}
 
   sum _ (VectorImage _ _ v) = V.sum v
   sum _ (Singleton px) = px
   {-# INLINE sum #-}
 
-  toBoxedVector _ img = convert $ toVector img
+  toBoxedVector _ img = convert $ toUnboxedVector img
   {-# INLINE toBoxedVector #-}
 
 
@@ -89,14 +89,14 @@ instance (Pixel px) => AImage Image px where
   {-# INLINE zipWith #-}
   
   fromLists !ls = if isSquare
-                  then fromVector m n . V.fromList . P.concat $ ls
+                  then fromUnboxedVector m n . V.fromList . P.concat $ ls
                   else error "fromLists: Inner lists do not have uniform length."
     where
       !(m, n) = (P.length ls, P.length $ P.head ls)
       !isSquare = (n > 0) && P.all (==n) (P.map P.length ls)
   {-# INLINE fromLists #-}
 
-  fromBoxedVector !m !n = fromVector m n . convert 
+  fromBoxedVector !m !n = fromUnboxedVector m n . convert 
   {-# INLINE fromBoxedVector #-}
 
   (|*|) img1@(VectorImage m1 n1 v1) !img2 =
@@ -190,30 +190,29 @@ instance Pixel px => NFData (Image px) where
   rnf (VectorImage m n v) = rnf m `seq` rnf m `seq` rnf v
   
 
--- | Convert an image to a flattened 'Vector'. It is a O(1) opeartion.
+-- | Convert an image to a flattened Unboxed 'Vector'. It is a __O(1)__ opeartion.
 --
--- >>> toVector $ make 3 2 (\i j -> Gray $ fromIntegral (i+j))
+-- >>> toUnboxedVector $ make 3 2 (\i j -> Gray $ fromIntegral (i+j))
 -- fromList [<Gray:(0.0)>,<Gray:(1.0)>,<Gray:(1.0)>,<Gray:(2.0)>,<Gray:(2.0)>,<Gray:(3.0)>]
 --
-toVector :: Pixel px => Image px -> Vector px
-toVector (VectorImage _ _ v) = v
-toVector (Singleton px)      = singleton px
+toUnboxedVector :: Pixel px => Image px -> Vector px
+toUnboxedVector (VectorImage _ _ v) = v
+toUnboxedVector (Singleton px)      = singleton px
 
 
--- | Construct a two dimensional image with @m@ rows and @n@ columns from a one
--- dimensional 'Vector' of length @k@. It is a O(1) opeartion. Make sure that @m
--- * n = k@.
+-- | Construct a two dimensional image with @m@ rows and @n@ columns from a flat
+-- Unboxed 'Vector' of length @k@. It is a __O(1)__ opeartion. Make sure that @m * n = k@.
 --
--- >>> fromVector 200 300 $ generate 60000 (\i -> Gray $ fromIntegral i / 60000)
+-- >>> fromUnboxedVector 200 300 $ generate 60000 (\i -> Gray $ fromIntegral i / 60000)
 -- <Image Gray: 200x300>
 --
 -- <<images/grad_fromVector.png>>
 -- 
-fromVector :: Pixel px =>
+fromUnboxedVector :: Pixel px =>
             Int       -- ^ @m@ rows
          -> Int       -- ^ @n@ columns
          -> Vector px -- ^ Source vector
          -> Image px
-fromVector m n v
+fromUnboxedVector m n v
   | m * n == V.length v = VectorImage m n v
-  | otherwise = error "fromVector: m * n doesn't equal the length of a Vector."
+  | otherwise = error "fromUnboxedVector: m * n doesn't equal the length of a Vector."
