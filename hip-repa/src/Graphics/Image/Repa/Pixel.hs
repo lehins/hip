@@ -76,7 +76,7 @@ instance AlphaPixel HSI where
 
   
 instance Elt Binary where
-  touch (Binary (Bin y)) = touch y
+  touch (Binary y) = touch y
   {-# INLINE touch #-}
   
   zero = 0

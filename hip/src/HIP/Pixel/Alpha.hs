@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, GADTs,
              StandaloneDeriving, TypeFamilies, UndecidableInstances #-}
 module HIP.Pixel.Alpha (
-  AlphaPixel, Alpha(..), addAlpha, dropAlpha, fmapAlpha, combineAlpha
+  OpaquePixel, Alpha(..), addAlpha, dropAlpha, fmapAlpha, combineAlpha
   ) where
 
 import Data.Data
@@ -21,19 +21,19 @@ to address that issue.
 -}
 
 class (Pixel px, Eq (Channel px), Num (Channel px),
-       Show (Channel px), Ord (Channel px), Data (Channel px)) => AlphaPixel px where
+       Show (Channel px), Ord (Channel px), Data (Channel px)) => OpaquePixel px where
 
 data Alpha px where
-  --Alpha :: AlphaPixel px => !(Channel px) -> !px -> Alpha px
-  Alpha :: AlphaPixel px => { alpha  :: !(Channel px)
+  --Alpha :: OpaquePixel px => !(Channel px) -> !px -> Alpha px
+  Alpha :: OpaquePixel px => { alpha  :: !(Channel px)
                             , opaque :: !px
                             } -> Alpha px
            
 deriving instance Typeable Alpha
-deriving instance AlphaPixel px => Data (Alpha px)
+deriving instance OpaquePixel px => Data (Alpha px)
   
 
-instance AlphaPixel px => Pixel (Alpha px) where
+instance OpaquePixel px => Pixel (Alpha px) where
   type Channel (Alpha px) = Channel px
 
   fromDouble = Alpha 1 . fromDouble
@@ -69,7 +69,7 @@ instance AlphaPixel px => Pixel (Alpha px) where
   {-# INLINE fromChannel #-}
 
 
-instance AlphaPixel px => Num (Alpha px) where
+instance OpaquePixel px => Num (Alpha px) where
   (+) (Alpha a1 px1) (Alpha a2 px2) = Alpha (a1 + a2) (px1 + px2)
   {-# INLINE (+) #-}
   
@@ -89,7 +89,7 @@ instance AlphaPixel px => Num (Alpha px) where
   {-# INLINE fromInteger #-}
 
 
-instance (AlphaPixel px, Fractional px, Fractional (Channel px)) => Fractional (Alpha px) where
+instance (OpaquePixel px, Fractional px, Fractional (Channel px)) => Fractional (Alpha px) where
   (/) (Alpha a1 px1) (Alpha a2 px2) = Alpha (a1 / a2) (px1 / px2)
   {-# INLINE (/) #-}
   
@@ -100,7 +100,7 @@ instance (AlphaPixel px, Fractional px, Fractional (Channel px)) => Fractional (
   {-# INLINE fromRational #-}
 
 
-instance (AlphaPixel px, Floating px, Floating (Channel px)) => Floating (Alpha px) where
+instance (OpaquePixel px, Floating px, Floating (Channel px)) => Floating (Alpha px) where
   pi                  = fromDouble pi
   {-# INLINE pi #-}
   
@@ -141,12 +141,12 @@ instance (AlphaPixel px, Floating px, Floating (Channel px)) => Floating (Alpha 
   {-# INLINE acosh #-}
 
 
-instance AlphaPixel px => Eq (Alpha px) where
+instance OpaquePixel px => Eq (Alpha px) where
   (==) (Alpha a1 px1) (Alpha a2 px2) = px1 == px2 && a1 == a2
   {-# INLINE (==) #-}
 
 
-instance (AlphaPixel px, Ord px) => Ord (Alpha px) where
+instance (OpaquePixel px, Ord px) => Ord (Alpha px) where
   compare (Alpha a1 px1) (Alpha a2 px2) | px1 < px2 = LT
                                         | px1 > px2 = GT
                                         | a1 < a2   = LT
@@ -155,7 +155,7 @@ instance (AlphaPixel px, Ord px) => Ord (Alpha px) where
   {-# INLINE compare #-}
 
 
-instance AlphaPixel px => Show (Alpha px) where
+instance OpaquePixel px => Show (Alpha px) where
   show (Alpha a px) = "<Alpha:("++show a++"|"++show px++")>"
 
 
@@ -164,7 +164,7 @@ instance AlphaPixel px => Show (Alpha px) where
 -- >>> addAlpha $ RGB 0.1 0.3 0.5
 -- <Alpha:(1.0|<RGB:(0.1|0.3|0.5)>)>
 --
-addAlpha :: AlphaPixel px =>
+addAlpha :: OpaquePixel px =>
             px
          -> Alpha px
 addAlpha !px = Alpha 1 px
@@ -176,7 +176,7 @@ addAlpha !px = Alpha 1 px
 -- >>> dropAlpha $ Alpha 0.2 (RGB 0.1 0.3 0.5)
 -- <RGB:(0.1|0.3|0.5)>
 --
-dropAlpha :: AlphaPixel px =>
+dropAlpha :: OpaquePixel px =>
              Alpha px
           -> px
 dropAlpha (Alpha _ px) = px
@@ -188,7 +188,7 @@ dropAlpha (Alpha _ px) = px
 -- >>> fmapAlpha (*2) $ Alpha 0.2 (Gray 0.5)
 -- <Alpha:(0.4|<Gray:(0.5)>)>
 --
-fmapAlpha :: AlphaPixel px =>
+fmapAlpha :: OpaquePixel px =>
              (Channel px -> Channel px)
           -> Alpha px
           -> Alpha px
@@ -201,7 +201,7 @@ fmapAlpha !f (Alpha a px) = Alpha (f a) px
 -- >>> combineAlpha (/) (+) (Alpha 0.8 (Gray 0.5)) (Alpha 0.2 (Gray 0.1))
 -- <Alpha:(4.0|<Gray:(0.6)>)>
 --
-combineAlpha :: AlphaPixel px =>
+combineAlpha :: OpaquePixel px =>
                 (Channel px -> Channel px -> Channel px)
                 -- ^ Function that combines the alpha channels for two pixel.
              -> (px -> px -> px)

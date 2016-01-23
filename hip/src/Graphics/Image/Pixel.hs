@@ -25,10 +25,10 @@ module Graphics.Image.Pixel (
   -- ** Binary
   module HIP.Binary.Pixel, toBinary,
   -- ** Alpha
-  module HIP.Pixel.Alpha, AlphaPixel,
+  module HIP.Pixel.Alpha, OpaquePixel,
   -- ** Complex
   module HIP.Complex.Pixel,
-  ComplexPixel
+  RealPixel
   ) where
 
 import Data.Int
@@ -38,13 +38,13 @@ import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Generic
 import qualified Data.Vector.Generic.Mutable
 import HIP.Pixel (toGray, toRGB, toHSI, toBinary, pixelGrid, Channel)
-import HIP.Pixel.Alpha hiding (AlphaPixel)
+import HIP.Pixel.Alpha hiding (OpaquePixel)
 import HIP.Pixel.Gray
 import HIP.Pixel.RGB
 import HIP.Pixel.HSI
 import HIP.Binary.Pixel
-import HIP.Complex.Pixel hiding (ComplexPixel)
-import qualified HIP.Pixel as P (Pixel(..), ComplexPixel, AlphaPixel)
+import HIP.Complex.Pixel hiding (RealPixel)
+import qualified HIP.Pixel as P (Pixel(..), RealPixel, OpaquePixel)
 
 --import qualified Data.Vector.Generic            as V
 --import qualified Data.Vector.Generic.Mutable    as M
@@ -58,14 +58,14 @@ class (Unbox (Channel px), Unbox px, P.Pixel px) => Pixel px where
 
 -- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'. Also
 -- Pixel that are instances of this class can be used with 'Alpha' pixel.
-class (Unbox px, Unbox (Channel px), P.AlphaPixel px, Pixel px
-      ) => AlphaPixel px where
+class (Unbox px, Unbox (Channel px), P.OpaquePixel px, Pixel px
+      ) => OpaquePixel px where
 
   
 -- | Unboxed Vector can only work with 'P.Pixel's that implement 'Unbox'. Also
 -- Pixel that are instances of this class can be used with 'Complex' pixel.
-class (Unbox px, Unbox (Channel px), P.ComplexPixel px, Pixel px
-      ) => ComplexPixel px where
+class (Unbox px, Unbox (Channel px), P.RealPixel px, Pixel px
+      ) => RealPixel px where
   
 
 -- | Unboxed Pixel  
@@ -81,39 +81,39 @@ instance Pixel RGB where
 instance Pixel HSI where
  
 -- | Unboxed Pixel  
-instance (Unbox (Channel px), AlphaPixel px, Pixel px) => Pixel (Alpha px) where
+instance (Unbox (Channel px), OpaquePixel px, Pixel px) => Pixel (Alpha px) where
 
 
--- | Unboxed 'AlphaPixel'
-instance AlphaPixel Gray where
-
--- | Unboxed Alpha Pixel  
-instance AlphaPixel RGB where
+-- | Unboxed 'OpaquePixel'
+instance OpaquePixel Gray where
 
 -- | Unboxed Alpha Pixel  
-instance AlphaPixel HSI where
+instance OpaquePixel RGB where
+
+-- | Unboxed Alpha Pixel  
+instance OpaquePixel HSI where
   
   
 -- | Unboxed Complex Pixel  
-instance ComplexPixel px => Pixel (Complex px) where
+instance RealPixel px => Pixel (Complex px) where
   
 -- | Unboxed Complex Pixel  
-instance ComplexPixel Float where
+instance RealPixel Float where
 
 -- | Unboxed Complex Pixel  
-instance ComplexPixel Double where
+instance RealPixel Double where
   
 -- | Unboxed Complex Pixel  
-instance ComplexPixel Gray where
+instance RealPixel Gray where
 
 -- | Unboxed Complex Pixel  
-instance ComplexPixel RGB where
+instance RealPixel RGB where
 
 -- | Unboxed Complex Pixel  
-instance ComplexPixel HSI where
+instance RealPixel HSI where
 
 -- | Unboxed Complex Pixel  
-instance (Pixel (Alpha px), AlphaPixel px, ComplexPixel px) => ComplexPixel (Alpha px) where
+instance (Pixel (Alpha px), OpaquePixel px, RealPixel px) => RealPixel (Alpha px) where
   
 
 -- All base types:
@@ -142,29 +142,29 @@ instance Pixel Word32 where
 
 instance Pixel Word64 where
 
-instance AlphaPixel Float where
+instance OpaquePixel Float where
 
-instance AlphaPixel Double where
+instance OpaquePixel Double where
 
-instance AlphaPixel Int where
+instance OpaquePixel Int where
 
-instance AlphaPixel Int8 where
+instance OpaquePixel Int8 where
 
-instance AlphaPixel Int16 where
+instance OpaquePixel Int16 where
 
-instance AlphaPixel Int32 where
+instance OpaquePixel Int32 where
 
-instance AlphaPixel Int64 where
+instance OpaquePixel Int64 where
 
-instance AlphaPixel Word where
+instance OpaquePixel Word where
 
-instance AlphaPixel Word8 where
+instance OpaquePixel Word8 where
 
-instance AlphaPixel Word16 where
+instance OpaquePixel Word16 where
 
-instance AlphaPixel Word32 where
+instance OpaquePixel Word32 where
 
-instance AlphaPixel Word64 where
+instance OpaquePixel Word64 where
 
 
 derivingUnbox "GrayPixel"
@@ -190,16 +190,16 @@ derivingUnbox "HSIPixel"
     [| \(h, s, i) -> HSI h s i          |]
 
 
-derivingUnbox "ComplexPixel"
-    [t| ComplexPixel px => Complex px -> (px, px) |]
-    [| \(px1 :+: px2) -> (px1, px2)               |]
-    [| uncurry (:+:)                              |]
+derivingUnbox "RealPixel"
+    [t| RealPixel px => Complex px -> (px, px) |]
+    [| \(px1 :+ px2) -> (px1, px2)             |]
+    [| uncurry (:+)                            |]
 
 
-derivingUnbox "AlphaPixel"
-    [t| (AlphaPixel px, Pixel px) => Alpha px -> (Channel px, px) |]
-    [| \(Alpha a px) -> (a, px)                                   |]
-    [| uncurry Alpha                                              |]
+derivingUnbox "OpaquePixel"
+    [t| (OpaquePixel px, Pixel px) => Alpha px -> (Channel px, px) |]
+    [| \(Alpha a px) -> (a, px)                                    |]
+    [| uncurry Alpha                                               |]
 
 
 {-  

@@ -60,6 +60,7 @@ class AImage img px => Strategy strat img px where
 
 {- | This is an abstract image interface. -}
 class (Num (img px), Show (img px), Pixel px) => AImage img px | px -> img where
+  type Ix :: *
 
   -- | Make an AImage by supplying number of rows, columns and a function that
   -- returns a pixel value at the m n location which are provided as arguments.

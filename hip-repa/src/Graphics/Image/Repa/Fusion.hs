@@ -24,7 +24,6 @@ module Graphics.Image.Repa.Fusion (
 
 import Prelude hiding (map, zipWith)
 import HIP.IO
-import HIP.Processing
 import qualified HIP.Complex as C
 import Graphics.Image.Repa.Internal
 import Graphics.Image.Repa.Pixel (Pixel, Gray(..), RGB(..), Complex(..), ComplexChannel)

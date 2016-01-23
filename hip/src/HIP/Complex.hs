@@ -14,11 +14,11 @@ infix  6  !+!
 
 -- | Construct a complex image from two regular images.
 --
-(!+!) :: (ComplexPixel px, AImage img px, AImage img (Complex px)) =>
-             img px -- ^ Image representing real part.
-          -> img px -- ^ Image representing imaginary part.
-          -> img (Complex px)
-(!+!) = zipWith (:+:)
+(!+!) :: (RealPixel px, AImage img px, AImage img (Complex px)) =>
+         img px -- ^ Image representing real part.
+         -> img px -- ^ Image representing imaginary part.
+         -> img (Complex px)
+(!+!) = zipWith (:+)
 {-# INLINE (!+!) #-}
 
 
@@ -45,7 +45,7 @@ image.
  
     <https://raw.github.com/jcollard/unm-hip/master/examples/realpart2.jpg>
 -}
-realPart :: (ComplexPixel px, AImage img px, AImage img (Complex px)) =>
+realPart :: (RealPixel px, AImage img px, AImage img (Complex px)) =>
             img (Complex px)
          -> img px
 realPart = map real
@@ -58,7 +58,7 @@ realPart = map real
  
     <https://raw.github.com/jcollard/unm-hip/master/examples/sine.jpg>
  -}
-imagPart :: (ComplexPixel px, AImage img px, AImage img (Complex px)) =>
+imagPart :: (RealPixel px, AImage img px, AImage img (Complex px)) =>
              img (Complex px)
           -> img px
 imagPart = map imag
@@ -69,7 +69,7 @@ imagPart = map imag
     the magnitude (amplitude) of the image.
     >>>magnitude signal
  -}
-magnitude :: (ComplexPixel px, AImage img px, AImage img (Complex px)) =>
+magnitude :: (RealPixel px, AImage img px, AImage img (Complex px)) =>
              img (Complex px)
           -> img px
 magnitude = map mag
@@ -80,7 +80,7 @@ magnitude = map mag
     the argument (phase) of the image.
     >>>argument signal
  -}
-argument :: (ComplexPixel px, AImage img px, AImage img (Complex px)) =>
+argument :: (RealPixel px, AImage img px, AImage img (Complex px)) =>
              img (Complex px)
           -> img px
 argument = map arg 
@@ -88,28 +88,28 @@ argument = map arg
 
 
 
-toPolar :: (ComplexPixel px, AImage img px, AImage img (Complex px)) =>
+toPolar :: (RealPixel px, AImage img px, AImage img (Complex px)) =>
            img (Complex px)
         -> (img px, img px)
 toPolar !img = (magnitude img, argument img)
 {-# INLINE toPolar #-}
 
 
-toRectangular :: (ComplexPixel px, AImage img px, AImage img (Complex px)) =>
+toRectangular :: (RealPixel px, AImage img px, AImage img (Complex px)) =>
            img (Complex px)
         -> (img px, img px)
 toRectangular !img = (realPart img, imagPart img)
 {-# INLINE toRectangular #-}
 
 
-conjugate :: (ComplexPixel px, AImage img (Complex px)) =>
+conjugate :: (RealPixel px, AImage img (Complex px)) =>
              img (Complex px)
           -> img (Complex px)
 conjugate = map conj
 {-# INLINE conjugate #-}
 
 
-makeFilter :: (ComplexPixel px, AImage img px) =>
+makeFilter :: (RealPixel px, AImage img px) =>
               Int
            -> Int
            -> (Int -> Int -> px)
@@ -126,7 +126,7 @@ makeFilter !m !n !getPx = make m n getPx' where
 -- source Image at location @(i, j)@. The value of the complex result Image at
 -- location @(i, j)@ is zero if @|z| < x@, otherwise the result has the same phase
 -- as @z@ but the amplitude is decreased by @px@.
-shrink :: (ComplexPixel px, ComplexPixel (Channel px), AImage img (Complex px), Ord px) =>
+shrink :: (RealPixel px, RealPixel (Channel px), AImage img (Complex px), Ord px) =>
           Channel px -> img (Complex px) -> img (Complex px)
 shrink !x !img = map shrinker img where
   shrinker !px = apply2c (repeat s) (mag px) (arg px) where

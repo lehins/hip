@@ -36,7 +36,6 @@ import Graphics.Image.Repa.Internal (Image, RepaStrategy(..))
 import Graphics.Image.Repa.Pixel
 import qualified Graphics.Image.Repa.Internal as I
 import qualified HIP.IO as IO
-import qualified HIP.Processing as P
 import qualified HIP.Complex as C
 
 

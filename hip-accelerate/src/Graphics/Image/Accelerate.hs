@@ -1,5 +1,5 @@
 {-# LANGUAGE ViewPatterns #-}
-module Graphics.Image.Repa (
+module Graphics.Image.Accelerate (
   Image,
   -- * Image dimensions
   dims, rows, cols,  

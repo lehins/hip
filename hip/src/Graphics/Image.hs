@@ -709,7 +709,7 @@ toBinaryImage = C.toBinaryImage
 -- >>> toAlphaImage frog
 -- <Image RGB-A: 200x320>
 -- 
-toAlphaImage :: AlphaPixel px =>
+toAlphaImage :: OpaquePixel px =>
                 Image px -> Image (Alpha px)
 toAlphaImage = C.toAlphaImage
 
@@ -719,20 +719,20 @@ toAlphaImage = C.toAlphaImage
 -- >>> fromAlphaImage $ toAlphaImage frog
 -- <Image RGB: 200x320>
 -- 
-fromAlphaImage :: AlphaPixel px =>
+fromAlphaImage :: OpaquePixel px =>
                 Image (Alpha px) -> Image px
 fromAlphaImage = C.fromAlphaImage
 
 
 -- | Convert a regular image to a Complex image by adding an all zero pixel imaginary
 -- image.
-toComplexImage :: (Pixel px, ComplexPixel px) =>
+toComplexImage :: (Pixel px, RealPixel px) =>
                   Image px -> Image (Complex px)
 toComplexImage = C.toComplexImage
 
 
 -- | Convert Complex image to a regular image by dropping imaginary image.
-fromComplexImage :: (Pixel px, ComplexPixel px) =>
+fromComplexImage :: (Pixel px, RealPixel px) =>
                     Image (Complex px) -> Image px
 fromComplexImage = C.fromComplexImage
 

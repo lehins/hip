@@ -38,26 +38,26 @@ toBinaryImage = map convert
 {-# INLINE toBinaryImage #-}
 
 
-toAlphaImage :: (AImage img px, AImage img (Alpha px), AlphaPixel px) =>
+toAlphaImage :: (AImage img px, AImage img (Alpha px), OpaquePixel px) =>
                 img px -> img (Alpha px)
 toAlphaImage = map addAlpha
 {-# INLINE toAlphaImage #-}
 
 
-fromAlphaImage :: (AImage img px, AImage img (Alpha px), AlphaPixel px) =>
+fromAlphaImage :: (AImage img px, AImage img (Alpha px), OpaquePixel px) =>
                   img (Alpha px) -> img px
 fromAlphaImage = map dropAlpha
 {-# INLINE fromAlphaImage #-}
 
 
 
-toComplexImage :: (AImage img px, AImage img (Complex px), ComplexPixel px) =>
+toComplexImage :: (AImage img px, AImage img (Complex px), RealPixel px) =>
                 img px -> img (Complex px)
-toComplexImage = map (:+: fromDouble 0)
+toComplexImage = map (:+ fromDouble 0)
 {-# INLINE toComplexImage #-}
 
 
-fromComplexImage :: (AImage img px, AImage img (Complex px), ComplexPixel px) =>
+fromComplexImage :: (AImage img px, AImage img (Complex px), RealPixel px) =>
                   img (Complex px) -> img px
 fromComplexImage = map real
 {-# INLINE fromComplexImage #-}

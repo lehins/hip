@@ -14,7 +14,7 @@ data Mode = Forward
           | Inverse
 
 
-fft :: (Strategy strat img (Complex px), ComplexPixel px, AImage img (Complex px)) =>
+fft :: (Strategy strat img (Complex px), RealPixel px, AImage img (Complex px)) =>
        strat img (Complex px)
        -> img (Complex px)
        -> img (Complex px)
@@ -22,7 +22,7 @@ fft = fft2d Forward
 {-# INLINE fft #-}
 
 
-ifft :: (Strategy strat img (Complex px), ComplexPixel px, AImage img (Complex px)) =>
+ifft :: (Strategy strat img (Complex px), RealPixel px, AImage img (Complex px)) =>
         strat img (Complex px)
         -> img (Complex px)
         -> img (Complex px)
@@ -43,7 +43,7 @@ isPowerOfTwo n = n /= 0 && (n .&. (n-1)) == 0
 
 
 -- | Compute the DFT of a matrix. Array dimensions must be powers of two else `error`.
-fft2d :: (Strategy strat img (Complex px), ComplexPixel px, AImage img (Complex px)) =>
+fft2d :: (Strategy strat img (Complex px), RealPixel px, AImage img (Complex px)) =>
          Mode
       -> strat img (Complex px)
       -> img (Complex px)
@@ -65,7 +65,7 @@ fft2d mode strat img
                           fftGeneral strat sign $ fftGeneral strat sign img
 
 
-fftGeneral :: (Strategy strat img (Complex px), ComplexPixel px, AImage img (Complex px)) =>
+fftGeneral :: (Strategy strat img (Complex px), RealPixel px, AImage img (Complex px)) =>
               strat img (Complex px)
            -> px
            -> img (Complex px)
@@ -89,12 +89,12 @@ fftGeneral strat !sign !img = go n 0 1 where
 
 
 -- Compute a twiddle factor.
-twiddle :: ComplexPixel px =>
+twiddle :: RealPixel px =>
            px
 	-> Int 			-- index
 	-> Int 			-- length
 	-> Complex px
-twiddle sign k n = cos alpha :+: sign * sin alpha where
+twiddle sign k n = cos alpha :+ sign * sin alpha where
   !alpha = 2 * pi * fromIntegral k / fromIntegral n
 
 
