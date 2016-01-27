@@ -2,6 +2,7 @@
              MultiParamTypeClasses, ScopedTypeVariables, 
              TypeFamilies, TypeOperators, ViewPatterns, UndecidableInstances #-}
 module Graphics.Image.Accelerate.Internal (
+  A,
   ) where
 
 import Graphics.Image.Interface
@@ -16,15 +17,13 @@ import qualified Data.Array.Accelerate as A
 import Graphics.Image.ColorSpace.RGB (RGB(..), Pixel(..))
 
 
-data A -- | Accelerate Array
-
-data I -- | Regular Immutable Array
-
+-- | Accelerate Array
+data A
   
-instance (Elt cs (Exp e)) => Array A cs (Exp e) where
-  type Ix = Exp Int
-  type S c = Exp c
-  type Elt cs (Exp e) = (Lift Exp (PixelElt cs e),
+instance (Elt A cs (Exp e)) => Array A cs (Exp e) where
+  type Ix A = Exp Int
+  type S A c = Exp c
+  type Elt A cs (Exp e) = (Lift Exp (PixelElt cs e),
                          Plain (PixelElt cs (Exp e)) ~ PixelElt cs e,
                          Unlift Exp (PixelElt cs (Exp e)),
                          IsNum e, ColorSpace cs, Num (Pixel cs (Exp e)),
@@ -60,14 +59,14 @@ instance (Elt cs (Exp e)) => Array A cs (Exp e) where
   map f (AccImageCh arr) = AccImageCh $ A.map f arr
   map f img              = map f (disperse img)
   
-  mapCh f (AccImageSc arr) =
+  imap f (AccImageSc arr) =
     (AccImageSc (generate (shape arr) getCh') :: Image A cs (Exp e)) where
-      getCh' sh@(unlift -> (Z :. c)) = f c (arr ! sh)
-  mapCh f (AccImageCh arr) =
+      getCh' sh@(unlift -> (Z :. c)) = f (0, 0) c (arr ! sh)
+  imap f (AccImageCh arr) =
     (AccImageCh (generate (shape arr) getCh') :: Image A cs (Exp e)) where
-      getCh' sh@(unlift -> (Z :. c :. (_ :: Exp Int) :. (_ :: Exp Int))) =
-        f c (arr ! sh)
-  mapCh f img = mapCh f (disperse img)
+      getCh' sh@(unlift -> (Z :. c :. i :. j)) =
+        f (i, j) c (arr ! sh)
+  imap f img = imap f (disperse img)
   
   mapElt f img@(AccImageSc _) = singleton . fromElt . f $ indexElt img (0, 0)
   mapElt f (AccImagePx arr)   = AccImagePx (A.map (lift1 f) arr) 
@@ -111,6 +110,9 @@ instance (Elt cs (Exp e)) => Array A cs (Exp e) where
   disperse img = img
 
 
+
+
+           
 --compute' (AccImageSc arr) = run arr
 --compute' (AccImageCh arr) = run arr
 compute' (AccImagePx arr) = run arr

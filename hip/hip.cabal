@@ -33,13 +33,14 @@ library
                 , accelerate >= 0.13.0.0
 	  
   other-extensions: BangPatterns
+                  , ConstraintKinds
                   , GADTs
                   , FlexibleContexts
                   , FlexibleInstances
                   , FunctionalDependencies
                   , MultiParamTypeClasses
                   , NoMonomorphismRestriction
-                  , TemplateHaskell
+                  , ScopedTypeVariables
                   , TypeFamilies
                   , ViewPatterns
                     

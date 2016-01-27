@@ -11,16 +11,16 @@ data RGB
 
 data RGBA
 
-red :: Num Ix => Ix
+red :: Num ix => ix
 red = 0
 
-green :: Num Ix => Ix
+green :: Num ix => ix
 green = 1
 
-blue :: Num Ix => Ix
+blue :: Num ix => ix
 blue = 2
 
-rgbAlpha :: Num Ix => Ix
+rgbAlpha :: Num ix => ix
 rgbAlpha = 3
 
 
