@@ -61,9 +61,7 @@ cond b t1 t2 = if b then t1 else t2
 
 
 
-instance (Elt RD cs e) => Array RD cs e where
-  type Ix RD = Int
-  type S RD e' = e'
+instance Elt RD cs e => Array RD cs e where
   type Elt RD cs e = (ColorSpace cs, 
                       R.Elt e, Unbox e, Num e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e))
@@ -84,10 +82,10 @@ instance (Elt RD cs e) => Array RD cs e where
   index (RUImageSc arr) c _      = R.index arr (Z :. c)
   index (RUImageCh arr) c (i, j) = R.index arr (Z :. c :. i :. j) 
   index (RUImagePx arr) c (i, j) =
-    getEltCh cond (==) (R.index arr (Z :. i :. j)) (undefined :: cs) c
+    getEltCh (R.index arr (Z :. i :. j)) (undefined :: cs) c
   index (RDImageCh arr) c (i, j) = R.index arr (Z :. c :. i :. j) 
   index (RDImagePx arr) c (i, j) =
-    getEltCh cond (==) (R.index arr (Z :. i :. j)) (undefined :: cs) c
+    getEltCh (R.index arr (Z :. i :. j)) (undefined :: cs) c
 
   indexPx img              ix     = fromElt $ indexElt img ix
 
@@ -96,7 +94,7 @@ instance (Elt RD cs e) => Array RD cs e where
   indexElt img             ix     = indexElt' img (undefined :: cs) ix
 
   singleton px = RUImageSc . R.computeS $ fromFunction (Z :. pixelRank px) getCh' where
-    getCh' (Z :. c) = getPxCh cond (==) px c
+    getCh' (Z :. c) = getPxCh px c
 
   make (m, n) f = RDImagePx $ fromFunction (Z :. m :. n) getPx' where
     getPx' (Z :. i :. j) = toElt $ f (i, j)
@@ -162,13 +160,11 @@ instance (Elt RD cs e) => Array RD cs e where
   disperse (RDImagePx arr)   = RDImageCh $ R.traverse arr getSh' getCh' where
     getSh' (Z :. m :. n) = Z :. (rank (undefined :: cs)) :. m :. n
     getCh' getPx' (Z :. c :. i :. j) =
-      getEltCh cond (==) (getPx' (Z :. i :. j)) (undefined :: cs) c
+      getEltCh (getPx' (Z :. i :. j)) (undefined :: cs) c
   disperse img = delayImage img
 
 
-instance (Elt RS cs e) => Array RS cs e where
-  type Ix RS = Int
-  type S RS e' = e'
+instance Elt RS cs e => Array RS cs e where
   type Elt RS cs e = (ColorSpace cs, 
                       R.Elt e, Unbox e, Num e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e))
@@ -220,9 +216,7 @@ instance (Elt RS cs e) => Array RS cs e where
 
 
 
-instance (Elt RP cs e) => Array RP cs e where
-  type Ix RP = Int
-  type S RP e' = e'
+instance Elt RP cs e => Array RP cs e where
   type Elt RP cs e = (ColorSpace cs, 
                       R.Elt e, Unbox e, Num e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e))

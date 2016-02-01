@@ -2,25 +2,30 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.RGB (
-  RGB(..), RGBA(..), Pixel(..), red, green, blue, rgbAlpha
+  RGB(..), RGBA(..), Pixel(..), PixelRGB, PixelRGBA, red, green, blue, rgbAlpha
   ) where
 
 import Graphics.Image.Interface
+
 
 data RGB
 
 data RGBA
 
-red :: Num ix => ix
+type PixelRGB = Pixel RGB Double  
+
+type PixelRGBA = Pixel RGBA Double  
+
+red :: Int
 red = 0
 
-green :: Num ix => ix
+green :: Int
 green = 1
 
-blue :: Num ix => ix
+blue :: Int
 blue = 2
 
-rgbAlpha :: Num ix => ix
+rgbAlpha :: Int
 rgbAlpha = 3
 
 
@@ -30,9 +35,6 @@ instance Show RGB where
 instance Show RGBA where
   show _ = "RGBA"
 
-
---type PixelRGB e = Pixel RGB e
---type PixelRGBA e = Pixel RGBA e
 
 instance ColorSpace RGB where
   type PixelElt RGB e = (e, e, e)
@@ -46,14 +48,15 @@ instance ColorSpace RGB where
 
   toElt (PixelRGB r g b) = (r, g, b)
 
-  getEltCh cif eq (r, g, b) _ n =
-    cif (n `eq` red) r (
-      cif (n `eq` green) g (
-         cif (n `eq` blue) b (error ((show (undefined :: RGB))++
-                                     " Color Space does not have a channel with index: "++
-                                     (show n)))))
-  
-  getPxCh cif eq (PixelRGB r g b) n = cif (n `eq` 0) r (cif (n `eq` 1) g b)
+  getEltCh (r, g, b) _ n | n == red   = r
+                         | n == green = g
+                         | n == blue  = b
+                         | otherwise  = channelIndexError "getEltCh" (undefined :: RGB) n
+
+  getPxCh (PixelRGB r g b) n | n == red   = r
+                             | n == green = g
+                             | n == blue  = b
+                             | otherwise  = channelIndexError "getPxCh" (undefined :: RGB) n 
   
   chOp f (PixelRGB r g b) = PixelRGB (f red r) (f green g) (f blue b)
 
@@ -79,12 +82,18 @@ instance ColorSpace RGBA where
 
   toElt (PixelRGBA r g b a) = (r, g, b, a)
 
-  getEltCh cif eq (r, g, b, a) _ n =
-    cif (n `eq` 0) r (cif (n `eq` 1) g (cif (n `eq` 2) b a))
+  getEltCh (r, g, b, a) _ n | n == red   = r
+                            | n == green = g
+                            | n == blue  = b
+                            | n == rgbAlpha = a
+                            | otherwise  = channelIndexError "getEltCh" (undefined :: RGBA) n
 
-  getPxCh cif eq (PixelRGBA r g b a) n =
-    cif (n `eq` 0) r (cif (n `eq` 1) g (cif (n `eq` 2) b a))
-
+  getPxCh (PixelRGBA r g b a) n | n == red      = r
+                                | n == green    = g
+                                | n == blue     = b
+                                | n == rgbAlpha = a
+                                | otherwise  = channelIndexError "getPxCh" (undefined :: RGBA) n 
+  
   chOp f (PixelRGBA r g b a) = PixelRGBA (f red r) (f green g) (f blue b) (f rgbAlpha a)
   
   chOp2 f (PixelRGBA r1 g1 b1 a1) (PixelRGBA r2 g2 b2 a2) =
@@ -104,4 +113,12 @@ instance Show e => Show (Pixel RGB e) where
 
 
 instance Show e => Show (Pixel RGBA e) where
-  show (PixelRGBA r g b a) = "<RGB:("++show r++"|"++show g++"|"++show b++"|"++show a++")>"
+  show (PixelRGBA r g b a) = "<RGBA:("++show r++"|"++show g++"|"++show b++"|"++show a++")>"
+
+
+instance Alpha RGBA where
+  type Opaque RGBA = RGB
+
+  addAlpha a (PixelRGB r g b) = PixelRGBA r g b a
+
+  dropAlpha (PixelRGBA r g b _) = PixelRGB r g b

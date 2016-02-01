@@ -50,12 +50,15 @@ library
                  , Graphics.Image.ColorSpace.Gray
                  , Graphics.Image.ColorSpace.RGB
                  , Graphics.Image.ColorSpace.HSI
-
+                 , Graphics.Image.External
                  , Graphics.Image.Repa
                  , Graphics.Image.Repa.Internal
+  other-modules:   Graphics.Image.External.Base
+                 , Graphics.Image.External.JuicyPixels
+                 , Graphics.Image.External.NetPbm
                    
-                 , Graphics.Image.Accelerate
-                 , Graphics.Image.Accelerate.Internal
+--                 , Graphics.Image.Accelerate
+--                 , Graphics.Image.Accelerate.Internal
 
   default-language: Haskell2010
 

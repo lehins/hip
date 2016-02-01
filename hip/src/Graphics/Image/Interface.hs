@@ -1,17 +1,27 @@
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE AllowAmbiguousTypes, FlexibleContexts, FlexibleInstances #-}
 {-# LANGUAGE ConstraintKinds, MultiParamTypeClasses, TypeFamilies, ViewPatterns #-}
 
 module Graphics.Image.Interface (
-  ColorSpace(..), Array(..)
+  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), Convertible(..),
+  channelIndexError
   ) where
 
 import Prelude hiding (map, zipWith)
 import GHC.Exts (Constraint)
 
-type IfElseThen b t = b -> t -> t -> t
 
-type Equals t b = t -> t -> b
+channelIndexError :: (ColorSpace cs, Show a) => [Char] -> cs -> a -> t
+channelIndexError fname cs n =
+  error (fname++": "++(show cs)++" has only '"++show (rank cs)++
+         "' channels. Attempted to index channel '"++show n++"'.")
+
+
+class ColorSpace cs => Alpha cs where
+  type Opaque cs
+  dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
+  addAlpha :: e -> Pixel (Opaque cs) e -> Pixel cs e
 
 
 class Show cs => ColorSpace cs where
@@ -20,7 +30,7 @@ class Show cs => ColorSpace cs where
 
   data Pixel cs e
 
-  rank :: Num ix => cs -> ix
+  rank :: cs -> Int
 
   fromChannel :: e -> Pixel cs e
 
@@ -28,47 +38,52 @@ class Show cs => ColorSpace cs where
 
   toElt :: Pixel cs e -> PixelElt cs e
 
-  pixelRank :: Num ix => Pixel cs e -> ix
+  pixelRank :: Pixel cs e -> Int
   pixelRank _ = rank (undefined :: cs)
 
-  getEltCh :: (Show ix, Num ix) =>
-              IfElseThen b e -> Equals ix b -> PixelElt cs e -> cs -> ix -> e
+  getEltCh :: PixelElt cs e -> cs -> Int -> e
 
-  getPxCh :: (Show ix, Num ix) => IfElseThen b e -> Equals ix b -> Pixel cs e -> ix -> e
+  getPxCh :: Pixel cs e -> Int -> e
   
-  chOp :: Num ix => (ix -> e -> e) -> Pixel cs e -> Pixel cs e 
+  chOp :: (Int -> e -> e) -> Pixel cs e -> Pixel cs e 
 
-  chOp2 :: Num ix => (ix -> e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
+  chOp2 :: (Int -> e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
   
   pxOp :: (e -> e) -> Pixel cs e -> Pixel cs e
 
   pxOp2 :: (e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
 
-  indexElt' :: (Array arr cs e, ix ~ Ix arr, Num ix) =>
-               Image arr cs e -> cs -> (ix, ix) -> PixelElt cs e
+  indexElt' :: Array arr cs e =>
+               Image arr cs e -> cs -> (Int, Int) -> PixelElt cs e
                                  
   
+class Convertible a b where
+  convert :: a -> b
 
-class (ColorSpace cs, Num (Pixel cs e), Num e, Num (Ix arr), Eq (Ix arr)) =>
+
+
+class ManifestArray arr cs e where
+  deepSeqImage :: Image arr cs e -> Image arr cs e
+
+
+
+class (ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
       Array arr cs e where
-  type Ix arr :: *
-  type S arr c :: *
-  type S arr c = c
   
   type Elt arr cs e :: Constraint
   type Elt arr cs e = ()
   
   data Image arr cs e
 
-  dims :: Image arr cs e -> (Ix arr, Ix arr)
+  dims :: Image arr cs e -> (Int, Int)
 
-  index :: Image arr cs e -> Ix arr -> (Ix arr, Ix arr) -> e
+  index :: Image arr cs e -> Int -> (Int, Int) -> e
 
-  indexPx :: Image arr cs e -> (Ix arr, Ix arr) -> Pixel cs e
+  indexPx :: Image arr cs e -> (Int, Int) -> Pixel cs e
 
-  indexElt :: Image arr cs e -> (Ix arr, Ix arr) -> PixelElt cs e
+  indexElt :: Image arr cs e -> (Int, Int) -> PixelElt cs e
                                  
-  make :: (Ix arr, Ix arr) -> ((Ix arr, Ix arr) -> Pixel cs e) -> Image arr cs e
+  make :: (Int, Int) -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
 
   singleton :: Pixel cs e -> Image arr cs e
 
@@ -79,49 +94,49 @@ class (ColorSpace cs, Num (Pixel cs e), Num e, Num (Ix arr), Eq (Ix arr)) =>
       -> Image arr cs e -- ^ Source image.
       -> Image arr cs e -- ^ Result image.
 
-  mapElt :: (Elt arr cs' e', e' ~ S arr c') =>
+  mapElt :: Elt arr cs' e' =>
             (PixelElt cs' e' -> PixelElt cs e)
          -> Image arr cs' e' -> Image arr cs e
 
-  mapPx :: (Elt arr cs' e', e' ~ S arr c') =>
+  mapPx :: Elt arr cs' e' =>
            (Pixel cs' e' -> Pixel cs e)
         -> Image arr cs' e'
         -> Image arr cs  e
 
-  imap :: ((Ix arr, Ix arr) -> Ix arr -> e -> e) -> Image arr cs e -> Image arr cs e
+  imap :: ((Int, Int) -> Int -> e -> e) -> Image arr cs e -> Image arr cs e
 
-  imapElt :: (Elt arr cs' e', e' ~ S arr c') =>
-             ((Ix arr, Ix arr) -> PixelElt cs' e' -> PixelElt cs e)
+  imapElt :: Elt arr cs' e' =>
+             ((Int, Int) -> PixelElt cs' e' -> PixelElt cs e)
           -> Image arr cs' e' -> Image arr cs e
 
-  imapPx :: (Elt arr cs' e', e' ~ S arr c') =>
-            ((Ix arr, Ix arr) -> PixelElt cs' e' -> PixelElt cs e)
+  imapPx :: Array arr cs' e' =>
+            ((Int, Int) -> Pixel cs' e' -> Pixel cs e)
          -> Image arr cs' e' -> Image arr cs e
 
   zipWith :: (e -> e -> e) -> Image arr cs e -> Image arr cs e -> Image arr cs e
   
-  zipWithElt :: (Elt arr cs1 e1, Elt arr cs2 e2, e1 ~ S arr c1, e2 ~ S arr c2) =>
+  zipWithElt :: (Elt arr cs1 e1, Elt arr cs2 e2) =>
                 (PixelElt cs1 e1 -> PixelElt cs2 e2 -> PixelElt cs e)
              -> Image arr cs1 e1 -> Image arr cs2 e2 -> Image arr cs e
                
-  zipWithPx :: (Elt arr cs1 e1, Elt arr cs2 e2, e1 ~ S arr c1, e2 ~ S arr c2) =>
+  zipWithPx :: (Elt arr cs1 e1, Elt arr cs2 e2) =>
                (Pixel cs1 e1 -> Pixel cs2 e2 -> Pixel cs e)
             -> Image arr cs1 e1 -> Image arr cs2 e2 -> Image arr cs e
 
   traverse :: Image arr cs e
-           -> ((Ix arr, Ix arr) -> (Ix arr, Ix arr))
-           -> (((Ix arr, Ix arr) -> e) -> (Ix arr, Ix arr) -> e)
+           -> ((Int, Int) -> (Int, Int))
+           -> (((Int, Int) -> e) -> (Int, Int) -> e)
            -> Image arr cs e
 
   traverseCh :: Image arr cs e
-             -> ((Ix arr, Ix arr) -> (Ix arr, Ix arr))
-             -> ((Ix arr -> (Ix arr, Ix arr) -> e) -> Ix arr -> (Ix arr, Ix arr) -> e)
+             -> ((Int, Int) -> (Int, Int))
+             -> ((Int -> (Int, Int) -> e) -> Int -> (Int, Int) -> e)
              -> Image arr cs e
 
-  traversePx :: (Elt arr cs' e', e' ~ S arr c') =>
+  traversePx :: Array arr cs' e' =>
                 Image arr cs' e'
-             -> ((Ix arr, Ix arr) -> (Ix arr, Ix arr))
-             -> (((Ix arr, Ix arr) -> Pixel cs' e') -> (Ix arr, Ix arr) -> Pixel cs e)
+             -> ((Int, Int) -> (Int, Int))
+             -> (((Int, Int) -> Pixel cs' e') -> (Int, Int) -> Pixel cs e)
              -> Image arr cs e
   
   group :: Image arr cs e -> Image arr cs e
@@ -274,11 +289,7 @@ instance (Floating (Pixel cs e), Floating e, Array arr cs e) =>
   {-# INLINE acosh #-}  
 
 
-instance (Show (Ix arr), Array arr cs e) => Show (Image arr cs e) where
+instance Array arr cs e => Show (Image arr cs e) where
   show ((dims -> (m, n)) :: Image arr cs e) =
     "<Image "++(show (undefined :: cs))++": "++(show m)++"x"++(show n)++">"
-
-
-
-
 

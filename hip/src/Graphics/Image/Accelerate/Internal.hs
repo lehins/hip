@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE GADTs, ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ScopedTypeVariables, 
              TypeFamilies, TypeOperators, ViewPatterns, UndecidableInstances #-}
@@ -20,9 +21,8 @@ import Graphics.Image.ColorSpace.RGB (RGB(..), Pixel(..))
 -- | Accelerate Array
 data A
   
-instance (Elt A cs (Exp e)) => Array A cs (Exp e) where
+instance Elt A cs (Exp e) => Array A cs (Exp e) where
   type Ix A = Exp Int
-  type S A c = Exp c
   type Elt A cs (Exp e) = (Lift Exp (PixelElt cs e),
                          Plain (PixelElt cs (Exp e)) ~ PixelElt cs e,
                          Unlift Exp (PixelElt cs (Exp e)),
