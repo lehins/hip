@@ -1,5 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TypeFamilies #-}
 module Graphics.Image.External.Base (
   fromWord8, toWord8, fromWord16, toWord16,
   ImageFormat(..), Readable(..), Writable(..),
@@ -9,6 +8,8 @@ import Data.Word (Word8, Word16)
 import qualified Data.ByteString as B (ByteString)
 import qualified Data.ByteString.Lazy as BL (ByteString)
 import Graphics.Image.Interface
+
+import Graphics.Image.ColorSpace
 
 
 
@@ -23,27 +24,33 @@ fromWord16 px = fromIntegral px / 65535
 toWord16 :: Double -> Word16
 toWord16 px = round (65535*px)
 
+
+
 class ImageFormat format where
   data SaveOption format
 
   ext :: format -> String
 
   exts :: format -> [String]
+  exts f = [ext f]
 
-  isFormat :: format -> String -> Bool
-  isFormat f e = e == ext f
+  isFormat :: String -> format -> Bool
+  isFormat e f = e `elem` (exts f)
 
 -- needed: extension, format, colorspace
-class ImageFormat format => Writable format img where
+class ImageFormat format => Writable img format where
 
   encode :: img -> format -> BL.ByteString
 
 
-class ImageFormat format => Readable format img where
+class ImageFormat format => Readable img format where
 
-  decode :: B.ByteString -> format -> Either String img
+  decode :: format -> B.ByteString -> Either String img
 
 
+
+
+  
   
 
 {-

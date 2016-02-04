@@ -1,11 +1,16 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FlexibleInstances #-}
 module HIP.IO (
-  readImage, writeImage, displayImage,
+  readImage,
+  --writeImage, displayImage,
   --displayImageHistograms, displayHistograms, setDisplayProgram, writeHistograms,
-  OutputFormat(..), SaveOption(..), Encoder, Saveable(..), Readable
+  BMP(..), PNG(..), InputFormat,
+  Readable(..), ImageFormat
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
+import Control.Monad (foldM)
 import Data.Char (toLower)
 import Data.IORef
 import Data.ByteString (readFile)
@@ -21,9 +26,13 @@ import System.IO.Temp (withSystemTempDirectory)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (runCommand, waitForProcess)
 
+import Data.Word
+import Graphics.Image.Repa.Internal
+import Graphics.Image.ColorSpace
 
+{-
 extToInputFormat :: String -> Either String InputFormat
-extToInputFormat ext
+extToInputFormat = ext
   | null ext                     = Left "File extension was not supplied."
   | ext == ".bmp"                = Right BMPin
   | ext == ".gif"                = Right GIFin
@@ -53,23 +62,66 @@ extToOutputFormat ext
   -- \ | ext == ".ppm"                = Right $ PPM RAW
   | otherwise                         = Left $ "Unsupported file extension: "++ext
                 
-
+-}
 guessFormat :: (String -> a) -> FilePath -> a
-guessFormat extToFormat path = extToFormat . P.map toLower . takeExtension $ path
+guessFormat extToFormat = extToFormat . P.map toLower . takeExtension 
 
-guessOutputFormat :: FilePath -> Either String OutputFormat
-guessOutputFormat = guessFormat extToOutputFormat
+--guessOutputFormat :: FilePath -> Either String OutputFormat
+--guessOutputFormat = guessFormat extToOutputFormat
 
 
-guessInputFormat :: FilePath -> Either String InputFormat
-guessInputFormat = guessFormat extToInputFormat
+--guessInputFormat :: FilePath -> Either String InputFormat
+--guessInputFormat = guessFormat extToInputFormat
                    
+data InputFormat = InputBMP
+                 | InputPNG  deriving (Show, Enum, Eq)
 
-readImage :: Readable arr cs e =>
+
+instance ImageFormat InputFormat where
+
+  ext InputBMP = ext BMP
+  ext InputPNG = ext PNG
+
+  
+
+instance (Readable img BMP, Readable img PNG) =>
+         Readable img InputFormat where
+  decode InputBMP = decode BMP
+  decode InputPNG = decode PNG
+
+
+guessInputFormat :: FilePath -> Maybe InputFormat
+guessInputFormat path =
+  headMaybe . dropWhile (not . isFormat e) . enumFrom . toEnum $ 0
+  where e = P.map toLower . takeExtension $ path
+        headMaybe ls = if null ls then Nothing else Just $ head ls
+
+
+readAnyImage :: Readable (Image arr cs Double) InputFormat =>
              FilePath
-          -> IO (Image arr cs e)
-readImage path = fmap (either error id . decodeImage maybeFormat) (readFile path)
-  where !maybeFormat = either (const Nothing) Just $ guessInputFormat path  
+          -> IO (Either String (Image arr cs Double))
+readAnyImage path = do
+  imgstr <- readFile path
+  let maybeFormat = guessInputFormat path
+      formats = enumFrom . toEnum $ 0
+      orderedFormats = maybe formats (\f -> f:(filter (/=f) formats)) maybeFormat
+      reader (Left err) format = 
+        return $ either (Left . ((err++"\n")++)) Right (decode format imgstr)
+      reader img         _     = return img
+  foldM reader (Left "") orderedFormats
+
+
+readImage :: Readable img format =>
+             format
+          -> FilePath
+          -> IO (Either String img)
+readImage format path = fmap (decode format) (readFile path)
+
+
+readImageRGB :: FilePath -> IO (Image RP RGB Double)
+readImageRGB = fmap (either error id) . readAnyImage
+
+{-
 
 
 writeImage :: Writeable arr cs e =>
@@ -142,7 +194,7 @@ displayUsing strat img program tmpDir = do
   let printExit ExitSuccess = return ()
       printExit exitCode = print exitCode
   printExit e
-  
+-}  
 
 {-
 displayImageHistograms :: (Strategy strat img (Channel px), AImage img px,
