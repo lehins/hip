@@ -11,18 +11,18 @@ import Graphics.Image.Interface
 
 import Graphics.Image.ColorSpace
 
-
+import Data.Bits
 
 
 fromWord8 :: Word8 -> Double
-fromWord8 px = fromIntegral px / 255
+fromWord8 w = fromIntegral w / (fromIntegral (maxBound :: Word8))
 toWord8 :: Double -> Word8
-toWord8 px = round (255*px)
+toWord8 w = round (fromIntegral (maxBound :: Word8) * w)
 
 fromWord16 :: Word16 -> Double
-fromWord16 px = fromIntegral px / 65535
+fromWord16 w = fromIntegral w / (fromIntegral (maxBound :: Word16))
 toWord16 :: Double -> Word16
-toWord16 px = round (65535*px)
+toWord16 w = round (fromIntegral (maxBound :: Word16) * w)
 
 
 
@@ -40,7 +40,7 @@ class ImageFormat format where
 -- needed: extension, format, colorspace
 class ImageFormat format => Writable img format where
 
-  encode :: img -> format -> BL.ByteString
+  encode :: format -> [SaveOption format] -> img -> BL.ByteString
 
 
 class ImageFormat format => Readable img format where
@@ -49,7 +49,10 @@ class ImageFormat format => Readable img format where
 
 
 
+scaleBits = 16
 
+fix :: Float -> Int
+fix x = floor $ x * fromIntegral ((1 :: Int) `unsafeShiftL` scaleBits) + 0.5
   
   
 

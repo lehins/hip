@@ -1,11 +1,10 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
-{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FlexibleInstances #-}
-module HIP.IO (
-  readImage,
+module Graphics.Image.IO (
+  readImage, readImageRGB, writeImage,
   --writeImage, displayImage,
   --displayImageHistograms, displayHistograms, setDisplayProgram, writeHistograms,
-  BMP(..), PNG(..), InputFormat,
+  InputFormat,
+  BMP(..), GIF(..), HDR(..), JPG(..), PNG(..), TGA(..), TIF(..),
   Readable(..), ImageFormat
   ) where
 
@@ -63,32 +62,6 @@ extToOutputFormat ext
   | otherwise                         = Left $ "Unsupported file extension: "++ext
                 
 -}
-guessFormat :: (String -> a) -> FilePath -> a
-guessFormat extToFormat = extToFormat . P.map toLower . takeExtension 
-
---guessOutputFormat :: FilePath -> Either String OutputFormat
---guessOutputFormat = guessFormat extToOutputFormat
-
-
---guessInputFormat :: FilePath -> Either String InputFormat
---guessInputFormat = guessFormat extToInputFormat
-                   
-data InputFormat = InputBMP
-                 | InputPNG  deriving (Show, Enum, Eq)
-
-
-instance ImageFormat InputFormat where
-
-  ext InputBMP = ext BMP
-  ext InputPNG = ext PNG
-
-  
-
-instance (Readable img BMP, Readable img PNG) =>
-         Readable img InputFormat where
-  decode InputBMP = decode BMP
-  decode InputPNG = decode PNG
-
 
 guessInputFormat :: FilePath -> Maybe InputFormat
 guessInputFormat path =
@@ -97,10 +70,10 @@ guessInputFormat path =
         headMaybe ls = if null ls then Nothing else Just $ head ls
 
 
-readAnyImage :: Readable (Image arr cs Double) InputFormat =>
+readImage :: Readable (Image arr cs Double) InputFormat =>
              FilePath
           -> IO (Either String (Image arr cs Double))
-readAnyImage path = do
+readImage path = do
   imgstr <- readFile path
   let maybeFormat = guessInputFormat path
       formats = enumFrom . toEnum $ 0
@@ -111,16 +84,25 @@ readAnyImage path = do
   foldM reader (Left "") orderedFormats
 
 
-readImage :: Readable img format =>
-             format
-          -> FilePath
-          -> IO (Either String img)
-readImage format path = fmap (decode format) (readFile path)
+readImageExact :: Readable img format =>
+                  format
+               -> FilePath
+               -> IO (Either String img)
+readImageExact format path = fmap (decode format) (readFile path)
 
 
-readImageRGB :: FilePath -> IO (Image RP RGB Double)
-readImageRGB = fmap (either error id) . readAnyImage
+readImageRGB :: FilePath -> IO (Image RD RGB Double)
+readImageRGB = fmap (either error id) . readImage
 
+
+
+writeImage :: Writable (Image arr cs e) PNG =>
+              FilePath
+           -> Image arr cs e
+           -> IO ()
+writeImage path img = BL.writeFile path $ encode PNG [] img
+
+  
 {-
 
 

@@ -18,11 +18,11 @@ module Graphics.Image.Repa.Parallel (
   -- ** Extracting
   crop, fold, sum, maximum, minimum, normalize, mult,
   -- * Convolution
-  convolve, convolveRows, convolveCols, convolve',
+  --convolve, convolveRows, convolveCols, convolve',
   -- * Fast Fourier Transform
-  fft, ifft,
+  --fft, ifft,
   -- * Conversion
-  fromArray, toArray, fromVector, toVector, fromLists, toLists,
+  --fromArray, toArray, fromVector, toVector, fromLists, toLists,
   -- * IO
   readImageGray, readImageGrayA, readImageRGB, readImageRGBA,
   IO.SaveOption(..),
@@ -35,6 +35,7 @@ import Data.Vector.Unboxed (Vector)
 import Graphics.Image.Repa.Internal (Image, RepaStrategy(..))
 import Graphics.Image.Repa.Pixel
 import qualified Graphics.Image.Repa.Internal as I
+import HIP.Interface ((|*|))
 import qualified HIP.IO as IO
 import qualified HIP.Complex as C
 
@@ -148,7 +149,7 @@ mult :: Pixel px =>
         Image px
      -> Image px
      -> Image px
-mult !img1 !img2 = compute $ I.mult (compute img1) (compute img2)
+mult !img1 !img2 = compute ((compute img1) |*| (compute img2))
 
 
 fold :: Pixel px =>
@@ -180,7 +181,7 @@ normalize :: (Pixel px, Fractional px, Ord px) =>
           -> Image px
 normalize = I.normalize Parallel
 
-
+{-
 convolve :: Pixel px => Image px -> Image px -> Image px
 convolve !krn !img = compute $ P.convolve P.Wrap (compute krn) (compute img)
 
@@ -247,7 +248,7 @@ toArray :: (Pixel px) =>
         -> Array U DIM2 px
 toArray = I.toArray I.Parallel
 
-
+-}
 -- IO
 
 readImageGray :: FilePath -> IO (Image Gray)
@@ -267,9 +268,9 @@ readImageRGBA = fmap compute . IO.readImage
 
 
 writeImage :: (IO.Saveable Image px, Pixel px) =>
-              FilePath
+              [IO.SaveOption Image px]
+           -> FilePath
            -> Image px
-           -> [IO.SaveOption Image px]
            -> IO ()
 writeImage !path !img !options = IO.writeImage I.Parallel path img options
 

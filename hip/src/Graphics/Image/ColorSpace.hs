@@ -18,3 +18,16 @@ instance Convertible PixelGray PixelRGB where
 
 instance Convertible PixelGrayA PixelRGBA where
   convert (PixelGrayA g a) = addAlpha a $ fromChannel g
+
+
+instance ToGray RGB where
+  toPixelGray (PixelRGB r g b) = PixelGray ((r + g + b)/3)
+
+instance ToGrayA RGBA where
+
+  
+instance ToRGB Gray where
+  toPixelRGB (PixelGray g) = fromChannel g
+
+instance ToRGBA GrayA where
+

@@ -1,6 +1,8 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+             ViewPatterns #-}
 module Graphics.Image.External.JuicyPixels (
-  BMP(..), GIF(..), GIFs(..), HDR(..), JPG(..), PNG(..), TGA(..), TIF(..)
+  BMP(..), GIF(..), HDR(..), JPG(..), PNG(..), TGA(..), TIF(..)
   ) where
 
 import GHC.Float
@@ -27,13 +29,9 @@ instance ImageFormat GIF where
 
   ext _ = ".gif"
 
-data GIFs = GIFs -- ^ All images of animation in a Graphics Interchange Format
-                 -- image with @.gif@ extension.
-
-instance ImageFormat GIFs where
+instance ImageFormat [GIF] where
 
   ext _ = ext GIF
-
 
 data HDR = HDR -- ^ High-dynamic-range image with @.hdr@ extension.
 
@@ -41,11 +39,14 @@ instance ImageFormat HDR where
 
   ext _ = ".hdr"
 
+  exts _ = [".hdr", ".pic"]
+
 
 data JPG = JPG -- ^ Joint Photographic Experts Group image with @.jpg@ or
                -- @.jpeg@ extension.
 
 instance ImageFormat JPG where
+  data SaveOption JPG = JPGQuality Word8
 
   ext _ = ".jpg"
 
@@ -76,7 +77,9 @@ instance ImageFormat TIF where
   exts _ = [".tif", ".tiff"]
 
 
----- from JuicyPixels (Pixels) -----
+--------------------------------------------------------------------------------
+-- Converting to and from JuicyPixels ------------------------------------------
+--------------------------------------------------------------------------------
 
 -- Gray -> Gray
 
@@ -181,11 +184,12 @@ instance Convertible PixelGray JP.Pixel16 where
 instance Convertible PixelGray JP.PixelF where
   convert (PixelGray d) = double2Float d
 
-instance Convertible PixelGray JP.PixelYA8 where
-  convert = JP.promotePixel . (convert :: PixelGray -> JP.Pixel8)
+instance Convertible PixelGrayA JP.PixelYA8 where
+  convert (PixelGrayA g a) = JP.PixelYA8 (toWord8 g) (toWord8 a)
 
-instance Convertible PixelGray JP.PixelYA16 where
-  convert = JP.promotePixel . (convert :: PixelGray -> JP.Pixel16)
+instance Convertible PixelGrayA JP.PixelYA16 where
+  convert (PixelGrayA g a) = JP.PixelYA16 (toWord16 g) (toWord16 a)
+
 
 -- PixelGray -> Color
 
@@ -224,11 +228,13 @@ instance Convertible PixelRGB JP.Pixel16 where
 instance Convertible PixelRGB JP.PixelF where
   convert = convert . (convert :: PixelRGB -> PixelGray)
 
-instance Convertible PixelRGB JP.PixelYA8 where
-  convert = convert . (convert :: PixelRGB -> PixelGray)
+{-
+instance Convertible PixelRGBA JP.PixelYA8 where
+  convert = convert . (convert :: PixelRGBA -> PixelGray)
 
-instance Convertible PixelRGB JP.PixelYA16 where
-  convert = convert . (convert :: PixelRGB -> PixelGray)
+instance Convertible PixelRGBA JP.PixelYA16 where
+  convert = convert . (convert :: PixelRGBA -> PixelGray)
+-}
 
 -- Color -> Color
 
@@ -258,6 +264,13 @@ instance Convertible PixelRGB JP.PixelCMYK16 where
   convert = (JP.convertPixel :: JP.PixelRGB16 -> JP.PixelCMYK16) . convert
 
 
+instance Convertible PixelRGBA JP.PixelRGBA8 where
+  convert (PixelRGBA r g b a) = JP.PixelRGBA8 (toWord8 r) (toWord8 g) (toWord8 b) (toWord8 a)
+
+instance Convertible PixelRGBA JP.PixelRGBA16 where
+  convert (PixelRGBA r g b a) = JP.PixelRGBA16 (toWord16 r) (toWord16 g) (toWord16 b) (toWord16 a)
+
+  
 ---- Exact precision conversions
 
 instance Convertible JP.Pixel8 (Pixel Gray Word8) where
@@ -294,6 +307,46 @@ instance Convertible JP.PixelRGBA16 (Pixel RGBA Word16) where
   convert (JP.PixelRGBA16 r g b a) = PixelRGBA r g b a
 
 
+instance Convertible (Pixel Gray Word8) JP.Pixel8 where
+  convert (PixelGray g) = g
+  
+instance Convertible (Pixel Gray Word16) JP.Pixel16 where
+  convert (PixelGray g) = g
+
+instance Convertible (Pixel Gray Word32) JP.Pixel32 where
+  convert (PixelGray g) = g
+
+instance Convertible (Pixel Gray Float) JP.PixelF where
+  convert (PixelGray g) = g
+
+instance Convertible (Pixel GrayA Word8) JP.PixelYA8 where
+  convert (PixelGrayA g a) = JP.PixelYA8 g a
+  
+instance Convertible (Pixel GrayA Word16) JP.PixelYA16 where
+  convert (PixelGrayA g a) = JP.PixelYA16 g a
+
+instance Convertible (Pixel RGB Word8) JP.PixelRGB8 where
+  convert (PixelRGB r g b) = JP.PixelRGB8 r g b
+  
+instance Convertible (Pixel RGB Word16) JP.PixelRGB16 where
+  convert (PixelRGB r g b) = JP.PixelRGB16 r g b
+
+instance Convertible (Pixel RGB Float) JP.PixelRGBF where
+  convert (PixelRGB r g b) = JP.PixelRGBF r g b
+
+instance Convertible (Pixel RGBA Word8) JP.PixelRGBA8 where
+  convert (PixelRGBA r g b a) = JP.PixelRGBA8 r g b a
+  
+instance Convertible (Pixel RGBA Word16) JP.PixelRGBA16 where
+  convert (PixelRGBA r g b a) = JP.PixelRGBA16 r g b a
+
+
+
+--------------------------------------------------------------------------------
+-- Decoding images using JuicyPixels ------------------------------------------
+--------------------------------------------------------------------------------
+
+
 -- BMP Format Reading
 
 instance Array arr Gray Word8 => Readable (Image arr Gray Word8) BMP where
@@ -319,7 +372,7 @@ instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
           Convertible JP.Pixel8 (Pixel cs Double),
           Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
          Readable (Image arr cs Double) BMP where
-  decode _ = decodeImageUsing JP.decodeBitmap
+  decode _ = jpDynamicImageToImage . JP.decodeBitmap
 
 
 -- GIF Format Reading
@@ -329,19 +382,6 @@ instance Array arr RGB Word8 => Readable (Image arr RGB Word8) GIF where
 
 instance Array arr RGBA Word8 => Readable (Image arr RGBA Word8) GIF where
   decode _ = jpImageRGBA8ToImage . JP.decodeGif
-
-instance Array arr RGB Word8 => Readable [Image arr RGB Word8] GIFs where
-  decode _ = decodeGifs jpImageRGB8ToImage
-
-instance Array arr RGBA Word8 => Readable [Image arr RGBA Word8] GIFs where
-  decode _ = decodeGifs jpImageRGBA8ToImage
-
-
-decodeGifs :: (Either String JP.DynamicImage -> Either String img)
-           -> B.ByteString -> Either String [img]
-decodeGifs decoder = either Left decodeLS . JP.decodeGifImages where
-    decodeLS ls = if null errs then Right imgs else Left $ unlines errs where
-      (errs, imgs) = partitionEithers $ map (decoder . Right) ls
 
 instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
           Convertible JP.PixelCMYK8 (Pixel cs Double),
@@ -357,7 +397,38 @@ instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
           Convertible JP.Pixel8 (Pixel cs Double),
           Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
          Readable (Image arr cs Double) GIF where
-  decode _ = decodeImageUsing JP.decodeGif
+  decode _ = jpDynamicImageToImage . JP.decodeGif
+
+-- List of GIF Format frames Reading
+
+decodeGifs :: (Either String JP.DynamicImage -> Either String img)
+           -> B.ByteString -> Either String [img]
+decodeGifs decoder = either Left decodeLS . JP.decodeGifImages where
+    decodeLS ls = if null errs then Right imgs else Left $ unlines errs where
+      (errs, imgs) = partitionEithers $ map (decoder . Right) ls
+
+instance Array arr RGB Word8 => Readable [Image arr RGB Word8] [GIF] where
+  decode _ = decodeGifs jpImageRGB8ToImage
+
+instance Array arr RGBA Word8 => Readable [Image arr RGBA Word8] [GIF] where
+  decode _ = decodeGifs jpImageRGBA8ToImage
+
+
+instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
+          Convertible JP.PixelCMYK8 (Pixel cs Double),
+          Convertible JP.PixelRGB16 (Pixel cs Double),
+          Convertible JP.PixelRGB8 (Pixel cs Double),
+          Convertible JP.PixelRGBA16 (Pixel cs Double),
+          Convertible JP.PixelRGBA8 (Pixel cs Double),
+          Convertible JP.PixelRGBF (Pixel cs Double),
+          Convertible JP.PixelYA16 (Pixel cs Double),
+          Convertible JP.PixelYA8 (Pixel cs Double),
+          Convertible JP.PixelYCbCr8 (Pixel cs Double),
+          Convertible JP.Pixel16 (Pixel cs Double),
+          Convertible JP.Pixel8 (Pixel cs Double),
+          Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
+         Readable [Image arr cs Double] [GIF] where
+  decode _ = decodeGifs jpDynamicImageToImage
 
 
 -- HDR Format Reading
@@ -379,7 +450,7 @@ instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
           Convertible JP.Pixel8 (Pixel cs Double),
           Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
          Readable (Image arr cs Double) HDR where
-  decode _ = decodeImageUsing JP.decodeHDR
+  decode _ = jpDynamicImageToImage . JP.decodeHDR
 
 
 
@@ -408,7 +479,7 @@ instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
           Convertible JP.Pixel8 (Pixel cs Double),
           Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
          Readable (Image arr cs Double) JPG where
-  decode _ = decodeImageUsing JP.decodeJpeg
+  decode _ = jpDynamicImageToImage . JP.decodeJpeg
 
 
 -- PNG Format Reading
@@ -451,8 +522,78 @@ instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
           Convertible JP.Pixel8 (Pixel cs Double),
           Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
          Readable (Image arr cs Double) PNG where
-  decode _ = decodeImageUsing JP.decodePng
+  decode _ = jpDynamicImageToImage . JP.decodePng
 
+
+-- TGA Format Reading
+
+instance Array arr Gray Word8 => Readable (Image arr Gray Word8) TGA where
+  decode _ = jpImageY8ToImage . JP.decodeTga
+
+instance Array arr RGB Word8 => Readable (Image arr RGB Word8) TGA where
+  decode _ = jpImageRGB8ToImage . JP.decodeTga
+
+instance Array arr RGBA Word8 => Readable (Image arr RGBA Word8) TGA where
+  decode _ = jpImageRGBA8ToImage . JP.decodeTga
+
+instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
+          Convertible JP.PixelCMYK8 (Pixel cs Double),
+          Convertible JP.PixelRGB16 (Pixel cs Double),
+          Convertible JP.PixelRGB8 (Pixel cs Double),
+          Convertible JP.PixelRGBA16 (Pixel cs Double),
+          Convertible JP.PixelRGBA8 (Pixel cs Double),
+          Convertible JP.PixelRGBF (Pixel cs Double),
+          Convertible JP.PixelYA16 (Pixel cs Double),
+          Convertible JP.PixelYA8 (Pixel cs Double),
+          Convertible JP.PixelYCbCr8 (Pixel cs Double),
+          Convertible JP.Pixel16 (Pixel cs Double),
+          Convertible JP.Pixel8 (Pixel cs Double),
+          Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
+         Readable (Image arr cs Double) TGA where
+  decode _ = jpDynamicImageToImage . JP.decodeTga
+
+
+-- TIF Format Reading
+
+instance Array arr Gray Word8 => Readable (Image arr Gray Word8) TIF where
+  decode _ = jpImageY8ToImage . JP.decodeTiff
+
+instance Array arr Gray Word16 => Readable (Image arr Gray Word16) TIF where
+  decode _ = jpImageY16ToImage . JP.decodeTiff
+
+instance Array arr GrayA Word8 => Readable (Image arr GrayA Word8) TIF where
+  decode _ = jpImageYA8ToImage . JP.decodeTiff
+
+instance Array arr GrayA Word16 => Readable (Image arr GrayA Word16) TIF where
+  decode _ = jpImageYA16ToImage . JP.decodeTiff
+
+instance Array arr RGB Word8 => Readable (Image arr RGB Word8) TIF where
+  decode _ = jpImageRGB8ToImage . JP.decodeTiff
+
+instance Array arr RGB Word16 => Readable (Image arr RGB Word16) TIF where
+  decode _ = jpImageRGB16ToImage . JP.decodeTiff
+
+instance Array arr RGBA Word8 => Readable (Image arr RGBA Word8) TIF where
+  decode _ = jpImageRGBA8ToImage . JP.decodeTiff
+
+instance Array arr RGBA Word16 => Readable (Image arr RGBA Word16) TIF where
+  decode _ = jpImageRGBA16ToImage . JP.decodeTiff
+
+instance (Convertible JP.PixelCMYK16 (Pixel cs Double),
+          Convertible JP.PixelCMYK8 (Pixel cs Double),
+          Convertible JP.PixelRGB16 (Pixel cs Double),
+          Convertible JP.PixelRGB8 (Pixel cs Double),
+          Convertible JP.PixelRGBA16 (Pixel cs Double),
+          Convertible JP.PixelRGBA8 (Pixel cs Double),
+          Convertible JP.PixelRGBF (Pixel cs Double),
+          Convertible JP.PixelYA16 (Pixel cs Double),
+          Convertible JP.PixelYA8 (Pixel cs Double),
+          Convertible JP.PixelYCbCr8 (Pixel cs Double),
+          Convertible JP.Pixel16 (Pixel cs Double),
+          Convertible JP.Pixel8 (Pixel cs Double),
+          Convertible JP.PixelF (Pixel cs Double), Array arr cs Double) =>
+         Readable (Image arr cs Double) TIF where
+  decode _ = jpDynamicImageToImage . JP.decodeTiff
 
 
 -- General decoding and helper functions
@@ -524,14 +665,7 @@ jpImageRGBA16ToImage jimg = jpCSError "RGBA16 (Pixel RGBA Word16)" jimg
 
 
 
---jpImageListToImageList :: Array arr cs e =>
---                       Either String [JP.DynamicImage] -> Either String [Image arr cs e]
---jpImageListToImageList (Right jimgs) = Right $ map jpImageToImage jimgs
---jpImageListToImageList (Left err) = jpError err
-
-
-
-jpDynamicImageToImage :: (Convertible JP.PixelCMYK16 (Pixel cs e),
+jpDynamicImageToImage' :: (Convertible JP.PixelCMYK16 (Pixel cs e),
                           Convertible JP.PixelCMYK8 (Pixel cs e),
                           Convertible JP.PixelRGB16 (Pixel cs e),
                           Convertible JP.PixelRGB8 (Pixel cs e),
@@ -546,37 +680,36 @@ jpDynamicImageToImage :: (Convertible JP.PixelCMYK16 (Pixel cs e),
                           Convertible JP.PixelF (Pixel cs e),
                           Array arr cs e) =>
                          JP.DynamicImage -> Image arr cs e
-jpDynamicImageToImage (JP.ImageY8 jimg)     = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageY16 jimg)    = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageYF jimg)     = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageYA8 jimg)    = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageYA16 jimg)   = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageRGB8 jimg)   = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageRGB16 jimg)  = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageRGBF jimg)   = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageRGBA8 jimg)  = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageRGBA16 jimg) = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageYCbCr8 jimg) = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageCMYK8 jimg)  = jpImageToImage jimg
-jpDynamicImageToImage (JP.ImageCMYK16 jimg) = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageY8 jimg)     = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageY16 jimg)    = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageYF jimg)     = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageYA8 jimg)    = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageYA16 jimg)   = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageRGB8 jimg)   = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageRGB16 jimg)  = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageRGBF jimg)   = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageRGBA8 jimg)  = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageRGBA16 jimg) = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageYCbCr8 jimg) = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageCMYK8 jimg)  = jpImageToImage jimg
+jpDynamicImageToImage' (JP.ImageCMYK16 jimg) = jpImageToImage jimg
 
 
-decodeImageUsing :: (Convertible JP.PixelCMYK16 (Pixel cs e),
-                     Convertible JP.PixelCMYK8 (Pixel cs e),
-                     Convertible JP.PixelRGB16 (Pixel cs e),
-                     Convertible JP.PixelRGB8 (Pixel cs e),
-                     Convertible JP.PixelRGBA16 (Pixel cs e),
-                     Convertible JP.PixelRGBA8 (Pixel cs e),
-                     Convertible JP.PixelRGBF (Pixel cs e),
-                     Convertible JP.PixelYA16 (Pixel cs e),
-                     Convertible JP.PixelYA8 (Pixel cs e),
-                     Convertible JP.PixelYCbCr8 (Pixel cs e),
-                     Convertible JP.Pixel16 (Pixel cs e),
-                     Convertible JP.Pixel8 (Pixel cs e),
-                     Convertible JP.PixelF (Pixel cs e), Array arr cs e) =>
-                    (a -> Either String JP.DynamicImage) -> a -> Either String (Image arr cs e)
-decodeImageUsing decoder = either jpError (Right . jpDynamicImageToImage) . decoder 
-
+jpDynamicImageToImage :: (Convertible JP.PixelCMYK16 (Pixel cs e),
+                          Convertible JP.PixelCMYK8 (Pixel cs e),
+                          Convertible JP.PixelRGB16 (Pixel cs e),
+                          Convertible JP.PixelRGB8 (Pixel cs e),
+                          Convertible JP.PixelRGBA16 (Pixel cs e),
+                          Convertible JP.PixelRGBA8 (Pixel cs e),
+                          Convertible JP.PixelRGBF (Pixel cs e),
+                          Convertible JP.PixelYA16 (Pixel cs e),
+                          Convertible JP.PixelYA8 (Pixel cs e),
+                          Convertible JP.PixelYCbCr8 (Pixel cs e),
+                          Convertible JP.Pixel16 (Pixel cs e),
+                          Convertible JP.Pixel8 (Pixel cs e),
+                          Convertible JP.PixelF (Pixel cs e), Array arr cs e) =>
+                         Either String JP.DynamicImage -> Either String (Image arr cs e)
+jpDynamicImageToImage = either jpError (Right . jpDynamicImageToImage')
 
 
 jpImageShowCS :: JP.DynamicImage -> String
@@ -605,22 +738,74 @@ jpCSError cs (Right jimg) = jpError ("Input image is in "++(jpImageShowCS jimg)+
                                      ", cannot convert it to "++cs++" colorspace.")
 
 
-{-
-
-jpImageRGB8ToImage' :: Array arr RGB Word8 => JP.DynamicImage -> Image arr RGB Word8
-jpImageRGB8ToImage' (JP.ImageRGB8 jimg) = jpImageToImage jimg
-
-jpImageRGB16ToImage' :: Array arr RGB Word16 => JP.DynamicImage -> Image arr RGB Word16
-jpImageRGB16ToImage' (JP.ImageRGB16 jimg) = jpImageToImage jimg
+--------------------------------------------------------------------------------
+-- Encoding images using JuicyPixels -------------------------------------------
+--------------------------------------------------------------------------------
 
 
-decodeImageUsing' :: (img' -> img) -> (str -> Either String img') -> str -> Either String img
-decodeImageUsing' converter decoder imgstr = 
-  either (Left . ("JuicyPixel decoding error: "++)) (Right . converter) $ decoder imgstr
--}
---decodeJPImageUsing :: (AImage img px, Pixel px, Interconvertible JP.DynamicImage (img px)) =>
---                      (B.ByteString -> Either String JP.DynamicImage)
---                      -> B.ByteString -> Either String (img px)
---decodeJPImageUsing decoder imgstr = 
---  either (Left . ("JuicyPixel decoding error: "++)) (Right . jpDynamicImageToImage) $ decoder imgstr
-  
+instance Array arr Gray Word8 => Writable (Image arr Gray Word8) BMP where
+  encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel Gray Word8 -> JP.Pixel8) 
+
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) BMP where
+  encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel RGB Word8 -> JP.PixelRGB8) 
+
+instance Array arr RGBA Word8 => Writable (Image arr RGBA Word8) BMP where
+  encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel RGBA Word8 -> JP.PixelRGBA8) 
+
+instance Array arr Gray Double => Writable (Image arr Gray Double) BMP where
+  encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel Gray Double -> JP.Pixel8) 
+
+instance Array arr RGB Double => Writable (Image arr RGB Double) BMP where
+  encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel RGB Double -> JP.PixelRGB8) 
+
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) BMP where
+  encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: PixelRGBA -> JP.PixelRGBA8) 
+
+
+
+instance Array arr Gray Word8 => Writable (Image arr Gray Word8) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel Gray Word8 -> JP.Pixel8) 
+
+instance Array arr Gray Word16 => Writable (Image arr Gray Word16) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel Gray Word16 -> JP.Pixel16) 
+
+instance Array arr GrayA Word8 => Writable (Image arr GrayA Word8) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel GrayA Word8 -> JP.PixelYA8) 
+
+instance Array arr GrayA Word16 => Writable (Image arr GrayA Word16) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel GrayA Word16 -> JP.PixelYA16) 
+
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGB Word8 -> JP.PixelRGB8) 
+
+instance Array arr RGB Word16 => Writable (Image arr RGB Word16) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGB Word16 -> JP.PixelRGB16) 
+
+instance Array arr RGBA Word8 => Writable (Image arr RGBA Word8) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGBA Word8 -> JP.PixelRGBA8) 
+
+instance Array arr RGBA Word16 => Writable (Image arr RGBA Word16) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGBA Word16 -> JP.PixelRGBA16) 
+
+
+instance Array arr Gray Double => Writable (Image arr Gray Double) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel Gray Double -> JP.Pixel16) 
+
+instance Array arr GrayA Double => Writable (Image arr GrayA Double) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel GrayA Double -> JP.PixelYA16) 
+
+instance Array arr RGB Double => Writable (Image arr RGB Double) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGB Double -> JP.PixelRGB16) 
+
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage (convert :: PixelRGBA -> JP.PixelRGBA16)
+
+
+
+imageToJPImage :: (JP.Pixel a, Array arr cs e) =>
+                  (Pixel cs e -> a) -> Image arr cs e -> JP.Image a
+imageToJPImage f img@(dims -> (m, n)) = JP.generateImage g n m
+  where g j i = f $ index img (i, j)
+
+
+    

@@ -1,12 +1,10 @@
 module Graphics.Image (
-  I.Image,
-  map, mapPx
   ) where
 
 import Prelude hiding (map)
 import Graphics.Image.Interface (Array, Image, ColorSpace(..))
 import qualified Graphics.Image.Interface as I
-
+{-
 -- | Map a function over each pixel's channel in source image.
 map :: Array arr cs e =>
        (e -> e) -- ^ A function that takes a pixel's channel value from a source
@@ -38,3 +36,4 @@ imapPx :: (Array arr cs' e', Array arr cs e) =>
        -> Image arr cs e -- ^ Result image.
 imapPx = I.imapPx
 {-# INLINE imapPx #-}
+-}
