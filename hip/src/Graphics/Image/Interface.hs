@@ -2,10 +2,11 @@
              TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Interface (
-  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), Convertible(..)
+  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), Convertible(..),
+  Transformable(..)
   ) where
 
-import Prelude hiding (map, zipWith)
+import Prelude hiding (map, zipWith, sum, product)
 import GHC.Exts (Constraint)
 
 
@@ -33,26 +34,18 @@ class (Enum cs, Show cs) => ColorSpace cs where
 
   getPxCh :: Pixel cs e -> cs -> e
   
-  chOp :: (cs -> e -> e) -> Pixel cs e -> Pixel cs e 
+  chOp :: (cs -> e' -> e) -> Pixel cs e' -> Pixel cs e 
 
-  chOp2 :: (cs -> e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
+  chOp2 :: (cs -> e1 -> e2 -> e) -> Pixel cs e1 -> Pixel cs e2 -> Pixel cs e
   
-  pxOp :: (e -> e) -> Pixel cs e -> Pixel cs e
+  pxOp :: (e' -> e) -> Pixel cs e' -> Pixel cs e
 
-  pxOp2 :: (e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
+  pxOp2 :: (e1 -> e2 -> e) -> Pixel cs e1 -> Pixel cs e2 -> Pixel cs e
 
                                  
   
 class Convertible a b where
   convert :: a -> b
-
-
-
-class Array arr cs e => ManifestArray arr cs e where
-
-  (|*|) :: Image arr cs e -> Image arr cs e -> Image arr cs e
-
-  deepSeqImage :: Image arr cs e -> Image arr cs e
 
 
 
@@ -94,6 +87,33 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
   transpose :: Image arr cs e -> Image arr cs e
 
   backpermute :: (Int, Int) -> ((Int, Int) -> (Int, Int)) -> Image arr cs e -> Image arr cs e
+
+
+
+class Array arr cs e => ManifestArray arr cs e where
+
+  deepSeqImage :: Image arr cs e -> a -> a
+  
+  (|*|) :: Image arr cs e -> Image arr cs e -> Image arr cs e
+
+  fold :: (Pixel cs e -> Pixel cs e -> Pixel cs e)
+       -> Pixel cs e -> Image arr cs e -> Pixel cs e
+
+  eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
+  
+  sum :: Image arr cs e -> Pixel cs e
+  sum = fold (+) 0
+  {-# INLINE sum #-}
+
+  product :: Image arr cs e -> Pixel cs e
+  product = fold (+) 1
+  {-# INLINE product #-}
+
+
+
+class Transformable arr' arr where
+
+  transform :: (Array arr' cs e, Array arr cs e) => Image arr' cs e -> arr -> Image arr cs e
 
 
 
@@ -168,6 +188,10 @@ instance (ColorSpace cs, Floating e) => Floating (Pixel cs e) where
   acosh   = pxOp acosh
   {-# INLINE acosh #-}
 
+
+instance (ManifestArray arr cs e, Eq (Pixel cs e)) => Eq (Image arr cs e) where
+  (==) = eq
+  {-# INLINE (==) #-}
 
   
 instance Array arr cs e => Num (Image arr cs e) where
