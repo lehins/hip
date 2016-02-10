@@ -4,6 +4,8 @@ module Graphics.Image.ColorSpace (
   module Graphics.Image.ColorSpace.Gray,
   module Graphics.Image.ColorSpace.RGB,
   module Graphics.Image.ColorSpace.HSI,
+  module Graphics.Image.ColorSpace.YCbCr,
+  module Graphics.Image.ColorSpace.CMYK,
   Elevator(..)
   ) where
 
@@ -13,6 +15,8 @@ import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Gray
 import Graphics.Image.ColorSpace.RGB
 import Graphics.Image.ColorSpace.HSI
+import Graphics.Image.ColorSpace.YCbCr
+import Graphics.Image.ColorSpace.CMYK
 
 
 
@@ -58,8 +62,29 @@ instance ToRGB HSI where
   {-# INLINE toPixelRGB #-}
 
 instance ToRGBA HSIA where
-  
 
+
+instance ToRGB YCbCr where
+
+  toPixelRGB (PixelYCbCr y cb cr) = PixelRGB r g b where
+    !r = y                      +   1.402*(cr - 0.5)
+    !g = y - 0.34414*(cb - 0.5) - 0.71414*(cr - 0.5)
+    !b = y +   1.772*(cb - 0.5)
+  {-# INLINE toPixelRGB #-}
+
+instance ToRGBA YCbCrA where
+
+instance ToRGB CMYK where
+
+  toPixelRGB (PixelCMYK c m y k) = PixelRGB r g b where
+    !r = (1-c)*(1-k)
+    !g = (1-m)*(1-k)
+    !b = (1-y)*(1-k)
+  {-# INLINE toPixelRGB #-}
+  
+instance ToRGBA CMYKA where
+
+  
 instance ToHSI Gray where
   toPixelHSI (PixelGray g) = PixelHSI 0 0 g
   {-# INLINE toPixelHSI #-}
@@ -79,7 +104,28 @@ instance ToHSI RGB where
 instance ToHSIA RGBA where
 
 
+instance ToYCbCr RGB where
 
+  toPixelYCbCr (PixelRGB r g b) = PixelYCbCr y cb cr where
+    !y  =          0.299*r +    0.587*g +    0.114*b
+    !cb = 0.5 - 0.168736*r - 0.331264*g +      0.5*b
+    !cr = 0.5 +      0.5*r - 0.418688*g - 0.081312*b
+  {-# INLINE toPixelYCbCr #-}
+
+instance ToYCbCrA RGBA where
+  
+
+instance ToCMYK RGB where
+
+  toPixelCMYK (PixelRGB r g b) = PixelCMYK c m y k where
+    !c = (1 - r - k)/(1 - k)
+    !m = (1 - g - k)/(1 - k)
+    !y = (1 - b - k)/(1 - k)
+    !k = 1 - max r (max g b)
+
+instance ToCMYKA RGBA where
+
+  
 -- | A convenient class with set of functions that allow for changing precision of
 -- channels within pixels, while scaling the values to keep them in an appropriate range.
 --

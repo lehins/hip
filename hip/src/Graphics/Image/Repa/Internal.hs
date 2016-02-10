@@ -8,7 +8,6 @@ module Graphics.Image.Repa.Internal (
   ) where
 
 import Prelude hiding (map, zipWith)
-import qualified Prelude as P (map)
 import Graphics.Image.Interface
 
 import Data.Array.Repa.Repr.Unboxed (Unbox)
@@ -187,6 +186,7 @@ instance Transformable RP RS where
 instance Array RS cs e => ManifestArray RS cs e where
 
   deepSeqImage (RSImage (RUImage arr)) = deepSeqArray arr
+  deepSeqImage _ = _error_compute
   {-# INLINE deepSeqImage #-}
 
   (|*|) i1@(RSImage img1) i2@(RSImage img2) =
@@ -194,15 +194,18 @@ instance Array RS cs e => ManifestArray RS cs e where
   {-# INLINE (|*|) #-}
 
   fold !f !a (RSImage (RUImage arr)) = R.foldAllS f a $ arr
+  fold _  _  _ = _error_compute
   {-# INLINE fold #-}
 
   eq (RSImage (RUImage arr1)) (RSImage (RUImage arr2)) = R.equalsS arr1 arr2
+  eq _ _ = _error_compute
   {-# INLINE eq #-}
 
 
 instance Array RP cs e => ManifestArray RP cs e where
 
   deepSeqImage (RPImage (RUImage arr)) = deepSeqArray arr
+  deepSeqImage _ = _error_compute
   {-# INLINE deepSeqImage #-}
 
   (|*|) i1@(RPImage img1) i2@(RPImage img2) =
@@ -210,14 +213,17 @@ instance Array RP cs e => ManifestArray RP cs e where
   {-# INLINE (|*|) #-}
 
   fold !f !a (RPImage (RUImage arr)) = head . R.foldAllP f a $ arr
+  fold _  _  _ = _error_compute
   {-# INLINE fold #-}
 
   eq (RPImage (RUImage arr1)) (RPImage (RUImage arr2)) = head $ R.equalsP arr1 arr2
+  eq _ _ = _error_compute
   {-# INLINE eq #-}
 
 
 
 
+mult :: Array RD cs e => Image RD cs e -> Image RD cs e -> Image RD cs e
 mult img1@(RUImage arr1) img2@(RUImage arr2) =
   if n1 /= m2 
   then  error ("Inner dimensions of multiplied images must be the same, but received: "++
@@ -228,6 +234,7 @@ mult img1@(RUImage arr1) img2@(RUImage arr2) =
         (Z :. m2 :. n2) = extent arr2
         getPx (Z :. i :. j) =
           sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
+mult _ _ = _error_compute
 {-# INLINE mult #-}
 
 
@@ -266,7 +273,10 @@ computeS (RDImage arr) = RSImage . RUImage . R.computeS $ arr
 computeS !img          = RSImage img
 {-# INLINE computeS #-}
 
-                                                         
+
+_error_compute :: t
+_error_compute = error "Image should be computed at ths point. Please report this error"
+                         
 _error_traverse_scalar :: String
 _error_traverse_scalar =
   "Traversal of a scalar image does not make sense, hence it is not implemented."

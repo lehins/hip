@@ -2,7 +2,7 @@
              TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Interface (
-  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), Convertible(..),
+  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), 
   Transformable(..)
   ) where
 
@@ -44,11 +44,6 @@ class (Enum cs, Show cs) => ColorSpace cs where
 
                                  
   
-class Convertible a b where
-  convert :: a -> b
-
-
-
 class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
       Array arr cs e where
   

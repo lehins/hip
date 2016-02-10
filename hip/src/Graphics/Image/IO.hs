@@ -1,11 +1,11 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
 module Graphics.Image.IO (
-  readImage, readImageRGB, writeImage,
-  --writeImage, displayImage,
-  --displayImageHistograms, displayHistograms, setDisplayProgram, writeHistograms,
-  InputFormat,
+  readImage, readImageExact, writeImage, writeImageExact,
+  displayImage, setDisplayProgram, 
+  --displayImageHistograms, displayHistograms, writeHistograms,
+  InputFormat, OutputFormat,
   BMP(..), GIF(..), HDR(..), JPG(..), PNG(..), TGA(..), TIF(..),
-  Readable(..), ImageFormat
+  Readable(..), Writable(..), ImageFormat
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
@@ -25,57 +25,25 @@ import System.IO.Temp (withSystemTempDirectory)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (runCommand, waitForProcess)
 
-import Data.Word
-import Graphics.Image.Repa.Internal
-import Graphics.Image.ColorSpace
 
-{-
-extToInputFormat :: String -> Either String InputFormat
-extToInputFormat = ext
-  | null ext                     = Left "File extension was not supplied."
-  | ext == ".bmp"                = Right BMPin
-  | ext == ".gif"                = Right GIFin
-  | ext == ".hdr"                = Right HDRin
-  | ext `elem` [".jpg", ".jpeg"] = Right JPGin
-  | ext == ".png"                = Right PNGin
-  | ext == ".tga"                = Right TGAin
-  | ext `elem` [".tif", ".tiff"] = Right TIFin
-  | ext == ".pbm"                = Right PBMin
-  | ext == ".pgm"                = Right PGMin
-  | ext == ".ppm"                = Right PPMin
-  | otherwise                    = Left $ "Unsupported file extension: "++ext
-
-
-extToOutputFormat :: String -> Either String OutputFormat
-extToOutputFormat ext
-  | null ext                     = Left "File extension was not supplied."
-  | ext == ".bmp"                = Right BMP
-  -- \ | ext == ".gif"                = Right GIF
-  | ext == ".hdr"                = Right HDR
-  | ext `elem` [".jpg", ".jpeg"] = Right $ JPG 100
-  | ext == ".png"                = Right PNG
-  -- \ | ext == ".tga"                = Right TGA
-  | ext `elem` [".tif", ".tiff"] = Right TIF
-  -- \ | ext == ".pbm"                = Right $ PBM RAW
-  -- \ | ext == ".pgm"                = Right $ PGM RAW
-  -- \ | ext == ".ppm"                = Right $ PPM RAW
-  | otherwise                         = Left $ "Unsupported file extension: "++ext
-                
--}
-
-guessInputFormat :: FilePath -> Maybe InputFormat
-guessInputFormat path =
+guessFormat :: (ImageFormat f, Enum f) => FilePath -> Maybe f
+guessFormat path =
   headMaybe . dropWhile (not . isFormat e) . enumFrom . toEnum $ 0
   where e = P.map toLower . takeExtension $ path
         headMaybe ls = if null ls then Nothing else Just $ head ls
 
-
+-- | This function will try to guess an image format from file's extension and
+-- attempt to read it as such first, while falling back on the rest of the
+-- supported formats. Image will be read into a type signature specified
+-- 'ColorSpace' with 'Double' precision, while doing all necessary
+-- conversions. Whenever image cannot be decoded, 'Left' containing an error
+-- will be returned, and 'Right' containing an image otherwise.
 readImage :: Readable (Image arr cs Double) InputFormat =>
              FilePath
           -> IO (Either String (Image arr cs Double))
 readImage path = do
   imgstr <- readFile path
-  let maybeFormat = guessInputFormat path
+  let maybeFormat = (guessFormat path :: Maybe InputFormat)
       formats = enumFrom . toEnum $ 0
       orderedFormats = maybe formats (\f -> f:(filter (/=f) formats)) maybeFormat
       reader (Left err) format = 
@@ -91,44 +59,26 @@ readImageExact :: Readable img format =>
 readImageExact format path = fmap (decode format) (readFile path)
 
 
-readImageRGB :: FilePath -> IO (Image RD RGB Double)
-readImageRGB = fmap (either error id) . readImage
-
-
-
-writeImage :: Writable (Image arr cs e) PNG =>
+writeImage :: Writable (Image arr cs e) OutputFormat =>
               FilePath
            -> Image arr cs e
            -> IO ()
-writeImage path img = BL.writeFile path $ encode PNG [] img
+writeImage path = BL.writeFile path . encode format [] where
+  format = maybe (error ("Could not guess output format. Use 'writeImageExact' "++
+                         "or supply a filename with supported format."))
+           id (guessFormat path :: Maybe OutputFormat)
 
   
-{-
+writeImageExact :: Writable img format =>
+                   FilePath
+                -> format
+                -> [SaveOption format]
+                -> img
+                -> IO ()
+writeImageExact path format opts = BL.writeFile path . encode format opts
+  
 
 
-writeImage :: Writeable arr cs e =>
-              [SaveOption (]
-           -> FilePath
-           -> Image arr cs e
-           -> IO ()
-writeImage !options !path !img =
-  BL.writeFile path $ encoder format img where
-    !format  = getFormat options
-    !encoder = getEncoder options
-    getFormat []           = either error id $ guessOutputFormat path
-    getFormat (Format f:_) = f
-    getFormat (_:opts)     = getFormat opts
-    getEncoder []              = defaultEncoder format
-    getEncoder (Encoder enc:_) = enc
-    getEncoder (_:opts)        = getEncoder opts
-    defaultEncoder !f = case f of BMP     -> inRGB8
-                                  (JPG _) -> inYCbCr8
-                                  PNG     -> inRGB8
-                                  TIF     -> inRGB8
-                                  HDR     -> inRGBF
-                                  -- PBM  -> inY8
-                                  -- PGM  -> inY8
-                                  -- PPM  -> inRGB8
 
 {-| Sets the program to use when making a call to display.  GPicView (gpicview) is
 set as a default program.
@@ -157,26 +107,25 @@ displayProgram = unsafePerformIO . newIORef $ "gpicview"
 --  >>> frog <- readImageRGB "images/frog.jpg"
 --  >>> displayImage frog
 --
-displayImage :: (Strategy strat img px, AImage img px, Saveable img px) =>
-                strat img px
-             -> img px
+displayImage :: Writable (Image arr cs e) OutputFormat =>
+                Image arr cs e
              -> IO ()
-displayImage strat img = do
+displayImage img = do
   program <- readIORef displayProgram
-  withSystemTempDirectory "hip_" (displayUsing strat img program)
+  withSystemTempDirectory "hip_" (displayUsing img program)
 
 
-displayUsing :: (Strategy strat img px, AImage img px, Saveable img px) =>
-                strat img px -> img px -> String -> FilePath -> IO ()
-displayUsing strat img program tmpDir = do
+displayUsing :: Writable (Image arr cs e) OutputFormat =>
+                Image arr cs e -> String -> FilePath -> IO ()
+displayUsing img program tmpDir = do
   let path = tmpDir </> "tmp-img.png"
-  writeImage strat [Format PNG, Encoder inRGBA8] path img
+  writeImage path img
   ph <- runCommand (program ++ " " ++ path)
   e <- waitForProcess ph
   let printExit ExitSuccess = return ()
       printExit exitCode = print exitCode
   printExit e
--}  
+
 
 {-
 displayImageHistograms :: (Strategy strat img (Channel px), AImage img px,

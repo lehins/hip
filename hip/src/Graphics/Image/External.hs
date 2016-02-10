@@ -1,7 +1,8 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              UndecidableInstances #-}
 module Graphics.Image.External (
-  InputFormat(..),
+  InputFormat(..), OutputFormat(..),
   module Graphics.Image.External.Base,  
   module Graphics.Image.External.JuicyPixels
   ) where
@@ -12,7 +13,7 @@ import Graphics.Image.External.JuicyPixels
 
 
 -- | A collection of all image formats that can be read into HIP images with
--- 'Double` precision pixel channels.
+-- 'Double' precision pixel channels.
 data InputFormat = InputBMP
                  | InputGIF
                  | InputHDR
@@ -23,6 +24,7 @@ data InputFormat = InputBMP
 
 
 instance ImageFormat InputFormat where
+  data SaveOption InputFormat
 
   ext InputBMP = ext BMP
   ext InputGIF = ext GIF
@@ -48,3 +50,43 @@ instance (Readable (Image arr cs Double) BMP,
   decode InputPNG = decode PNG
   decode InputTGA = decode TGA
   decode InputTIF = decode TIF
+
+
+
+-- | A collection of all image formats that can be read into HIP images with
+-- 'Double' precision pixel channels.
+data OutputFormat = OutputBMP
+                  | OutputGIF
+                  | OutputHDR
+                  | OutputJPG
+                  | OutputPNG
+                  | OutputTIF
+                  | OutputTGA  deriving (Show, Enum, Eq)
+
+
+instance ImageFormat OutputFormat where
+  data SaveOption OutputFormat
+  ext OutputBMP = ext BMP
+  ext OutputGIF = ext GIF
+  ext OutputHDR = ext HDR
+  ext OutputJPG = ext JPG
+  ext OutputPNG = ext PNG
+  ext OutputTGA = ext TGA
+  ext OutputTIF = ext TIF
+
+
+instance (Writable (Image arr cs Double) BMP,
+          Writable (Image arr cs Double) GIF,
+          Writable (Image arr cs Double) HDR,
+          Writable (Image arr cs Double) JPG,
+          Writable (Image arr cs Double) PNG,
+          Writable (Image arr cs Double) TGA,
+          Writable (Image arr cs Double) TIF) =>
+         Writable (Image arr cs Double) OutputFormat where
+  encode OutputBMP _ = encode BMP []
+  encode OutputGIF _ = encode GIF []
+  encode OutputHDR _ = encode HDR []
+  encode OutputJPG _ = encode JPG []
+  encode OutputPNG _ = encode PNG []
+  encode OutputTGA _ = encode TGA []
+  encode OutputTIF _ = encode TIF []
