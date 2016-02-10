@@ -1,7 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses, MultiWayIf #-}
 module Graphics.Image.ColorSpace (
+  module Graphics.Image.ColorSpace.Binary,
   module Graphics.Image.ColorSpace.Gray,
+  module Graphics.Image.ColorSpace.Luma,
   module Graphics.Image.ColorSpace.RGB,
   module Graphics.Image.ColorSpace.HSI,
   module Graphics.Image.ColorSpace.YCbCr,
@@ -12,31 +14,39 @@ module Graphics.Image.ColorSpace (
 import Data.Word
 import GHC.Float
 import Graphics.Image.Interface
+import Graphics.Image.ColorSpace.Binary
 import Graphics.Image.ColorSpace.Gray
+import Graphics.Image.ColorSpace.Luma
 import Graphics.Image.ColorSpace.RGB
 import Graphics.Image.ColorSpace.HSI
-import Graphics.Image.ColorSpace.YCbCr
 import Graphics.Image.ColorSpace.CMYK
+import Graphics.Image.ColorSpace.YCbCr
 
 
 
-instance ToGray RGB where
-  toPixelGray (PixelRGB r g b) = PixelGray ((r + g + b)/3)
-  {-# INLINE toPixelGray #-}
+instance ToY RGB where
+  toPixelY (PixelRGB r g b) = PixelY (0.299*r + 0.587*g + 0.114*b)
+  {-# INLINE toPixelY #-}
 
-instance ToGrayA RGBA where
+instance ToYA RGBA where
 
-instance ToGray HSI where
-  toPixelGray (PixelHSI _ _ i) = PixelGray i
-  {-# INLINE toPixelGray #-}
+instance ToY HSI where
+  toPixelY = toPixelY . toPixelRGB
+  {-# INLINE toPixelY #-}
 
-instance ToGrayA HSIA where
+instance ToYA HSIA where
+
+instance ToY YCbCr where
+  toPixelY (PixelYCbCr y _ _) = PixelY y
+  {-# INLINE toPixelY #-}
   
-instance ToRGB Gray where
-  toPixelRGB (PixelGray g) = fromChannel g
+instance ToYA YCbCrA where
+  
+instance ToRGB Y where
+  toPixelRGB (PixelY g) = fromChannel g
   {-# INLINE toPixelRGB #-}
 
-instance ToRGBA GrayA where
+instance ToRGBA YA where
 
 instance ToRGB HSI where
   toPixelRGB (PixelHSI h s i) = 
@@ -85,11 +95,11 @@ instance ToRGB CMYK where
 instance ToRGBA CMYKA where
 
   
-instance ToHSI Gray where
-  toPixelHSI (PixelGray g) = PixelHSI 0 0 g
+instance ToHSI Y where
+  toPixelHSI (PixelY g) = PixelHSI 0 0 g
   {-# INLINE toPixelHSI #-}
 
-instance ToHSIA GrayA where
+instance ToHSIA YA where
   
 instance ToHSI RGB where
   toPixelHSI (PixelRGB r g b) = PixelHSI h s i where
