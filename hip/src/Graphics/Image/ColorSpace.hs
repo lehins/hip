@@ -1,7 +1,9 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses, MultiWayIf #-}
 module Graphics.Image.ColorSpace (
   module Graphics.Image.ColorSpace.Binary,
+  toPixelBin, fromPixelBin, toImageBin, fromImageBin,
   module Graphics.Image.ColorSpace.Gray,
   module Graphics.Image.ColorSpace.Luma,
   module Graphics.Image.ColorSpace.RGB,
@@ -13,7 +15,7 @@ module Graphics.Image.ColorSpace (
 
 import Data.Word
 import GHC.Float
-import Graphics.Image.Interface
+import Graphics.Image.Interface hiding (map)
 import Graphics.Image.ColorSpace.Binary
 import Graphics.Image.ColorSpace.Gray
 import Graphics.Image.ColorSpace.Luma
@@ -21,8 +23,33 @@ import Graphics.Image.ColorSpace.RGB
 import Graphics.Image.ColorSpace.HSI
 import Graphics.Image.ColorSpace.CMYK
 import Graphics.Image.ColorSpace.YCbCr
+import qualified Graphics.Image.Interface as I (map)
+
+toPixelBin :: (Num e, Eq e) => Pixel Y e -> PixelBin
+toPixelBin (PixelY 0) = on
+toPixelBin _          = off
+{-# INLINE toPixelBin #-}
+
+fromPixelBin :: PixelBin -> Pixel Y Word8
+fromPixelBin b = PixelY $ if isOn b then 0 else 1
+{-# INLINE fromPixelBin #-}
+
+toImageBin :: (Array arr Y e, Num e, Eq e, Array arr Binary Bin) =>
+              Image arr Y e
+           -> Image arr Binary Bin
+toImageBin = I.map toPixelBin
+{-# INLINE toImageBin #-}
+
+fromImageBin :: (Array arr Binary Bin, Array arr Y Word8) =>
+                Image arr Binary Bin
+             -> Image arr Y Word8
+fromImageBin = I.map fromPixelBin
+{-# INLINE fromImageBin #-}
 
 
+instance ToY Gray where
+  toPixelY (PixelGray y) = PixelY y
+  {-# INLINE toPixelY #-}
 
 instance ToY RGB where
   toPixelY (PixelRGB r g b) = PixelY (0.299*r + 0.587*g + 0.114*b)
@@ -36,6 +63,11 @@ instance ToY HSI where
 
 instance ToYA HSIA where
 
+instance ToY CMYK where
+  toPixelY = toPixelY . toPixelRGB
+  {-# INLINE toPixelY #-}
+
+  
 instance ToY YCbCr where
   toPixelY (PixelYCbCr y _ _) = PixelY y
   {-# INLINE toPixelY #-}

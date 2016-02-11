@@ -49,12 +49,11 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
   
   type Elt arr cs e :: Constraint
   type Elt arr cs e = ()
-  
+  type DefaultManifest arr
+  type DefaultManifest arr = arr
   data Image arr cs e
 
   dims :: Image arr cs e -> (Int, Int)
-
-  index :: Image arr cs e -> (Int, Int) -> Pixel cs e
 
   make :: (Int, Int) -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
 
@@ -83,9 +82,14 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
 
   backpermute :: (Int, Int) -> ((Int, Int) -> (Int, Int)) -> Image arr cs e -> Image arr cs e
 
+  compute :: ManifestArray (DefaultManifest arr) cs e =>
+             Image arr cs e -> Image (DefaultManifest arr) cs e
+
 
 
 class Array arr cs e => ManifestArray arr cs e where
+
+  index :: Image arr cs e -> (Int, Int) -> Pixel cs e
 
   deepSeqImage :: Image arr cs e -> a -> a
   

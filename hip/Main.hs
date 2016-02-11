@@ -1,10 +1,16 @@
 module Main where
 
+import Prelude hiding (map)
 import Graphics.Image.Interface
 import Graphics.Image.IO
-import Graphics.Image.Repa.Internal
+import Graphics.Image.ColorSpace
+import Graphics.Image.Repa
 
+main :: IO ()
 main = do
   frog <- readImageRGB "frog.png"
-  let frog1 = computeP frog
-  writeImage "frog1.png" (frog1 |*| frog1)
+  let im = (map (/ 4) . map (* 2) $ frog)
+  let frog1 = computeP im
+  --writeImageExact BMP [] "frog1.bmp" frog1
+  displayImage frog1
+  return ()

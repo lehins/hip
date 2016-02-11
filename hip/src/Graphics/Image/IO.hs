@@ -10,6 +10,7 @@ module Graphics.Image.IO (
 
 import Prelude as P hiding (readFile, writeFile)
 import Control.Monad (foldM)
+import Control.Concurrent (forkIO, ThreadId)
 import Data.Char (toLower)
 import Data.IORef
 import Data.ByteString (readFile)
@@ -18,12 +19,13 @@ import Data.ByteString (readFile)
 import Graphics.Image.Interface
 import Graphics.Image.External
 --import HIP.Histogram
-import qualified Data.ByteString.Lazy as BL (writeFile)
+import qualified Data.ByteString.Lazy as BL (writeFile, hPut)
 import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath ((</>), takeExtension)
-import System.IO.Temp (withSystemTempDirectory)
+import System.FilePath (takeExtension)
+import System.IO (Handle, hFlush, hClose)
+import System.IO.Temp (withSystemTempFile)
 import System.IO.Unsafe (unsafePerformIO)
-import System.Process (runCommand, waitForProcess)
+import System.Process (spawnProcess, waitForProcess, showCommandForUser)
 
 
 guessFormat :: (ImageFormat f, Enum f) => FilePath -> Maybe f
@@ -59,9 +61,9 @@ readImageExact :: Readable img format =>
 readImageExact format path = fmap (decode format) (readFile path)
 
 
-writeImage :: Writable (Image arr cs e) OutputFormat =>
+writeImage :: Writable (Image arr cs Double) OutputFormat =>
               FilePath
-           -> Image arr cs e
+           -> Image arr cs Double
            -> IO ()
 writeImage path = BL.writeFile path . encode format [] where
   format = maybe (error ("Could not guess output format. Use 'writeImageExact' "++
@@ -69,61 +71,71 @@ writeImage path = BL.writeFile path . encode format [] where
            id (guessFormat path :: Maybe OutputFormat)
 
   
-writeImageExact :: Writable img format =>
-                   FilePath
-                -> format
+writeImageExact :: (ManifestArray arr cs e, Writable (Image arr cs e) format) =>
+                   format
                 -> [SaveOption format]
-                -> img
+                -> FilePath
+                -> Image arr cs e
                 -> IO ()
-writeImageExact path format opts = BL.writeFile path . encode format opts
+writeImageExact format opts path = BL.writeFile path . encode format opts
   
 
 
 
-{-| Sets the program to use when making a call to display.  GPicView (gpicview) is
-set as a default program.
+{-| Sets the program to be use when displaying an image, where boolean specifies
+if current thread should block until the program is closed when calling
+'displayImage' function. GPicView ("gpicview", False) is set as a default
+program with a nonblocking flag.
 
-    >>> setDisplayProgram "gpicview"
+    >>> setDisplayProgram ("gpicview", True) -- use gpicview and block current thread.
 
-    >>> setDisplayProgram "gimp"
+    >>> setDisplayProgram ("gimp", False) -- use gimp and don't block current thread.
     
-    >>> setDisplayProgram "xv"
+    >>> setDisplayProgram ("xv", False)
 
-    >>> setDisplayProgram "display"
- -}
-setDisplayProgram :: String -> IO ()
+    >>> setDisplayProgram ("display", False)
+-}
+setDisplayProgram :: (String, Bool) -> IO ()
 setDisplayProgram = writeIORef displayProgram 
 
 
-displayProgram :: IORef String
-displayProgram = unsafePerformIO . newIORef $ "gpicview"
+displayProgram :: IORef (String, Bool)
+displayProgram = unsafePerformIO . newIORef $ ("gpicview", False)
 {-# NOINLINE displayProgram #-}
 
 
--- | Makes a call to the current display program to be displayed. If the program
--- cannot read from standard in, a file named ".tmp-img" is created and used as
--- an argument to the program.
---
---  >>> frog <- readImageRGB "images/frog.jpg"
---  >>> displayImage frog
---
-displayImage :: Writable (Image arr cs e) OutputFormat =>
-                Image arr cs e
-             -> IO ()
+{- | Makes a call to the current display program, which can be changed using
+'setDisplayProgram'. An image is written as a @.tiff@ file into an operating
+system's temporary directory and passed as an argument to the display
+program. If a blocking flag was set to 'False' with 'setDisplayProgram' this
+function will return immediatly with 'Just' 'ThreadId', otherwise it will block
+current thread until external program is terminated, in which case 'Nothing' is
+returned. After display program is closed temporary file is deleted.
+
+  >>> frog <- readImageRGB "images/frog.jpg"
+  >>> displayImage frog
+-}
+displayImage :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
+                Image arr cs e -- ^ Image to be displayed
+             -> IO (Maybe ThreadId)
 displayImage img = do
-  program <- readIORef displayProgram
-  withSystemTempDirectory "hip_" (displayUsing img program)
+  (program, block) <- readIORef displayProgram
+  if block
+    then withSystemTempFile "tmp-img.tiff" (displayUsing img program) >> return Nothing
+    else forkIO (withSystemTempFile "tmp-img.tiff" (displayUsing img program)) >>= (return . Just)
 
 
-displayUsing :: Writable (Image arr cs e) OutputFormat =>
-                Image arr cs e -> String -> FilePath -> IO ()
-displayUsing img program tmpDir = do
-  let path = tmpDir </> "tmp-img.png"
-  writeImage path img
-  ph <- runCommand (program ++ " " ++ path)
+displayUsing :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
+                Image arr cs e -> String -> FilePath -> Handle -> IO ()
+displayUsing img program path h = do
+  BL.hPut h (encode TIF [] img)
+  hFlush h
+  putStrLn $ showCommandForUser program [path]
+  ph <- spawnProcess program [path]
   e <- waitForProcess ph
   let printExit ExitSuccess = return ()
       printExit exitCode = print exitCode
+  hClose h
   printExit e
 
 

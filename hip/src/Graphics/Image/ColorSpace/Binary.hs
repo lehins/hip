@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.Binary (
-  Binary(..), PixelBin, on, off, isOn, isOff, fromBool
+  Binary(..), Bin, PixelBin, on, off, isOn, isOff, fromBool
   ) where
 
 import Prelude hiding (map)
@@ -9,20 +9,30 @@ import Graphics.Image.Interface
 
 data Binary = Binary deriving (Eq, Enum)
 
--- | This is a Binaryary pixel that can be created using these __/constructors/__:
+
+-- | Under the hood, binary pixels are represented as 'Word8' that can only take
+-- values @0@ or @1@.
+newtype Bin = Bin Word8
+
+-- | This is a Binary pixel that can be created using these __/constructors/__:
 --
---   [@'on'@] Represents value 'True' or @1@ in binary. Represents objects as
---   black pixels when displayed.
+--   [@'on'@] Represents value @1@ or 'True'. It's a foreground pixel and is
+--   displayed in black.
 --
---   [@'off'@] Represents value 'False' or @0@ in binary. Represents background
---   as white pixels when displayed.
+--   [@'off'@] Represents value @0@ or 'False'. It's a background pixel and is
+--   displayed in white.
 --
 -- Note, that values are inverted when written to or read from file, since
 -- grayscale images represent black as a @0@ value and white as @1@ on a
 -- @[0,1]@ scale.
 --
-
-newtype Bin = Bin Word8
+-- Binary pixels also behave as binary numbers with size of 1-bit.
+--
+-- >>> on + on
+-- <Binary:(1)>
+-- >>> (on + on) - on
+-- <Binary:(0)>
+--
 type PixelBin = Pixel Binary Bin
 
 
@@ -40,7 +50,11 @@ off = PixelBin 0
 {-# INLINE off #-}
 
 
--- | Convert a 'Bool' to a 'PixelBin' pixel. @True == isOn $ fromBool True@
+-- | Convert a 'Bool' to a 'PixelBin' pixel.
+--
+-- >>> isOn (fromBool True)
+-- True
+--
 fromBool :: Bool -> PixelBin
 fromBool False = PixelBin 0
 fromBool True  = PixelBin 1

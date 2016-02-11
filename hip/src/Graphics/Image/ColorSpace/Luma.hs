@@ -24,8 +24,8 @@ class ColorSpace cs => ToY cs where
   toPixelY :: Pixel cs Double -> PixelY
 
   toImageY :: (Array arr cs Double, Array arr Y Double) =>
-                 Image arr cs Double
-              -> Image arr Y Double
+              Image arr cs Double
+           -> Image arr Y Double
   toImageY = map toPixelY
   {-# INLINE toImageY #-}
   

@@ -42,7 +42,7 @@ instance Elt RD cs e => Array RD cs e where
                       R.Elt e, Unbox e, Num e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
-
+  type DefaultManifest RD = RS
   data Image RD cs e where
     RScalar :: !(Pixel cs e)                  -> Image RD cs e
     RUImage :: !(R.Array U DIM2 (Pixel cs e)) -> Image RD cs e
@@ -52,12 +52,6 @@ instance Elt RD cs e => Array RD cs e where
   dims (RUImage (extent -> (Z :. m :. n))) = (m, n)
   dims (RDImage (extent -> (Z :. m :. n))) = (m, n)
   {-# INLINE dims #-}
-
-  index (RScalar px)  (0, 0) = px
-  index (RScalar _)   (_, _) = error "Scalar Image can only be indexed at (0,0)."
-  index (RUImage arr) (i, j) = R.index arr (Z :. i :. j)
-  index (RDImage arr) (i, j) = R.index arr (Z :. i :. j)
-  {-# INLINE index #-}
 
   singleton = RScalar
   {-# INLINE singleton #-}
@@ -88,6 +82,8 @@ instance Elt RD cs e => Array RD cs e where
   backpermute (tIx2 -> sh) g (getDelayed -> arr) =
     RDImage (R.backpermute sh (tIx2 . g . ixT2) arr)
 
+  compute = computeS
+
 
 instance Elt RS cs e => Array RS cs e where
   type Elt RS cs e = (ColorSpace cs, 
@@ -99,8 +95,6 @@ instance Elt RS cs e => Array RS cs e where
     RSImage :: !(Image RD cs e) -> Image RS cs e
 
   dims (RSImage img) = dims img
-
-  index (RSImage img) = index img
 
   make ix = computeS . make ix
 
@@ -118,6 +112,8 @@ instance Elt RS cs e => Array RS cs e where
   
   backpermute f g (RSImage img) = computeS $ backpermute f g img
 
+  compute = id
+
 
 
 instance Elt RP cs e => Array RP cs e where
@@ -132,18 +128,15 @@ instance Elt RP cs e => Array RP cs e where
   dims (RPImage img) = dims img
   {-# INLINE dims #-}
 
-  index (RPImage img) = index img
-  {-# INLINE index #-}
-
   make !ix = suspendedComputeP . make ix
   {-# INLINE make #-}
 
   singleton = RPImage . singleton
   {-# INLINE singleton #-}
 
-  map f (RPImage img) = suspendedComputeP . map f $ img
+  map f img'@(RPImage img) = deepSeqImage img' . suspendedComputeP . map f $ img
 
-  imap f (RPImage img) = suspendedComputeP . imap f $ img
+  imap f img'@(RPImage img) = deepSeqImage img' . suspendedComputeP . imap f $ img
 
   zipWith f (RPImage img1) (RPImage img2) = suspendedComputeP . zipWith f img1 $ img2
 
@@ -153,6 +146,7 @@ instance Elt RP cs e => Array RP cs e where
   
   backpermute !f !g (RPImage img) = suspendedComputeP $ backpermute f g img
 
+  compute = id
 
 
 instance Transformable RD RS where    
@@ -185,6 +179,12 @@ instance Transformable RP RS where
 
 instance Array RS cs e => ManifestArray RS cs e where
 
+  index (RSImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
+  index (RSImage (RScalar px))  (0, 0) = px
+  index (RSImage (RScalar _))   (_, _) = error "Scalar Image can only be indexed at (0,0)."
+  index _ _ = _error_compute
+  {-# INLINE index #-}
+
   deepSeqImage (RSImage (RUImage arr)) = deepSeqArray arr
   deepSeqImage _ = _error_compute
   {-# INLINE deepSeqImage #-}
@@ -203,6 +203,12 @@ instance Array RS cs e => ManifestArray RS cs e where
 
 
 instance Array RP cs e => ManifestArray RP cs e where
+
+  index (RPImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
+  index (RPImage (RScalar px))  (0, 0) = px
+  index (RPImage (RScalar _))   (_, _) = error "Scalar Image can only be indexed at (0,0)."
+  index _ _ = _error_compute
+  {-# INLINE index #-}
 
   deepSeqImage (RPImage (RUImage arr)) = deepSeqArray arr
   deepSeqImage _ = _error_compute
