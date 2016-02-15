@@ -56,33 +56,40 @@ instance Elt RD cs e => Array RD cs e where
   singleton = RScalar
   {-# INLINE singleton #-}
 
-  make !(m, n) !f = RDImage $ fromFunction (Z :. m :. n) (f . ixT2)
-  {-# INLINE make #-}
+  makeImage !(m, n) !f = RDImage $ fromFunction (Z :. m :. n) (f . ixT2)
+  {-# INLINE makeImage #-}
 
   map f (RScalar px)        = RScalar (f px)
   map f (getDelayed -> arr) = RDImage (R.map f arr)
+  {-# INLINE map #-}
 
   imap f (RScalar px)  = RScalar (f (0, 0) px)
   imap f (getDelayed -> arr) = RDImage (R.zipWith f (R.fromFunction (extent arr) ixT2) arr)
+  {-# INLINE imap #-}
     
   zipWith f (RScalar px1)        (RScalar px2)        = RScalar (f px1 px2)
   zipWith f (RScalar px1)        (getDelayed -> arr2) = RDImage (R.map (f   px1) arr2)
   zipWith f (getDelayed -> arr1) (RScalar px2)        = RDImage (R.map (`f` px2) arr1)
   zipWith f (getDelayed -> arr1) (getDelayed -> arr2) = RDImage (R.zipWith f arr1 arr2)
+  {-# INLINE zipWith #-}
 
   traverse (getDelayed -> arr) newDims newPx =
     RDImage $ R.traverse arr (tIx2 . newDims . ixT2) newPixel where
     newPixel getPx = newPx (getPx . tIx2) . ixT2
+  {-# INLINE traverse #-}
 
   transpose img@(RScalar _)     = img
   transpose (RDImage arr) = RDImage (R.transpose arr)
   transpose (RUImage arr) = RDImage (R.transpose arr)
+  {-# INLINE transpose #-}
 
   backpermute _ _ img@(RScalar _)                = img
   backpermute (tIx2 -> sh) g (getDelayed -> arr) =
     RDImage (R.backpermute sh (tIx2 . g . ixT2) arr)
+  {-# INLINE backpermute #-}
 
   compute = computeS
+  {-# INLINE compute #-}
 
 
 instance Elt RS cs e => Array RS cs e where
@@ -95,24 +102,34 @@ instance Elt RS cs e => Array RS cs e where
     RSImage :: !(Image RD cs e) -> Image RS cs e
 
   dims (RSImage img) = dims img
+  {-# INLINE dims #-}
 
-  make ix = computeS . make ix
+  makeImage ix = computeS . makeImage ix
+  {-# INLINE makeImage #-}
 
   singleton = RSImage . singleton
+  {-# INLINE singleton #-}
 
   map f (RSImage img) = computeS . map f $ img
+  {-# INLINE map #-}
 
   imap f (RSImage img) = computeS . imap f $ img
+  {-# INLINE imap #-}
 
   zipWith f (RSImage img1) (RSImage img2) = computeS . zipWith f img1 $ img2
+  {-# INLINE zipWith #-}
 
   traverse (RSImage img) newDims = computeS . traverse img newDims 
+  {-# INLINE traverse #-}
 
   transpose (RSImage img) = computeS . transpose $ img
+  {-# INLINE transpose #-}
   
   backpermute f g (RSImage img) = computeS $ backpermute f g img
+  {-# INLINE backpermute #-}
 
   compute = id
+  {-# INLINE compute #-}
 
 
 
@@ -128,52 +145,68 @@ instance Elt RP cs e => Array RP cs e where
   dims (RPImage img) = dims img
   {-# INLINE dims #-}
 
-  make !ix = suspendedComputeP . make ix
-  {-# INLINE make #-}
+  makeImage !ix = suspendedComputeP . makeImage ix
+  {-# INLINE makeImage #-}
 
   singleton = RPImage . singleton
   {-# INLINE singleton #-}
 
   map f img'@(RPImage img) = deepSeqImage img' . suspendedComputeP . map f $ img
+  {-# INLINE map #-}
 
   imap f img'@(RPImage img) = deepSeqImage img' . suspendedComputeP . imap f $ img
+  {-# INLINE imap #-}
 
   zipWith f (RPImage img1) (RPImage img2) = suspendedComputeP . zipWith f img1 $ img2
+  {-# INLINE zipWith #-}
 
   traverse (RPImage img) newDims = suspendedComputeP . traverse img newDims 
+  {-# INLINE traverse #-}
 
   transpose (RPImage img) = suspendedComputeP . transpose $ img
+  {-# INLINE transpose #-}
   
   backpermute !f !g (RPImage img) = suspendedComputeP $ backpermute f g img
+  {-# INLINE backpermute #-}
 
   compute = id
+  {-# INLINE compute #-}
 
 
 instance Transformable RD RS where    
 
   transform img RS = computeS img
+  {-# INLINE transform #-}
+
 
 instance Transformable RD RP where
   
   transform img RP = suspendedComputeP img
+  {-# INLINE transform #-}
 
 
 instance Transformable RS RD where
 
   transform (RSImage img) RD = img
+  {-# INLINE transform #-}
+
 
 instance Transformable RP RD where
   
   transform (RPImage img) RD = img
+  {-# INLINE transform #-}
 
 
 instance Transformable RS RP where
   
   transform (RSImage img) RP = RPImage img
+  {-# INLINE transform #-}
+
 
 instance Transformable RP RS where
   
   transform (RPImage img) RS = RSImage img
+  {-# INLINE transform #-}
 
 
 
@@ -240,6 +273,7 @@ mult img1@(RUImage arr1) img2@(RUImage arr2) =
         (Z :. m2 :. n2) = extent arr2
         getPx (Z :. i :. j) =
           sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
+        {-# INLINE getPx #-}
 mult _ _ = _error_compute
 {-# INLINE mult #-}
 
@@ -287,6 +321,7 @@ _error_traverse_scalar :: String
 _error_traverse_scalar =
   "Traversal of a scalar image does not make sense, hence it is not implemented."
 
+
 instance (ColorSpace cs, R.Elt e, Num e) => R.Elt (Pixel cs e) where
   touch !px = mapM_ (R.touch . getPxCh px) (enumFrom (toEnum 0)) 
   {-# INLINE touch #-}
@@ -296,6 +331,7 @@ instance (ColorSpace cs, R.Elt e, Num e) => R.Elt (Pixel cs e) where
   
   one      = 1
   {-# INLINE one #-}
+
   
 derivingUnbox "Pixel"
     [t| (ColorSpace cs, Unbox (PixelElt cs e)) => (Pixel cs e) -> (PixelElt cs e) |]

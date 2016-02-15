@@ -12,7 +12,7 @@ data Binary = Binary deriving (Eq, Enum)
 
 -- | Under the hood, binary pixels are represented as 'Word8' that can only take
 -- values @0@ or @1@.
-newtype Bin = Bin Word8
+newtype Bin = Bin Word8 deriving (Ord, Eq)
 
 -- | This is a Binary pixel that can be created using these __/constructors/__:
 --
@@ -101,7 +101,6 @@ instance ColorSpace Binary where
 
   pxOp2 !f (PixelBin g1) (PixelBin g2) = PixelBin (f g1 g2)
   {-# INLINE pxOp2 #-}
-  
 
 instance Show Binary where
   show _ = "Binary"
@@ -111,11 +110,6 @@ instance Show (Pixel Binary Bin) where
   show (PixelBin (Bin 0)) = "<Binary:(0)>"
   show (PixelBin _)       = "<Binary:(1)>"
 
-
-instance Eq Bin where
-  (Bin b1) == (Bin b2) = b1 == b2
-  {-# INLINE (==) #-}
-  
 
 instance Num Bin where
   (Bin 0) + (Bin 0) = Bin 0

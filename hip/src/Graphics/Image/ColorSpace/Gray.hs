@@ -15,7 +15,7 @@ data Gray = Gray deriving (Eq, Enum)
 
 instance ColorSpace Gray where
   type PixelElt Gray e = e
-  data Pixel Gray e = PixelGray !e 
+  data Pixel Gray e = PixelGray !e deriving (Ord, Eq)
 
   fromChannel = PixelGray
   {-# INLINE fromChannel #-}
@@ -40,6 +40,8 @@ instance ColorSpace Gray where
 
   pxOp2 !f (PixelGray g1) (PixelGray g2) = PixelGray (f g1 g2)
   {-# INLINE pxOp2 #-}
+
+  
 instance Show Gray where
   show _ = "Gray"
 

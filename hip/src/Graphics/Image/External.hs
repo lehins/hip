@@ -2,9 +2,9 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              UndecidableInstances #-}
 module Graphics.Image.External (
-  InputFormat(..), OutputFormat(..),
-  module Graphics.Image.External.Base,  
-  module Graphics.Image.External.JuicyPixels
+  module Graphics.Image.External.JuicyPixels,
+  InputFormat, OutputFormat,
+  Readable(..), Writable(..), ImageFormat(..),
   ) where
 
 import Graphics.Image.Interface
@@ -53,7 +53,7 @@ instance (Readable (Image arr cs Double) BMP,
 
 
 
--- | A collection of all image formats that can be read into HIP images with
+-- | A collection of all image formats that can be written from HIP images with
 -- 'Double' precision pixel channels.
 data OutputFormat = OutputBMP
                   | OutputGIF

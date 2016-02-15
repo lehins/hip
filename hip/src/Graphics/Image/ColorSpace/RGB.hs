@@ -48,7 +48,7 @@ class (ToRGB (Opaque cs), Alpha cs) => ToRGBA cs where
   
 instance ColorSpace RGB where
   type PixelElt RGB e = (e, e, e)
-  data Pixel RGB e = PixelRGB !e !e !e
+  data Pixel RGB e = PixelRGB !e !e !e deriving Eq
 
   fromChannel !e = PixelRGB e e e
   {-# INLINE fromChannel #-}
@@ -81,7 +81,7 @@ instance ColorSpace RGB where
 
 instance ColorSpace RGBA where
   type PixelElt RGBA e = (e, e, e, e)
-  data Pixel RGBA e = PixelRGBA !e !e !e !e
+  data Pixel RGBA e = PixelRGBA !e !e !e !e deriving Eq
 
   fromChannel !e = PixelRGBA e e e e
   {-# INLINE fromChannel #-}

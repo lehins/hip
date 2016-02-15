@@ -52,7 +52,7 @@ class (ToCMYK (Opaque cs), Alpha cs) => ToCMYKA cs where
   
 instance ColorSpace CMYK where
   type PixelElt CMYK e = (e, e, e, e)
-  data Pixel CMYK e = PixelCMYK !e !e !e !e
+  data Pixel CMYK e = PixelCMYK !e !e !e !e deriving Eq
 
   fromChannel !e = PixelCMYK e e e e
   {-# INLINE fromChannel #-}
@@ -88,7 +88,7 @@ instance ColorSpace CMYK where
 
 instance ColorSpace CMYKA where
   type PixelElt CMYKA e = (e, e, e, e, e)
-  data Pixel CMYKA e = PixelCMYKA !e !e !e !e !e
+  data Pixel CMYKA e = PixelCMYKA !e !e !e !e !e deriving Eq
 
   fromChannel !e = PixelCMYKA e e e e e
   {-# INLINE fromChannel #-}

@@ -41,7 +41,6 @@ class (Enum cs, Show cs) => ColorSpace cs where
   pxOp :: (e' -> e) -> Pixel cs e' -> Pixel cs e
 
   pxOp2 :: (e1 -> e2 -> e) -> Pixel cs e1 -> Pixel cs e2 -> Pixel cs e
-
                                  
   
 class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
@@ -53,13 +52,13 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
   type DefaultManifest arr = arr
   data Image arr cs e
 
-  dims :: Image arr cs e -> (Int, Int)
-
-  make :: (Int, Int) -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
+  makeImage :: (Int, Int) -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
 
   singleton :: Pixel cs e -> Image arr cs e
 
-  map :: Elt arr cs' e' =>
+  dims :: Image arr cs e -> (Int, Int)
+
+  map :: Array arr cs' e' =>
          (Pixel cs' e' -> Pixel cs e)
       -> Image arr cs' e'
       -> Image arr cs  e
@@ -68,15 +67,29 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
           ((Int, Int) -> Pixel cs' e' -> Pixel cs e)
        -> Image arr cs' e' -> Image arr cs e
 
-  zipWith :: (Elt arr cs1 e1, Elt arr cs2 e2) =>
+  zipWith :: (Array arr cs1 e1, Array arr cs2 e2) =>
              (Pixel cs1 e1 -> Pixel cs2 e2 -> Pixel cs e)
           -> Image arr cs1 e1 -> Image arr cs2 e2 -> Image arr cs e
+
+  izipWith :: (Array arr cs1 e1, Array arr cs2 e2) =>
+              ((Int, Int) -> Pixel cs1 e1 -> Pixel cs2 e2 -> Pixel cs e)
+           -> Image arr cs1 e1 -> Image arr cs2 e2 -> Image arr cs e
 
   traverse :: Array arr cs' e' =>
               Image arr cs' e'
            -> ((Int, Int) -> (Int, Int))
-           -> (((Int, Int) -> Pixel cs' e') -> (Int, Int) -> Pixel cs e)
+           -> (((Int, Int) -> Pixel cs' e') ->
+               (Int, Int) -> Pixel cs e)
            -> Image arr cs e
+  
+  traverse2 :: (Array arr cs1 e1, Array arr cs2 e2) =>
+               Image arr cs1 e1
+            -> Image arr cs2 e2
+            -> ((Int, Int) -> (Int, Int) -> (Int, Int))
+            -> (((Int, Int) -> Pixel cs1 e1) ->
+                ((Int, Int) -> Pixel cs1 e1) ->
+                (Int, Int) -> Pixel cs e)
+            -> Image arr cs e
   
   transpose :: Image arr cs e -> Image arr cs e
 
@@ -113,7 +126,6 @@ class Array arr cs e => ManifestArray arr cs e where
 class Transformable arr' arr where
 
   transform :: (Array arr' cs e, Array arr cs e) => Image arr' cs e -> arr -> Image arr cs e
-
 
 
 instance (ColorSpace cs, Num e) => Num (Pixel cs e) where

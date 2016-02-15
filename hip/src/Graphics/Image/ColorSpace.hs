@@ -10,7 +10,7 @@ module Graphics.Image.ColorSpace (
   module Graphics.Image.ColorSpace.HSI,
   module Graphics.Image.ColorSpace.YCbCr,
   module Graphics.Image.ColorSpace.CMYK,
-  Elevator(..)
+  Elevator(..), Word8, Word16, Word32, Word64
   ) where
 
 import Data.Word
