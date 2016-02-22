@@ -3,12 +3,13 @@
              TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Interface (
-  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), 
+  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), MutableArray(..), MImage(..),
   Transformable(..)
   ) where
 
 import Prelude hiding (map, zipWith, sum, product)
 import GHC.Exts (Constraint)
+import Control.Monad.Primitive (PrimMonad (..))
 
 
 class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
@@ -145,6 +146,25 @@ class Array arr cs e => ManifestArray arr cs e where
        -> Pixel cs e -> Image arr cs e -> Pixel cs e
 
   eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
+
+
+class ManifestArray arr cs e => MutableArray arr cs e where
+  data MImage st arr cs e
+
+  thaw :: PrimMonad m => Image arr cs e -> m (MImage (PrimState m) arr cs e)
+
+  freeze :: PrimMonad m => MImage (PrimState m) arr cs e -> m (Image arr cs e)
+
+  newImage :: PrimMonad m => (Int, Int) -> m (MImage (PrimState m) arr cs e)
+
+  read :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> m (Pixel cs e)
+
+  write :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> Pixel cs e -> m ()
+
+  swap :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> (Int, Int) -> m ()
+
+
+  
   
 
 class Transformable arr' arr where

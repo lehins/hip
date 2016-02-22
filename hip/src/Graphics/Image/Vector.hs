@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.Vector (
-  VU(..), fromUnboxedVector, toUnboxedVector,
-  makeImage, readImageY, readImageYA, readImageRGB, readImageRGBA
+  VU(..), 
+  makeImage, fromUnboxedVector, toUnboxedVector,
+  readImageY, readImageYA, readImageRGB, readImageRGBA
   ) where
 
 import Graphics.Image.IO

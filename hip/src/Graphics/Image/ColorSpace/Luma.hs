@@ -7,7 +7,7 @@ module Graphics.Image.ColorSpace.Luma (
 import Prelude hiding (map)
 import Graphics.Image.Interface
 
--- | Luma or brightness, that is usually denoted as Y'.
+-- | Luma or brightness, that is usually denoted as @Y'@.
 data Y = Y deriving (Eq, Enum)
 
 -- | Luma with Alpha channel.

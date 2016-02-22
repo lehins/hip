@@ -3,16 +3,18 @@
              GADTs, MultiParamTypeClasses, TemplateHaskell, TypeFamilies, ViewPatterns,
              UndecidableInstances #-}
 module Graphics.Image.Vector.Unboxed (
-  VU(..), fromUnboxedVector, toUnboxedVector
+  VU(..), Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx
   ) where
 
 import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Control.DeepSeq (NFData(..), deepseq)
+import Control.Monad (liftM)
 import Data.Word (Word8)
 import Data.Vector.Unboxed (Vector, Unbox)
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))
 
@@ -131,6 +133,31 @@ instance Array VU cs e => ManifestArray VU cs e where
   {-# INLINE eq #-}
 
 
+instance ManifestArray VU cs e => MutableArray VU cs e where
+
+  data MImage st VU cs e where
+    MVImage :: !Int -> !Int -> MV.MVector st (Pixel cs e) -> MImage st VU cs e
+
+  thaw (VUImage m n v) = liftM (MVImage m n) (V.thaw v)
+  thaw _ = error "thaw: scalar images are not mutable."
+  {-# INLINE thaw #-}
+
+  freeze (MVImage m n mv) = liftM (VUImage m n) (V.freeze mv)
+  {-# INLINE freeze #-}
+
+  newImage (m, n) = liftM (MVImage m n) (MV.new (m*n))
+  {-# INLINE newImage #-}
+
+  read (MVImage _ n mv) ix = MV.read mv (fromIx n ix)
+  {-# INLINE read #-}
+
+  write (MVImage _ n mv) ix px = MV.write mv (fromIx n ix) px
+  {-# INLINE write #-}
+
+  swap (MVImage _ n mv) ix1 ix2 = MV.swap mv (fromIx n ix1) (fromIx n ix2)
+  {-# INLINE swap #-}
+
+
 
 instance ColorSpace cs => NFData (Image VU cs e) where
   rnf (VUImage m n v) = m `seq` n `seq` rnf v `seq` ()
@@ -140,7 +167,9 @@ instance ColorSpace cs => NFData (Image VU cs e) where
 
 -- | Convert an image to a flattened Unboxed 'Vector'. It is a __O(1)__ opeartion.
 --
--- >>> toUnboxedVector $ makeImage (3, 2) (\(i, j) -> PixelY (i+j))
+-- >>> toUnboxedVector $ makeImage (3, 2) (\(i, j) -> PixelY $ fromIntegral (i+j))
+-- fromList [<Luma:(0.0)>,<Luma:(1.0)>,<Luma:(1.0)>,<Luma:(2.0)>,<Luma:(2.0)>,<Luma:(3.0)>]
+--
 toUnboxedVector :: Array VU cs e => Image VU cs e -> Vector (Pixel cs e)
 toUnboxedVector (VUImage _ _ v) = v
 toUnboxedVector (VScalar px) = V.singleton px
@@ -149,8 +178,8 @@ toUnboxedVector (VScalar px) = V.singleton px
 -- | Construct a two dimensional image with @m@ rows and @n@ columns from a flat
 -- Unboxed 'Vector' of length @k@. It is a __O(1)__ opeartion. Make sure that @m * n = k@.
 --
--- >>> fromUnboxedVector 200 300 $ generate 60000 (\i -> Gray $ fromIntegral i / 60000)
--- <Image Gray: 200x300>
+-- >>> fromUnboxedVector (200, 300) $ generate 60000 (\i -> PixelY $ fromIntegral i / 60000)
+-- <Image VectorUnboxed Luma: 200x300>
 --
 -- <<images/grad_fromVector.png>>
 -- 
