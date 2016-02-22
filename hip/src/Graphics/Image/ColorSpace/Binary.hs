@@ -1,20 +1,14 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.Binary (
-  Binary(..), Bin, PixelBin, on, off, isOn, isOff, fromBool
+  Binary(..), Bit(..), on, off, isOn, isOff, fromBool, complement
   ) where
 
 import Prelude hiding (map)
-import Data.Word
+import Data.Word (Word8)
 import Graphics.Image.Interface
 
-data Binary = Binary deriving (Eq, Enum)
-
-
--- | Under the hood, binary pixels are represented as 'Word8' that can only take
--- values @0@ or @1@.
-newtype Bin = Bin Word8 deriving (Ord, Eq)
-
--- | This is a Binary pixel that can be created using these __/constructors/__:
+-- | This is a Binary colorspace, pixel's of which can be created using
+-- these __/constructors/__:
 --
 --   [@'on'@] Represents value @1@ or 'True'. It's a foreground pixel and is
 --   displayed in black.
@@ -22,31 +16,38 @@ newtype Bin = Bin Word8 deriving (Ord, Eq)
 --   [@'off'@] Represents value @0@ or 'False'. It's a background pixel and is
 --   displayed in white.
 --
--- Note, that values are inverted when written to or read from file, since
+-- Note, that values are inverted before writing to or reading from file, since
 -- grayscale images represent black as a @0@ value and white as @1@ on a
 -- @[0,1]@ scale.
 --
--- Binary pixels also behave as binary numbers with size of 1-bit.
+-- Binary pixels also behave as binary numbers with a size of 1-bit, for instance:
 --
--- >>> on + on
+-- >>> on + on -- equivalent to: 1 .|. 1
 -- <Binary:(1)>
+-- >>> (on + on) * off -- equivalent to: (1 .|. 1) .&. 0
+-- <Binary:(0)>
 -- >>> (on + on) - on
 -- <Binary:(0)>
 --
-type PixelBin = Pixel Binary Bin
+data Binary = Binary deriving (Eq, Enum)
+
+
+-- | Under the hood, Binary pixels are represented as 'Word8' that can only take
+-- values of @0@ or @1@.
+newtype Bit = Bit Word8 deriving (Ord, Eq)
 
 
 -- | Represents value 'True' or @1@ in binary. Often also called a foreground
 -- pixel of an object.
-on :: PixelBin
-on = PixelBin 1
+on :: Pixel Binary Bit
+on = PixelBinary (Bit 1)
 {-# INLINE on #-}
 
 
 -- | Represents value 'False' or @0@ in binary. Often also called a background
 -- pixel.
-off :: PixelBin
-off = PixelBin 0
+off :: Pixel Binary Bit
+off = PixelBinary (Bit 0)
 {-# INLINE off #-}
 
 
@@ -55,74 +56,82 @@ off = PixelBin 0
 -- >>> isOn (fromBool True)
 -- True
 --
-fromBool :: Bool -> PixelBin
-fromBool False = PixelBin 0
-fromBool True  = PixelBin 1
+fromBool :: Bool -> Pixel Binary Bit
+fromBool False = off
+fromBool True  = on
 {-# INLINE fromBool #-}
 
 
--- | Test if Pixel's value holds 'True'
-isOn :: PixelBin -> Bool
-isOn (PixelBin 0) = False
-isOn (PixelBin _) = True
+-- | Test if Pixel's value is 'on'.
+isOn :: Pixel Binary Bit -> Bool
+isOn (PixelBinary (Bit 0)) = False
+isOn _                     = True
 {-# INLINE isOn #-}
 
 
--- | Test if Pixel's value holds 'False'
-isOff :: PixelBin -> Bool
+-- | Test if Pixel's value is 'off'.
+isOff :: Pixel Binary Bit -> Bool
 isOff = not . isOn
 {-# INLINE isOff #-}
 
 
+-- | Invert value of a pixel. Equivalent of 'not' for Bool's.
+complement :: Pixel Binary Bit -> Pixel Binary Bit
+complement = fromBool . isOff
+{-# INLINE complement #-}
+
+
+
 instance ColorSpace Binary where
   type PixelElt Binary e = e
-  data Pixel Binary e = PixelBin !e
+  data Pixel Binary e = PixelBinary !e deriving Eq
 
-  fromChannel = PixelBin
+  fromChannel = PixelBinary
   {-# INLINE fromChannel #-}
 
-  fromElt = PixelBin
+  fromElt = PixelBinary
   {-# INLINE fromElt #-}
 
-  toElt (PixelBin g) = g
+  toElt (PixelBinary g) = g
   {-# INLINE toElt #-}
 
-  getPxCh (PixelBin g) _ = g
+  getPxCh (PixelBinary g) _ = g
   {-# INLINE getPxCh #-}
   
-  chOp !f (PixelBin g) = PixelBin (f Binary g)
+  chOp !f (PixelBinary g) = PixelBinary (f Binary g)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelBin g1) (PixelBin g2) = PixelBin (f Binary g1 g2)
+  chOp2 !f (PixelBinary g1) (PixelBinary g2) = PixelBinary (f Binary g1 g2)
   {-# INLINE chOp2 #-}
   
-  pxOp !f (PixelBin g) = PixelBin (f g)
+  pxOp !f (PixelBinary g) = PixelBinary (f g)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelBin g1) (PixelBin g2) = PixelBin (f g1 g2)
+  pxOp2 !f (PixelBinary g1) (PixelBinary g2) = PixelBinary (f g1 g2)
   {-# INLINE pxOp2 #-}
+
 
 instance Show Binary where
   show _ = "Binary"
 
 
-instance Show (Pixel Binary Bin) where
-  show (PixelBin (Bin 0)) = "<Binary:(0)>"
-  show (PixelBin _)       = "<Binary:(1)>"
+instance Show (Pixel Binary Bit) where
+  show (PixelBinary (Bit 0)) = "<Binary:(0)>"
+  show _                     = "<Binary:(1)>"
 
 
-instance Num Bin where
-  (Bin 0) + (Bin 0) = Bin 0
-  _       + _       = Bin 1
+instance Num Bit where
+  (Bit 0) + (Bit 0) = Bit 0
+  _       + _       = Bit 1
   {-# INLINE (+) #-}
   
-  _ - (Bin 1) = Bin 0
-  _ - _       = Bin 1
+  _ - (Bit 1) = Bit 0
+  _ - _       = Bit 1
   {-# INLINE (-) #-}
   
-  _       * (Bin 0) = Bin 0
-  (Bin 0) * _       = Bin 0
-  _       * _       = Bin 1
+  _       * (Bit 0) = Bit 0
+  (Bit 0) * _       = Bit 0
+  _       * _       = Bit 1
   {-# INLINE (*) #-}
   
   abs         = id
@@ -131,6 +140,6 @@ instance Num Bin where
   signum      = id
   {-# INLINE signum #-}
   
-  fromInteger 0 = Bin 0
-  fromInteger _ = Bin 1
-  {-# INLINE fromInteger#-}
+  fromInteger 0 = Bit 0
+  fromInteger _ = Bit 1
+  {-# INLINE fromInteger #-}

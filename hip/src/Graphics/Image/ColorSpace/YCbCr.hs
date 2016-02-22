@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.YCbCr (
-  YCbCr(..), YCbCrA(..), Pixel(..), PixelYCbCr, PixelYCbCrA, 
+  YCbCr(..), YCbCrA(..), Pixel(..), 
   ToYCbCr(..), ToYCbCrA(..)
   ) where
 
@@ -12,20 +12,16 @@ data YCbCr = LumaYCbCr
            | CBlueYCbCr
            | CRedYCbCr deriving (Eq, Enum)
 
+
 data YCbCrA = LumaYCbCrA
             | CBlueYCbCrA
             | CRedYCbCrA
             | AlphaYCbCrA deriving (Eq, Enum)
 
 
-type PixelYCbCr = Pixel YCbCr Double  
-
-type PixelYCbCrA = Pixel YCbCrA Double
-
-
 class ColorSpace cs => ToYCbCr cs where
 
-  toPixelYCbCr :: Pixel cs Double -> PixelYCbCr
+  toPixelYCbCr :: Pixel cs Double -> Pixel YCbCr Double
 
   toImageYCbCr :: (Array arr cs Double, Array arr YCbCr Double) =>
                   Image arr cs Double
@@ -36,7 +32,7 @@ class ColorSpace cs => ToYCbCr cs where
 
 class (ToYCbCr (Opaque cs), Alpha cs) => ToYCbCrA cs where
 
-  toPixelYCbCrA :: Pixel cs Double -> PixelYCbCrA
+  toPixelYCbCrA :: Pixel cs Double -> Pixel YCbCrA Double
   toPixelYCbCrA px = addAlpha (getAlpha px) (toPixelYCbCr (dropAlpha px))
 
   toImageYCbCrA :: (Array arr cs Double, Array arr YCbCrA Double) =>

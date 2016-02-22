@@ -44,9 +44,17 @@ library
                   , ViewPatterns
                     
   exposed-modules: Graphics.Image
+                 , Graphics.Image.Algorithms
+                 , Graphics.Image.Binary
                  , Graphics.Image.Interface
                  , Graphics.Image.IO
                  , Graphics.Image.ColorSpace
+                 , Graphics.Image.External
+                 , Graphics.Image.Repa
+                 , Graphics.Image.Vector
+  other-modules:   Graphics.Image.Algorithms.Convolution
+                 , Graphics.Image.Algorithms.Geometric
+                 , Graphics.Image.Algorithms.Interpolation
                  , Graphics.Image.ColorSpace.Binary
                  , Graphics.Image.ColorSpace.Gray
                  , Graphics.Image.ColorSpace.Luma
@@ -54,12 +62,11 @@ library
                  , Graphics.Image.ColorSpace.HSI
                  , Graphics.Image.ColorSpace.CMYK
                  , Graphics.Image.ColorSpace.YCbCr
-                 , Graphics.Image.External
-                 , Graphics.Image.Repa
-  other-modules:   Graphics.Image.External.Base
+                 , Graphics.Image.External.Base
                  , Graphics.Image.External.JuicyPixels
                  , Graphics.Image.External.NetPbm
                  , Graphics.Image.Repa.Internal
+                 , Graphics.Image.Vector.Unboxed
                    
   default-language: Haskell2010
 

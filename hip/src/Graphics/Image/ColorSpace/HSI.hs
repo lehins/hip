@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.HSI (
-  HSI(..), HSIA(..), Pixel(..), PixelHSI, PixelHSIA, 
+  HSI(..), HSIA(..), Pixel(..), 
   ToHSI(..), ToHSIA(..)
   ) where
 
@@ -18,14 +18,9 @@ data HSIA = HueHSIA
           | AlphaHSIA deriving (Eq, Enum)
 
 
-type PixelHSI = Pixel HSI Double  
-
-type PixelHSIA = Pixel HSIA Double
-
-
 class ColorSpace cs => ToHSI cs where
 
-  toPixelHSI :: Pixel cs Double -> PixelHSI
+  toPixelHSI :: Pixel cs Double -> Pixel HSI Double
 
   toImageHSI :: (Array arr cs Double, Array arr HSI Double) =>
                 Image arr cs Double
@@ -36,7 +31,7 @@ class ColorSpace cs => ToHSI cs where
 
 class (ToHSI (Opaque cs), Alpha cs) => ToHSIA cs where
 
-  toPixelHSIA :: Pixel cs Double -> PixelHSIA
+  toPixelHSIA :: Pixel cs Double -> Pixel HSIA Double
   toPixelHSIA px = addAlpha (getAlpha px) (toPixelHSI (dropAlpha px))
 
   toImageHSIA :: (Array arr cs Double, Array arr HSIA Double) =>

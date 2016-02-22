@@ -41,7 +41,7 @@ guessFormat path =
 -- then it will attempt to read it as such. It will fall back onto the rest of
 -- the supported formats and will try to read them regarless of file's
 -- extension. Whenever image cannot be decoded, 'Left' containing all errors for
--- each attmpted format will be returned, and 'Right' containing an image
+-- each attempted format will be returned, and 'Right' containing an image
 -- otherwise. Image will be read into a type signature specified 'ColorSpace'
 -- ('Graphics.Image.ColorSpace.Y', 'Graphics.Image.ColorSpace.YA',
 -- 'Graphics.Image.ColorSpace.RGB' and 'Graphics.Image.ColorSpace.RGBA' only)
@@ -74,7 +74,7 @@ readImage path = do
 -- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image RD RGB Word8))
 -- Left "JuicyPixel decoding error: Input image is in YCbCr8 (Pixel YCbCr Word8), cannot convert it to RGB8 (Pixel RGB Word8) colorspace."
 --
--- Trying to read an image in a particular color space that is not supported by
+-- Attempt to read an image in a particular color space that is not supported by
 -- the format, will result in a compile error. Refer to 'Readable' class for all
 -- images that can be decoded.
 readImageExact :: Readable img format =>

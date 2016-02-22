@@ -1,27 +1,45 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Repa (
-  module Graphics.Image.Repa.Internal,
-  readImageY, readImageYA, readImageRGB, readImageRGBA
+  RD(..), RS(..), RP(..),
+  makeImage, readImageY, readImageYA, readImageRGB, readImageRGBA,
+  computeS, computeP, delay
   ) where
 
-
 import Graphics.Image.IO
-import Graphics.Image.Interface
+import Graphics.Image.Interface hiding (makeImage)
+import qualified Graphics.Image.Interface as I (makeImage)
 import Graphics.Image.ColorSpace
 import Graphics.Image.Repa.Internal
 
 
+-- | Create a delayed representation of an image.
+makeImage :: Array RD cs Double =>
+             (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
+          -> ((Int, Int) -> Pixel cs Double)
+             -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
+             -- and returns a pixel for that location.
+          -> Image RD cs Double
+makeImage = I.makeImage
+{-# INLINE makeImage #-}
+
 
 readImageY :: FilePath -> IO (Image RD Y Double)
 readImageY = fmap (either error id) . readImage
+{-# INLINE readImageY #-}
 
 
 readImageYA :: FilePath -> IO (Image RD YA Double)
 readImageYA = fmap (either error id) . readImage
+{-# INLINE readImageYA #-}
 
 
 readImageRGB :: FilePath -> IO (Image RD RGB Double)
 readImageRGB = fmap (either error id) . readImage
+{-# INLINE readImageRGB #-}
 
 
 readImageRGBA :: FilePath -> IO (Image RD RGBA Double)
 readImageRGBA = fmap (either error id) . readImage
+{-# INLINE readImageRGBA #-}
+

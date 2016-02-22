@@ -1,4 +1,5 @@
-{-# LANGUAGE ConstraintKinds, FlexibleContexts, MultiParamTypeClasses, ScopedTypeVariables,
+{-# LANGUAGE ConstraintKinds, FlexibleContexts, FlexibleInstances,
+             MultiParamTypeClasses, ScopedTypeVariables,
              TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Interface (
@@ -48,33 +49,49 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
   
   type Elt arr cs e :: Constraint
   type Elt arr cs e = ()
-  type DefaultManifest arr
-  type DefaultManifest arr = arr
   data Image arr cs e
 
   makeImage :: (Int, Int) -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
 
   singleton :: Pixel cs e -> Image arr cs e
 
+  -- | Get dimensions of an image.
+  --
+  -- >>> frog <- readImageRGB "images/frog.jpg"
+  -- >>> frog
+  -- <Image RepaDelayed RGB: 200x320>
+  -- >>> dims frog
+  -- (200,320)
+  --
   dims :: Image arr cs e -> (Int, Int)
 
+  -- | Map a function overa a source image.
   map :: Array arr cs' e' =>
          (Pixel cs' e' -> Pixel cs e)
-      -> Image arr cs' e'
-      -> Image arr cs  e
+         -- ^ A function that takes a pixel of a source image and returns a pixel
+         -- for the result image a the same location.
+      -> Image arr cs' e' -- ^ Source image.
+      -> Image arr cs  e  -- ^ Result image.
 
+  -- | Map an index aware function over each pixel in source image.
   imap :: Array arr cs' e' =>
           ((Int, Int) -> Pixel cs' e' -> Pixel cs e)
-       -> Image arr cs' e' -> Image arr cs e
+        -- ^ A function that takes an index @(i, j)@, a pixel at that location
+        -- and returns a new pixel at the same location for the result image.
+       -> Image arr cs' e' -- ^ Source image.
+       -> Image arr cs e   -- ^ Result image.
 
+  -- | Zip two images with a function
   zipWith :: (Array arr cs1 e1, Array arr cs2 e2) =>
              (Pixel cs1 e1 -> Pixel cs2 e2 -> Pixel cs e)
           -> Image arr cs1 e1 -> Image arr cs2 e2 -> Image arr cs e
 
+  -- | Zip two images with an index aware function
   izipWith :: (Array arr cs1 e1, Array arr cs2 e2) =>
               ((Int, Int) -> Pixel cs1 e1 -> Pixel cs2 e2 -> Pixel cs e)
            -> Image arr cs1 e1 -> Image arr cs2 e2 -> Image arr cs e
 
+  -- | Traverse an image
   traverse :: Array arr cs' e' =>
               Image arr cs' e'
            -> ((Int, Int) -> (Int, Int))
@@ -82,26 +99,42 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
                (Int, Int) -> Pixel cs e)
            -> Image arr cs e
   
+  -- | Traverse two images
   traverse2 :: (Array arr cs1 e1, Array arr cs2 e2) =>
                Image arr cs1 e1
             -> Image arr cs2 e2
             -> ((Int, Int) -> (Int, Int) -> (Int, Int))
             -> (((Int, Int) -> Pixel cs1 e1) ->
-                ((Int, Int) -> Pixel cs1 e1) ->
+                ((Int, Int) -> Pixel cs2 e2) ->
                 (Int, Int) -> Pixel cs e)
             -> Image arr cs e
   
+  -- | Transpose an image
   transpose :: Image arr cs e -> Image arr cs e
 
-  backpermute :: (Int, Int) -> ((Int, Int) -> (Int, Int)) -> Image arr cs e -> Image arr cs e
+  -- | Backwards permutation of an image
+  backpermute :: (Int, Int) -- ^ New dimensions of an image
+              -> ((Int, Int) -> (Int, Int)) -- ^ Function mapping index of each
+                                            -- pixel to a new location.
+              -> Image arr cs e -- ^ Source image
+              -> Image arr cs e -- ^ Result image
 
-  compute :: ManifestArray (DefaultManifest arr) cs e =>
-             Image arr cs e -> Image (DefaultManifest arr) cs e
-
+  -- | Construct an image from nested rectangular shaped list of pixels.
+  --
+  -- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [0..300]] | i <- [0..200]] :: Image RS Y Double
+  -- >>>
+  fromLists :: [[Pixel cs e]]
+            -> Image arr cs e
 
 
 class Array arr cs e => ManifestArray arr cs e where
 
+  -- | Get a pixel at @i@-th and @j@-th location.
+  --
+  -- >>> let grad_gray = computeS $ makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+  -- >>> index grad_gray (20, 30) == PixelY ((20*30) / (200*200))
+  -- True
+  --
   index :: Image arr cs e -> (Int, Int) -> Pixel cs e
 
   deepSeqImage :: Image arr cs e -> a -> a
@@ -113,19 +146,18 @@ class Array arr cs e => ManifestArray arr cs e where
 
   eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
   
-  sum :: Image arr cs e -> Pixel cs e
-  sum = fold (+) 0
-  {-# INLINE sum #-}
-
-  product :: Image arr cs e -> Pixel cs e
-  product = fold (+) 1
-  {-# INLINE product #-}
-
-
 
 class Transformable arr' arr where
 
-  transform :: (Array arr' cs e, Array arr cs e) => Image arr' cs e -> arr -> Image arr cs e
+  transform :: (Array arr' cs e, Array arr cs e) => arr -> Image arr' cs e -> Image arr cs e
+
+
+-- | Transformation on the same type of array representation is disabled and 'transform'
+-- will behave as identitity function.
+instance Transformable arr arr where
+
+  transform _ = id
+  {-# INLINE transform #-}
 
 
 instance (ColorSpace cs, Num e) => Num (Pixel cs e) where

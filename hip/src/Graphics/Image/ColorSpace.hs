@@ -1,16 +1,25 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses, MultiWayIf #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances,
+             MultiParamTypeClasses, MultiWayIf, ViewPatterns #-}
 module Graphics.Image.ColorSpace (
-  module Graphics.Image.ColorSpace.Binary,
-  toPixelBin, fromPixelBin, toImageBin, fromImageBin,
-  module Graphics.Image.ColorSpace.Gray,
+  -- * Luma
   module Graphics.Image.ColorSpace.Luma,
+  -- * RGB
   module Graphics.Image.ColorSpace.RGB,
+  -- * HSI
   module Graphics.Image.ColorSpace.HSI,
-  module Graphics.Image.ColorSpace.YCbCr,
+  -- * CMYK
   module Graphics.Image.ColorSpace.CMYK,
-  Elevator(..), Word8, Word16, Word32, Word64
+  -- * YCbCr
+  module Graphics.Image.ColorSpace.YCbCr,
+  -- * Gray
+  module Graphics.Image.ColorSpace.Gray,
+  -- * Binary
+  Binary, Bit, on, off, isOn, isOff, fromBool, complement,
+  toPixelBinary, fromPixelBinary, toImageBinary, fromImageBinary,
+  -- * Tools
+  pixelGrid,
+  Elevator(..), Word8, Word16, Word32, Word64                                       
   ) where
 
 import Data.Word
@@ -25,26 +34,52 @@ import Graphics.Image.ColorSpace.CMYK
 import Graphics.Image.ColorSpace.YCbCr
 import qualified Graphics.Image.Interface as I (map)
 
-toPixelBin :: (Num e, Eq e) => Pixel Y e -> PixelBin
-toPixelBin (PixelY 0) = on
-toPixelBin _          = off
-{-# INLINE toPixelBin #-}
 
-fromPixelBin :: PixelBin -> Pixel Y Word8
-fromPixelBin b = PixelY $ if isOn b then 0 else 1
-{-# INLINE fromPixelBin #-}
 
-toImageBin :: (Array arr Y e, Num e, Eq e, Array arr Binary Bin) =>
-              Image arr Y e
-           -> Image arr Binary Bin
-toImageBin = I.map toPixelBin
-{-# INLINE toImageBin #-}
+-- | This function scales an image by a positive multiplier and draws a grid
+-- around the original pixels. It is here simply as useful inspection tool.
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/frog_eye_grid.png" $ computeS $ pixelGrid 10 $ crop 51 112 20 20 frog
+--
+-- <<images/frog.jpg>> <<images/frog_eye_grid.png>>
+--
+pixelGrid :: (Elevator e, Array arr cs e) =>
+             Word8               -- ^ A positive multiplier.
+          -> Image arr cs e -- ^ Source image.
+          -> Image arr cs e
+pixelGrid !(succ . fromIntegral -> k) !img = traverse img getNewDims getNewPx where
+  getNewDims !(m, n) = (1 + m*k, 1 + n*k)
+  {-# INLINE getNewDims #-}
+  getNewPx !getPx !(i, j) = if i `mod` k == 0 || j `mod` k == 0
+                            then fromDouble $ fromChannel 0.5
+                            else getPx ((i - 1) `div` k, (j - 1) `div` k)
+  {-# INLINE getNewPx #-}
+{-# INLINE pixelGrid #-}
 
-fromImageBin :: (Array arr Binary Bin, Array arr Y Word8) =>
-                Image arr Binary Bin
+
+toPixelBinary :: (ColorSpace cs, Eq (Pixel cs e), Num e) => Pixel cs e -> Pixel Binary Bit
+toPixelBinary px = if px == 0 then on else off
+{-# INLINE toPixelBinary #-}
+
+
+fromPixelBinary :: Pixel Binary Bit -> Pixel Y Word8
+fromPixelBinary b = PixelY $ if isOn b then minBound else maxBound
+{-# INLINE fromPixelBinary #-}
+
+
+toImageBinary :: (Array arr cs e, Array arr Binary Bit, Eq (Pixel cs e)) =>
+              Image arr cs e
+           -> Image arr Binary Bit
+toImageBinary = I.map toPixelBinary
+{-# INLINE toImageBinary #-}
+
+
+fromImageBinary :: (Array arr Binary Bit, Array arr Y Word8) =>
+                Image arr Binary Bit
              -> Image arr Y Word8
-fromImageBin = I.map fromPixelBin
-{-# INLINE fromImageBin #-}
+fromImageBinary = I.map fromPixelBinary
+{-# INLINE fromImageBinary #-}
 
 
 instance ToY Gray where
@@ -168,7 +203,7 @@ instance ToCMYK RGB where
 instance ToCMYKA RGBA where
 
   
--- | A convenient class with set of functions that allow for changing precision of
+-- | A convenient class with a set of functions that allow for changing precision of
 -- channels within pixels, while scaling the values to keep them in an appropriate range.
 --
 -- >>> let rgb = PixelRGB 0.0 0.5 1.0 :: Pixel RGB Double
@@ -188,6 +223,8 @@ class Elevator e where
   toFloat :: ColorSpace cs => Pixel cs e -> Pixel cs Float
 
   toDouble :: ColorSpace cs => Pixel cs e -> Pixel cs Double
+
+  fromDouble :: ColorSpace cs => Pixel cs Double -> Pixel cs e
 
 
 -- | Values are scaled to @[0, 255]@ range.
@@ -220,6 +257,9 @@ instance Elevator Word8 where
     toDouble' !e = fromIntegral e / (fromIntegral (maxBound :: Word8))
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
+
+  fromDouble = toWord8
+  {-# INLINE fromDouble #-}
 
 
 -- | Values are scaled to @[0, 65535]@ range.
@@ -254,6 +294,9 @@ instance Elevator Word16 where
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
 
+  fromDouble = toWord16
+  {-# INLINE fromDouble #-}
+
 
 -- | Values are scaled to @[0, 4294967295]@ range.
 instance Elevator Word32 where
@@ -287,6 +330,9 @@ instance Elevator Word32 where
     toDouble' !e = fromIntegral e / (fromIntegral (maxBound :: Word32))
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
+
+  fromDouble = toWord32
+  {-# INLINE fromDouble #-}
 
 
 -- | Values are scaled to @[0, 18446744073709551615]@ range.
@@ -323,6 +369,9 @@ instance Elevator Word64 where
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
 
+  fromDouble = toWord64
+  {-# INLINE fromDouble #-}
+
 
 -- | Values are scaled to @[0.0, 1.0]@ range.
 instance Elevator Float where
@@ -353,6 +402,9 @@ instance Elevator Float where
   toDouble = pxOp float2Double
   {-# INLINE toDouble #-}
 
+  fromDouble = toFloat
+  {-# INLINE fromDouble #-}
+
 
 -- | Values are scaled to @[0.0, 1.0]@ range.
 instance Elevator Double where
@@ -382,3 +434,8 @@ instance Elevator Double where
 
   toDouble = id
   {-# INLINE toDouble #-}
+
+  fromDouble = id
+  {-# INLINE fromDouble #-}
+
+

@@ -1,27 +1,23 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.Luma (
-  Y(..), YA(..), Pixel(..), PixelY, PixelYA, 
+  Y(..), YA(..), Pixel(..), 
   ToY(..), ToYA(..)
   ) where
 
 import Prelude hiding (map)
 import Graphics.Image.Interface
 
--- ^ Luma, that is usually denoted as Y'.
+-- | Luma or brightness, that is usually denoted as Y'.
 data Y = Y deriving (Eq, Enum)
 
--- ^ Luma with Alpha channel.
+-- | Luma with Alpha channel.
 data YA = YA
         | AlphaYA deriving (Eq, Enum)
-
-type PixelY = Pixel Y Double  
-
-type PixelYA = Pixel YA Double
 
 
 class ColorSpace cs => ToY cs where
 
-  toPixelY :: Pixel cs Double -> PixelY
+  toPixelY :: Pixel cs Double -> Pixel Y Double
 
   toImageY :: (Array arr cs Double, Array arr Y Double) =>
               Image arr cs Double
@@ -32,12 +28,12 @@ class ColorSpace cs => ToY cs where
 
 class (ToY (Opaque cs), Alpha cs) => ToYA cs where
 
-  toPixelYA :: Pixel cs Double -> PixelYA
+  toPixelYA :: Pixel cs Double -> Pixel YA Double
   toPixelYA px = addAlpha (getAlpha px) (toPixelY (dropAlpha px))
 
   toImageYA :: (Array arr cs Double, Array arr YA Double) =>
-                  Image arr cs Double
-               -> Image arr YA Double
+               Image arr cs Double
+            -> Image arr YA Double
   toImageYA = map toPixelYA
   {-# INLINE toImageYA #-}
 

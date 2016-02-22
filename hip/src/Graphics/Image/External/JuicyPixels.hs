@@ -1,7 +1,6 @@
-{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TypeFamilies,
-             ViewPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+             TypeFamilies, ViewPatterns #-}
 module Graphics.Image.External.JuicyPixels (
   BMP(..),
   GIF(..), JP.GifDelay, JP.GifLooping(..), JP.PaletteOptions(..), JP.PaletteCreationMethod(..),
@@ -97,176 +96,176 @@ instance ImageFormat TIF where
 
 -- Y -> Y (Double)
 
-instance Convertible JP.Pixel8 PixelY where
+instance Convertible JP.Pixel8 (Pixel Y Double) where
   convert = toDouble . PixelY
 
-instance Convertible JP.Pixel16 PixelY where
+instance Convertible JP.Pixel16 (Pixel Y Double) where
   convert = toDouble . PixelY
 
-instance Convertible JP.PixelF PixelY where
+instance Convertible JP.PixelF (Pixel Y Double) where
   convert = toDouble . PixelY
 
-instance Convertible JP.PixelYA8 PixelY where
+instance Convertible JP.PixelYA8 (Pixel Y Double) where
   convert = convert . JP.dropTransparency
 
-instance Convertible JP.PixelYA16 PixelY where
+instance Convertible JP.PixelYA16 (Pixel Y Double) where
   convert = convert . JP.dropTransparency
 
-instance Convertible JP.Pixel8 PixelYA where
+instance Convertible JP.Pixel8 (Pixel YA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.Pixel16 PixelYA where
+instance Convertible JP.Pixel16 (Pixel YA Double) where
   convert = addAlpha 1 . convert
   
-instance Convertible JP.PixelF PixelYA where
+instance Convertible JP.PixelF (Pixel YA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelYA8 PixelYA where
+instance Convertible JP.PixelYA8 (Pixel YA Double) where
   convert (JP.PixelYA8 y a) = toDouble (PixelYA y a)
 
-instance Convertible JP.PixelYA16 PixelYA where
+instance Convertible JP.PixelYA16 (Pixel YA Double) where
   convert (JP.PixelYA16 y a) = toDouble (PixelYA y a)
 
 
 -- Color -> Y (Double)
 
-instance Convertible JP.PixelRGB8 PixelY where
-  convert = toPixelY . (convert :: JP.PixelRGB8 -> PixelRGB)
+instance Convertible JP.PixelRGB8 (Pixel Y Double) where
+  convert = toPixelY . (convert :: JP.PixelRGB8 -> Pixel RGB Double)
 
-instance Convertible JP.PixelRGB16 PixelY where
-  convert = toPixelY . (convert :: JP.PixelRGB16 -> PixelRGB)
+instance Convertible JP.PixelRGB16 (Pixel Y Double) where
+  convert = toPixelY . (convert :: JP.PixelRGB16 -> Pixel RGB Double)
 
-instance Convertible JP.PixelRGBA8 PixelY where
-  convert = toPixelY . (convert :: JP.PixelRGBA8 -> PixelRGB)
+instance Convertible JP.PixelRGBA8 (Pixel Y Double) where
+  convert = toPixelY . (convert :: JP.PixelRGBA8 -> Pixel RGB Double)
 
-instance Convertible JP.PixelRGBA16 PixelY where
-  convert = toPixelY . (convert :: JP.PixelRGBA16 -> PixelRGB)
+instance Convertible JP.PixelRGBA16 (Pixel Y Double) where
+  convert = toPixelY . (convert :: JP.PixelRGBA16 -> Pixel RGB Double)
 
-instance Convertible JP.PixelRGBF PixelY where
-  convert = toPixelY . (convert :: JP.PixelRGBF -> PixelRGB)
+instance Convertible JP.PixelRGBF (Pixel Y Double) where
+  convert = toPixelY . (convert :: JP.PixelRGBF -> Pixel RGB Double)
 
-instance Convertible JP.PixelCMYK8 PixelY where
+instance Convertible JP.PixelCMYK8 (Pixel Y Double) where
   convert = toPixelY . toDouble . (convert :: JP.PixelCMYK8 -> Pixel CMYK Word8)
 
-instance Convertible JP.PixelCMYK16 PixelY where
+instance Convertible JP.PixelCMYK16 (Pixel Y Double) where
   convert = toPixelY . toDouble . (convert :: JP.PixelCMYK16 -> Pixel CMYK Word16)
 
-instance Convertible JP.PixelYCbCr8 PixelY where
+instance Convertible JP.PixelYCbCr8 (Pixel Y Double) where
   convert = convert . JP.computeLuma
 
 -- Color -> YA (Double)  
 
-instance Convertible JP.PixelRGB8 PixelYA where
+instance Convertible JP.PixelRGB8 (Pixel YA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelRGB16 PixelYA where
+instance Convertible JP.PixelRGB16 (Pixel YA Double) where
   convert = addAlpha 1 . convert
   
-instance Convertible JP.PixelRGBF PixelYA where
+instance Convertible JP.PixelRGBF (Pixel YA Double) where
   convert = addAlpha 1 . convert
   
-instance Convertible JP.PixelCMYK8 PixelYA where
+instance Convertible JP.PixelCMYK8 (Pixel YA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelCMYK16 PixelYA where
+instance Convertible JP.PixelCMYK16 (Pixel YA Double) where
   convert = addAlpha 1 . convert
   
-instance Convertible JP.PixelYCbCr8 PixelYA where
+instance Convertible JP.PixelYCbCr8 (Pixel YA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelRGBA8 PixelYA where
-  convert = toPixelYA . (convert :: JP.PixelRGBA8 -> PixelRGBA)
+instance Convertible JP.PixelRGBA8 (Pixel YA Double) where
+  convert = toPixelYA . (convert :: JP.PixelRGBA8 -> Pixel RGBA Double)
 
-instance Convertible JP.PixelRGBA16 PixelYA where
-  convert = toPixelYA . (convert :: JP.PixelRGBA16 -> PixelRGBA)
+instance Convertible JP.PixelRGBA16 (Pixel YA Double) where
+  convert = toPixelYA . (convert :: JP.PixelRGBA16 -> Pixel RGBA Double)
   
   
 
 -- Y -> RGB (Double)
 
-instance Convertible JP.Pixel8 PixelRGB where
+instance Convertible JP.Pixel8 (Pixel RGB Double) where
   convert = toDouble . fromChannel
 
-instance Convertible JP.Pixel16 PixelRGB where
+instance Convertible JP.Pixel16 (Pixel RGB Double) where
   convert = toDouble . fromChannel
 
-instance Convertible JP.PixelF PixelRGB where
+instance Convertible JP.PixelF (Pixel RGB Double) where
   convert = toDouble . fromChannel
 
-instance Convertible JP.PixelYA8 PixelRGB where
+instance Convertible JP.PixelYA8 (Pixel RGB Double) where
   convert = convert . JP.dropTransparency
 
-instance Convertible JP.PixelYA16 PixelRGB where
+instance Convertible JP.PixelYA16 (Pixel RGB Double) where
   convert = convert . JP.dropTransparency
 
 -- Color -> RGB (Double)
 
-instance Convertible JP.PixelRGB8 PixelRGB where
+instance Convertible JP.PixelRGB8 (Pixel RGB Double) where
   convert (JP.PixelRGB8 r g b) = toDouble $ PixelRGB r g b
 
-instance Convertible JP.PixelRGB16 PixelRGB where
+instance Convertible JP.PixelRGB16 (Pixel RGB Double) where
   convert (JP.PixelRGB16 r g b) = toDouble $ PixelRGB r g b
 
-instance Convertible JP.PixelRGBA8 PixelRGB where
+instance Convertible JP.PixelRGBA8 (Pixel RGB Double) where
   convert = convert . JP.dropTransparency
 
-instance Convertible JP.PixelRGBA16 PixelRGB where
+instance Convertible JP.PixelRGBA16 (Pixel RGB Double) where
   convert = convert . JP.dropTransparency
 
-instance Convertible JP.PixelRGBF PixelRGB where
+instance Convertible JP.PixelRGBF (Pixel RGB Double) where
   convert (JP.PixelRGBF r g b) = 
     PixelRGB (float2Double r) (float2Double g) (float2Double b)
 
-instance Convertible JP.PixelYCbCr8 PixelRGB where
+instance Convertible JP.PixelYCbCr8 (Pixel RGB Double) where
   convert = convert . (JP.convertPixel :: JP.PixelYCbCr8 -> JP.PixelRGB8)
 
-instance Convertible JP.PixelCMYK8 PixelRGB where
+instance Convertible JP.PixelCMYK8 (Pixel RGB Double) where
   convert = convert . (JP.convertPixel :: JP.PixelCMYK8 -> JP.PixelRGB8)
 
-instance Convertible JP.PixelCMYK16 PixelRGB where
+instance Convertible JP.PixelCMYK16 (Pixel RGB Double) where
   convert = convert . (JP.convertPixel :: JP.PixelCMYK16 -> JP.PixelRGB16)
 
 -- Y -> RGBA (Double)
 
-instance Convertible JP.Pixel8 PixelRGBA where
+instance Convertible JP.Pixel8 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.Pixel16 PixelRGBA where
+instance Convertible JP.Pixel16 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelF PixelRGBA where
+instance Convertible JP.PixelF (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelYA8 PixelRGBA where
-  convert = toPixelRGBA . (convert :: JP.PixelYA8 -> PixelYA)
+instance Convertible JP.PixelYA8 (Pixel RGBA Double) where
+  convert = toPixelRGBA . (convert :: JP.PixelYA8 -> Pixel YA Double)
 
-instance Convertible JP.PixelYA16 PixelRGBA where
-  convert = toPixelRGBA . (convert :: JP.PixelYA16 -> PixelYA)
+instance Convertible JP.PixelYA16 (Pixel RGBA Double) where
+  convert = toPixelRGBA . (convert :: JP.PixelYA16 -> Pixel YA Double)
 
 -- Color -> RGBA (Double)
 
-instance Convertible JP.PixelRGB8 PixelRGBA where
+instance Convertible JP.PixelRGB8 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
   
-instance Convertible JP.PixelRGB16 PixelRGBA where
+instance Convertible JP.PixelRGB16 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelRGBF PixelRGBA where
+instance Convertible JP.PixelRGBF (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelCMYK8 PixelRGBA where
+instance Convertible JP.PixelCMYK8 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
   
-instance Convertible JP.PixelCMYK16 PixelRGBA where
+instance Convertible JP.PixelCMYK16 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
 
-instance Convertible JP.PixelYCbCr8 PixelRGBA where
+instance Convertible JP.PixelYCbCr8 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
   
-instance Convertible JP.PixelRGBA8 PixelRGBA where
+instance Convertible JP.PixelRGBA8 (Pixel RGBA Double) where
   convert (JP.PixelRGBA8 r g b a) = toDouble $ PixelRGBA r g b a
   
-instance Convertible JP.PixelRGBA16 PixelRGBA where
+instance Convertible JP.PixelRGBA16 (Pixel RGBA Double) where
   convert (JP.PixelRGBA16 r g b a) = toDouble $ PixelRGBA r g b a
 
 
@@ -370,8 +369,8 @@ instance Convertible (Pixel CMYK Word16) JP.PixelCMYK16 where
 
 -- BMP Format Reading
 
-instance (Array arr Y Word8, Array arr Binary Bin) => Readable (Image arr Binary Bin) BMP where
-  decode _ = either Left (Right . toImageBin) . jpImageY8ToImage . JP.decodeBitmap
+instance (Array arr Y Word8, Array arr Binary Bit) => Readable (Image arr Binary Bit) BMP where
+  decode _ = either Left (Right . toImageBinary) . jpImageY8ToImage . JP.decodeBitmap
 
 instance Array arr Y Word8 => Readable (Image arr Y Word8) BMP where
   decode _ = jpImageY8ToImage . JP.decodeBitmap
@@ -493,8 +492,8 @@ instance Array arr RGBA Double => Readable (Image arr RGBA Double) JPG where
 
 -- PNG Format Reading
 
-instance (Array arr Y Word8, Array arr Binary Bin) => Readable (Image arr Binary Bin) PNG where
-  decode _ = either Left (Right . toImageBin) . jpImageY8ToImage . JP.decodePng
+instance (Array arr Y Word8, Array arr Binary Bit) => Readable (Image arr Binary Bit) PNG where
+  decode _ = either Left (Right . toImageBinary) . jpImageY8ToImage . JP.decodePng
 
 instance Array arr Y Word8 => Readable (Image arr Y Word8) PNG where
   decode _ = jpImageY8ToImage . JP.decodePng
@@ -535,8 +534,8 @@ instance Array arr RGBA Double => Readable (Image arr RGBA Double) PNG where
 
 -- TGA Format Reading
 
-instance (Array arr Y Word8, Array arr Binary Bin) => Readable (Image arr Binary Bin) TGA where
-  decode _ = either Left (Right . toImageBin) . jpImageY8ToImage . JP.decodeTga
+instance (Array arr Y Word8, Array arr Binary Bit) => Readable (Image arr Binary Bit) TGA where
+  decode _ = either Left (Right . toImageBinary) . jpImageY8ToImage . JP.decodeTga
 
 instance Array arr Y Word8 => Readable (Image arr Y Word8) TGA where
   decode _ = jpImageY8ToImage . JP.decodeTga
@@ -562,8 +561,8 @@ instance Array arr RGBA Double => Readable (Image arr RGBA Double) TGA where
 
 -- TIF Format Reading
 
-instance (Array arr Y Word8, Array arr Binary Bin) => Readable (Image arr Binary Bin) TIF where
-  decode _ = either Left (Right . toImageBin) . jpImageY8ToImage . JP.decodeTiff
+instance (Array arr Y Word8, Array arr Binary Bit) => Readable (Image arr Binary Bit) TIF where
+  decode _ = either Left (Right . toImageBinary) . jpImageY8ToImage . JP.decodeTiff
 
 instance Array arr Y Word8 => Readable (Image arr Y Word8) TIF where
   decode _ = jpImageY8ToImage . JP.decodeTiff
@@ -782,9 +781,9 @@ instance ManifestArray arr RGB Word8 => Writable (Image arr RGB Word8) BMP where
 instance ManifestArray arr RGBA Word8 => Writable (Image arr RGBA Word8) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel RGBA Word8 -> JP.PixelRGBA8) 
 
-instance ManifestArray arr Binary Bin => Writable (Image arr Binary Bin) BMP where
+instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
-                                                 . fromPixelBin)
+                                                 . fromPixelBinary)
 
 instance ManifestArray arr Y Double => Writable (Image arr Y Double) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
@@ -924,9 +923,9 @@ instance ManifestArray arr YCbCr Double => Writable (Image arr YCbCr Double) JPG
 
 -- Writable PNG
 
-instance ManifestArray arr Binary Bin => Writable (Image arr Binary Bin) PNG where
-  encode _ _ = JP.encodePng . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8) .
-                                              fromPixelBin)
+instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) PNG where
+  encode _ _ = JP.encodePng . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8) 
+                                              . fromPixelBinary)
   
 instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel Y Word8 -> JP.Pixel8) 
@@ -971,9 +970,9 @@ instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) PNG w
 
 -- Writable TGA
 
-instance ManifestArray arr Binary Bin => Writable (Image arr Binary Bin) TGA where
+instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
-                                              . fromPixelBin)
+                                              . fromPixelBinary)
   
 instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage (convert :: Pixel Y Word8 -> JP.Pixel8) 
@@ -1037,9 +1036,9 @@ instance ManifestArray arr CMYK Word16 => Writable (Image arr CMYK Word16) TIF w
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel CMYK Word16 -> JP.PixelCMYK16) 
 
 
-instance ManifestArray arr Binary Bin => Writable (Image arr Binary Bin) TIF where
+instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
-                                               . fromPixelBin)
+                                               . fromPixelBinary)
   
 instance ManifestArray arr Y Double => Writable (Image arr Y Double) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel Y Word16 -> JP.Pixel16)

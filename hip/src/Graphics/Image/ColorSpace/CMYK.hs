@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.CMYK (
-  CMYK(..), CMYKA(..), Pixel(..), PixelCMYK, PixelCMYKA, 
+  CMYK(..), CMYKA(..), Pixel(..), 
   ToCMYK(..), ToCMYKA(..)
   ) where
 
@@ -22,14 +22,9 @@ data CMYKA = CyanCMYKA  -- ^ Cyan
            deriving (Eq, Enum)
 
 
-type PixelCMYK = Pixel CMYK Double  
-
-type PixelCMYKA = Pixel CMYKA Double
-
-
 class ColorSpace cs => ToCMYK cs where
 
-  toPixelCMYK :: Pixel cs Double -> PixelCMYK
+  toPixelCMYK :: Pixel cs Double -> Pixel CMYK Double
 
   toImageCMYK :: (Array arr cs Double, Array arr CMYK Double) =>
                  Image arr cs Double
@@ -40,7 +35,7 @@ class ColorSpace cs => ToCMYK cs where
 
 class (ToCMYK (Opaque cs), Alpha cs) => ToCMYKA cs where
 
-  toPixelCMYKA :: Pixel cs Double -> PixelCMYKA
+  toPixelCMYKA :: Pixel cs Double -> Pixel CMYKA Double
   toPixelCMYKA px = addAlpha (getAlpha px) (toPixelCMYK (dropAlpha px))
 
   toImageCMYKA :: (Array arr cs Double, Array arr CMYKA Double) =>

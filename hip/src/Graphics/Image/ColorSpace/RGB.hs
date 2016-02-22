@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 module Graphics.Image.ColorSpace.RGB (
-  RGB(..), RGBA(..), Pixel(..), PixelRGB, PixelRGBA, 
+  RGB(..), RGBA(..), Pixel(..), 
   ToRGB(..), ToRGBA(..)
   ) where
 
@@ -18,14 +18,9 @@ data RGBA = RedRGBA
           | AlphaRGBA deriving (Eq, Enum)
 
 
-type PixelRGB = Pixel RGB Double  
-
-type PixelRGBA = Pixel RGBA Double
-
-
 class ColorSpace cs => ToRGB cs where
 
-  toPixelRGB :: Pixel cs Double -> PixelRGB
+  toPixelRGB :: Pixel cs Double -> Pixel RGB Double
 
   toImageRGB :: (Array arr cs Double, Array arr RGB Double) =>
                 Image arr cs Double
@@ -36,7 +31,7 @@ class ColorSpace cs => ToRGB cs where
 
 class (ToRGB (Opaque cs), Alpha cs) => ToRGBA cs where
 
-  toPixelRGBA :: Pixel cs Double -> PixelRGBA
+  toPixelRGBA :: Pixel cs Double -> Pixel RGBA Double
   toPixelRGBA px = addAlpha (getAlpha px) (toPixelRGB (dropAlpha px))
 
   toImageRGBA :: (Array arr cs Double, Array arr RGBA Double) =>
