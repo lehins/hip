@@ -148,17 +148,23 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
   -- | Transpose an image
   transpose :: Image arr cs e -> Image arr cs e
 
-  -- | Backwards permutation of an image
-  backpermute :: (Int, Int) -- ^ New dimensions of an image.
-              -> ((Int, Int) -> (Int, Int)) -- ^ Function mapping index of each
-                                            -- pixel to a new location.
+  -- | Backwards permutation of an image. 
+  backpermute :: (Int, Int) -- ^ Dimensions of a result image.
+              -> ((Int, Int) -> (Int, Int))
+                 -- ^ Function that maps an index of a source image to an index
+                 -- of a result image.
               -> Image arr cs e -- ^ Source image.
               -> Image arr cs e -- ^ Result image.
 
   -- | Construct an image from a nested rectangular shaped list of pixels.
+  -- Length of an outer list will constitute @m@ rows, while the length of inner lists -
+  -- @n@ columns. All of the inner lists must be the same length and greater than @0@.
   --
-  -- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [0..300]] | i <- [0..200]] :: Image RS Y Double
-  -- >>>
+  -- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [1..300]] | i <- [1..200]] :: Image VU Y Double
+  -- <Image VectorUnboxed Luma: 200x300>
+  --
+  -- <<images/grad_fromLists.png>>
+  --
   fromLists :: [[Pixel cs e]]
             -> Image arr cs e
 

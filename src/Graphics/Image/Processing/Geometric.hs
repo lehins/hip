@@ -1,9 +1,23 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing.Geometric (
-  flipV, flipH, rotate90, rotate180, rotate270
+  crop, flipV, flipH, rotate90, rotate180, rotate270
   ) where
 
 import Graphics.Image.Interface
+
+
+
+-- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
+-- columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
+-- source image.
+crop :: Array arr cs e =>
+        (Int, Int)     -- ^ @(i, j)@ starting index from within a source image.
+     -> (Int, Int)     -- ^ @(m, n)@ dimensions of a new image.
+     -> Image arr cs e -- ^ Source image.
+     -> Image arr cs e              
+crop !(i, j) sz = backpermute sz (\ !(i', j') -> (i' + i, j' + j))
+{-# INLINE crop #-}
+
 
 flipUsing :: Array arr cs e =>
              ((Int, Int) -> (Int, Int) -> (Int, Int)) -> Image arr cs e -> Image arr cs e

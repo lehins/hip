@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
 module Graphics.Image.IO (
   -- * Reading
@@ -7,7 +8,11 @@ module Graphics.Image.IO (
   -- * Displaying
   displayImage, setDisplayProgram, 
   --displayImageHistograms, displayHistograms, writeHistograms,
+  -- * Supported Image Formats
   module Graphics.Image.IO.External
+  
+  -- $supported
+  
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
@@ -18,6 +23,7 @@ import Data.IORef
 import Data.ByteString (readFile)
 --import Graphics.EasyPlot hiding (TerminalType(..))
 --import qualified Graphics.EasyPlot as Plot (TerminalType(PNG))
+import Graphics.Image.ColorSpace
 import Graphics.Image.Interface
 import Graphics.Image.IO.Base
 import Graphics.Image.IO.External
@@ -31,6 +37,59 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Process (spawnProcess, waitForProcess, showCommandForUser)
 
 
+{- $supported
+Encoding and decoding of images is done using
+<http://hackage.haskell.org/package/JuicyPixels JuicyPixels> and
+<http://hackage.haskell.org/package/netpbm netpbm> packages.
+   
+List of image formats that are currently supported, and their exact
+'ColorSpace's and precision for reading and writing:
+  
+* 'BMP':
+
+    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+
+* 'GIF',
+
+    * __in__: ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __out__: ('RGB'  'Word8')
+    * Also supports reading and writing animated images, when used as @['GIF']@
+
+* 'HDR',
+
+    * __in__: ('RGB'  'Float')
+    * __out__: ('RGB'  'Float')
+
+* 'JPG',
+
+    * __in__: ('Y' 'Word8'), ('YA' 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    ('YCbCr', 'Word8')
+    * __out__: ('Y' 'Word8'), ('YA', 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    ('YCbCr', 'Word8')
+
+* 'PNG',
+
+    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+
+* 'TGA',
+
+    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+
+* 'TIF'.
+
+    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16'),
+    ('CMYK'  'Word8'), ('CMYK'  'Word16')
+    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+    ('CMYK'  'Word8'), ('CMYK'  'Word16'), ('YCbCr'  'Word8')
+
+-}
 
 guessFormat :: (ImageFormat f, Enum f) => FilePath -> Maybe f
 guessFormat path =
@@ -88,18 +147,16 @@ readImageExact :: Readable img format =>
 readImageExact format path = fmap (decode format) (readFile path)
 
 
--- | Just like 'readImage', this function will guess an output format from the file
--- extension and write to file any image that is in a
--- 'Graphics.Image.ColorSpace.Y', 'Graphics.Image.ColorSpace.YA',
--- 'Graphics.Image.ColorSpace.RGB' or 'Graphics.Image.ColorSpace.RGBA'
--- 'ColorSpace' with 'Double' precision. While doing necessary conversions the
--- choice will be given to the most suited color space supported by the format,
--- for instance, in case of a 'PNG' format, an ('Image' @arr@
--- 'Graphics.Image.ColorSpace.RGBA' 'Double') would be written as @RGBA16@,
--- hence preserving transparency and using highest supported precision
--- 'Graphics.Image.ColorSpace.Word16'. At the same writing that image in
--- 'GIF' format would save it in @RGB8@, since encoding transparent images in
--- 'GIF' is currently not supported.
+-- | Just like 'readImage', this function will guess an output file format from the
+-- extension and write to file any image that is in one of 'Y', 'YA', 'RGB' or
+-- 'RGBA' 'ColorSpace's with 'Double' precision. While doing necessary
+-- conversions the choice will be given to the most suited color space supported
+-- by the format, for instance, in case of a 'PNG' format, an ('Image' @arr@
+-- 'RGBA' 'Double') would be written as 'RGBA'16, hence preserving transparency
+-- and using highest supported precision 'Word16'. At the same time, writing
+-- that image in 'GIF' format would save it in @RGB8@, since 'Word8' is the
+-- highest precision 'GIF' supports and it currently cannot be saved with
+-- transparency.
 writeImage :: (ManifestArray arr cs Double, Writable (Image arr cs Double) OutputFormat) =>
               FilePath            -- ^ Location where an image should be written.
            -> Image arr cs Double -- ^ An image to write. 
@@ -123,16 +180,15 @@ writeImageExact :: Writable img format =>
 writeImageExact format opts path = BL.writeFile path . encode format opts
   
 
--- | Sets the program to be use when displaying an image, where boolean
+-- | Sets the program to be use when displaying an image, where 'Bool'
 -- specifies if current thread should block until the program is closed when
--- calling 'displayImage' function. GPicView ("gpicview", False) is set as a
+-- calling 'displayImage' function. GPicView @("gpicview", False)@ is set as a
 -- default program with a nonblocking flag. Here are some examples:
 --
 -- >>> setDisplayProgram ("gpicview", True) -- use gpicview and block current thread.
 -- >>> setDisplayProgram ("gimp", False) -- use gimp and don't block current thread.
 -- >>> setDisplayProgram ("xv", False)
 -- >>> setDisplayProgram ("display", False)
--- >>> setDisplayProgram ("rm", True) -- :-)
 --
 setDisplayProgram :: (String, Bool) -> IO ()
 setDisplayProgram = writeIORef displayProgram 
@@ -153,13 +209,10 @@ block current thread until external program is terminated, in which case
 image is closed.
 
   >>> frog <- readImageRGB "images/frog.jpg"
-  >>> tid <- displayImage $ computeS frog
-  gpicview /tmp/tmp-img13804.tiff
-  >>> tid
-  Just ThreadId 525
-  >>> setDisplayProgram ("gpicview", True)
-  >>> displayImage $ computeS frog
-  gpicview /tmp/tmp-img13804.tiff
+  >>> displayImage frog
+  Just ThreadId 505
+  >>> setDisplayProgram ("gimp", True)
+  >>> displayImage frog -- will only return after gimp is closed.
   Nothing
 
 -}
@@ -186,6 +239,8 @@ displayUsing img program path h = do
         putStrLn $ showCommandForUser program [path]
         print exitCode
   printExit e
+
+
 
 
 {-

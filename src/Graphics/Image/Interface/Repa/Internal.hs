@@ -131,16 +131,16 @@ instance Elt RS cs e => Array RS cs e where
   singleton = RSImage . singleton
   {-# INLINE singleton #-}
 
-  map f (RSImage img) = computeS . map f $ img
+  map !f (RSImage img) = computeS . map f $ img
   {-# INLINE map #-}
 
-  imap f (RSImage img) = computeS . imap f $ img
+  imap !f (RSImage img) = computeS . imap f $ img
   {-# INLINE imap #-}
 
-  zipWith f (RSImage img1) (RSImage img2) = computeS . zipWith f img1 $ img2
+  zipWith !f (RSImage img1) (RSImage img2) = computeS . zipWith f img1 $ img2
   {-# INLINE zipWith #-}
 
-  izipWith f (RSImage img1) (RSImage img2) = computeS . izipWith f img1 $ img2
+  izipWith !f (RSImage img1) (RSImage img2) = computeS . izipWith f img1 $ img2
   {-# INLINE izipWith #-}
 
   traverse (RSImage img) newDims = computeS . traverse img newDims 
@@ -152,7 +152,7 @@ instance Elt RS cs e => Array RS cs e where
   transpose (RSImage img) = computeS . transpose $ img
   {-# INLINE transpose #-}
   
-  backpermute f g (RSImage img) = computeS $ backpermute f g img
+  backpermute !f !g (RSImage img) = computeS $ backpermute f g img
   {-# INLINE backpermute #-}
 
   fromLists = RSImage . fromLists
@@ -178,16 +178,16 @@ instance Elt RP cs e => Array RP cs e where
   singleton = RPImage . singleton
   {-# INLINE singleton #-}
 
-  map f (RPImage img) = suspendedComputeP . map f $ img
+  map !f (RPImage img) = suspendedComputeP . map f $ img
   {-# INLINE map #-}
 
-  imap f (RPImage img) = suspendedComputeP . imap f $ img
+  imap !f (RPImage img) = suspendedComputeP . imap f $ img
   {-# INLINE imap #-}
 
-  zipWith f (RPImage img1) (RPImage img2) = suspendedComputeP . zipWith f img1 $ img2
+  zipWith !f (RPImage img1) (RPImage img2) = suspendedComputeP . zipWith f img1 $ img2
   {-# INLINE zipWith #-}
 
-  izipWith f (RPImage img1) (RPImage img2) = suspendedComputeP . izipWith f img1 $ img2
+  izipWith !f (RPImage img1) (RPImage img2) = suspendedComputeP . izipWith f img1 $ img2
   {-# INLINE izipWith #-}
 
   traverse (RPImage img) newDims = suspendedComputeP . traverse img newDims 

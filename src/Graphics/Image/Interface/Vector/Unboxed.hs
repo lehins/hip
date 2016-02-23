@@ -86,15 +86,15 @@ instance Elt VU cs e => Array VU cs e where
     {-# INLINE getPx #-}
   {-# INLINE transpose #-}
 
-  backpermute !(m, n) !f !img@(dims -> (m', n')) =
-    if m * n /= m' * n'
-    then error "backpermute: input image and new dimensions do not agree in size."
-    else makeImage (m, n) (index img . f)
+  backpermute !(m, n) !f (VUImage _ n' v) =
+    VUImage m n $ V.backpermute v $ V.generate (m*n) (fromIx n' . f . toIx n)
+  backpermute !sz      _ (VScalar px)     =
+    if sz == (1, 1) then VScalar px else makeImage sz (const px)
   {-# INLINE backpermute #-}
   
   fromLists !ls = if isSquare
                   then VUImage m n . V.fromList . concat $ ls
-                  else error "fromLists: Inner lists do not have uniform length."
+                  else error "fromLists: Inner lists are of different lengths."
     where
       !(m, n) = (length ls, length $ head ls)
       !isSquare = (n > 0) && all (==n) (P.map length ls)

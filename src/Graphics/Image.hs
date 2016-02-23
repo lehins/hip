@@ -15,33 +15,37 @@ module Graphics.Image (
   -- * Color Space
   -- | Here is a list of supported pixels with their respective constructors:
   --
-  --   * 'Pixel' 'Y' e  __= PixelY e__ - Luma, also known as /Y'/.
-  --   * 'Pixel' 'YA' e __= PixelYA e__ - Luma with alpha.
-  --   * 'Pixel' 'RGB' e __= PixelRGB e__ - Red, Green and Blue.
-  --   * 'Pixel' 'RGBA' e __= PixelRGBA e__ - RGB with alpha
-  --   * 'Pixel' 'HSI' e __= PixelHSI e__ - Hue, Saturation and Intensity.
-  --   * 'Pixel' 'HSIA' e __= PixelHSIA e__ - HSI with alpha
-  --   * 'Pixel' 'CMYK' e __= PixelCMYK e__ - Cyan, Magenta, Yellow and Key (Black).
-  --   * 'Pixel' 'CMYKA' e __= PixelCMYKA e__ - CMYK with alpha.
-  --   * 'Pixel' 'YCbCr' e __= PixelYCbCr e__ - Luma, blue-difference and red-difference
-  --           chroma components.
-  --   * 'Pixel' 'YCbCrA' e __= PixelYCbCrA e__ - YCbCr with alpha.
-  --   * 'Pixel' 'Gray' e __= PixelGray e__ - Used for separating channels from other
-  --           color spaces.
-  --   * 'Pixel' 'Binary' 'Bit' __= 'on' | 'off'__ - Bi-tonal.
-  --   * 'Pixel' cs ('Complex' e) __= 'Pixel' cs e '+:' 'Pixel' cs e__ - Complex pixels
-  --           with any color space.
+  --     * 'Pixel' 'Y' e  __= PixelY e__ - Luma, also known as /Y'/.
+  --     * 'Pixel' 'YA' e __= PixelYA e__ - Luma with alpha.
+  --     * 'Pixel' 'RGB' e __= PixelRGB e__ - Red, Green and Blue.
+  --     * 'Pixel' 'RGBA' e __= PixelRGBA e__ - RGB with alpha
+  --     * 'Pixel' 'HSI' e __= PixelHSI e__ - Hue, Saturation and Intensity.
+  --     * 'Pixel' 'HSIA' e __= PixelHSIA e__ - HSI with alpha
+  --     * 'Pixel' 'CMYK' e __= PixelCMYK e__ - Cyan, Magenta, Yellow and Key (Black).
+  --     * 'Pixel' 'CMYKA' e __= PixelCMYKA e__ - CMYK with alpha.
+  --     * 'Pixel' 'YCbCr' e __= PixelYCbCr e__ - Luma, blue-difference and red-difference
+  --       chroma components.
+  --     * 'Pixel' 'YCbCrA' e __= PixelYCbCrA e__ - YCbCr with alpha.
+  --     * 'Pixel' 'Gray' e __= PixelGray e__ - Used for separating channels from other
+  --       color spaces.
+  --     * 'Pixel' 'Binary' 'Bit' __= 'on' | 'off'__ - Bi-tonal.
+  --     * 'Pixel' cs ('Complex' e) __= ('Pixel' cs e) '+:' ('Pixel' cs e)__ - Complex pixels
+  --       with any color space.
   -- 
   -- All of functionality related to 'I.ColorSpace's is reimported here
   -- for convenience.
-  -- 
   module Graphics.Image.ColorSpace,
+  -- 
   -- * Creation
-  -- | If it is necessary to create an image in an arbitrary representation
+  --
+  -- If it is necessary to create an image in an other representation
   -- or with some specific 'Pixel' precision, you can use 'I.makeImage' from
-  -- <Graphics-Image-Interface.html Graphics.Image.Interface> module and
-  -- manually specifying function's output type.
-  makeImage,
+  -- "Graphics.Image.Interface" module and manually specifying function's output
+  -- type.
+  --
+  -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
+  --
+  makeImage, I.fromLists,
   -- * IO
   -- ** Reading
   -- | Read any supported image file into an 'Image' with 'VU' (Vector Unboxed)
@@ -51,7 +55,7 @@ module Graphics.Image (
   -- used.
   readImageY, readImageYA, readImageRGB, readImageRGBA,
   -- ** Writing
-  writeImage, 
+  writeImage, displayImage,
   -- * Accessors
   -- ** Dimensions
   rows, cols, I.dims,
@@ -68,12 +72,13 @@ module Graphics.Image (
   ) where
 import Prelude hiding (map, zipWith, sum, product, maximum, minimum)
 import Graphics.Image.ColorSpace
-import Graphics.Image.IO  (writeImage)
+import Graphics.Image.IO --(writeImage, displayImage)
 import Graphics.Image.Interface (Array, ManifestArray, Image)
 import qualified Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector
+import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
-
+import Graphics.Image.Processing
 --------------------------------------------------------------------------------
 ---- Creation and Transformation -----------------------------------------------
 --------------------------------------------------------------------------------
