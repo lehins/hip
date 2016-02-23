@@ -7,10 +7,7 @@ stability:         experimental
 maintainer:        lehins@yandex.ru
 category:          Image Processing
 synopsis:          Haskell Image Processing (HIP) Library.
-                           
-description:       Haskell Image Processing library contains functionality for
-performing manipulations on binary, grayscale, color, and complex images.
-                           
+description:       Haskell Image Processing library contains functionality for performing manipulations on binary, grayscale, color, and complex images.
 homepage:          https://github.com/lehins/hip
 bug-reports:       https://github.com/lehins/hip/issues
 cabal-version:     >= 1.10
@@ -85,6 +82,7 @@ library
               "-with-rtsopts=-N"
 
 executable example
+  hs-source-dirs: src
   main-is:          Main.hs
   default-language: Haskell2010
   ghc-options:
