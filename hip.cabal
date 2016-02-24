@@ -65,7 +65,7 @@ library
                  , Graphics.Image.ColorSpace.YCbCr
                  , Graphics.Image.IO.Base
                  , Graphics.Image.IO.External.JuicyPixels
-                 , Graphics.Image.IO.External.NetPbm
+                 , Graphics.Image.IO.External.Netpbm
                  , Graphics.Image.Interface.Repa.Internal
                  , Graphics.Image.Interface.Vector.Unboxed
                  , Graphics.Image.Processing.Convolution

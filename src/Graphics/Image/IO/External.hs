@@ -2,6 +2,7 @@
              TypeFamilies, UndecidableInstances #-}
 module Graphics.Image.IO.External (
   module Graphics.Image.IO.External.JuicyPixels,
+  module Graphics.Image.IO.External.Netpbm,
   InputFormat, OutputFormat,
   Readable(..), Writable(..), ImageFormat(..),
   ) where
@@ -9,6 +10,7 @@ module Graphics.Image.IO.External (
 import Graphics.Image.Interface
 import Graphics.Image.IO.Base
 import Graphics.Image.IO.External.JuicyPixels
+import Graphics.Image.IO.External.Netpbm
 
 
 -- | A collection of all image formats that can be read into HIP images with
@@ -19,6 +21,7 @@ data InputFormat = InputBMP
                  | InputJPG
                  | InputPNG
                  | InputTIF
+                 | InputPNM
                  | InputTGA  deriving (Show, Enum, Eq)
 
 
@@ -32,6 +35,16 @@ instance ImageFormat InputFormat where
   ext InputPNG = ext PNG
   ext InputTGA = ext TGA
   ext InputTIF = ext TIF
+  ext InputPNM = ext PPM
+
+  exts InputBMP = exts BMP
+  exts InputGIF = exts GIF
+  exts InputHDR = exts HDR
+  exts InputJPG = exts JPG
+  exts InputPNG = exts PNG
+  exts InputTGA = exts TGA
+  exts InputTIF = exts TIF
+  exts InputPNM = [ext PBM, ext PGM, ext PPM]
 
 
 instance (Readable (Image arr cs Double) BMP,
@@ -40,15 +53,17 @@ instance (Readable (Image arr cs Double) BMP,
           Readable (Image arr cs Double) JPG,
           Readable (Image arr cs Double) PNG,
           Readable (Image arr cs Double) TGA,
-          Readable (Image arr cs Double) TIF) =>
+          Readable (Image arr cs Double) TIF,
+          Readable (Image arr cs Double) PPM) =>
          Readable (Image arr cs Double) InputFormat where
   decode InputBMP = decode BMP
   decode InputGIF = decode GIF
   decode InputHDR = decode HDR
   decode InputJPG = decode JPG
   decode InputPNG = decode PNG
-  decode InputTGA = decode TGA
   decode InputTIF = decode TIF
+  decode InputPNM = decode PPM
+  decode InputTGA = decode TGA
 
 
 

@@ -15,7 +15,8 @@ import Graphics.Image.Processing.Convolution
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
 
--- | This function scales an image by a positive multiplier and draws a grid
+
+-- | This function magnifies an image by a positive factor and draws a grid
 -- around the original pixels. It is here simply as useful inspection tool.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
@@ -24,7 +25,7 @@ import Graphics.Image.Processing.Interpolation
 -- <<images/frog.jpg>> <<images/frog_eye_grid.png>>
 --
 pixelGrid :: (Elevator e, Array arr cs e) =>
-             Word8          -- ^ A positive scaling factor.
+             Word8          -- ^ Magnification factor.
           -> Image arr cs e -- ^ Source image.
           -> Image arr cs e
 pixelGrid !(succ . fromIntegral -> k) !img = traverse img getNewDims getNewPx where
@@ -35,3 +36,4 @@ pixelGrid !(succ . fromIntegral -> k) !img = traverse img getNewDims getNewPx wh
                             else getPx ((i - 1) `div` k, (j - 1) `div` k)
   {-# INLINE getNewPx #-}
 {-# INLINE pixelGrid #-}
+
