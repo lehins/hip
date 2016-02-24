@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ScopedTypeVariables,
              TypeFamilies, UndecidableInstances, ViewPatterns #-}
@@ -10,6 +11,7 @@ module Graphics.Image.Interface (
 import Prelude hiding (map, zipWith, sum, product)
 import GHC.Exts (Constraint)
 import Control.Monad.Primitive (PrimMonad (..))
+import Data.Typeable
 
 
 class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
@@ -32,7 +34,7 @@ class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
   dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
 
 
-class (Enum cs, Show cs) => ColorSpace cs where
+class (Eq cs, Enum cs, Show cs) => ColorSpace cs where
   -- | Representation of a pixel, such that it can be an element of any Array
   type PixelElt cs e
 
@@ -64,8 +66,11 @@ class (Enum cs, Show cs) => ColorSpace cs where
   -- | Zip two Pixels with a channel aware function.
   chOp2 :: (cs -> e1 -> e2 -> e) -> Pixel cs e1 -> Pixel cs e2 -> Pixel cs e
                                  
+  -- | Apply a function to a specified channel of a Pixel.
+  chApp :: (e -> e) -> cs -> Pixel cs e -> Pixel cs e
+  chApp !f !ch = chOp (\ !ch' !e -> if ch' == ch then f e else e)
   
-class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elt arr cs e) =>
+class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs e) =>
       Array arr cs e where
   
   type Elt arr cs e :: Constraint
@@ -380,8 +385,8 @@ instance (Floating (Pixel cs e), Floating e, Array arr cs e) =>
   {-# INLINE acosh #-}  
 
 
-instance Array arr cs e => Show (Image arr cs e) where
+instance (Typeable e, Array arr cs e) => Show (Image arr cs e) where
   show ((dims -> (m, n)) :: Image arr cs e) =
-    "<Image "++(show (undefined :: arr))++" "++(show (undefined :: cs))++
-    ": "++(show m)++"x"++(show n)++">"
+    "<Image "++show (undefined :: arr)++" "++show (undefined :: cs)++" ("++
+    ((showsTypeRep (typeOf (undefined :: e))) "): "++show m++"x"++show n++">")
 

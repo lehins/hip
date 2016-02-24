@@ -37,60 +37,6 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Process (spawnProcess, waitForProcess, showCommandForUser)
 
 
-{- $supported
-Encoding and decoding of images is done using
-<http://hackage.haskell.org/package/JuicyPixels JuicyPixels> and
-<http://hackage.haskell.org/package/netpbm netpbm> packages.
-   
-List of image formats that are currently supported, and their exact
-'ColorSpace's and precision for reading and writing:
-  
-* 'BMP':
-
-    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-
-* 'GIF',
-
-    * __in__: ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __out__: ('RGB'  'Word8')
-    * Also supports reading and writing animated images, when used as @['GIF']@
-
-* 'HDR',
-
-    * __in__: ('RGB'  'Float')
-    * __out__: ('RGB'  'Float')
-
-* 'JPG',
-
-    * __in__: ('Y' 'Word8'), ('YA' 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
-    ('YCbCr', 'Word8')
-    * __out__: ('Y' 'Word8'), ('YA', 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
-    ('YCbCr', 'Word8')
-
-* 'PNG',
-
-    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
-    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
-
-* 'TGA',
-
-    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-
-* 'TIF'.
-
-    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16'),
-    ('CMYK'  'Word8'), ('CMYK'  'Word16')
-    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
-    ('CMYK'  'Word8'), ('CMYK'  'Word16'), ('YCbCr'  'Word8')
-
--}
-
 guessFormat :: (ImageFormat f, Enum f) => FilePath -> Maybe f
 guessFormat path =
   headMaybe . dropWhile (not . isFormat e) . enumFrom . toEnum $ 0
@@ -138,10 +84,9 @@ readImage path = do
 -- the format, will result in a compile error. Refer to 'Readable' class for all
 -- images that can be decoded.
 readImageExact :: Readable img format =>
-                  format -- ^ A format that an image should be read
-                         -- as. Currently supported formats are: 'BMP', 'GIF',
-                         -- ['GIF'] (animated GIF), 'HDR', 'JPG', 'PNG', 'TGA'
-                         -- and 'TIF'.
+                  format
+                  -- ^ A file format that an image should be read as. See
+                   -- <#g:4 Supported Image Formats>
                -> FilePath -- ^ Location of an image.
                -> IO (Either String img)
 readImageExact format path = fmap (decode format) (readFile path)
@@ -168,10 +113,9 @@ writeImage path = BL.writeFile path . encode format [] where
 
   
 writeImageExact :: Writable img format =>
-                   format -- ^ A format that an image should be saved
-                          -- in. Currently supported formats are: 'BMP', 'GIF',
-                          -- ['GIF'] (animated GIF), 'HDR', 'JPG', 'PNG', 'TGA'
-                          -- and 'TIF'.
+                   format
+                   -- ^ A file format that an image should be saved in. See
+                   -- <#g:4 Supported Image Formats>
                 -> [SaveOption format] -- ^ A list of format specific options.
                 -> FilePath -- ^ Location where an image should be written.
                 -> img -- ^ An image to write. Can be a list of images in case
@@ -241,6 +185,75 @@ displayUsing img program path h = do
   printExit e
 
 
+
+{- $supported
+Encoding and decoding of images is done using
+<http://hackage.haskell.org/package/JuicyPixels JuicyPixels> and
+<http://hackage.haskell.org/package/netpbm netpbm> packages.
+   
+List of image formats that are currently supported, and their exact
+'ColorSpace's and precision for reading and writing:
+  
+* 'BMP':
+
+    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+
+* 'GIF':
+
+    * __in__: ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __out__: ('RGB'  'Word8')
+    * Also supports reading and writing animated images, when used as @['GIF']@
+
+* 'HDR':
+
+    * __in__: ('RGB'  'Float')
+    * __out__: ('RGB'  'Float')
+
+* 'JPG':
+
+    * __in__: ('Y' 'Word8'), ('YA' 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    ('YCbCr', 'Word8')
+    * __out__: ('Y' 'Word8'), ('YA', 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    ('YCbCr', 'Word8')
+
+* 'PNG':
+
+    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+
+* 'TGA':
+
+    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+
+* 'TIF':
+
+    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16'),
+    ('CMYK'  'Word8'), ('CMYK'  'Word16')
+    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+    ('CMYK'  'Word8'), ('CMYK'  'Word16'), ('YCbCr'  'Word8')
+
+* 'PBM':
+
+    * __in__: ('Binary' 'Bit')
+    * Also supports sequence of images in one file, when read as @['PBM']@
+
+* 'PGM':
+
+    * __in__: ('Y' 'Word8'), ('Y' 'Word16')
+    * Also supports sequence of images in one file, when read as @['PGM']@
+
+* 'PPM':
+
+    * __in__: ('RGB'  'Word8'), ('RGB'  'Word16')
+    * Also supports sequence of images in one file, when read as @['PPM']@
+
+-}
 
 
 {-

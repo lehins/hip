@@ -1,9 +1,9 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing (
-  module Graphics.Image.Processing.Convolution,
-  --module Graphics.Image.Processing.Fourier,
   module Graphics.Image.Processing.Geometric,
+  module Graphics.Image.Processing.Complex,
   module Graphics.Image.Processing.Interpolation,
+  module Graphics.Image.Processing.Convolution,
   pixelGrid
   ) where
 
@@ -11,7 +11,7 @@ import Data.Word (Word8)
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace (Elevator(fromDouble))
 import Graphics.Image.Processing.Convolution
---import Graphics.Image.Processing.Fourier
+import Graphics.Image.Processing.Complex
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
 

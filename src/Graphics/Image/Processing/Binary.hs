@@ -23,9 +23,9 @@ infixr 3  .&&.
 infixr 2  .||.
 
 
--- | Thresholding contains a convenient set of functions for binary image
--- construction. By comparing either a single pixel with every pixel in an image
--- or two same size images pointwise
+-- | 'Thresholding' contains a convenient set of functions for binary image
+-- construction, which is done by comparing either a single pixel with every
+-- pixel in an image or two same size images pointwise.
 class Array arr Binary Bit => Thresholding a b arr | a b -> arr where
   (.==.) :: (Eq (Pixel cs e), Array arr cs e)  => a cs e -> b cs e -> Image arr Binary Bit
   (./=.) :: (Eq (Pixel cs e), Array arr cs e)  => a cs e -> b cs e -> Image arr Binary Bit
@@ -115,26 +115,27 @@ invert = map complement
 {-# INLINE invert #-}
 
 
-
+-- | Construct a binary image using a predicate from a source image.
 toImageBinaryUsing :: (Array arr cs e, Array arr Binary Bit) =>
-                      (Pixel cs e -> Bool)
-                   -> Image arr cs e
+                      (Pixel cs e -> Bool) -- ^ Predicate
+                   -> Image arr cs e -- ^ Source image.
                    -> Image arr Binary Bit
 toImageBinaryUsing !f = map (fromBool . f)
 {-# INLINE toImageBinaryUsing #-}
 
 
+-- | Construct a binary image using a predicate from two source images.
 toImageBinaryUsing2 :: (Array arr cs e, Array arr Binary Bit) =>
-                       (Pixel cs e -> Pixel cs e -> Bool)
-                    -> Image arr cs e
-                    -> Image arr cs e
+                       (Pixel cs e -> Pixel cs e -> Bool) -- ^ Predicate
+                    -> Image arr cs e -- ^ First source image.
+                    -> Image arr cs e -- ^ Second source image.
                     -> Image arr Binary Bit
 toImageBinaryUsing2 !f =  zipWith (((.).(.)) fromBool f)
 {-# INLINE toImageBinaryUsing2 #-}
 
 
 {- $morphology In order to demonstrate how morphological operations work, a
-/binary image/ = __B__ constructed here together with a /structuring element/ =
+/binary source image/ = __B__ constructed here together with a /structuring element/ =
 __S__ will be used in examples that follow.
 
 @
@@ -169,7 +170,9 @@ struct = fromLists [[0,1],[1,1],[0,1]]
 -- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
 --
 erode :: (Thresholding (Image arr) Pixel arr) =>
-         Image arr Binary Bit -> Image arr Binary Bit -> Image arr Binary Bit
+         Image arr Binary Bit -- ^ Structuring element.
+      -> Image arr Binary Bit -- ^ Binary source image.
+      -> Image arr Binary Bit
 erode !struc !img = invert (convolve' (Fill on) struc (invert img) ./=. off)
 {-# INLINE erode #-}
 
@@ -181,7 +184,9 @@ erode !struc !img = invert (convolve' (Fill on) struc (invert img) ./=. off)
 -- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
 --
 dialate :: (Thresholding (Image arr) Pixel arr) =>
-           Image arr Binary Bit -> Image arr Binary Bit -> Image arr Binary Bit
+           Image arr Binary Bit -- ^ Structuring element.
+        -> Image arr Binary Bit -- ^ Binary source image.
+        -> Image arr Binary Bit
 dialate !struc !img = convolve' (Fill off) struc img ./=. off
 {-# INLINE dialate #-}
 
@@ -193,7 +198,9 @@ dialate !struc !img = convolve' (Fill off) struc img ./=. off
 -- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
 --
 open :: (Thresholding (Image arr) Pixel arr) =>
-        Image arr Binary Bit -> Image arr Binary Bit -> Image arr Binary Bit
+        Image arr Binary Bit -- ^ Structuring element.
+     -> Image arr Binary Bit -- ^ Binary source image.
+     -> Image arr Binary Bit
 open struc = dialate struc . erode struc
 {-# INLINE open #-}
 
@@ -205,7 +212,9 @@ open struc = dialate struc . erode struc
 -- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
 --
 close :: (Thresholding (Image arr) Pixel arr) =>
-         Image arr Binary Bit -> Image arr Binary Bit -> Image arr Binary Bit
+         Image arr Binary Bit -- ^ Structuring element.
+      -> Image arr Binary Bit -- ^ Binary source image.
+      -> Image arr Binary Bit
 close struc = erode struc . dialate struc
 {-# INLINE close #-}
 

@@ -11,6 +11,7 @@ import qualified Prelude as P (map)
 import Control.DeepSeq (NFData(..), deepseq)
 import Control.Monad (liftM)
 import Data.Word (Word8)
+import Data.Typeable (Typeable)
 import Data.Vector.Unboxed (Vector, Unbox)
 import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
@@ -28,7 +29,7 @@ instance Show VU where
 
 
 instance Elt VU cs e => Array VU cs e where
-  type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, 
+  type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, Typeable e, 
                       Unbox (PixelElt cs e), Unbox (Pixel cs e))
   data Image VU cs e where
     VScalar :: !(Pixel cs e)                          -> Image VU cs e

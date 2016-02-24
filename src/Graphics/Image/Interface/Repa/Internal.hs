@@ -14,6 +14,7 @@ import Graphics.Image.ColorSpace.Binary (Bit(..))
 import Graphics.Image.Interface.Vector.Unboxed (VU, fromUnboxedVector, toUnboxedVector)
 import Data.Array.Repa.Repr.Unboxed (Unbox)
 import Data.Function (on)
+import Data.Typeable (Typeable)
 import Data.Array.Repa hiding (
   Array, map, zipWith, rank, index, traverse, (++), computeP, computeS, delay,
   traverse, traverse2, transpose, backpermute)
@@ -41,7 +42,7 @@ instance Show RS where
 
 instance Elt RD cs e => Array RD cs e where
   type Elt RD cs e = (ColorSpace cs, 
-                      R.Elt e, Unbox e, Num e,
+                      R.Elt e, Unbox e, Num e, Typeable e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   data Image RD cs e where
@@ -115,7 +116,7 @@ instance Elt RD cs e => Array RD cs e where
 
 instance Elt RS cs e => Array RS cs e where
   type Elt RS cs e = (ColorSpace cs, 
-                      R.Elt e, Unbox e, Num e,
+                      R.Elt e, Unbox e, Num e, Typeable e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   
@@ -162,7 +163,7 @@ instance Elt RS cs e => Array RS cs e where
 
 instance Elt RP cs e => Array RP cs e where
   type Elt RP cs e = (ColorSpace cs, 
-                      R.Elt e, Unbox e, Num e,
+                      R.Elt e, Unbox e, Num e, Typeable e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   

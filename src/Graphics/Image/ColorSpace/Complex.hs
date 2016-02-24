@@ -51,12 +51,12 @@ polar :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> (Pixel cs e, Pi
 polar !zPx = (magnitude zPx, phase zPx)
 {-# INLINE polar #-}
 
--- | The nonnegative magnitude of a complex number.
+-- | The nonnegative magnitude of a complex pixel.
 magnitude :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
 magnitude = pxOp C.magnitude
 {-# INLINE magnitude #-}
 
--- | The phase of a complex number, in the range @(-'pi', 'pi']@. If the
+-- | The phase of a complex pixel, in the range @(-'pi', 'pi']@. If the
 -- magnitude is zero, then so is the phase.
 phase :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
 phase = pxOp C.phase
