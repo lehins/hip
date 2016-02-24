@@ -139,6 +139,8 @@ instance ManifestArray VU cs e => MutableArray VU cs e where
   data MImage st VU cs e where
     MVImage :: !Int -> !Int -> MV.MVector st (Pixel cs e) -> MImage st VU cs e
 
+  mdims (MVImage m n _) = (m, n)
+
   thaw (VUImage m n v) = liftM (MVImage m n) (V.thaw v)
   thaw _ = error "thaw: scalar images are not mutable."
   {-# INLINE thaw #-}

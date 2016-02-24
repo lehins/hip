@@ -206,6 +206,8 @@ class Array arr cs e => ManifestArray arr cs e where
 class ManifestArray arr cs e => MutableArray arr cs e where
   data MImage st arr cs e
 
+  mdims :: MImage st arr cs e -> (Int, Int)
+
   thaw :: PrimMonad m => Image arr cs e -> m (MImage (PrimState m) arr cs e)
 
   freeze :: PrimMonad m => MImage (PrimState m) arr cs e -> m (Image arr cs e)
@@ -385,8 +387,15 @@ instance (Floating (Pixel cs e), Floating e, Array arr cs e) =>
   {-# INLINE acosh #-}  
 
 
-instance (Typeable e, Array arr cs e) => Show (Image arr cs e) where
+instance Array arr cs e => Show (Image arr cs e) where
   show ((dims -> (m, n)) :: Image arr cs e) =
     "<Image "++show (undefined :: arr)++" "++show (undefined :: cs)++" ("++
     ((showsTypeRep (typeOf (undefined :: e))) "): "++show m++"x"++show n++">")
+
+
+instance MutableArray arr cs e => Show (MImage st arr cs e) where
+  show ((mdims -> (m, n)) :: MImage st arr cs e) =
+    "<MutableImage "++show (undefined :: arr)++" "++show (undefined :: cs)++" ("++
+    ((showsTypeRep (typeOf (undefined :: e))) "): "++show m++"x"++show n++">")
+
 
