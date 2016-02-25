@@ -7,12 +7,14 @@ module Graphics.Image.Interface.Repa.Internal (
   RD(..), RP(..), RS(..), computeP, computeS, delay
   ) where
 
-import Prelude hiding (map, zipWith)
-import qualified Prelude as P (map)
+import Prelude hiding (map, zipWith, foldl, foldr, mapM, mapM_, read)
+import qualified Prelude as P (map, mapM_)
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))
-import Graphics.Image.Interface.Vector.Unboxed (VU, fromUnboxedVector, toUnboxedVector)
+import Graphics.Image.Interface.Vector.Unboxed (VU(..), fromUnboxedVector, toUnboxedVector)
+import Control.Monad (liftM)
 import Data.Array.Repa.Repr.Unboxed (Unbox)
+import qualified Data.Vector.Unboxed as V ((!))
 import Data.Function (on)
 import Data.Typeable (Typeable)
 import Data.Array.Repa hiding (
@@ -206,7 +208,109 @@ instance Elt RP cs e => Array RP cs e where
 
   fromLists = RPImage . fromLists
   {-# INLINE fromLists #-}
+
+
   
+instance Array RS cs e => ManifestArray RS cs e where
+
+  index (RSImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
+  index (RSImage (RScalar px))  (_, _) = px
+  index _ _ = _error_compute
+  {-# INLINE index #-}
+
+  deepSeqImage (RSImage (RUImage arr)) = deepSeqArray arr
+  deepSeqImage (RSImage (RScalar px))  = seq px
+  deepSeqImage _ = _error_compute
+  {-# INLINE deepSeqImage #-}
+
+  (|*|) i1@(RSImage img1) i2@(RSImage img2) =
+    i1 `deepSeqImage` i2 `deepSeqImage` computeS (mult img1 img2)
+  {-# INLINE (|*|) #-}
+
+  fold !f !px0 (RSImage (RUImage arr)) = R.foldAllS f px0 $ arr
+  fold !f !px0 (RSImage (RScalar px))  = f px0 px
+  fold _  _  _ = _error_compute
+  {-# INLINE fold #-}
+
+  eq (RSImage (RUImage arr1)) (RSImage (RUImage arr2)) = R.equalsS arr1 arr2
+  eq _ _ = _error_compute
+  {-# INLINE eq #-}
+
+
+instance Array RP cs e => ManifestArray RP cs e where
+
+  index (RPImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
+  index (RPImage (RScalar px))  (0, 0) = px
+  index (RPImage (RScalar _))   (_, _) = error "Scalar Image can only be indexed at (0,0)."
+  index _ _ = _error_compute
+  {-# INLINE index #-}
+
+  deepSeqImage (RPImage (RUImage arr)) = deepSeqArray arr
+  deepSeqImage (RPImage (RScalar px))  = seq px
+  deepSeqImage _ = _error_compute
+  {-# INLINE deepSeqImage #-}
+
+  (|*|) i1@(RPImage img1) i2@(RPImage img2) =
+    i1 `deepSeqImage` i2 `deepSeqImage` suspendedComputeP (mult img1 img2)
+  {-# INLINE (|*|) #-}
+
+  fold !f !px0 (RPImage (RUImage arr)) = head . R.foldAllP f px0 $ arr
+  fold !f !px0 (RPImage (RScalar px))  = f px0 px
+  fold _  _  _ = _error_compute
+  {-# INLINE fold #-}
+
+  eq (RPImage (RUImage arr1)) (RPImage (RUImage arr2)) = head $ R.equalsP arr1 arr2
+  eq _ _ = _error_compute
+  {-# INLINE eq #-}
+
+  
+instance ManifestArray RS cs e => SequentialArray RS cs e where
+
+  foldl !f !a = foldl f a . transform VU
+  {-# INLINE foldl #-}
+
+  foldr !f !a = foldr f a . transform VU
+  {-# INLINE foldr #-}
+
+  mapM !f img = liftM (transform RS) (mapM f (transform VU img))
+  {-# INLINE mapM #-}
+
+  mapM_ !f img = mapM_ f (transform VU img)
+  {-# INLINE mapM_ #-}
+
+  foldM !f !a = foldM f a . transform VU
+  {-# INLINE foldM #-}
+
+  foldM_ !f !a = foldM_ f a . transform VU
+  {-# INLINE foldM_ #-}
+
+
+instance ManifestArray RS cs e => MutableArray RS cs e where
+
+  data MImage st RS cs e where
+    MRSImage :: MImage st VU cs e -> MImage st RS cs e
+
+  mdims (MRSImage (mdims -> sz)) = sz
+  {-# INLINE mdims #-}
+
+  thaw img = liftM MRSImage (thaw (transform VU img))
+  {-# INLINE thaw #-}
+
+  freeze (MRSImage mimg) = liftM (transform RS) (freeze mimg)
+  {-# INLINE freeze #-}
+
+  newImage sz = liftM MRSImage (newImage sz)
+  {-# INLINE newImage #-}
+
+  read (MRSImage mimg) = read mimg
+  {-# INLINE read #-}
+  
+  write (MRSImage mimg) = write mimg
+  {-# INLINE write #-}
+
+  swap (MRSImage mimg) = swap mimg
+  {-# INLINE swap #-}
+
 
 instance Transformable RS RD where
 
@@ -247,80 +351,29 @@ instance Transformable RS RP where
 
 
 instance Transformable VU RS where
+  transform _ img@(dims -> (1, 1)) = singleton (toUnboxedVector img V.! 0)
   transform _ img = RSImage . RUImage . R.fromUnboxed (tSh2 $ dims img) . toUnboxedVector $ img
   {-# INLINE transform #-}
 
 
 instance Transformable VU RP where
+  transform _ img@(dims -> (1, 1)) = singleton (toUnboxedVector img V.! 0)
   transform _ img = RPImage . RUImage . R.fromUnboxed (tSh2 $ dims img) . toUnboxedVector $ img
   {-# INLINE transform #-}
 
 
 instance Transformable RS VU where
   transform _ img@(RSImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
-  transform _ (RSImage (RScalar _)) = _error_scalar_op
+  transform _ (RSImage (RScalar px)) = singleton px
   transform _ _                     = _error_compute
   {-# INLINE transform #-}
 
 
 instance Transformable RP VU where
   transform _ img@(RPImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
-  transform _ (RPImage (RScalar _)) = _error_scalar_op
+  transform _ (RPImage (RScalar px)) = singleton px
   transform _ _                     = _error_compute
   {-# INLINE transform #-}
-
-
-  
-instance Array RS cs e => ManifestArray RS cs e where
-
-  index (RSImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
-  index (RSImage (RScalar px))  (0, 0) = px
-  index (RSImage (RScalar _))   (_, _) = error "Scalar Image can only be indexed at (0,0)."
-  index _ _ = _error_compute
-  {-# INLINE index #-}
-
-  deepSeqImage (RSImage (RUImage arr)) = deepSeqArray arr
-  deepSeqImage _ = _error_compute
-  {-# INLINE deepSeqImage #-}
-
-  (|*|) i1@(RSImage img1) i2@(RSImage img2) =
-    i1 `deepSeqImage` i2 `deepSeqImage` computeS (mult img1 img2)
-  {-# INLINE (|*|) #-}
-
-  fold !f !px0 (RSImage (RUImage arr)) = R.foldAllS f px0 $ arr
-  fold !f !px0 (RSImage (RScalar px))  = f px0 px
-  fold _  _  _ = _error_compute
-  {-# INLINE fold #-}
-
-  eq (RSImage (RUImage arr1)) (RSImage (RUImage arr2)) = R.equalsS arr1 arr2
-  eq _ _ = _error_compute
-  {-# INLINE eq #-}
-
-
-instance Array RP cs e => ManifestArray RP cs e where
-
-  index (RPImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
-  index (RPImage (RScalar px))  (0, 0) = px
-  index (RPImage (RScalar _))   (_, _) = error "Scalar Image can only be indexed at (0,0)."
-  index _ _ = _error_compute
-  {-# INLINE index #-}
-
-  deepSeqImage (RPImage (RUImage arr)) = deepSeqArray arr
-  deepSeqImage _ = _error_compute
-  {-# INLINE deepSeqImage #-}
-
-  (|*|) i1@(RPImage img1) i2@(RPImage img2) =
-    i1 `deepSeqImage` i2 `deepSeqImage` suspendedComputeP (mult img1 img2)
-  {-# INLINE (|*|) #-}
-
-  fold !f !px0 (RPImage (RUImage arr)) = head . R.foldAllP f px0 $ arr
-  fold !f !px0 (RPImage (RScalar px))  = f px0 px
-  fold _  _  _ = _error_compute
-  {-# INLINE fold #-}
-
-  eq (RPImage (RUImage arr1)) (RPImage (RUImage arr2)) = head $ R.equalsP arr1 arr2
-  eq _ _ = _error_compute
-  {-# INLINE eq #-}
 
 
 computeP :: (Array arr cs e, Array RP cs e, Transformable arr RP) =>
@@ -400,7 +453,7 @@ instance R.Elt Bit where
 
 
 instance (ColorSpace cs, R.Elt e, Num e) => R.Elt (Pixel cs e) where
-  touch !px = mapM_ (R.touch . getPxCh px) (enumFrom (toEnum 0)) 
+  touch !px = P.mapM_ (R.touch . getPxCh px) (enumFrom (toEnum 0)) 
   {-# INLINE touch #-}
   
   zero     = 0

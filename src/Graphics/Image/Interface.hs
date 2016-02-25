@@ -4,14 +4,16 @@
              TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Interface (
-  ColorSpace(..), Alpha(..), Array(..), ManifestArray(..), MutableArray(..), 
+  ColorSpace(..), Alpha(..),
+  Array(..), ManifestArray(..), MutableArray(..),  SequentialArray(..),
   Transformable(..)
   ) where
 
 import Prelude hiding (map, zipWith, sum, product)
 import GHC.Exts (Constraint)
+import Data.Typeable (Typeable, showsTypeRep, typeOf)
+import Control.Applicative
 import Control.Monad.Primitive (PrimMonad (..))
-import Data.Typeable
 
 
 class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
@@ -34,7 +36,7 @@ class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
   dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
 
 
-class (Eq cs, Enum cs, Show cs) => ColorSpace cs where
+class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   -- | Representation of a pixel, such that it can be an element of any Array
   type PixelElt cs e
 
@@ -54,21 +56,15 @@ class (Eq cs, Enum cs, Show cs) => ColorSpace cs where
   -- | Retrieve Pixel's channel value
   getPxCh :: Pixel cs e -> cs -> e
   
-  -- | Map a function over all Pixel's channels.
-  pxOp :: (e' -> e) -> Pixel cs e' -> Pixel cs e
-
-  -- | Zip two Pixels with a function.
-  pxOp2 :: (e1 -> e2 -> e) -> Pixel cs e1 -> Pixel cs e2 -> Pixel cs e
-  
   -- | Map a channel aware function over all Pixel's channels.
   chOp :: (cs -> e' -> e) -> Pixel cs e' -> Pixel cs e 
 
-  -- | Zip two Pixels with a channel aware function.
-  chOp2 :: (cs -> e1 -> e2 -> e) -> Pixel cs e1 -> Pixel cs e2 -> Pixel cs e
-                                 
-  -- | Apply a function to a specified channel of a Pixel.
-  chApp :: (e -> e) -> cs -> Pixel cs e -> Pixel cs e
-  chApp !f !ch = chOp (\ !ch' !e -> if ch' == ch then f e else e)
+  -- | Map a function over all Pixel's channels.
+  pxOp :: (e' -> e) -> Pixel cs e' -> Pixel cs e
+
+  -- | Function application to a Pixel.
+  chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
+  
   
 class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs e) =>
       Array arr cs e where
@@ -203,6 +199,23 @@ class Array arr cs e => ManifestArray arr cs e where
   eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
 
 
+class ManifestArray arr cs e => SequentialArray arr cs e where
+
+  foldl :: (a -> Pixel cs e -> a) -> a -> Image arr cs e -> a
+
+  foldr :: (Pixel cs e -> a -> a) -> a -> Image arr cs e -> a
+
+  mapM :: (Array arr cs' e', Monad m) =>
+          (Pixel cs' e' -> m (Pixel cs e)) -> Image arr cs' e' -> m (Image arr cs e)
+
+  mapM_ :: (Array arr cs' e', Monad m) =>
+           (Pixel cs' e' -> m (Pixel cs e)) -> Image arr cs' e' -> m ()
+
+  foldM :: Monad m => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m a
+
+  foldM_ :: Monad m => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m ()
+
+
 class ManifestArray arr cs e => MutableArray arr cs e where
   data MImage st arr cs e
 
@@ -219,7 +232,6 @@ class ManifestArray arr cs e => MutableArray arr cs e where
   write :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> Pixel cs e -> m ()
 
   swap :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> (Int, Int) -> m ()
-
 
 
 class Transformable arr' arr where
@@ -239,34 +251,44 @@ instance Transformable arr arr where
   {-# INLINE transform #-}
 
 
+instance ColorSpace cs => Functor (Pixel cs) where
+
+  fmap = pxOp
+  
+instance ColorSpace cs => Applicative (Pixel cs) where
+
+  pure = fromChannel
+
+  (<*>) = chApp
+
 instance (ColorSpace cs, Num e) => Num (Pixel cs e) where
-  (+)         = pxOp2 (+)
+  (+)         = liftA2 (+)
   {-# INLINE (+) #-}
   
-  (-)         = pxOp2 (-)
+  (-)         = liftA2 (-)
   {-# INLINE (-) #-}
   
-  (*)         = pxOp2 (*)
+  (*)         = liftA2 (*)
   {-# INLINE (*) #-}
   
-  abs         = pxOp abs
+  abs         = liftA abs
   {-# INLINE abs #-}
   
-  signum      = pxOp signum
+  signum      = liftA signum
   {-# INLINE signum #-}
   
-  fromInteger = fromChannel . fromInteger
+  fromInteger = pure . fromInteger
   {-# INLINE fromInteger#-}
   
 
 instance (ColorSpace cs, Fractional e) => Fractional (Pixel cs e) where
-  (/)          = pxOp2 (/)
+  (/)          = liftA2 (/)
   {-# INLINE (/) #-}
   
-  recip        = pxOp recip
+  recip        = liftA recip
   {-# INLINE recip #-}
 
-  fromRational = fromChannel . fromRational
+  fromRational = pure . fromRational
   {-# INLINE fromRational #-}
 
 
@@ -274,40 +296,40 @@ instance (ColorSpace cs, Floating e) => Floating (Pixel cs e) where
   pi      = fromChannel pi
   {-# INLINE pi #-}
 
-  exp     = pxOp exp
+  exp     = liftA exp
   {-# INLINE exp #-}
 
-  log     = pxOp log
+  log     = liftA log
   {-# INLINE log #-}
   
-  sin     = pxOp sin
+  sin     = liftA sin
   {-# INLINE sin #-}
   
-  cos     = pxOp cos
+  cos     = liftA cos
   {-# INLINE cos #-}
   
-  asin    = pxOp asin
+  asin    = liftA asin
   {-# INLINE asin #-}
   
-  atan    = pxOp atan
+  atan    = liftA atan
   {-# INLINE atan #-}
   
-  acos    = pxOp acos
+  acos    = liftA acos
   {-# INLINE acos #-}
   
-  sinh    = pxOp sinh
+  sinh    = liftA sinh
   {-# INLINE sinh #-}
   
-  cosh    = pxOp cosh
+  cosh    = liftA cosh
   {-# INLINE cosh #-}
   
-  asinh   = pxOp asinh
+  asinh   = liftA asinh
   {-# INLINE asinh #-}
   
-  atanh   = pxOp atanh
+  atanh   = liftA atanh
   {-# INLINE atanh #-}
   
-  acosh   = pxOp acosh
+  acosh   = liftA acosh
   {-# INLINE acosh #-}
 
 
@@ -395,7 +417,8 @@ instance Array arr cs e => Show (Image arr cs e) where
 
 instance MutableArray arr cs e => Show (MImage st arr cs e) where
   show ((mdims -> (m, n)) :: MImage st arr cs e) =
-    "<MutableImage "++show (undefined :: arr)++" "++show (undefined :: cs)++" ("++
+    "<MutableImage "++show (undefined :: arr)++" "++
+    ((showsTypeRep (typeOf (undefined :: cs))) " (")++
     ((showsTypeRep (typeOf (undefined :: e))) "): "++show m++"x"++show n++">")
 
 

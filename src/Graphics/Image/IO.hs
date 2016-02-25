@@ -16,7 +16,7 @@ module Graphics.Image.IO (
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
-import Control.Monad (foldM)
+import qualified Control.Monad as M (foldM)
 import Control.Concurrent -- (forkIO, ThreadId)
 import Data.Char (toLower)
 import Data.IORef
@@ -63,7 +63,7 @@ readImage path = do
       reader (Left err) format = 
         return $ either (Left . ((err++"\n")++)) Right (decode format imgstr)
       reader img         _     = return img
-  foldM reader (Left "") orderedFormats
+  M.foldM reader (Left "") orderedFormats
 
 -- | This function allows for reading any supported image in the exact colorspace
 -- and precision it is currently encoded in. For instance, frog image can be

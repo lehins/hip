@@ -134,30 +134,64 @@ instance Array VU cs e => ManifestArray VU cs e where
   {-# INLINE eq #-}
 
 
+instance ManifestArray VU cs e => SequentialArray VU cs e where
+
+  foldl !f !a (VUImage _ _ v) = V.foldl' f a v
+  foldl !f !a (VScalar px)    = f a px
+  {-# INLINE foldl #-}
+
+  foldr !f !a (VUImage _ _ v) = V.foldr' f a v
+  foldr !f !a (VScalar px)    = f px a
+  {-# INLINE foldr #-}
+
+  mapM !f (VUImage m n v) = liftM (VUImage m n) (V.mapM f v)
+  mapM !f (VScalar px)    = liftM VScalar (f px)
+  {-# INLINE mapM #-}
+
+  mapM_ !f (VUImage _ _ v) = V.mapM_ f v
+  mapM_ !f (VScalar px)    = (f px) >> return ()
+  {-# INLINE mapM_ #-}
+
+  foldM !f !a (VUImage _ _ v) = V.foldM' f a v
+  foldM !f !a (VScalar px)    = f a px
+  {-# INLINE foldM #-}
+
+  foldM_ !f !a (VUImage _ _ v) = V.foldM'_ f a v
+  foldM_ !f !a (VScalar px)    = f a px >> return ()
+  {-# INLINE foldM_ #-}
+
+
 instance ManifestArray VU cs e => MutableArray VU cs e where
 
   data MImage st VU cs e where
     MVImage :: !Int -> !Int -> MV.MVector st (Pixel cs e) -> MImage st VU cs e
+    MVScalar :: MV.MVector st (Pixel cs e) -> MImage st VU cs e
 
   mdims (MVImage m n _) = (m, n)
+  mdims (MVScalar _)    = (1, 1)
+  {-# INLINE mdims #-}
 
   thaw (VUImage m n v) = liftM (MVImage m n) (V.thaw v)
-  thaw _ = error "thaw: scalar images are not mutable."
+  thaw (VScalar px)    = liftM MVScalar (V.thaw (V.singleton px))
   {-# INLINE thaw #-}
 
   freeze (MVImage m n mv) = liftM (VUImage m n) (V.freeze mv)
+  freeze (MVScalar mv)    = liftM (VScalar . (V.! 0)) (V.freeze mv)
   {-# INLINE freeze #-}
 
   newImage (m, n) = liftM (MVImage m n) (MV.new (m*n))
   {-# INLINE newImage #-}
 
   read (MVImage _ n mv) ix = MV.read mv (fromIx n ix)
+  read (MVScalar mv)    _  = MV.read mv 0
   {-# INLINE read #-}
 
-  write (MVImage _ n mv) ix px = MV.write mv (fromIx n ix) px
+  write (MVImage _ n mv) ix = MV.write mv (fromIx n ix)
+  write (MVScalar mv)    _  = MV.write mv 0
   {-# INLINE write #-}
 
   swap (MVImage _ n mv) ix1 ix2 = MV.swap mv (fromIx n ix1) (fromIx n ix2)
+  swap _                _   _   = return ()
   {-# INLINE swap #-}
 
 

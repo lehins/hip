@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+             TypeFamilies #-}
 module Graphics.Image.ColorSpace.CMYK (
   CMYK(..), CMYKA(..), Pixel(..), 
   ToCMYK(..), ToCMYKA(..)
@@ -6,20 +7,20 @@ module Graphics.Image.ColorSpace.CMYK (
 
 import Prelude hiding (map)
 import Graphics.Image.Interface
-
+import Data.Typeable (Typeable)
 
 data CMYK = CyanCMYK -- ^ Cyan
           | MagCMYK  -- ^ Mahenta
           | YelCMYK  -- ^ Yellow
           | KeyCMYK  -- ^ Key (Black)
-          deriving (Eq, Enum)
+          deriving (Eq, Enum, Typeable)
 
 data CMYKA = CyanCMYKA  -- ^ Cyan
            | MagCMYKA   -- ^ Mahenta
            | YelCMYKA   -- ^ Yellow
            | KeyCMYKA   -- ^ Key (Black)
            | AlphaCMYKA -- ^ Alpha 
-           deriving (Eq, Enum)
+           deriving (Eq, Enum, Typeable)
 
 
 class ColorSpace cs => ToCMYK cs where
@@ -68,16 +69,11 @@ instance ColorSpace CMYK where
     PixelCMYK (f CyanCMYK c) (f MagCMYK m) (f YelCMYK y) (f KeyCMYK k)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelCMYK c1 m1 y1 k1) (PixelCMYK c2 m2 y2 k2) =
-    PixelCMYK (f CyanCMYK c1 c2) (f MagCMYK m1 m2) (f YelCMYK y1 y2) (f KeyCMYK k1 k2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelCMYK c m y k) = PixelCMYK (f c) (f m) (f y) (f k)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelCMYK c1 m1 y1 k1) (PixelCMYK c2 m2 y2 k2) =
-    PixelCMYK (f c1 c2) (f m1 m2) (f y1 y2) (f k1 k2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelCMYK fc fm fy fk) (PixelCMYK c m y k) = PixelCMYK (fc c) (fm m) (fy y) (fk k)
+  {-# INLINE chApp #-}
 
 
 
@@ -105,17 +101,12 @@ instance ColorSpace CMYKA where
     PixelCMYKA (f CyanCMYKA c) (f MagCMYKA m) (f YelCMYKA y) (f KeyCMYKA k) (f AlphaCMYKA a)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelCMYKA c1 m1 y1 k1 a1) (PixelCMYKA c2 m2 y2 k2 a2) =
-    PixelCMYKA (f CyanCMYKA c1 c2) (f MagCMYKA m1 m2) (f YelCMYKA y1 y2)
-               (f KeyCMYKA k1 k2) (f AlphaCMYKA a1 a2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelCMYKA c m y k a) = PixelCMYKA (f c) (f m) (f y) (f k) (f a)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelCMYKA c1 m1 y1 k1 a1) (PixelCMYKA c2 m2 y2 k2 a2) =
-    PixelCMYKA (f c1 c2) (f m1 m2) (f y1 y2) (f k1 k2) (f a1 a2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelCMYKA fc fm fy fk fa) (PixelCMYKA c m y k a) =
+    PixelCMYKA (fc c) (fm m) (fy y) (fk k) (fa a)
+  {-# INLINE chApp #-}
 
 
 instance Alpha CMYKA where

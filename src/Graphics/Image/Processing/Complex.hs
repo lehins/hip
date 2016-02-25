@@ -5,12 +5,15 @@ module Graphics.Image.Processing.Complex (
   -- ** Polar form
   mkPolar', cis', polar', magnitude', phase',
   -- ** Conjugate
-  conjugate'
+  conjugate',
+  -- ** Fourier Transform
+  module Graphics.Image.Processing.Complex.Fourier
   ) where
 
 import Prelude hiding (map, zipWith)
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Complex
+import Graphics.Image.Processing.Complex.Fourier
 
 
 infix 6 !+!

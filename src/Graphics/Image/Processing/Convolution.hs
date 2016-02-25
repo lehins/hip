@@ -1,10 +1,12 @@
 {-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Processing.Convolution (
-  Outside(..), convolve, convolve', convolveRows, convolveCols
+  Outside(..), convolve, convolve', convolveRows, convolveCols,
+  module Graphics.Image.Processing.Complex.Fourier
   ) where
 
 import Graphics.Image.Interface
 import Graphics.Image.Processing.Geometric
+import Graphics.Image.Processing.Complex.Fourier
 
 
 -- | Approach to be used near the border during convolution.

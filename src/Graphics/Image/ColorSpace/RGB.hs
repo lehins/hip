@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+             TypeFamilies #-}
 module Graphics.Image.ColorSpace.RGB (
   RGB(..), RGBA(..), Pixel(..), 
   ToRGB(..), ToRGBA(..)
@@ -6,16 +7,16 @@ module Graphics.Image.ColorSpace.RGB (
 
 import Prelude hiding (map)
 import Graphics.Image.Interface
-
+import Data.Typeable (Typeable)
 
 data RGB = RedRGB
          | GreenRGB
-         | BlueRGB deriving (Eq, Enum)
+         | BlueRGB deriving (Eq, Enum, Typeable)
 
 data RGBA = RedRGBA
           | GreenRGBA
           | BlueRGBA
-          | AlphaRGBA deriving (Eq, Enum)
+          | AlphaRGBA deriving (Eq, Enum, Typeable)
 
 
 class ColorSpace cs => ToRGB cs where
@@ -62,15 +63,11 @@ instance ColorSpace RGB where
   chOp !f (PixelRGB r g b) = PixelRGB (f RedRGB r) (f GreenRGB g) (f BlueRGB b)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelRGB r1 g1 b1) (PixelRGB r2 g2 b2) =
-    PixelRGB (f RedRGB r1 r2) (f GreenRGB g1 g2) (f BlueRGB b1 b2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelRGB r g b) = PixelRGB (f r) (f g) (f b)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelRGB r1 g1 b1) (PixelRGB r2 g2 b2) = PixelRGB (f r1 r2) (f g1 g2) (f b1 b2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelRGB fr fg fb) (PixelRGB r g b) = PixelRGB (fr r) (fg g) (fb b)
+  {-# INLINE chApp #-}
 
 
 
@@ -97,16 +94,11 @@ instance ColorSpace RGBA where
     PixelRGBA (f RedRGBA r) (f GreenRGBA g) (f BlueRGBA b) (f AlphaRGBA a)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelRGBA r1 g1 b1 a1) (PixelRGBA r2 g2 b2 a2) =
-    PixelRGBA (f RedRGBA r1 r2) (f GreenRGBA g1 g2) (f BlueRGBA b1 b2) (f AlphaRGBA a1 a2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelRGBA r g b a) = PixelRGBA (f r) (f g) (f b) (f a)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelRGBA r1 g1 b1 a1) (PixelRGBA r2 g2 b2 a2) =
-    PixelRGBA (f r1 r2) (f g1 g2) (f b1 b2) (f a1 a2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelRGBA fr fg fb fa) (PixelRGBA r g b a) = PixelRGBA (fr r) (fg g) (fb b) (fa a)
+  {-# INLINE chApp #-}
 
 
 instance Alpha RGBA where

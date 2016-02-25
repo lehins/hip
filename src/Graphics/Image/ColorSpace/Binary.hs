@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+             TypeFamilies #-}
 module Graphics.Image.ColorSpace.Binary (
   Binary(..), Bit(..), on, off, isOn, isOff, fromBool, complement
   ) where
@@ -6,6 +7,7 @@ module Graphics.Image.ColorSpace.Binary (
 import Prelude hiding (map)
 import Data.Word (Word8)
 import Graphics.Image.Interface
+import Data.Typeable (Typeable)
 
 -- | This is a Binary colorspace, pixel's of which can be created using
 -- these __/constructors/__:
@@ -29,7 +31,7 @@ import Graphics.Image.Interface
 -- >>> (on + on) - on
 -- <Binary:(0)>
 --
-data Binary = Binary deriving (Eq, Enum)
+data Binary = Binary deriving (Eq, Enum, Typeable)
 
 
 -- | Under the hood, Binary pixels are represented as 'Word8' that can only take
@@ -101,14 +103,11 @@ instance ColorSpace Binary where
   chOp !f (PixelBinary g) = PixelBinary (f Binary g)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelBinary g1) (PixelBinary g2) = PixelBinary (f Binary g1 g2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelBinary g) = PixelBinary (f g)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelBinary g1) (PixelBinary g2) = PixelBinary (f g1 g2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelBinary f) (PixelBinary b) = PixelBinary (f b)
+  {-# INLINE chApp #-}
 
 
 instance Show Binary where

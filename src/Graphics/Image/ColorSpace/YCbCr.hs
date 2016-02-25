@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+             TypeFamilies #-}
 module Graphics.Image.ColorSpace.YCbCr (
   YCbCr(..), YCbCrA(..), Pixel(..), 
   ToYCbCr(..), ToYCbCrA(..)
@@ -6,17 +7,17 @@ module Graphics.Image.ColorSpace.YCbCr (
 
 import Prelude hiding (map)
 import Graphics.Image.Interface
-
+import Data.Typeable (Typeable)
 
 data YCbCr = LumaYCbCr
            | CBlueYCbCr
-           | CRedYCbCr deriving (Eq, Enum)
+           | CRedYCbCr deriving (Eq, Enum, Typeable)
 
 
 data YCbCrA = LumaYCbCrA
             | CBlueYCbCrA
             | CRedYCbCrA
-            | AlphaYCbCrA deriving (Eq, Enum)
+            | AlphaYCbCrA deriving (Eq, Enum, Typeable)
 
 
 class ColorSpace cs => ToYCbCr cs where
@@ -63,16 +64,11 @@ instance ColorSpace YCbCr where
   chOp !f (PixelYCbCr y b r) = PixelYCbCr (f LumaYCbCr y) (f CBlueYCbCr b) (f CRedYCbCr r)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelYCbCr y1 b1 r1) (PixelYCbCr y2 b2 r2) =
-    PixelYCbCr (f LumaYCbCr y1 y2) (f CBlueYCbCr b1 b2) (f CRedYCbCr r1 r2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelYCbCr y b r) = PixelYCbCr (f y) (f b) (f r)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelYCbCr y1 b1 r1) (PixelYCbCr y2 b2 r2) = PixelYCbCr (f y1 y2) (f b1 b2) (f r1 r2)
-  {-# INLINE pxOp2 #-}
-
+  chApp (PixelYCbCr fy fb fr) (PixelYCbCr y b r) = PixelYCbCr (fy y) (fb b) (fr r)
+  {-# INLINE chApp #-}
 
 
 instance ColorSpace YCbCrA where
@@ -98,17 +94,11 @@ instance ColorSpace YCbCrA where
     PixelYCbCrA (f LumaYCbCrA y) (f CBlueYCbCrA b) (f CRedYCbCrA r) (f AlphaYCbCrA a)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelYCbCrA y1 b1 r1 a1) (PixelYCbCrA y2 b2 r2 a2) =
-    PixelYCbCrA (f LumaYCbCrA y1 y2) (f CBlueYCbCrA b1 b2) (f CRedYCbCrA r1 r2)
-                (f AlphaYCbCrA a1 a2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelYCbCrA y b r a) = PixelYCbCrA (f y) (f b) (f r) (f a)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelYCbCrA y1 b1 r1 a1) (PixelYCbCrA y2 b2 r2 a2) =
-    PixelYCbCrA (f y1 y2) (f b1 b2) (f r1 r2) (f a1 a2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelYCbCrA fy fb fr fa) (PixelYCbCrA y b r a) = PixelYCbCrA (fy y) (fb b) (fr r) (fa a)
+  {-# INLINE chApp #-}
 
 
 instance Alpha YCbCrA where

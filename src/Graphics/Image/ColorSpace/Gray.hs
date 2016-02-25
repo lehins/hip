@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, ScopedTypeVariables,
-             TypeFamilies #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+             ScopedTypeVariables, TypeFamilies #-}
 module Graphics.Image.ColorSpace.Gray (
   Gray(..), Pixel(..), toGrayImages, fromGrayImages
   ) where
@@ -7,15 +7,14 @@ module Graphics.Image.ColorSpace.Gray (
 import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Graphics.Image.Interface
-
-import Graphics.Image.ColorSpace.RGB
+import Data.Typeable (Typeable)
 
 -- ^ This is a signgle channel colorspace, that is designed to hold any channel
 -- from any other colorspace, hence it is not convertible to and from, but
 -- rather is here to allow separation of channels from other multichannel
 -- colorspaces. If you are looking for a true grayscale colorspace
 -- 'Graphics.Image.ColorSpace.Luma.Y' should be used instead.
-data Gray = Gray deriving (Eq, Enum)
+data Gray = Gray deriving (Eq, Enum, Typeable)
 
 
 -- | Separate an image into a list of images with 'Gray' pixels containing every
@@ -51,11 +50,11 @@ toGrayImages !img = P.map getCh (enumFrom (toEnum 0)) where
 --
 -- @ map (\(PixelRGB r g b) -> PixelRGB r b g) frog @
 --
-fromGrayImages :: (Array arr Gray e, Array arr cs e) =>
+fromGrayImages :: forall arr cs e . (Array arr Gray e, Array arr cs e) =>
                   [Image arr Gray e] -> [cs] -> Image arr cs e
-fromGrayImages imgs (chs :: [cs]) =
-  fromGrays (singleton ((fromChannel 0) :: Num e => Pixel cs e)) imgs chs where
-    updateCh ch px (PixelGray e) = chApp (const e) ch px
+fromGrayImages imgs chs =
+  fromGrays (singleton (fromChannel 0)) imgs chs where
+    updateCh ch px (PixelGray e) = chOp (\ !ch' !e' -> if ch' == ch then e else e') px
     {-# INLINE updateCh #-}
     fromGrays img []     _      = img
     fromGrays img _      []     = img
@@ -82,15 +81,12 @@ instance ColorSpace Gray where
   
   chOp !f (PixelGray g) = PixelGray (f Gray g)
   {-# INLINE chOp #-}
-
-  chOp2 !f (PixelGray g1) (PixelGray g2) = PixelGray (f Gray g1 g2)
-  {-# INLINE chOp2 #-}
   
   pxOp !f (PixelGray g) = PixelGray (f g)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelGray g1) (PixelGray g2) = PixelGray (f g1 g2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelGray f) (PixelGray g) = PixelGray (f g)
+  {-# INLINE chApp #-}
 
   
 instance Show Gray where

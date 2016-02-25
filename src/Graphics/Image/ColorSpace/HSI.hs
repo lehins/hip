@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+             TypeFamilies #-}
 module Graphics.Image.ColorSpace.HSI (
   HSI(..), HSIA(..), Pixel(..), 
   ToHSI(..), ToHSIA(..)
@@ -6,16 +7,16 @@ module Graphics.Image.ColorSpace.HSI (
 
 import Prelude hiding (map)
 import Graphics.Image.Interface
-
+import Data.Typeable (Typeable)
 
 data HSI = HueHSI
          | SatHSI
-         | IntHSI deriving (Eq, Enum)
+         | IntHSI deriving (Eq, Enum, Typeable)
 
 data HSIA = HueHSIA
           | SatHSIA
           | IntHSIA
-          | AlphaHSIA deriving (Eq, Enum)
+          | AlphaHSIA deriving (Eq, Enum, Typeable)
 
 
 class ColorSpace cs => ToHSI cs where
@@ -62,15 +63,11 @@ instance ColorSpace HSI where
   chOp !f (PixelHSI h s i) = PixelHSI (f HueHSI h) (f SatHSI s) (f IntHSI i)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelHSI h1 s1 i1) (PixelHSI h2 s2 i2) =
-    PixelHSI (f HueHSI h1 h2) (f SatHSI s1 s2) (f IntHSI i1 i2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelHSI h s i) = PixelHSI (f h) (f s) (f i)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelHSI h1 s1 i1) (PixelHSI h2 s2 i2) = PixelHSI (f h1 h2) (f s1 s2) (f i1 i2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelHSI fh fs fi) (PixelHSI h s i) = PixelHSI (fh h) (fs s) (fi i)
+  {-# INLINE chApp #-}
 
 
 
@@ -97,16 +94,11 @@ instance ColorSpace HSIA where
     PixelHSIA (f HueHSIA h) (f SatHSIA s) (f IntHSIA i) (f AlphaHSIA a)
   {-# INLINE chOp #-}
 
-  chOp2 !f (PixelHSIA h1 s1 i1 a1) (PixelHSIA h2 s2 i2 a2) =
-    PixelHSIA (f HueHSIA h1 h2) (f SatHSIA s1 s2) (f IntHSIA i1 i2) (f AlphaHSIA a1 a2)
-  {-# INLINE chOp2 #-}
-  
   pxOp !f (PixelHSIA h s i a) = PixelHSIA (f h) (f s) (f i) (f a)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelHSIA h1 s1 i1 a1) (PixelHSIA h2 s2 i2 a2) =
-    PixelHSIA (f h1 h2) (f s1 s2) (f i1 i2) (f a1 a2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelHSIA fh fs fi fa) (PixelHSIA h s i a) = PixelHSIA (fh h) (fs s) (fi i) (fa a)
+  {-# INLINE chApp #-}
 
 
 instance Alpha HSIA where

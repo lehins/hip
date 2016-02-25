@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+             TypeFamilies #-}
 module Graphics.Image.ColorSpace.Luma (
   Y(..), YA(..), Pixel(..), 
   ToY(..), ToYA(..)
@@ -6,13 +7,14 @@ module Graphics.Image.ColorSpace.Luma (
 
 import Prelude hiding (map)
 import Graphics.Image.Interface
+import Data.Typeable (Typeable)
 
 -- | Luma or brightness, that is usually denoted as @Y'@.
-data Y = Y deriving (Eq, Enum)
+data Y = Y deriving (Eq, Enum, Show, Typeable)
 
 -- | Luma with Alpha channel.
 data YA = YA
-        | AlphaYA deriving (Eq, Enum)
+        | AlphaYA deriving (Eq, Enum, Show, Typeable)
 
 
 class ColorSpace cs => ToY cs where
@@ -48,23 +50,20 @@ instance ColorSpace Y where
   fromElt = PixelY
   {-# INLINE fromElt #-}
 
-  toElt (PixelY g) = g
+  toElt (PixelY y) = y
   {-# INLINE toElt #-}
 
-  getPxCh (PixelY g) _ = g
+  getPxCh (PixelY y) _ = y
   {-# INLINE getPxCh #-}
   
-  chOp !f (PixelY g) = PixelY (f Y g)
+  chOp !f (PixelY y) = PixelY (f Y y)
   {-# INLINE chOp #-}
-
-  chOp2 !f (PixelY g1) (PixelY g2) = PixelY (f Y g1 g2)
-  {-# INLINE chOp2 #-}
-  
-  pxOp !f (PixelY g) = PixelY (f g)
+ 
+  pxOp !f (PixelY y) = PixelY (f y)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelY g1) (PixelY g2) = PixelY (f g1 g2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelY fy) (PixelY y) = PixelY (fy y)
+  {-# INLINE chApp #-}
 
 
 instance ColorSpace YA where
@@ -87,15 +86,11 @@ instance ColorSpace YA where
   chOp !f (PixelYA g a) = PixelYA (f YA g) (f AlphaYA a)
   {-# INLINE chOp #-}
   
-  chOp2 !f (PixelYA g1 a1) (PixelYA g2 a2) =
-    PixelYA (f YA g1 g2) (f AlphaYA a1 a2)
-  {-# INLINE chOp2 #-}
-    
   pxOp !f (PixelYA g a) = PixelYA (f g) (f a)
   {-# INLINE pxOp #-}
 
-  pxOp2 !f (PixelYA g1 a1) (PixelYA g2 a2) =  PixelYA (f g1 g2) (f a1 a2)
-  {-# INLINE pxOp2 #-}
+  chApp (PixelYA fy fa) (PixelYA y a) = PixelYA (fy y) (fa a)
+  {-# INLINE chApp #-}
 
   
 instance Alpha YA where
@@ -109,13 +104,6 @@ instance Alpha YA where
 
   dropAlpha (PixelYA g _) = PixelY g
   {-# INLINE dropAlpha #-}
-
-
-instance Show Y where
-  show _ = "Luma"
-
-instance Show YA where
-  show _ = "LumaAlpha"
 
 
 instance Show e => Show (Pixel Y e) where

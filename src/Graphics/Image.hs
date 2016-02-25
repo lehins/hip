@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image.Unboxed
@@ -78,7 +79,9 @@ import qualified Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector
 import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
-import Graphics.Image.Processing
+--import Graphics.Image.Processing
+
+
 --------------------------------------------------------------------------------
 ---- Creation and Transformation -----------------------------------------------
 --------------------------------------------------------------------------------

@@ -69,6 +69,7 @@ library
                  , Graphics.Image.Interface.Repa.Internal
                  , Graphics.Image.Interface.Vector.Unboxed
                  , Graphics.Image.Processing.Convolution
+                 , Graphics.Image.Processing.Complex.Fourier
                  , Graphics.Image.Processing.Geometric
                  , Graphics.Image.Processing.Interpolation
                   

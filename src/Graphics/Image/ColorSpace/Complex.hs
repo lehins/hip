@@ -9,6 +9,7 @@ module Graphics.Image.ColorSpace.Complex (
   ) where
 
 import Graphics.Image.Interface (ColorSpace(..))
+import Control.Applicative
 import Data.Complex (Complex(..))
 import qualified Data.Complex as C hiding (Complex(..))
 
@@ -21,27 +22,27 @@ infix 6 +:
 -- @ PixelRGB 4 8 6 '+:' PixelRGB 7 1 1 __==__ PixelRGB (4 ':+' 7) (8 ':+' 1) (6 ':+' 1) @
 --
 (+:) :: ColorSpace cs => Pixel cs e -> Pixel cs e -> Pixel cs (Complex e)
-(+:) = pxOp2 (:+)
+(+:) = liftA2 (:+)
 {-# INLINE (+:) #-}
 
 -- | Extracts the real part of a complex pixel.
 realPart :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
-realPart = pxOp C.realPart
+realPart = liftA C.realPart
 {-# INLINE realPart #-}
 
 -- | Extracts the imaginary part of a complex pixel.
 imagPart :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
-imagPart = pxOp C.imagPart
+imagPart = liftA C.imagPart
 {-# INLINE imagPart #-}
 
 -- | Form a complex pixel from polar components of magnitude and phase.
 mkPolar :: (ColorSpace cs, RealFloat e) => Pixel cs e -> Pixel cs e -> Pixel cs (Complex e)
-mkPolar = pxOp2 C.mkPolar
+mkPolar = liftA2 C.mkPolar
 {-# INLINE mkPolar #-}
 
 -- | @'cis' t@ is a complex pixel with magnitude 1 and phase t (modulo @2*'pi'@).
 cis :: (ColorSpace cs, RealFloat e) => Pixel cs e -> Pixel cs (Complex e)
-cis = pxOp C.cis
+cis = liftA C.cis
 {-# INLINE cis #-}
 
 -- | The function @'polar'@ takes a complex pixel and returns a (magnitude, phase)
@@ -53,18 +54,18 @@ polar !zPx = (magnitude zPx, phase zPx)
 
 -- | The nonnegative magnitude of a complex pixel.
 magnitude :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
-magnitude = pxOp C.magnitude
+magnitude = liftA C.magnitude
 {-# INLINE magnitude #-}
 
 -- | The phase of a complex pixel, in the range @(-'pi', 'pi']@. If the
 -- magnitude is zero, then so is the phase.
 phase :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
-phase = pxOp C.phase
+phase = liftA C.phase
 {-# INLINE phase #-}
 
 -- | The conjugate of a complex pixel.
 conjugate :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs (Complex e)
-conjugate = pxOp C.conjugate
+conjugate = liftA C.conjugate
 {-# INLINE conjugate #-}
 
 

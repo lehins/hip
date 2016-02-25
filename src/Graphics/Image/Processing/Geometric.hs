@@ -1,11 +1,38 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing.Geometric (
+  leftToRight, topToBottom,
   crop, flipV, flipH, rotate90, rotate180, rotate270
   ) where
 
 import Graphics.Image.Interface
 
 
+-- | Concatenate two images together into one. Both input images must have the
+-- same number of rows.
+leftToRight :: Array arr cs e => Image arr cs e -> Image arr cs e -> Image arr cs e
+leftToRight !img1@(dims -> (_, n1)) !img2 = traverse2 img1 img2 newDims newPx where
+  newDims !(m1, _) !(m2, n2)
+    | m1 == m2  = (m1, n1 + n2)
+    | otherwise = error ("Images must agree in numer of rows, but received: " 
+                         ++ show img1 ++ " and " ++ show img2)
+  {-# INLINE newDims #-}
+  newPx !getPx1 !getPx2 !(i, j) = if j < n1 then getPx1 (i, j) else getPx2 (i, j-n1)
+  {-# INLINE newPx #-}
+{-# INLINE leftToRight #-}
+
+
+-- | Concatenate two images together into one. Both input images must have the
+-- same number of columns.
+topToBottom :: Array arr cs e => Image arr cs e -> Image arr cs e -> Image arr cs e
+topToBottom !img1@(dims -> (m1, _)) !img2 = traverse2 img1 img2 newDims newPx where
+  newDims !(_, n1) !(m2, n2)
+    | n1 == n2  = (m1 + m2, n1)
+    | otherwise = error ("Images must agree in numer of columns, but received: "
+                         ++ show img1 ++ " and " ++ show img2)
+  {-# INLINE newDims #-}
+  newPx !getPx1 !getPx2 !(i, j) = if i < m1 then getPx1 (i, j) else getPx2 (i-m1, j)
+  {-# INLINE newPx #-}
+{-# INLINE topToBottom #-}
 
 -- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
 -- columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
