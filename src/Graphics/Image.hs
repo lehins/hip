@@ -61,7 +61,7 @@ module Graphics.Image (
   -- ** Dimensions
   rows, cols, I.dims,
   -- ** Indexing
-  I.index,
+  I.index, I.defaultIndex, I.maybeIndex,
   -- * Processing
   -- ** Pointwise
   I.map, I.imap, I.zipWith, I.izipWith,
@@ -79,7 +79,7 @@ import qualified Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector
 import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
---import Graphics.Image.Processing
+import Graphics.Image.Processing
 
 
 --------------------------------------------------------------------------------
@@ -136,5 +136,4 @@ maximum !img = I.fold max (I.index img (0, 0)) img
 minimum :: (ManifestArray arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
 minimum !img = I.fold min (I.index img (0, 0)) img
 {-# INLINE minimum #-}
-
 

@@ -115,10 +115,16 @@ instance Alpha YCbCrA where
 
 
 instance Show YCbCr where
-  show _ = "YCbCr"
+  show LumaYCbCr  = "Luma"
+  show CBlueYCbCr = "Blue Chroma"
+  show CRedYCbCr  = "Red Chroma"
+
 
 instance Show YCbCrA where
-  show _ = "YCbCrA"
+  show LumaYCbCrA  = "Luma"
+  show CBlueYCbCrA = "Blue Chroma"
+  show CRedYCbCrA  = "Red Chroma"
+  show AlphaYCbCrA = "Alpha"
 
  
 instance Show e => Show (Pixel YCbCr e) where

@@ -31,12 +31,12 @@ import Data.Typeable (Typeable)
 -- >>> (on + on) - on
 -- <Binary:(0)>
 --
-data Binary = Binary deriving (Eq, Enum, Typeable)
+data Binary = Binary deriving (Eq, Enum, Show, Typeable)
 
 
 -- | Under the hood, Binary pixels are represented as 'Word8' that can only take
 -- values of @0@ or @1@.
-newtype Bit = Bit Word8 deriving (Ord, Eq)
+newtype Bit = Bit Word8 deriving (Ord, Eq, Typeable)
 
 
 -- | Represents value 'True' or @1@ in binary. Often also called a foreground
@@ -108,10 +108,6 @@ instance ColorSpace Binary where
 
   chApp (PixelBinary f) (PixelBinary b) = PixelBinary (f b)
   {-# INLINE chApp #-}
-
-
-instance Show Binary where
-  show _ = "Binary"
 
 
 instance Show (Pixel Binary Bit) where

@@ -123,12 +123,18 @@ instance Alpha CMYKA where
 
 
 instance Show CMYK where
-  show _ = "CMYK"
+  show CyanCMYK = "Cyan"
+  show MagCMYK  = "Magenta"
+  show YelCMYK  = "Yellow"
+  show KeyCMYK  = "Black"
 
 instance Show CMYKA where
-  show _ = "CMYKA"
-
- 
+  show CyanCMYKA  = "Cyan"
+  show MagCMYKA   = "Magenta"
+  show YelCMYKA   = "Yellow"
+  show KeyCMYKA   = "Black"
+  show AlphaCMYKA = "Alpha"
+  
 instance Show e => Show (Pixel CMYK e) where
   show (PixelCMYK c m y k) = "<CMYK:("++show c++"|"++show m++"|"++show y++"|"++show k++")>"
 

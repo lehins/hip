@@ -115,11 +115,15 @@ instance Alpha HSIA where
 
 
 instance Show HSI where
-  show _ = "HSI"
+  show HueHSI = "Hue"
+  show SatHSI = "Saturation"
+  show IntHSI = "Intensity"
 
 instance Show HSIA where
-  show _ = "HSIA"
-
+  show HueHSIA   = "Hue"
+  show SatHSIA   = "Saturation"
+  show IntHSIA   = "Intensity"
+  show AlphaHSIA = "Alpha"
  
 instance Show e => Show (Pixel HSI e) where
   show (PixelHSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"

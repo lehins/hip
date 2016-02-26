@@ -14,7 +14,7 @@ import Data.Typeable (Typeable)
 -- rather is here to allow separation of channels from other multichannel
 -- colorspaces. If you are looking for a true grayscale colorspace
 -- 'Graphics.Image.ColorSpace.Luma.Y' should be used instead.
-data Gray = Gray deriving (Eq, Enum, Typeable)
+data Gray = Gray deriving (Eq, Enum, Show, Typeable)
 
 
 -- | Separate an image into a list of images with 'Gray' pixels containing every
@@ -89,9 +89,6 @@ instance ColorSpace Gray where
   {-# INLINE chApp #-}
 
   
-instance Show Gray where
-  show _ = "Gray"
-
 instance Show e => Show (Pixel Gray e) where
   show (PixelGray g) = "<Gray:("++show g++")>"
 

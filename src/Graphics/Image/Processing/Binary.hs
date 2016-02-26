@@ -165,7 +165,7 @@ struct = fromLists [[0,1],[1,1],[0,1]]
 
 -- | Erosion is defined as: __{E = B ⊖ S = {m,n|Sₘₙ⊆B}__
 --
--- >>> writeImageExact PNG [] "images/figure_erode.png" $ pixelGrid 10 $ fromImageBin $ erode struct figure
+-- >>> writeImageExact PNG [] "images/figure_erode.png" $ pixelGrid 10 $ fromImageBinary $ erode struct figure
 --
 -- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
 --
@@ -179,7 +179,7 @@ erode !struc !img = invert (convolve' (Fill on) struc (invert img) ./=. off)
 
 -- | Dialation is defined as: __{D = B ⊕ S = {m,n|Sₘₙ∩B≠∅}__
 --
--- >>> writeImageExact PNG [] "images/figure_dialate.png" $ pixelGrid 10 $ fromImageBin $ dialate struct figure
+-- >>> writeImageExact PNG [] "images/figure_dialate.png" $ pixelGrid 10 $ fromImageBinary $ dialate struct figure
 --
 -- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
 --
@@ -193,7 +193,7 @@ dialate !struc !img = convolve' (Fill off) struc img ./=. off
 
 -- | Opening is defined as: __{B ○ S = (B ⊖ S) ⊕ S}__
 --
--- >>> writeImageExact PNG [] "images/figure_open.png" $ pixelGrid 10 $ fromImageBin $ open struct figure
+-- >>> writeImageExact PNG [] "images/figure_open.png" $ pixelGrid 10 $ fromImageBinary $ open struct figure
 --
 -- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
 --
@@ -207,7 +207,7 @@ open struc = dialate struc . erode struc
 
 -- | Closing is defined as: __{B ● S = (B ⊕ S) ⊖ S}__
 --
--- >>> writeImageExact PNG [] "images/figure_close.png" $ pixelGrid 10 $ fromImageBin $ close struct figure
+-- >>> writeImageExact PNG [] "images/figure_close.png" $ pixelGrid 10 $ fromImageBinary $ close struct figure
 --
 -- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
 --

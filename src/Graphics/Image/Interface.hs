@@ -6,7 +6,8 @@
 module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..),
   Array(..), ManifestArray(..), MutableArray(..),  SequentialArray(..),
-  Transformable(..)
+  Transformable(..),
+  defaultIndex, maybeIndex, Border(..), borderIndex
   ) where
 
 import Prelude hiding (map, zipWith, sum, product)
@@ -14,6 +15,7 @@ import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
 import Control.Applicative
 import Control.Monad.Primitive (PrimMonad (..))
+
 
 
 class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
@@ -251,6 +253,95 @@ instance Transformable arr arr where
   {-# INLINE transform #-}
 
 
+
+-- | Approach to be used near the border during transformations, which, besides a pixel
+-- of interest, also use it's neighbors, consequently going out of bounds at the
+-- edges of an image.
+data Border px =
+  Fill !px    -- ^ Fill in a constant pixel.
+              --
+              -- @
+              --            outside |  Image  | outside
+              -- ('Fill' 0) : 0 0 0 0 | 1 2 3 4 | 0 0 0 0
+              -- @
+              --
+  | Wrap      -- ^ Wrap around from the opposite border of the image.
+              --
+              -- @
+              --            outside |  Image  | outside
+              -- 'Wrap' :     1 2 3 4 | 1 2 3 4 | 1 2 3 4
+              -- @
+              --
+  | Edge      -- ^ Replicate the pixel at the edge.
+              --
+              -- @
+              --            outside |  Image  | outside
+              -- 'Edge' :     1 1 1 1 | 1 2 3 4 | 4 4 4 4
+              -- @
+              --
+  | Reflect   -- ^ Mirror like reflection.
+              --
+              -- @
+              --            outside |  Image  | outside
+              -- 'Reflect' :  4 3 2 1 | 1 2 3 4 | 4 3 2 1
+              -- @
+              --
+  | Continue  -- ^ Also mirror like reflection, but without repeating the edge pixel.
+              --
+              -- @
+              --            outside |  Image  | outside
+              -- 'Continue' : 1 4 3 2 | 1 2 3 4 | 3 2 1 4
+              -- @
+              --
+
+-- | Border handling function. If @(i, j)@ location is within bounds, then supplied
+-- lookup function will be used, otherwise it will be handled according to a
+-- supplied border strategy.
+borderIndex :: Border (Pixel cs e) -- ^ Border handling strategy.
+            -> (Int, Int) -- ^ Image dimensions
+            -> ((Int, Int) -> Pixel cs e) -- ^ Image's indexing function.
+            -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
+            -> Pixel cs e
+borderIndex border !(m, n) !getPx !(i, j) =
+  if i >= 0 && j >= 0 && i < m && j < n then getPx (i, j) else getPxB border where
+    getPxB (Fill px) = px
+    getPxB Wrap      = getPx (i `mod` m, j `mod` n)
+    getPxB Edge      = getPx (if i < 0 then 0 else if i >= m then m - 1 else i,
+                              if j < 0 then 0 else if j >= n then n - 1 else j)
+    getPxB Reflect   = getPx (if i < 0 then (abs i - 1) `mod` m else
+                                if i >= m then (m - (i - m + 1)) `mod` m else i,
+                              if j < 0 then (abs j - 1) `mod` n else
+                                if j >= n then (n - (j - n + 1)) `mod` n else j)
+    getPxB Continue  = getPx (if i < 0 then abs i `mod` m else
+                                if i >= m then m - (i - m + 2) `mod` m else i,
+                              if j < 0 then abs j `mod` n else
+                                if j >= n then n - (j - n + 2) `mod` n else j)
+    {-# INLINE getPxB #-}
+{-# INLINE borderIndex #-}
+
+
+-- | Image indexing function that returns a default pixel if index is out of bounds.
+defaultIndex :: ManifestArray arr cs e =>
+                Pixel cs e -> Image arr cs e -> (Int, Int) -> Pixel cs e
+defaultIndex !px !img = borderIndex (Fill px) (dims img) (index img)
+{-# INLINE defaultIndex #-}
+
+
+-- | Image indexing function that returns 'Nothing' if index is out of bounds,
+-- 'Just' pixel otherwise.
+maybeIndex :: ManifestArray arr cs e =>
+              Image arr cs e -> (Int, Int) -> Maybe (Pixel cs e)
+maybeIndex !img@(dims -> (m, n)) !(i, j) =
+  if i >= 0 && j >= 0 && i < m && j < n then Just $ index img (i, j) else Nothing
+{-# INLINE maybeIndex #-}
+
+
+
+-----------------------------------------------------------------------------------
+----- Class instance declarations -------------------------------------------------
+-----------------------------------------------------------------------------------
+
+
 instance ColorSpace cs => Functor (Pixel cs) where
 
   fmap = pxOp
@@ -411,7 +502,8 @@ instance (Floating (Pixel cs e), Floating e, Array arr cs e) =>
 
 instance Array arr cs e => Show (Image arr cs e) where
   show ((dims -> (m, n)) :: Image arr cs e) =
-    "<Image "++show (undefined :: arr)++" "++show (undefined :: cs)++" ("++
+    "<Image "++show (undefined :: arr)++" "++
+    ((showsTypeRep (typeOf (undefined :: cs))) " (")++
     ((showsTypeRep (typeOf (undefined :: e))) "): "++show m++"x"++show n++">")
 
 

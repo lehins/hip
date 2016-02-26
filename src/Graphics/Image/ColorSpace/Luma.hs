@@ -10,11 +10,11 @@ import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 
 -- | Luma or brightness, that is usually denoted as @Y'@.
-data Y = Y deriving (Eq, Enum, Show, Typeable)
+data Y = Y deriving (Eq, Enum, Typeable)
 
 -- | Luma with Alpha channel.
 data YA = YA
-        | AlphaYA deriving (Eq, Enum, Show, Typeable)
+        | AlphaYA deriving (Eq, Enum, Typeable)
 
 
 class ColorSpace cs => ToY cs where
@@ -105,6 +105,15 @@ instance Alpha YA where
   dropAlpha (PixelYA g _) = PixelY g
   {-# INLINE dropAlpha #-}
 
+
+instance Show Y where
+  show Y = "Luma"
+  
+
+instance Show YA where
+  show YA  = "Luma"
+  show AlphaYA = "Alpha"
+  
 
 instance Show e => Show (Pixel Y e) where
   show (PixelY g) = "<Luma:("++show g++")>"

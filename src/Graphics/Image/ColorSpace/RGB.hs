@@ -115,10 +115,16 @@ instance Alpha RGBA where
 
 
 instance Show RGB where
-  show _ = "RGB"
+  show RedRGB   = "Red"
+  show GreenRGB = "Green"
+  show BlueRGB  = "Blue"
+
 
 instance Show RGBA where
-  show _ = "RGBA"
+  show RedRGBA   = "Red"
+  show GreenRGBA = "Green"
+  show BlueRGBA  = "Blue"
+  show AlphaRGBA = "Alpha"
 
  
 instance Show e => Show (Pixel RGB e) where
