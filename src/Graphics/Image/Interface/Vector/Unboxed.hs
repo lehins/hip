@@ -29,7 +29,7 @@ instance Show VU where
 
 
 instance Elt VU cs e => Array VU cs e where
-  type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, Typeable e, 
+  type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, Elevator e, Typeable e, 
                       Unbox (PixelElt cs e), Unbox (Pixel cs e))
   data Image VU cs e where
     VScalar :: !(Pixel cs e)                          -> Image VU cs e

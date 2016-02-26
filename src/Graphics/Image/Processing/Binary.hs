@@ -173,7 +173,7 @@ erode :: (Thresholding (Image arr) Pixel arr) =>
          Image arr Binary Bit -- ^ Structuring element.
       -> Image arr Binary Bit -- ^ Binary source image.
       -> Image arr Binary Bit
-erode !struc !img = invert (convolve' (Fill on) struc (invert img) ./=. off)
+erode !struc !img = invert (convolve (Fill on) struc (invert img) ./=. off)
 {-# INLINE erode #-}
 
 
@@ -187,7 +187,7 @@ dialate :: (Thresholding (Image arr) Pixel arr) =>
            Image arr Binary Bit -- ^ Structuring element.
         -> Image arr Binary Bit -- ^ Binary source image.
         -> Image arr Binary Bit
-dialate !struc !img = convolve' (Fill off) struc img ./=. off
+dialate !struc !img = convolve (Fill off) struc img ./=. off
 {-# INLINE dialate #-}
 
 

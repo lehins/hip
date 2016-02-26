@@ -1,12 +1,10 @@
 {-# LANGUAGE BangPatterns #-}
 module Graphics.Image.Processing.Convolution (
-  Border(..), convolve, convolve', convolveRows, convolveCols,
-  module Graphics.Image.Processing.Complex.Fourier
+  convolve, convolveRows, convolveCols, -- convolve', 
   ) where
 
 import Graphics.Image.Interface
 import Graphics.Image.Processing.Geometric
-import Graphics.Image.Processing.Complex.Fourier
 
 
 
@@ -32,33 +30,36 @@ convolve'' !border !kernel !img = traverse2 kernel img (const . const sz) stenci
   {-# INLINE stencil #-}
 {-# INLINE convolve'' #-}
 
-
-convolve  :: (Transformable arr' arr, Array arr' cs e, ManifestArray arr cs e) =>
+-- | Convolution of an image using a kernel. Border resolution technique is required.
+convolve  :: Array arr cs e =>
              Border (Pixel cs e)   -- ^ Approach to be used near the borders.
-          -> Image arr' cs e -- ^ Convolution kernel image.
-          -> Image arr cs e -- ^ Image that will be convolved with the kernel.
+          -> Image arr cs e -- ^ Kernel image.
+          -> Image arr cs e -- ^ Source image.
           -> Image arr cs e
-convolve !out = convolve'' out . transform (undefined :: arr) . rotate180
+convolve !out = convolve'' out . rotate180
 {-# INLINE convolve #-}
 
+{-
+-- | Strict version of convolution that operates on manifest array representations.
+convolve'  :: (Transformable arr' arr, Array arr' cs e, ManifestArray arr cs e) =>
+             Border (Pixel cs e)   -- ^ Approach to be used near the borders.
+          -> Image arr' cs e -- ^ Kernel image.
+          -> Image arr cs e -- ^ Source image.
+          -> Image arr cs e
+convolve' !out = convolve'' out . transform (undefined :: arr) . rotate180
+{-# INLINE convolve #-}
+-}
 
-convolve'  :: Array arr cs e =>
-              Border (Pixel cs e)   -- ^ Approach to be used near the borders.
-           -> Image arr cs e -- ^ Convolution kernel image.
-           -> Image arr cs e -- ^ Image that will be convolved with the kernel.
-           -> Image arr cs e
-convolve' !out = convolve'' out . rotate180
-{-# INLINE convolve' #-}
-
-
+-- | Convolve image's rows with a vector kernel represented by a list of pixels.
 convolveRows :: ManifestArray arr cs e =>
                 Border (Pixel cs e) -> [Pixel cs e] -> Image arr cs e -> Image arr cs e
-convolveRows !out = convolve' out . fromLists . (:[]) . reverse
+convolveRows !out = convolve out . fromLists . (:[]) . reverse
 {-# INLINE convolveRows #-}
 
 
+-- | Convolve image's columns with a vector kernel represented by a list of pixels.
 convolveCols :: ManifestArray arr cs e =>
                 Border (Pixel cs e) -> [Pixel cs e] -> Image arr cs e -> Image arr cs e
-convolveCols !out = convolve' out . transpose . fromLists . (:[]) . reverse
+convolveCols !out = convolve out . transpose . fromLists . (:[]) . reverse
 {-# INLINE convolveCols #-}
 

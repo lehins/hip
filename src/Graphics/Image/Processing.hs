@@ -1,14 +1,17 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing (
+  -- * Geometric
   module Graphics.Image.Processing.Geometric,
+  -- * Interpolation
   module Graphics.Image.Processing.Interpolation,
+  -- * Convolution
   module Graphics.Image.Processing.Convolution,
+  -- * Tools
   pixelGrid
   ) where
 
 import Data.Word (Word8)
 import Graphics.Image.Interface
-import Graphics.Image.ColorSpace (Elevator(fromDouble))
 import Graphics.Image.Processing.Convolution
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
@@ -22,7 +25,7 @@ import Graphics.Image.Processing.Interpolation
 --
 -- <<images/frog.jpg>> <<images/frog_eye_grid.png>>
 --
-pixelGrid :: (Elevator e, Array arr cs e) =>
+pixelGrid :: Array arr cs e =>
              Word8          -- ^ Magnification factor.
           -> Image arr cs e -- ^ Source image.
           -> Image arr cs e

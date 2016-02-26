@@ -1,13 +1,79 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing.Geometric (
+  -- ** Sampling
+  downsampleRows, downsampleCols, downsample, downsampleF,
+  upsampleRows, upsampleCols, upsample, upsampleF,
+  -- ** Concatenation
   leftToRight, topToBottom,
-  crop, flipV, flipH, rotate90, rotate180, rotate270, resize
+  -- ** Canvas
+  crop,
+  -- ** Flipping
+  flipV, flipH,
+  -- ** Rotation
+  rotate90, rotate180, rotate270,
+  -- ** Scaling
+  resize, scale                                          
   ) where
 
 import Graphics.Image.Interface
-import Graphics.Image.ColorSpace (Elevator(..))
 import Graphics.Image.Processing.Interpolation
 
+
+
+downsampleF :: Array arr cs e => Int -> Int -> Image arr cs e -> Image arr cs e
+downsampleF !fm !fn !img = traverse img
+                           (\ !(m, n) -> (m `div` fm, n `div` fn))
+                           (\ !getPx !(i, j) -> getPx (i*fm, j*fn))
+{-# INLINE downsampleF #-}
+
+
+upsampleF :: Array arr cs e => Int -> Int -> Image arr cs e -> Image arr cs e
+upsampleF !fm !fn !img = traverse img 
+                         (\ !(m, n) -> (m*fm, n*fn))
+                         (\ !getPx !(i, j) ->
+                           if i `mod` fm == 0 && j `mod` fn == 0
+                           then getPx (i `div` fm, j `div` fn)
+                           else fromDouble $ fromChannel 0)
+{-# INLINE upsampleF #-}
+
+
+-- | Downsample an image by discarding every odd row.
+downsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
+downsampleRows = downsampleF 2 1
+{-# INLINE downsampleRows #-}
+
+
+-- | Downsample an image by discarding every odd column.
+downsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
+downsampleCols = downsampleF 1 2
+{-# INLINE downsampleCols #-}
+
+
+-- | Downsample an image by discarding every odd row and column.
+downsample :: Array arr cs e => Image arr cs e -> Image arr cs e
+downsample = downsampleF 2 2
+{-# INLINE downsample #-}
+
+
+-- | Upsample an image by inserting a row of back pixels after each row of a
+-- source image.
+upsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
+upsampleRows = upsampleF 2 1
+{-# INLINE upsampleRows #-}
+
+
+-- | Upsample an image by inserting a column of back pixels after each column of a
+-- source image.
+upsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
+upsampleCols = upsampleF 1 2
+{-# INLINE upsampleCols #-}
+
+
+-- | Upsample an image by inserting a row and a column of back pixels after each
+-- row and a column of a source image.
+upsample :: Array arr cs e => Image arr cs e -> Image arr cs e
+upsample = upsampleF 2 2
+{-# INLINE upsample #-}
 
 
 -- | Concatenate two images together into one. Both input images must have the
@@ -70,7 +136,7 @@ flipV = flipUsing (\ (m, _) !(i, j) -> (m - 1 - i, j))
 -- | Flip an image horizontally.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_flipH.jpg" (computeS $ flipH frog) 
+-- >>> writeImage "images/frog_flipH.jpg" (flipH frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_flipH.jpg>>
 --
@@ -82,7 +148,7 @@ flipH = flipUsing (\ (_, n) !(i, j) -> (i, n - 1 - j))
 -- | Rotate an image clockwise by 90°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate90.jpg" (computeS $ rotate90 frog) 
+-- >>> writeImage "images/frog_rotate90.jpg" (rotate90 frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_rotate90.jpg>>
 --
@@ -94,7 +160,7 @@ rotate90 = transpose . flipV
 -- | Rotate an image by 180°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate180.jpg" (computeS $ rotate180 frog) 
+-- >>> writeImage "images/frog_rotate180.jpg" (rotate180 frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_rotate180.jpg>>
 --
@@ -106,7 +172,7 @@ rotate180 = flipUsing (\ !(m, n) !(i, j) -> (m - 1 - i, n - 1 - j))
 -- | Rotate an image clockwise by 270°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate270.jpg" (computeS $ rotate270 frog) 
+-- >>> writeImage "images/frog_rotate270.jpg" (rotate270 frog) 
 --
 -- <<images/frog.jpg>> <<images/frog_rotate270.jpg>>
 --
@@ -115,31 +181,14 @@ rotate270 = transpose . flipH
 {-# INLINE rotate270 #-}
 
 
-
-
-{-
-scale :: (Interpolation method, Array arr cs e, Elevator e) =>
-         method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
-      -> (Double, Double) -- ^ Positive scaling factors.
-      -> Image arr cs e -- ^ Source image.
-      -> Image arr cs e
---scale _ ((<=0) -> True) _  = error "scale: scaling factor must be greater than 0."
-scale !method !(fM, fN) !img = traverse img (const sz') getNewPx where
-  k = 1.0
-  !(mD, nD) = (fromIntegral m, fromIntegral n)
-  !sz@(m, n) = dims img
-  !sz' = (round (mD * fM), round (nD * fN))
-  !(fM', fN') = ((mD + k) * fM / mD, (nD + k) * fN / nD)
-  getNewPx !getPx !(i, j) =
-    interpolate method sz getPx 0 ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
-    --interpolate method sz getPx 0 (fromIntegral i / fM', fromIntegral j / fN')
-  {-# INLINE getNewPx #-}
-{-# INLINE scale #-}
--}
-
-
-
-resize :: (Interpolation method, Array arr cs e, Elevator e) =>
+-- | Resize an image using an interpolation method.
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/frog_resize.jpg" (resize (Bilinear Edge) (100, 640) frog)
+--
+-- <<images/frog_resize.jpg>>
+--
+resize :: (Interpolation method, Array arr cs e) =>
           method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
        -> (Int, Int)     -- ^ Dimensions of a result image.
        -> Image arr cs e -- ^ Source image.
@@ -151,3 +200,20 @@ resize !method !sz'@(m', n') !img = traverse img (const sz') getNewPx where
     interpolate method sz getPx ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
+
+
+-- | Scale an image. Same as resize, except a scaling factors are supplied
+-- instead of new dimensions.
+--
+-- @ scale ('Bilinear' 'Edge') (0.5, 2) frog == resize ('Bilinear' 'Edge') (100, 640) frog @
+--
+scale :: (Interpolation method, Array arr cs e) =>
+         method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
+      -> (Double, Double) -- ^ Positive scaling factors.
+      -> Image arr cs e -- ^ Source image.
+      -> Image arr cs e
+scale !method !(fM, fN) !img@(dims -> (m, n)) =
+  if fM <=0 || fN <= 0
+  then error "scale: scaling factor must be greater than 0."
+  else resize method (round (fM * fromIntegral m), round (fN * fromIntegral n)) img
+{-# INLINE scale #-}

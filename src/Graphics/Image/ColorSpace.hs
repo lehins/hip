@@ -22,7 +22,7 @@ module Graphics.Image.ColorSpace (
   -- * Complex
   module Graphics.Image.ColorSpace.Complex,
   -- * Casting
-  Elevator(..), Word8, Word16, Word32, Word64                                       
+  Word8, Word16, Word32, Word64                                       
   ) where
 
 import Data.Word
@@ -190,30 +190,6 @@ instance ToCMYK RGB where
 instance ToCMYKA RGBA where
 
   
--- | A convenient class with a set of functions that allow for changing precision of
--- channels within pixels, while scaling the values to keep them in an appropriate range.
---
--- >>> let rgb = PixelRGB 0.0 0.5 1.0 :: Pixel RGB Double
--- >>> toWord8 rgb
--- <RGB:(0|128|255)>
---
-class Elevator e where
-
-  toWord8 :: ColorSpace cs => Pixel cs e -> Pixel cs Word8
-
-  toWord16 :: ColorSpace cs => Pixel cs e -> Pixel cs Word16
-
-  toWord32 :: ColorSpace cs => Pixel cs e -> Pixel cs Word32
-
-  toWord64 :: ColorSpace cs => Pixel cs e -> Pixel cs Word64
-
-  toFloat :: ColorSpace cs => Pixel cs e -> Pixel cs Float
-
-  toDouble :: ColorSpace cs => Pixel cs e -> Pixel cs Double
-
-  fromDouble :: ColorSpace cs => Pixel cs Double -> Pixel cs e
-
-
 -- | Values are scaled to @[0, 255]@ range.
 instance Elevator Word8 where
 

@@ -4,7 +4,6 @@ module Graphics.Image.Processing.Interpolation (
   ) where
 
 import Graphics.Image.Interface
-import Graphics.Image.ColorSpace (Elevator(fromDouble))
 
 
 class Interpolation method where

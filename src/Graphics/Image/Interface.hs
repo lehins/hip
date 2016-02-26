@@ -4,7 +4,7 @@
              TypeFamilies, UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Interface (
-  ColorSpace(..), Alpha(..),
+  ColorSpace(..), Alpha(..), Elevator(..),
   Array(..), ManifestArray(..), MutableArray(..),  SequentialArray(..),
   Transformable(..),
   defaultIndex, maybeIndex, Border(..), borderIndex
@@ -13,29 +13,11 @@ module Graphics.Image.Interface (
 import Prelude hiding (map, zipWith, sum, product)
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
+import Data.Word
+
 import Control.Applicative
 import Control.Monad.Primitive (PrimMonad (..))
 
-
-
-class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
-  -- | An opaque version of this color space.
-  type Opaque cs
-
-  -- | Get an alpha channel of a transparant pixel. 
-  getAlpha :: Pixel cs e -> e
-
-  -- | Add an alpha channel of an opaque pixel.
-  --
-  -- @ addAlpha 0 (PixelHSI 1 2 3) == PixelHSIA 1 2 3 0 @
-  addAlpha :: e -> Pixel (Opaque cs) e -> Pixel cs e
-  
-  -- | Convert a transparent pixel to an opaque one by dropping the alpha
-  -- channel.
-  --
-  -- @ dropAlpha (PixelRGBA 1 2 3 4) == PixelRGB 1 2 3 @
-  --
-  dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
 
 
 class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
@@ -67,8 +49,53 @@ class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   -- | Function application to a Pixel.
   chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
   
+
+class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
+  -- | An opaque version of this color space.
+  type Opaque cs
+
+  -- | Get an alpha channel of a transparant pixel. 
+  getAlpha :: Pixel cs e -> e
+
+  -- | Add an alpha channel of an opaque pixel.
+  --
+  -- @ addAlpha 0 (PixelHSI 1 2 3) == PixelHSIA 1 2 3 0 @
+  addAlpha :: e -> Pixel (Opaque cs) e -> Pixel cs e
   
-class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs e) =>
+  -- | Convert a transparent pixel to an opaque one by dropping the alpha
+  -- channel.
+  --
+  -- @ dropAlpha (PixelRGBA 1 2 3 4) == PixelRGB 1 2 3 @
+  --
+  dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
+
+
+
+-- | A convenient class with a set of functions that allow for changing precision of
+-- channels within pixels, while scaling the values to keep them in an appropriate range.
+--
+-- >>> let rgb = PixelRGB 0.0 0.5 1.0 :: Pixel RGB Double
+-- >>> toWord8 rgb
+-- <RGB:(0|128|255)>
+--
+class Elevator e where
+
+  toWord8 :: ColorSpace cs => Pixel cs e -> Pixel cs Word8
+
+  toWord16 :: ColorSpace cs => Pixel cs e -> Pixel cs Word16
+
+  toWord32 :: ColorSpace cs => Pixel cs e -> Pixel cs Word32
+
+  toWord64 :: ColorSpace cs => Pixel cs e -> Pixel cs Word64
+
+  toFloat :: ColorSpace cs => Pixel cs e -> Pixel cs Float
+
+  toDouble :: ColorSpace cs => Pixel cs e -> Pixel cs Double
+
+  fromDouble :: ColorSpace cs => Pixel cs Double -> Pixel cs e
+
+  
+class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elevator e, Typeable e, Elt arr cs e) =>
       Array arr cs e where
   
   type Elt arr cs e :: Constraint
