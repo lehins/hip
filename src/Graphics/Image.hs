@@ -14,27 +14,7 @@
 -- representation for images and their processing in parallel or sequentially.
 module Graphics.Image (
   -- * Color Space
-  -- | Here is a list of supported pixels with their respective constructors:
-  --
-  --     * 'Pixel' 'Y' e  __= PixelY e__ - Luma, also known as /Y'/.
-  --     * 'Pixel' 'YA' e __= PixelYA e__ - Luma with alpha.
-  --     * 'Pixel' 'RGB' e __= PixelRGB e__ - Red, Green and Blue.
-  --     * 'Pixel' 'RGBA' e __= PixelRGBA e__ - RGB with alpha
-  --     * 'Pixel' 'HSI' e __= PixelHSI e__ - Hue, Saturation and Intensity.
-  --     * 'Pixel' 'HSIA' e __= PixelHSIA e__ - HSI with alpha
-  --     * 'Pixel' 'CMYK' e __= PixelCMYK e__ - Cyan, Magenta, Yellow and Key (Black).
-  --     * 'Pixel' 'CMYKA' e __= PixelCMYKA e__ - CMYK with alpha.
-  --     * 'Pixel' 'YCbCr' e __= PixelYCbCr e__ - Luma, blue-difference and red-difference
-  --       chroma components.
-  --     * 'Pixel' 'YCbCrA' e __= PixelYCbCrA e__ - YCbCr with alpha.
-  --     * 'Pixel' 'Gray' e __= PixelGray e__ - Used for separating channels from other
-  --       color spaces.
-  --     * 'Pixel' 'Binary' 'Bit' __= 'on' | 'off'__ - Bi-tonal.
-  --     * 'Pixel' cs ('Complex' e) __= ('Pixel' cs e) '+:' ('Pixel' cs e)__ - Complex pixels
-  --       with any color space.
-  -- 
-  -- All of functionality related to 'I.ColorSpace's is reimported here
-  -- for convenience.
+  -- $colorspace
   module Graphics.Image.ColorSpace,
   -- 
   -- * Creation
@@ -72,6 +52,7 @@ module Graphics.Image (
   I.fold, sum, product, maximum, minimum,
   ) where
 import Prelude hiding (map, zipWith, sum, product, maximum, minimum)
+import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO --(writeImage, displayImage)
 import Graphics.Image.Interface (Array, ManifestArray, Image)
@@ -79,7 +60,9 @@ import qualified Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector
 import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
-import Graphics.Image.Processing
+--import Graphics.Image.Processing
+--import Graphics.Image.Processing.Complex
+
 
 
 --------------------------------------------------------------------------------
@@ -137,3 +120,43 @@ minimum :: (ManifestArray arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel
 minimum !img = I.fold min (I.index img (0, 0)) img
 {-# INLINE minimum #-}
 
+
+-- | Scales all of the pixels to be in the range @[0, 1]@.
+normalize :: (ManifestArray arr cs e, ManifestArray arr Gray e, Fractional e, Ord e) =>
+             Image arr cs e -> Image arr cs e
+normalize !img = if l == s
+                 then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
+                 else I.map normalizer img
+  where
+    !(PixelGray l, PixelGray s) = (maximum $ I.map (PixelGray . F.maximum) img,
+                                   minimum $ I.map (PixelGray . F.minimum) img)
+    normalizer !px = (px - pure s) / (pure (l - s))
+    {-# INLINE normalizer #-}
+{-# INLINE normalize #-}
+
+
+-- $colorspace
+-- Here is a list of default Pixels with their respective constructors:
+--
+-- @
+--     * __'Pixel' 'Y' e      = PixelY e__ - Luma, also commonly denoted as __Y'__.
+--     * __'Pixel' 'YA' e     = PixelYA e__ - Luma with alpha.
+--     * __'Pixel' 'RGB' e    = PixelRGB e__ - Red, Green and Blue.
+--     * __'Pixel' 'RGBA' e   = PixelRGBA e__ - RGB with alpha
+--     * __'Pixel' 'HSI' e    = PixelHSI e__ - Hue, Saturation and Intensity.
+--     * __'Pixel' 'HSIA' e   = PixelHSIA e__ - HSI with alpha
+--     * __'Pixel' 'CMYK' e   = PixelCMYK e__ - Cyan, Magenta, Yellow and Key (Black).
+--     * __'Pixel' 'CMYKA' e  = PixelCMYKA e__ - CMYK with alpha.
+--     * __'Pixel' 'YCbCr' e  = PixelYCbCr e__ - Luma, blue-difference and red-difference chromas.
+--     * __'Pixel' 'YCbCrA' e = PixelYCbCrA e__ - YCbCr with alpha.
+--       ------------------------------------------------------------------------------------------
+--     * __'Pixel' 'Binary' 'Bit'     = 'on' | 'off'__ - Bi-tonal.
+--     * __'Pixel' 'Gray' e         = PixelGray e__ - Used for separating channels from other color spaces.
+--     * __'Pixel' cs ('Complex' e) = ('Pixel' cs e) '+:' ('Pixel' cs e)__ - Complex pixels with any color space.
+-- @
+--
+-- Every 'Pixel' is an instance of 'Functor', 'Applicative', 'F.Foldable' and
+-- 'Num', as well as 'Floating' and 'Fractional' if __e__ is also an instance.
+--
+-- All of the functionality related to every 'I.ColorSpace' is re-exported from here
+-- for convenience.

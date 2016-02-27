@@ -1,8 +1,8 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing.Geometric (
   -- ** Sampling
-  downsampleRows, downsampleCols, downsample, downsampleF,
-  upsampleRows, upsampleCols, upsample, upsampleF,
+  downsampleRows, downsampleCols, downsample, 
+  upsampleRows, upsampleCols, upsample, 
   -- ** Concatenation
   leftToRight, topToBottom,
   -- ** Canvas
@@ -33,7 +33,7 @@ upsampleF !fm !fn !img = traverse img
                          (\ !getPx !(i, j) ->
                            if i `mod` fm == 0 && j `mod` fn == 0
                            then getPx (i `div` fm, j `div` fn)
-                           else fromDouble $ fromChannel 0)
+                           else fromChannel 0)
 {-# INLINE upsampleF #-}
 
 
@@ -188,7 +188,7 @@ rotate270 = transpose . flipH
 --
 -- <<images/frog_resize.jpg>>
 --
-resize :: (Interpolation method, Array arr cs e) =>
+resize :: (Interpolation method, Array arr cs e, Elevator e) =>
           method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
        -> (Int, Int)     -- ^ Dimensions of a result image.
        -> Image arr cs e -- ^ Source image.
@@ -207,7 +207,7 @@ resize !method !sz'@(m', n') !img = traverse img (const sz') getNewPx where
 --
 -- @ scale ('Bilinear' 'Edge') (0.5, 2) frog == resize ('Bilinear' 'Edge') (100, 640) frog @
 --
-scale :: (Interpolation method, Array arr cs e) =>
+scale :: (Interpolation method, Array arr cs e, Elevator e) =>
          method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
       -> (Double, Double) -- ^ Positive scaling factors.
       -> Image arr cs e -- ^ Source image.

@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
 module Graphics.Image.Processing.Complex.Fourier (
-  fft, ifft
+  fft, ifft, isPowerOfTwo
   ) where
 
 import Prelude hiding (map)
@@ -48,7 +48,7 @@ fft2d :: (ManifestArray arr cs (Complex e), Num e, RealFloat e) =>
       -> Image arr cs (Complex e)
 fft2d mode img =
   let !(m, n) = dims img
-      !sign   = fromChannel $ signOfMode mode
+      !sign   = signOfMode mode
       !scale  = fromIntegral (m * n) 
   in if not (isPowerOfTwo m && isPowerOfTwo n)
      then error $ unlines
@@ -65,7 +65,7 @@ fftGeneral :: (ManifestArray arr cs (Complex e), Num e, RealFloat e) =>
               Pixel cs e
            -> Image arr cs (Complex e)
            -> Image arr cs (Complex e)
-fftGeneral !sign !img = go n 0 1 where
+fftGeneral !sign !img = transpose $ go n 0 1 where
   !(m, n) = dims img
   go !len !offset !stride
     | len == 2 = makeImage (m, 2) swivel

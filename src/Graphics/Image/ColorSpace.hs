@@ -21,10 +21,14 @@ module Graphics.Image.ColorSpace (
   toPixelBinary, fromPixelBinary, toImageBinary, fromImageBinary,
   -- * Complex
   module Graphics.Image.ColorSpace.Complex,
-  -- * Casting
-  Word8, Word16, Word32, Word64                                       
+  -- * Re-exports
+  Applicative(..), (<$>), (<$), (<**>), liftA, liftA2, liftA3,
+  Word8, Word16, Word32, Word64
   ) where
 
+
+
+import Control.Applicative
 import Data.Word
 import GHC.Float
 import Graphics.Image.Interface hiding (map)
@@ -37,6 +41,8 @@ import Graphics.Image.ColorSpace.CMYK
 import Graphics.Image.ColorSpace.YCbCr
 import Graphics.Image.ColorSpace.Complex
 import qualified Graphics.Image.Interface as I (map)
+
+
 
 
 -- Binary:
@@ -73,6 +79,7 @@ instance ToY Gray where
   toPixelY (PixelGray y) = PixelY y
   {-# INLINE toPixelY #-}
 
+-- | Computes Luma: @ Y' = 0.299 * R' + 0.587 * G' + 0.114 * B' @
 instance ToY RGB where
   toPixelY (PixelRGB r g b) = PixelY (0.299*r + 0.587*g + 0.114*b)
   {-# INLINE toPixelY #-}
@@ -196,27 +203,27 @@ instance Elevator Word8 where
   toWord8 = id
   {-# INLINE toWord8 #-}
 
-  toWord16 = pxOp toWord16' where
+  toWord16 = liftA toWord16' where
     toWord16' !e = fromIntegral e * ((maxBound :: Word16) `div` fromIntegral (maxBound :: Word8)) 
     {-# INLINE toWord16' #-}
   {-# INLINE toWord16 #-}
 
-  toWord32 = pxOp toWord32' where
+  toWord32 = liftA toWord32' where
     toWord32' !e = fromIntegral e * ((maxBound :: Word32) `div` fromIntegral (maxBound :: Word8)) 
     {-# INLINE toWord32' #-}
   {-# INLINE toWord32 #-}
 
-  toWord64 = pxOp toWord64' where
+  toWord64 = liftA toWord64' where
     toWord64' !e = fromIntegral e * ((maxBound :: Word64) `div` fromIntegral (maxBound :: Word8))
     {-# INLINE toWord64' #-}
   {-# INLINE toWord64 #-}
 
-  toFloat = pxOp toFloat' where
+  toFloat = liftA toFloat' where
     toFloat' !e = fromIntegral e / (fromIntegral (maxBound :: Word8))
     {-# INLINE toFloat' #-}
   {-# INLINE toFloat #-}
 
-  toDouble = pxOp toDouble' where
+  toDouble = liftA toDouble' where
     toDouble' !e = fromIntegral e / (fromIntegral (maxBound :: Word8))
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
@@ -228,7 +235,7 @@ instance Elevator Word8 where
 -- | Values are scaled to @[0, 65535]@ range.
 instance Elevator Word16 where
 
-  toWord8 = pxOp toWord8' where
+  toWord8 = liftA toWord8' where
     toWord8' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word16) `div`
                                                       fromIntegral (maxBound :: Word8)) 
     {-# INLINE toWord8' #-}
@@ -237,22 +244,22 @@ instance Elevator Word16 where
   toWord16 = id
   {-# INLINE toWord16 #-}
   
-  toWord32 = pxOp toWord32' where
+  toWord32 = liftA toWord32' where
     toWord32' !e = fromIntegral e * ((maxBound :: Word32) `div` fromIntegral (maxBound :: Word16)) 
     {-# INLINE toWord32' #-}
   {-# INLINE toWord32 #-}
 
-  toWord64 = pxOp toWord64' where
+  toWord64 = liftA toWord64' where
     toWord64' !e = fromIntegral e * ((maxBound :: Word64) `div` fromIntegral (maxBound :: Word16))
     {-# INLINE toWord64' #-}
   {-# INLINE toWord64 #-}
 
-  toFloat = pxOp toFloat' where
+  toFloat = liftA toFloat' where
     toFloat' !e = fromIntegral e / (fromIntegral (maxBound :: Word16))
     {-# INLINE toFloat' #-}
   {-# INLINE toFloat #-}
 
-  toDouble = pxOp toDouble' where
+  toDouble = liftA toDouble' where
     toDouble' !e = fromIntegral e / (fromIntegral (maxBound :: Word16))
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
@@ -264,13 +271,13 @@ instance Elevator Word16 where
 -- | Values are scaled to @[0, 4294967295]@ range.
 instance Elevator Word32 where
 
-  toWord8 = pxOp toWord8' where
+  toWord8 = liftA toWord8' where
     toWord8' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word32) `div`
                                                        fromIntegral (maxBound :: Word8)) 
     {-# INLINE toWord8' #-}
   {-# INLINE toWord8 #-}
 
-  toWord16 = pxOp toWord16' where
+  toWord16 = liftA toWord16' where
     toWord16' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word32) `div`
                                                         fromIntegral (maxBound :: Word16)) 
     {-# INLINE toWord16' #-}
@@ -279,17 +286,17 @@ instance Elevator Word32 where
   toWord32 = id
   {-# INLINE toWord32 #-}
 
-  toWord64 = pxOp toWord64' where
+  toWord64 = liftA toWord64' where
     toWord64' !e = fromIntegral e * ((maxBound :: Word64) `div` fromIntegral (maxBound :: Word32))
     {-# INLINE toWord64' #-}
   {-# INLINE toWord64 #-}
 
-  toFloat = pxOp toFloat' where
+  toFloat = liftA toFloat' where
     toFloat' !e = fromIntegral e / (fromIntegral (maxBound :: Word32))
     {-# INLINE toFloat' #-}
   {-# INLINE toFloat #-}
 
-  toDouble = pxOp toDouble' where
+  toDouble = liftA toDouble' where
     toDouble' !e = fromIntegral e / (fromIntegral (maxBound :: Word32))
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
@@ -301,19 +308,19 @@ instance Elevator Word32 where
 -- | Values are scaled to @[0, 18446744073709551615]@ range.
 instance Elevator Word64 where
 
-  toWord8 = pxOp toWord8' where
+  toWord8 = liftA toWord8' where
     toWord8' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word64) `div`
                                                        fromIntegral (maxBound :: Word8)) 
     {-# INLINE toWord8' #-}
   {-# INLINE toWord8 #-}
 
-  toWord16 = pxOp toWord16' where
+  toWord16 = liftA toWord16' where
     toWord16' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word64) `div`
                                                         fromIntegral (maxBound :: Word16)) 
     {-# INLINE toWord16' #-}
   {-# INLINE toWord16 #-}
 
-  toWord32 = pxOp toWord32' where
+  toWord32 = liftA toWord32' where
     toWord32' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word64) `div`
                                                         fromIntegral (maxBound :: Word32)) 
     {-# INLINE toWord32' #-}
@@ -322,12 +329,12 @@ instance Elevator Word64 where
   toWord64 = id
   {-# INLINE toWord64 #-}
 
-  toFloat = pxOp toFloat' where
+  toFloat = liftA toFloat' where
     toFloat' !e = fromIntegral e / (fromIntegral (maxBound :: Word64))
     {-# INLINE toFloat' #-}
   {-# INLINE toFloat #-}
 
-  toDouble = pxOp toDouble' where
+  toDouble = liftA toDouble' where
     toDouble' !e = fromIntegral e / (fromIntegral (maxBound :: Word64))
     {-# INLINE toDouble' #-}
   {-# INLINE toDouble #-}
@@ -339,22 +346,22 @@ instance Elevator Word64 where
 -- | Values are scaled to @[0.0, 1.0]@ range.
 instance Elevator Float where
 
-  toWord8 = pxOp toWord8' where
+  toWord8 = liftA toWord8' where
     toWord8' !e = round (fromIntegral (maxBound :: Word8) * e)
     {-# INLINE toWord8' #-}
   {-# INLINE toWord8 #-}
 
-  toWord16 = pxOp toWord16' where
+  toWord16 = liftA toWord16' where
     toWord16' !e = round (fromIntegral (maxBound :: Word16) * e)
     {-# INLINE toWord16' #-}
   {-# INLINE toWord16 #-}
 
-  toWord32 = pxOp toWord32' where
+  toWord32 = liftA toWord32' where
     toWord32' !e = round (fromIntegral (maxBound :: Word32) * e)
     {-# INLINE toWord32' #-}
   {-# INLINE toWord32 #-}
 
-  toWord64 = pxOp toWord64' where
+  toWord64 = liftA toWord64' where
     toWord64' !e = round (fromIntegral (maxBound :: Word64) * e)
     {-# INLINE toWord64' #-}
   {-# INLINE toWord64 #-}
@@ -362,7 +369,7 @@ instance Elevator Float where
   toFloat = id
   {-# INLINE toFloat #-}
 
-  toDouble = pxOp float2Double
+  toDouble = liftA float2Double
   {-# INLINE toDouble #-}
 
   fromDouble = toFloat
@@ -372,27 +379,27 @@ instance Elevator Float where
 -- | Values are scaled to @[0.0, 1.0]@ range.
 instance Elevator Double where
 
-  toWord8 = pxOp toWord8' where
+  toWord8 = liftA toWord8' where
     toWord8' !e = round (fromIntegral (maxBound :: Word8) * e)
     {-# INLINE toWord8' #-}
   {-# INLINE toWord8 #-}
 
-  toWord16 = pxOp toWord16' where
+  toWord16 = liftA toWord16' where
     toWord16' !e = round (fromIntegral (maxBound :: Word16) * e)
     {-# INLINE toWord16' #-}
   {-# INLINE toWord16 #-}
 
-  toWord32 = pxOp toWord32' where
+  toWord32 = liftA toWord32' where
     toWord32' !e = round (fromIntegral (maxBound :: Word32) * e)
     {-# INLINE toWord32' #-}
   {-# INLINE toWord32 #-}
 
-  toWord64 = pxOp toWord64' where
+  toWord64 = liftA toWord64' where
     toWord64' !e = round (fromIntegral (maxBound :: Word64) * e)
     {-# INLINE toWord64' #-}
   {-# INLINE toWord64 #-}
 
-  toFloat = pxOp double2Float
+  toFloat = liftA double2Float
   {-# INLINE toFloat #-}
 
   toDouble = id

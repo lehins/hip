@@ -5,23 +5,31 @@
 
 module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..), Elevator(..),
-  Array(..), ManifestArray(..), MutableArray(..),  SequentialArray(..),
+  Array(..), ManifestArray(..), MutableArray(..), SequentialArray(..),
   Transformable(..),
   defaultIndex, maybeIndex, Border(..), borderIndex
   ) where
 
-import Prelude hiding (map, zipWith, sum, product)
+import Prelude hiding (and, map, zipWith, sum, product)
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
+import Data.Monoid (Monoid)
 import Data.Word
-
+import Data.Foldable (Foldable(foldMap))
 import Control.Applicative
 import Control.Monad.Primitive (PrimMonad (..))
 
 
-
+-- | This class has all included color spaces installed into it and is also
+-- intended for implementing any other possible custom color spaces. Every
+-- instance of this class automatically installs an associated 'Pixel' into
+-- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'Foldable',
+-- which in turn make it possible to be used by the rest of the library.
 class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
-  -- | Representation of a pixel, such that it can be an element of any Array
+  
+  -- | Representation of a pixel, such that it can be an element of any
+  -- Array. Which is usally a tuple of channels or a channel itself for single
+  -- channel color spaces.
   type PixelElt cs e
 
   -- | A concrete Pixel representation for a particular color space.
@@ -48,6 +56,9 @@ class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
 
   -- | Function application to a Pixel.
   chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
+
+  -- | A pixel eqiuvalent of 'foldMap'.
+  pxFoldMap :: Monoid m => (e -> m) -> Pixel cs e -> m
   
 
 class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
@@ -71,7 +82,7 @@ class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
 
 
 
--- | A convenient class with a set of functions that allow for changing precision of
+-- | A class with a set of convenient functions that allow for changing precision of
 -- channels within pixels, while scaling the values to keep them in an appropriate range.
 --
 -- >>> let rgb = PixelRGB 0.0 0.5 1.0 :: Pixel RGB Double
@@ -95,7 +106,7 @@ class Elevator e where
   fromDouble :: ColorSpace cs => Pixel cs Double -> Pixel cs e
 
   
-class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Elevator e, Typeable e, Elt arr cs e) =>
+class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs e) =>
       Array arr cs e where
   
   type Elt arr cs e :: Constraint
@@ -364,11 +375,6 @@ maybeIndex !img@(dims -> (m, n)) !(i, j) =
 
 
 
------------------------------------------------------------------------------------
------ Class instance declarations -------------------------------------------------
------------------------------------------------------------------------------------
-
-
 instance ColorSpace cs => Functor (Pixel cs) where
 
   fmap = pxOp
@@ -378,6 +384,11 @@ instance ColorSpace cs => Applicative (Pixel cs) where
   pure = fromChannel
 
   (<*>) = chApp
+
+instance ColorSpace cs => Foldable (Pixel cs) where
+
+  foldMap = pxFoldMap
+
 
 instance (ColorSpace cs, Num e) => Num (Pixel cs e) where
   (+)         = liftA2 (+)

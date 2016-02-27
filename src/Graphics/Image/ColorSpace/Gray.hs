@@ -8,6 +8,7 @@ import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
+import Data.Monoid (mappend, mempty)
 
 -- ^ This is a signgle channel colorspace, that is designed to hold any channel
 -- from any other colorspace, hence it is not convertible to and from, but
@@ -87,6 +88,9 @@ instance ColorSpace Gray where
 
   chApp (PixelGray f) (PixelGray g) = PixelGray (f g)
   {-# INLINE chApp #-}
+
+  pxFoldMap f (PixelGray g) = f g `mappend` mempty
+  {-# INLINE pxFoldMap #-}
 
   
 instance Show e => Show (Pixel Gray e) where

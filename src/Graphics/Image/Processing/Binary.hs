@@ -1,13 +1,13 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              MultiParamTypeClasses #-}
 module Graphics.Image.Processing.Binary (
-  -- * Binary
-  -- ** Thresholding
-  Thresholding(..),
+  -- * Construction
   toImageBinaryUsing, toImageBinaryUsing2,
-  -- ** Operators
+  -- * Bitwise operations
   (.&&.), (.||.), invert,
-  -- ** Morphology
+  -- * Thresholding
+  Thresholding(..),
+  -- * Binary Morphology
   -- $morphology
   erode, dialate, open, close
   ) where

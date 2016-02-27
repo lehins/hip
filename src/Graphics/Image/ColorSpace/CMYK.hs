@@ -8,6 +8,7 @@ module Graphics.Image.ColorSpace.CMYK (
 import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
+import Data.Monoid (mappend)
 
 data CMYK = CyanCMYK -- ^ Cyan
           | MagCMYK  -- ^ Mahenta
@@ -75,6 +76,9 @@ instance ColorSpace CMYK where
   chApp (PixelCMYK fc fm fy fk) (PixelCMYK c m y k) = PixelCMYK (fc c) (fm m) (fy y) (fk k)
   {-# INLINE chApp #-}
 
+  pxFoldMap f (PixelCMYK c m y k) = f c `mappend` f m `mappend` f y `mappend` f k
+  {-# INLINE pxFoldMap #-}
+
 
 
 instance ColorSpace CMYKA where
@@ -107,6 +111,9 @@ instance ColorSpace CMYKA where
   chApp (PixelCMYKA fc fm fy fk fa) (PixelCMYKA c m y k a) =
     PixelCMYKA (fc c) (fm m) (fy y) (fk k) (fa a)
   {-# INLINE chApp #-}
+
+  pxFoldMap f (PixelCMYKA c m y k a) = f c `mappend` f m `mappend` f y `mappend` f k `mappend` f a
+  {-# INLINE pxFoldMap #-}
 
 
 instance Alpha CMYKA where

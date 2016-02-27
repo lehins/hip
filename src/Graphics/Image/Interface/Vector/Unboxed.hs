@@ -29,7 +29,7 @@ instance Show VU where
 
 
 instance Elt VU cs e => Array VU cs e where
-  type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, Elevator e, Typeable e, 
+  type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, Typeable e, 
                       Unbox (PixelElt cs e), Unbox (Pixel cs e))
   data Image VU cs e where
     VScalar :: !(Pixel cs e)                          -> Image VU cs e
@@ -124,6 +124,7 @@ instance Array VU cs e => ManifestArray VU cs e where
         VUImage n2 m2 v2 = transpose img2
         getPx !(i, j) = V.sum $ V.zipWith (*) (V.slice (i*n1) n1 v1) (V.slice (j*m2) m2 v2)
         {-# INLINE getPx #-}
+  (|*|) (VScalar px1) (VScalar px2) = VScalar (px1 * px2)
   (|*|) _ _ = error "Scalar Images cannot be multiplied."
   {-# INLINE (|*|) #-}
 

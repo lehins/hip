@@ -8,6 +8,8 @@ module Graphics.Image.ColorSpace.RGB (
 import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
+import Data.Monoid (mappend)
+
 
 data RGB = RedRGB
          | GreenRGB
@@ -69,6 +71,8 @@ instance ColorSpace RGB where
   chApp (PixelRGB fr fg fb) (PixelRGB r g b) = PixelRGB (fr r) (fg g) (fb b)
   {-# INLINE chApp #-}
 
+  pxFoldMap f (PixelRGB r g b) = f r `mappend` f g `mappend` f b
+  {-# INLINE pxFoldMap #-}
 
 
 instance ColorSpace RGBA where
@@ -99,6 +103,9 @@ instance ColorSpace RGBA where
 
   chApp (PixelRGBA fr fg fb fa) (PixelRGBA r g b a) = PixelRGBA (fr r) (fg g) (fb b) (fa a)
   {-# INLINE chApp #-}
+
+  pxFoldMap f (PixelRGBA r g b a) = f r `mappend` f g `mappend` f b `mappend` f a
+  {-# INLINE pxFoldMap #-}
 
 
 instance Alpha RGBA where

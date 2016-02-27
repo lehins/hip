@@ -44,7 +44,7 @@ instance Show RS where
 
 instance Elt RD cs e => Array RD cs e where
   type Elt RD cs e = (ColorSpace cs, 
-                      R.Elt e, Unbox e, Num e, Elevator e, Typeable e,
+                      R.Elt e, Unbox e, Num e, Typeable e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   data Image RD cs e where
@@ -118,7 +118,7 @@ instance Elt RD cs e => Array RD cs e where
 
 instance Elt RS cs e => Array RS cs e where
   type Elt RS cs e = (ColorSpace cs, 
-                      R.Elt e, Unbox e, Num e, Elevator e, Typeable e,
+                      R.Elt e, Unbox e, Num e, Typeable e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   
@@ -165,7 +165,7 @@ instance Elt RS cs e => Array RS cs e where
 
 instance Elt RP cs e => Array RP cs e where
   type Elt RP cs e = (ColorSpace cs, 
-                      R.Elt e, Unbox e, Num e, Elevator e, Typeable e,
+                      R.Elt e, Unbox e, Num e, Typeable e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   
@@ -397,15 +397,14 @@ delay = transform RD
 mult :: Array RD cs e => Image RD cs e -> Image RD cs e -> Image RD cs e
 mult img1@(RUImage arr1) img2@(RUImage arr2) =
   if n1 /= m2 
-  then  error ("Inner dimensions of multiplied images must be the same, but received: "++
-               show img1 ++" X "++ show img2)
-    else
-      RDImage . fromFunction (Z :. m1 :. n2) $ getPx where
-        (Z :. m1 :. n1) = extent arr1
-        (Z :. m2 :. n2) = extent arr2
-        getPx (Z :. i :. j) =
-          sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
-        {-# INLINE getPx #-}
+  then error ("Inner dimensions of multiplied images must be the same, but received: "++
+              show img1 ++" X "++ show img2)
+  else RDImage . fromFunction (Z :. m1 :. n2) $ getPx where
+    (Z :. m1 :. n1) = extent arr1
+    (Z :. m2 :. n2) = extent arr2
+    getPx (Z :. i :. j) =
+      sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
+    {-# INLINE getPx #-}
 mult _ _ = _error_compute
 {-# INLINE mult #-}
 

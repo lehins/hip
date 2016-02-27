@@ -17,6 +17,7 @@ import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
 
 
+
 -- | This function magnifies an image by a positive factor and draws a grid
 -- around the original pixels. It is here simply as useful inspection tool.
 --
@@ -25,7 +26,7 @@ import Graphics.Image.Processing.Interpolation
 --
 -- <<images/frog.jpg>> <<images/frog_eye_grid.png>>
 --
-pixelGrid :: Array arr cs e =>
+pixelGrid :: (Array arr cs e, Elevator e) =>
              Word8          -- ^ Magnification factor.
           -> Image arr cs e -- ^ Source image.
           -> Image arr cs e

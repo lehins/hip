@@ -8,6 +8,7 @@ module Graphics.Image.ColorSpace.YCbCr (
 import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
+import Data.Monoid (mappend)
 
 data YCbCr = LumaYCbCr
            | CBlueYCbCr
@@ -70,6 +71,9 @@ instance ColorSpace YCbCr where
   chApp (PixelYCbCr fy fb fr) (PixelYCbCr y b r) = PixelYCbCr (fy y) (fb b) (fr r)
   {-# INLINE chApp #-}
 
+  pxFoldMap f (PixelYCbCr y b r) = f y `mappend` f b `mappend` f r
+  {-# INLINE pxFoldMap #-}
+
 
 instance ColorSpace YCbCrA where
   type PixelElt YCbCrA e = (e, e, e, e)
@@ -99,6 +103,9 @@ instance ColorSpace YCbCrA where
 
   chApp (PixelYCbCrA fy fb fr fa) (PixelYCbCrA y b r a) = PixelYCbCrA (fy y) (fb b) (fr r) (fa a)
   {-# INLINE chApp #-}
+
+  pxFoldMap f (PixelYCbCrA y b r a) = f y `mappend` f b `mappend` f r `mappend` f a
+  {-# INLINE pxFoldMap #-}
 
 
 instance Alpha YCbCrA where
