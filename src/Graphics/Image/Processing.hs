@@ -7,7 +7,7 @@ module Graphics.Image.Processing (
   -- * Convolution
   module Graphics.Image.Processing.Convolution,
   -- * Tools
-  pixelGrid
+  Border(..), pixelGrid
   ) where
 
 import Data.Word (Word8)

@@ -43,8 +43,8 @@ instance Show RS where
   show _ = "RepaSequential"
 
 instance Elt RD cs e => Array RD cs e where
-  type Elt RD cs e = (ColorSpace cs, 
-                      R.Elt e, Unbox e, Num e, Typeable e,
+  type Elt RD cs e = (ColorSpace cs, Num e, Typeable e,
+                      R.Elt e, Unbox e, 
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   data Image RD cs e where
@@ -60,8 +60,8 @@ instance Elt RD cs e => Array RD cs e where
   singleton = RScalar
   {-# INLINE singleton #-}
 
-  makeImage !(m, n) !f = RDImage $ fromFunction (Z :. m :. n) (f . shT2)
-  {-# INLINE makeImage #-}
+  make !(m, n) !f = RDImage $ fromFunction (Z :. m :. n) (f . shT2)
+  {-# INLINE make #-}
 
   map f (RScalar px)        = RScalar (f px)
   map f (getDelayed -> arr) = RDImage (R.map f arr)
@@ -128,8 +128,8 @@ instance Elt RS cs e => Array RS cs e where
   dims (RSImage img) = dims img
   {-# INLINE dims #-}
 
-  makeImage !ix !f = computeS $ (makeImage ix f :: Image RD cs e)
-  {-# INLINE makeImage #-}
+  make !ix !f = computeS $ (make ix f :: Image RD cs e)
+  {-# INLINE make #-}
 
   singleton = RSImage . singleton
   {-# INLINE singleton #-}
@@ -175,8 +175,8 @@ instance Elt RP cs e => Array RP cs e where
   dims (RPImage img) = dims img
   {-# INLINE dims #-}
 
-  makeImage !ix = suspendedComputeP . makeImage ix
-  {-# INLINE makeImage #-}
+  make !ix = suspendedComputeP . make ix
+  {-# INLINE make #-}
 
   singleton = RPImage . singleton
   {-# INLINE singleton #-}
@@ -266,22 +266,22 @@ instance Array RP cs e => ManifestArray RP cs e where
   
 instance ManifestArray RS cs e => SequentialArray RS cs e where
 
-  foldl !f !a = foldl f a . transform VU
+  foldl !f !a = foldl f a . exchange VU
   {-# INLINE foldl #-}
 
-  foldr !f !a = foldr f a . transform VU
+  foldr !f !a = foldr f a . exchange VU
   {-# INLINE foldr #-}
 
-  mapM !f img = liftM (transform RS) (mapM f (transform VU img))
+  mapM !f img = liftM (exchange RS) (mapM f (exchange VU img))
   {-# INLINE mapM #-}
 
-  mapM_ !f img = mapM_ f (transform VU img)
+  mapM_ !f img = mapM_ f (exchange VU img)
   {-# INLINE mapM_ #-}
 
-  foldM !f !a = foldM f a . transform VU
+  foldM !f !a = foldM f a . exchange VU
   {-# INLINE foldM #-}
 
-  foldM_ !f !a = foldM_ f a . transform VU
+  foldM_ !f !a = foldM_ f a . exchange VU
   {-# INLINE foldM_ #-}
 
 
@@ -293,14 +293,14 @@ instance ManifestArray RS cs e => MutableArray RS cs e where
   mdims (MRSImage (mdims -> sz)) = sz
   {-# INLINE mdims #-}
 
-  thaw img = liftM MRSImage (thaw (transform VU img))
+  thaw img = liftM MRSImage (thaw (exchange VU img))
   {-# INLINE thaw #-}
 
-  freeze (MRSImage mimg) = liftM (transform RS) (freeze mimg)
+  freeze (MRSImage mimg) = liftM (exchange RS) (freeze mimg)
   {-# INLINE freeze #-}
 
-  newImage sz = liftM MRSImage (newImage sz)
-  {-# INLINE newImage #-}
+  new sz = liftM MRSImage (new sz)
+  {-# INLINE new #-}
 
   read (MRSImage mimg) = read mimg
   {-# INLINE read #-}
@@ -312,85 +312,97 @@ instance ManifestArray RS cs e => MutableArray RS cs e where
   {-# INLINE swap #-}
 
 
-instance Transformable RS RD where
+-- | O(1) - Delays manifest array.
+instance Exchangable RS RD where
 
-  transform _ (RSImage img) = img
-  {-# INLINE transform #-}
+  exchange _ (RSImage img) = img
+  {-# INLINE exchange #-}
 
 
-instance Transformable RP RD where
+-- | O(1) - Delays manifest array.
+instance Exchangable RP RD where
   
-  transform _ (RPImage img) = img
-  {-# INLINE transform #-}
+  exchange _ (RPImage img) = img
+  {-# INLINE exchange #-}
+
+-- | Computes delayed array sequentially.
+instance Exchangable RD RS where    
+
+  exchange _ (RDImage arr) = RSImage . RUImage . R.computeS $ arr
+  exchange _ img           = RSImage img
+  {-# INLINE exchange #-}
 
 
-instance Transformable RD RS where    
-
-  transform _ (RDImage arr) = RSImage . RUImage . R.computeS $ arr
-  transform _ img           = RSImage img
-  {-# INLINE transform #-}
-
-
-instance Transformable RP RS where
+-- | O(1) - Changes computation strategy.
+instance Exchangable RP RS where
   
-  transform _ (RPImage img) = RSImage img
-  {-# INLINE transform #-}
+  exchange _ (RPImage img) = RSImage img
+  {-# INLINE exchange #-}
 
 
-instance Transformable RD RP where
+-- | Computes delayed array in parallel.
+instance Exchangable RD RP where
   
-  transform _ (RDImage arr) = RPImage . RUImage . R.suspendedComputeP $ arr
-  transform _ img           = RPImage img
-  {-# INLINE transform #-}
+  exchange _ (RDImage arr) = RPImage . RUImage . R.suspendedComputeP $ arr
+  exchange _ img           = RPImage img
+  {-# INLINE exchange #-}
 
 
-instance Transformable RS RP where
+-- | O(1) - Changes computation strategy.
+instance Exchangable RS RP where
   
-  transform _ (RSImage img) = RPImage img
-  {-# INLINE transform #-}
+  exchange _ (RSImage img) = RPImage img
+  {-# INLINE exchange #-}
+
+-- | O(1) - Changes to Repa representation.
+instance Exchangable VU RS where
+  exchange _ img@(dims -> (1, 1)) = singleton (toUnboxedVector img V.! 0)
+  exchange _ img = RSImage . RUImage . R.fromUnboxed (tSh2 $ dims img) . toUnboxedVector $ img
+  {-# INLINE exchange #-}
 
 
-instance Transformable VU RS where
-  transform _ img@(dims -> (1, 1)) = singleton (toUnboxedVector img V.! 0)
-  transform _ img = RSImage . RUImage . R.fromUnboxed (tSh2 $ dims img) . toUnboxedVector $ img
-  {-# INLINE transform #-}
+-- | O(1) - Changes to Repa representation.
+instance Exchangable VU RP where
+  exchange _ img@(dims -> (1, 1)) = singleton (toUnboxedVector img V.! 0)
+  exchange _ img = RPImage . RUImage . R.fromUnboxed (tSh2 $ dims img) . toUnboxedVector $ img
+  {-# INLINE exchange #-}
 
 
-instance Transformable VU RP where
-  transform _ img@(dims -> (1, 1)) = singleton (toUnboxedVector img V.! 0)
-  transform _ img = RPImage . RUImage . R.fromUnboxed (tSh2 $ dims img) . toUnboxedVector $ img
-  {-# INLINE transform #-}
+-- | O(1) - Changes to Vector representation.
+instance Exchangable RS VU where
+  exchange _ img@(RSImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
+  exchange _ (RSImage (RScalar px)) = singleton px
+  exchange _ _                     = _error_compute
+  {-# INLINE exchange #-}
 
 
-instance Transformable RS VU where
-  transform _ img@(RSImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
-  transform _ (RSImage (RScalar px)) = singleton px
-  transform _ _                     = _error_compute
-  {-# INLINE transform #-}
+-- | O(1) - Changes to Vector representation.
+instance Exchangable RP VU where
+  exchange _ img@(RPImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
+  exchange _ (RPImage (RScalar px)) = singleton px
+  exchange _ _                     = _error_compute
+  {-# INLINE exchange #-}
 
-
-instance Transformable RP VU where
-  transform _ img@(RPImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
-  transform _ (RPImage (RScalar px)) = singleton px
-  transform _ _                     = _error_compute
-  {-# INLINE transform #-}
-
-
-computeP :: (Array arr cs e, Array RP cs e, Transformable arr RP) =>
+-- | Computes an image in parallel and ensures that all elements are evaluated.
+computeP :: (Array arr cs e, Array RP cs e, Exchangable arr RP) =>
             Image arr cs e -> Image RP cs e
-computeP = transform RP
+computeP !img = head $ do
+  img' <- return $ exchange RP img
+  img' `deepSeqImage` return img'
 {-# INLINE computeP #-}
 
-
-computeS :: (Array arr cs e, Array RS cs e, Transformable arr RS) =>
+-- | Computes an image sequentially and ensures that all elements are evaluated.
+computeS :: (Array arr cs e, Array RS cs e, Exchangable arr RS) =>
             Image arr cs e -> Image RS cs e
-computeS = transform RS
+computeS !img = head $ do
+  img' <- return $ exchange RS img
+  img' `deepSeqImage` return img'
 {-# INLINE computeS #-}
 
-
-delay :: (ManifestArray arr cs e, Array RD cs e, Transformable arr RD) =>
+-- | Delays an image, so further operations can be fused together.
+delay :: (ManifestArray arr cs e, Array RD cs e, Exchangable arr RD) =>
          Image arr cs e -> Image RD cs e
-delay = transform RD
+delay = exchange RD
 {-# INLINE delay #-}
 
 

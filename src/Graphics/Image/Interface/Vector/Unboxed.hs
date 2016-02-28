@@ -8,7 +8,7 @@ module Graphics.Image.Interface.Vector.Unboxed (
 
 import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
-import Control.DeepSeq (NFData(..), deepseq)
+import Control.DeepSeq (deepseq)
 import Control.Monad (liftM)
 import Data.Word (Word8)
 import Data.Typeable (Typeable)
@@ -35,8 +35,8 @@ instance Elt VU cs e => Array VU cs e where
     VScalar :: !(Pixel cs e)                          -> Image VU cs e
     VUImage :: !Int -> !Int -> !(Vector (Pixel cs e)) -> Image VU cs e
   
-  makeImage !(m, n) !f = VUImage m n $ V.generate (m * n) (f . toIx n)
-  {-# INLINE makeImage #-}
+  make !(m, n) !f = VUImage m n $ V.generate (m * n) (f . toIx n)
+  {-# INLINE make #-}
 
   singleton = VScalar
   {-# INLINE singleton #-}
@@ -75,14 +75,14 @@ instance Elt VU cs e => Array VU cs e where
     else VUImage m1 n1 (V.izipWith (\ !k !px1 !px2 -> f (toIx n1 k) px1 px2) v1 v2)
   {-# INLINE izipWith #-}
 
-  traverse !img !getNewDims !getNewPx = makeImage (getNewDims $ dims img) (getNewPx (index img))
+  traverse !img !getNewDims !getNewPx = make (getNewDims $ dims img) (getNewPx (index img))
   {-# INLINE traverse #-}
 
   traverse2 !img1 !img2 !getNewDims !getNewPx =
-    makeImage (getNewDims (dims img1) (dims img2)) (getNewPx (index img1) (index img2))
+    make (getNewDims (dims img1) (dims img2)) (getNewPx (index img1) (index img2))
   {-# INLINE traverse2 #-}
 
-  transpose !img@(dims -> (m, n)) = makeImage (n, m) getPx where
+  transpose !img@(dims -> (m, n)) = make (n, m) getPx where
     getPx !(i, j) = index img (j, i)
     {-# INLINE getPx #-}
   {-# INLINE transpose #-}
@@ -90,7 +90,7 @@ instance Elt VU cs e => Array VU cs e where
   backpermute !(m, n) !f (VUImage _ n' v) =
     VUImage m n $ V.backpermute v $ V.generate (m*n) (fromIx n' . f . toIx n)
   backpermute !sz      _ (VScalar px)     =
-    if sz == (1, 1) then VScalar px else makeImage sz (const px)
+    if sz == (1, 1) then VScalar px else make sz (const px)
   {-# INLINE backpermute #-}
   
   fromLists !ls = if isSquare
@@ -108,7 +108,8 @@ instance Array VU cs e => ManifestArray VU cs e where
   index (VScalar px)      _ = px
   {-# INLINE index #-}
 
-  deepSeqImage = deepseq
+  deepSeqImage (VUImage m n v) = m `seq` n `seq` deepseq v
+  deepSeqImage (VScalar px)    = seq px
   {-# INLINE deepSeqImage #-}
   
   fold !f !px0 (VUImage _ _ v) = V.foldl' f px0 v
@@ -120,7 +121,7 @@ instance Array VU cs e => ManifestArray VU cs e where
     then error ("Inner dimensions of multiplying images must be the same, but received: "++
                 show img1 ++" X "++ show img2)
     else
-      makeImage (m1, n2) getPx where
+      make (m1, n2) getPx where
         VUImage n2 m2 v2 = transpose img2
         getPx !(i, j) = V.sum $ V.zipWith (*) (V.slice (i*n1) n1 v1) (V.slice (j*m2) m2 v2)
         {-# INLINE getPx #-}
@@ -180,8 +181,8 @@ instance ManifestArray VU cs e => MutableArray VU cs e where
   freeze (MVScalar mv)    = liftM (VScalar . (V.! 0)) (V.freeze mv)
   {-# INLINE freeze #-}
 
-  newImage (m, n) = liftM (MVImage m n) (MV.new (m*n))
-  {-# INLINE newImage #-}
+  new (m, n) = liftM (MVImage m n) (MV.new (m*n))
+  {-# INLINE new #-}
 
   read (MVImage _ n mv) ix = MV.read mv (fromIx n ix)
   read (MVScalar mv)    _  = MV.read mv 0
@@ -194,13 +195,6 @@ instance ManifestArray VU cs e => MutableArray VU cs e where
   swap (MVImage _ n mv) ix1 ix2 = MV.swap mv (fromIx n ix1) (fromIx n ix2)
   swap _                _   _   = return ()
   {-# INLINE swap #-}
-
-
-
-instance ColorSpace cs => NFData (Image VU cs e) where
-  rnf (VUImage m n v) = m `seq` n `seq` rnf v `seq` ()
-  rnf (VScalar px)    = px `seq` ()
-  {-# INLINE rnf #-}
 
 
 -- | Convert an image to a flattened Unboxed 'Vector'. It is a __O(1)__ opeartion.

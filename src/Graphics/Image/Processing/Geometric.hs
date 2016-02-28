@@ -202,7 +202,7 @@ resize !method !sz'@(m', n') !img = traverse img (const sz') getNewPx where
 {-# INLINE resize #-}
 
 
--- | Scale an image. Same as resize, except a scaling factors are supplied
+-- | Scale an image. Same as resize, except scaling factors are supplied
 -- instead of new dimensions.
 --
 -- @ scale ('Bilinear' 'Edge') (0.5, 2) frog == resize ('Bilinear' 'Edge') (100, 640) frog @
@@ -213,7 +213,7 @@ scale :: (Interpolation method, Array arr cs e, Elevator e) =>
       -> Image arr cs e -- ^ Source image.
       -> Image arr cs e
 scale !method !(fM, fN) !img@(dims -> (m, n)) =
-  if fM <=0 || fN <= 0
+  if fM <= 0 || fN <= 0
   then error "scale: scaling factor must be greater than 0."
   else resize method (round (fM * fromIntegral m), round (fN * fromIntegral n)) img
 {-# INLINE scale #-}

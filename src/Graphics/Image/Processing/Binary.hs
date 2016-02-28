@@ -3,6 +3,7 @@
 module Graphics.Image.Processing.Binary (
   -- * Construction
   toImageBinaryUsing, toImageBinaryUsing2,
+  thresholdWith, compareWith,
   -- * Bitwise operations
   (.&&.), (.||.), invert,
   -- * Thresholding
@@ -13,10 +14,11 @@ module Graphics.Image.Processing.Binary (
   ) where
 
 import Prelude hiding (map, zipWith)
-import Graphics.Image.Interface hiding (makeImage)
-import Graphics.Image.ColorSpace.Binary
+import Graphics.Image.Interface
+import Graphics.Image.ColorSpace
 import Graphics.Image.Processing.Convolution
 
+import qualified Data.Foldable as F
 
 infix  4  .==., ./=., .<., .<=., .>=., .>.
 infixr 3  .&&.
@@ -134,6 +136,34 @@ toImageBinaryUsing2 !f =  zipWith (((.).(.)) fromBool f)
 {-# INLINE toImageBinaryUsing2 #-}
 
 
+-- | Threshold a source image with an applicative pixel.
+--
+-- >>> yield <- readImageRGB "images/yield.jpg"
+-- >>> writeImageExact PNG [] "images/yield_bin.png" $ thresholdWith (PixelRGB (>0.55) (<0.6) (<0.5)) yield
+--
+-- <<images/yield.jpg>> <<images/yield_bin.png>>
+--
+thresholdWith :: (Array arr cs e, Array arr Binary Bit) =>
+                 Pixel cs (e -> Bool)
+                 -- ^ Pixel containing a thresholding function per channel.
+              -> Image arr cs e -- ^ Source image.
+              -> Image arr Binary Bit
+thresholdWith !f = map (fromBool . F.and . (f <*>))
+{-# INLINE thresholdWith #-}
+
+
+-- | Compare two images with an applicative pixel. Works just like
+-- 'thresholdWith', but on two images.
+compareWith :: (Array arr cs e1, Array arr cs e2, Array arr Binary Bit) =>
+               Pixel cs (e1 -> e2 -> Bool)
+               -- ^ Pixel containing a comparing function per channel.
+            -> Image arr cs e1 -- ^ First image.
+            -> Image arr cs e2 -- ^ second image.
+            -> Image arr Binary Bit
+compareWith !f = zipWith (\ !px1 !px2 -> fromBool . F.and $ (f <*> px1 <*> px2))
+{-# INLINE compareWith #-}
+
+
 {- $morphology In order to demonstrate how morphological operations work, a
 /binary source image/ = __B__ constructed here together with a /structuring element/ =
 __S__ will be used in examples that follow.
@@ -169,11 +199,11 @@ struct = fromLists [[0,1],[1,1],[0,1]]
 --
 -- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
 --
-erode :: (Thresholding (Image arr) Pixel arr) =>
+erode :: ManifestArray arr Binary Bit =>
          Image arr Binary Bit -- ^ Structuring element.
       -> Image arr Binary Bit -- ^ Binary source image.
       -> Image arr Binary Bit
-erode !struc !img = invert (convolve (Fill on) struc (invert img) ./=. off)
+erode !struc !img = invert $ convolve (Fill on) struc (invert img)
 {-# INLINE erode #-}
 
 
@@ -183,11 +213,11 @@ erode !struc !img = invert (convolve (Fill on) struc (invert img) ./=. off)
 --
 -- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
 --
-dialate :: (Thresholding (Image arr) Pixel arr) =>
+dialate :: ManifestArray arr Binary Bit =>
            Image arr Binary Bit -- ^ Structuring element.
         -> Image arr Binary Bit -- ^ Binary source image.
         -> Image arr Binary Bit
-dialate !struc !img = convolve (Fill off) struc img ./=. off
+dialate !struc !img = convolve (Fill off) struc img
 {-# INLINE dialate #-}
 
 
@@ -197,7 +227,7 @@ dialate !struc !img = convolve (Fill off) struc img ./=. off
 --
 -- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
 --
-open :: (Thresholding (Image arr) Pixel arr) =>
+open :: ManifestArray arr Binary Bit =>
         Image arr Binary Bit -- ^ Structuring element.
      -> Image arr Binary Bit -- ^ Binary source image.
      -> Image arr Binary Bit
@@ -211,7 +241,7 @@ open struc = dialate struc . erode struc
 --
 -- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
 --
-close :: (Thresholding (Image arr) Pixel arr) =>
+close :: ManifestArray arr Binary Bit =>
          Image arr Binary Bit -- ^ Structuring element.
       -> Image arr Binary Bit -- ^ Binary source image.
       -> Image arr Binary Bit

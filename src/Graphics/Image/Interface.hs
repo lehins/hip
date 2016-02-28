@@ -5,8 +5,8 @@
 
 module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..), Elevator(..),
-  Array(..), ManifestArray(..), MutableArray(..), SequentialArray(..),
-  Transformable(..),
+  Array(..), ManifestArray(..), SequentialArray(..), MutableArray(..), 
+  Exchangable(..),
   defaultIndex, maybeIndex, Border(..), borderIndex
   ) where
 
@@ -14,6 +14,7 @@ import Prelude hiding (and, map, zipWith, sum, product)
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
 import Data.Monoid (Monoid)
+import Control.DeepSeq (NFData(rnf))
 import Data.Word
 import Data.Foldable (Foldable(foldMap))
 import Control.Applicative
@@ -115,7 +116,7 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs 
 
   -- | Create an Image by supplying it's dimensions and a pixel genrating
   -- function.
-  makeImage :: (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
+  make :: (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
             -> ((Int, Int) -> Pixel cs e)
                -- ^ A function that takes (@i@-th row, and @j@-th column) as an
                -- argument and returns a pixel for that location.
@@ -228,14 +229,14 @@ class Array arr cs e => ManifestArray arr cs e where
 
   -- | Undirected reduction of an image.
   fold :: (Pixel cs e -> Pixel cs e -> Pixel cs e) -- ^ An associative folding function.
-       -> Pixel cs e -- ^ Initial element, that is neutral with respect to folding function.
+       -> Pixel cs e -- ^ Initial element, that is neutral with respect to the folding function.
        -> Image arr cs e -- ^ Source image.
        -> Pixel cs e
 
-  -- ^ Pixelwise equality function of two images. If either dimensions of both images
-  -- or at least one pair of corresponding pixels ar not the same, images are
-  -- considered distinct. Used in defining an in instance for the 'Eq'
-  -- typeclass.
+  -- | Pixelwise equality function of two images. Images are
+  -- considered distinct if either images' dimensions or at least one pair of
+  -- corresponding pixels are not the same. Used in defining an in instance for
+  -- the 'Eq' typeclass.
   eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
 
 
@@ -265,7 +266,7 @@ class ManifestArray arr cs e => MutableArray arr cs e where
 
   freeze :: PrimMonad m => MImage (PrimState m) arr cs e -> m (Image arr cs e)
 
-  newImage :: PrimMonad m => (Int, Int) -> m (MImage (PrimState m) arr cs e)
+  new :: PrimMonad m => (Int, Int) -> m (MImage (PrimState m) arr cs e)
 
   read :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> m (Pixel cs e)
 
@@ -274,21 +275,21 @@ class ManifestArray arr cs e => MutableArray arr cs e where
   swap :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> (Int, Int) -> m ()
 
 
-class Transformable arr' arr where
+class Exchangable arr' arr where
 
-  -- | Transform the underlying array representation of an image.
-  transform :: (Array arr' cs e, Array arr cs e) =>
-               arr -- ^ New representation of an image.
-            -> Image arr' cs e -- ^ Source image.
-            -> Image arr cs e
+  -- | Exchange the underlying array representation of an image.
+  exchange :: (Array arr' cs e, Array arr cs e) =>
+              arr -- ^ New representation of an image.
+           -> Image arr' cs e -- ^ Source image.
+           -> Image arr cs e
 
 
--- | Transformation to the same type of array representation is disabled and 'transform'
+-- | Changing to the same array representation as before is disabled and `changeTo`
 -- will behave simply as an identitity function.
-instance Transformable arr arr where
+instance Exchangable arr arr where
 
-  transform _ = id
-  {-# INLINE transform #-}
+  exchange _ = id
+  {-# INLINE exchange #-}
 
 
 
@@ -536,6 +537,12 @@ instance (Floating (Pixel cs e), Floating e, Array arr cs e) =>
   
   acosh = map acosh
   {-# INLINE acosh #-}  
+
+
+instance ManifestArray arr cs e => NFData (Image arr cs e) where
+  rnf img = img `deepSeqImage` ()
+  {-# INLINE rnf #-}
+
 
 
 instance Array arr cs e => Show (Image arr cs e) where

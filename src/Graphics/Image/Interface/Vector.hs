@@ -1,14 +1,16 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.Interface.Vector (
-  VU(..), 
+  -- * Construction
   makeImage, fromUnboxedVector, toUnboxedVector,
-  readImageY, readImageYA, readImageRGB, readImageRGBA
+  -- * IO
+  readImageY, readImageYA, readImageRGB, readImageRGBA,
+  -- * Representation
+  VU(..), 
   ) where
 
 import Graphics.Image.IO
-import Graphics.Image.Interface hiding (makeImage)
+import Graphics.Image.Interface
 import Graphics.Image.Interface.Vector.Unboxed
-import qualified Graphics.Image.Interface as I (makeImage)
 import Graphics.Image.ColorSpace
 
 
@@ -37,11 +39,11 @@ makeImage :: Array VU cs Double =>
              -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
              -- and returns a pixel for that location.
           -> Image VU cs Double
-makeImage = I.makeImage
+makeImage = make
 {-# INLINE makeImage #-}
 
 
--- | Read luma (brightness) of an image.
+-- | Read image as luma (brightness).
 readImageY :: FilePath -> IO (Image VU Y Double)
 readImageY = fmap (either error id) . readImage
 {-# INLINE readImageY #-}

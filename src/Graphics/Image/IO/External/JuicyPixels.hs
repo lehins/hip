@@ -613,7 +613,7 @@ instance Array arr RGBA Double => Readable (Image arr RGBA Double) TIF where
 
 jpImageToImage :: (Array arr cs e, Convertible jpx (Pixel cs e), JP.Pixel jpx) =>
                   JP.Image jpx -> Image arr cs e
-jpImageToImage jimg = makeImage (JP.imageHeight jimg, JP.imageWidth jimg) getPx
+jpImageToImage jimg = make (JP.imageHeight jimg, JP.imageWidth jimg) getPx
   where getPx (y, x) = convert $ JP.pixelAt jimg x y
 
 

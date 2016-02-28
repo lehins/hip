@@ -68,7 +68,7 @@ fftGeneral :: (ManifestArray arr cs (Complex e), Num e, RealFloat e) =>
 fftGeneral !sign !img = transpose $ go n 0 1 where
   !(m, n) = dims img
   go !len !offset !stride
-    | len == 2 = makeImage (m, 2) swivel
+    | len == 2 = make (m, 2) swivel
     | otherwise = combine len 
                   (go (len `div` 2) offset            (stride * 2))
                   (go (len `div` 2) (offset + stride) (stride * 2))
