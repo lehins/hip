@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, ConstraintKinds, GADTs, FlexibleContexts, FlexibleInstances,
+{-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
              UndecidableInstances, ViewPatterns #-}
 
@@ -43,14 +43,13 @@ instance Show RS where
   show _ = "RepaSequential"
 
 instance Elt RD cs e => Array RD cs e where
-  type Elt RD cs e = (ColorSpace cs, Num e, Typeable e,
-                      R.Elt e, Unbox e, 
+  type Elt RD cs e = (ColorSpace cs, Num e, Typeable e, R.Elt e, Unbox e,
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
-  data Image RD cs e where
-    RScalar :: !(Pixel cs e)                  -> Image RD cs e
-    RUImage :: !(R.Array U DIM2 (Pixel cs e)) -> Image RD cs e
-    RDImage :: !(R.Array D DIM2 (Pixel cs e)) -> Image RD cs e
+                     
+  data Image RD cs e = RScalar !(Pixel cs e)
+                     | RUImage !(R.Array U DIM2 (Pixel cs e))
+                     | RDImage !(R.Array D DIM2 (Pixel cs e))
 
   dims (RScalar _                        ) = (1, 1)
   dims (RUImage (extent -> (Z :. m :. n))) = (m, n)
@@ -122,8 +121,7 @@ instance Elt RS cs e => Array RS cs e where
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   
-  data Image RS cs e where
-    RSImage :: !(Image RD cs e) -> Image RS cs e
+  data Image RS cs e = RSImage !(Image RD cs e)
 
   dims (RSImage img) = dims img
   {-# INLINE dims #-}
@@ -169,8 +167,7 @@ instance Elt RP cs e => Array RP cs e where
                       R.Elt (PixelElt cs e), Unbox (PixelElt cs e),
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
   
-  data Image RP cs e where
-    RPImage :: !(Image RD cs e) -> Image RP cs e
+  data Image RP cs e = RPImage !(Image RD cs e)
 
   dims (RPImage img) = dims img
   {-# INLINE dims #-}
@@ -287,8 +284,7 @@ instance ManifestArray RS cs e => SequentialArray RS cs e where
 
 instance ManifestArray RS cs e => MutableArray RS cs e where
 
-  data MImage st RS cs e where
-    MRSImage :: MImage st VU cs e -> MImage st RS cs e
+  data MImage st RS cs e = MRSImage !(MImage st VU cs e)
 
   mdims (MRSImage (mdims -> sz)) = sz
   {-# INLINE mdims #-}

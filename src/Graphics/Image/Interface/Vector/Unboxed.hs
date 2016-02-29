@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
-             GADTs, MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
+             MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
              UndecidableInstances, ViewPatterns #-}
 module Graphics.Image.Interface.Vector.Unboxed (
   VU(..), Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx
@@ -31,9 +31,9 @@ instance Show VU where
 instance Elt VU cs e => Array VU cs e where
   type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, Typeable e, 
                       Unbox (PixelElt cs e), Unbox (Pixel cs e))
-  data Image VU cs e where
-    VScalar :: !(Pixel cs e)                          -> Image VU cs e
-    VUImage :: !Int -> !Int -> !(Vector (Pixel cs e)) -> Image VU cs e
+                     
+  data Image VU cs e = VScalar !(Pixel cs e)
+                     | VUImage !Int !Int !(Vector (Pixel cs e))
   
   make !(m, n) !f = VUImage m n $ V.generate (m * n) (f . toIx n)
   {-# INLINE make #-}
@@ -165,9 +165,8 @@ instance ManifestArray VU cs e => SequentialArray VU cs e where
 
 instance ManifestArray VU cs e => MutableArray VU cs e where
 
-  data MImage st VU cs e where
-    MVImage :: !Int -> !Int -> MV.MVector st (Pixel cs e) -> MImage st VU cs e
-    MVScalar :: MV.MVector st (Pixel cs e) -> MImage st VU cs e
+  data MImage st VU cs e = MVImage !Int !Int (MV.MVector st (Pixel cs e))
+                         | MVScalar (MV.MVector st (Pixel cs e))
 
   mdims (MVImage m n _) = (m, n)
   mdims (MVScalar _)    = (1, 1)

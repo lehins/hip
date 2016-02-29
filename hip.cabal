@@ -40,7 +40,6 @@ Library
 	  
   Other-Extensions: BangPatterns
                   , ConstraintKinds
-                  , GADTs
                   , FlexibleContexts
                   , FlexibleInstances
                   , FunctionalDependencies
