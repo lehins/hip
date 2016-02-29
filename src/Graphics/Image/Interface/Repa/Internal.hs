@@ -126,7 +126,7 @@ instance Elt RS cs e => Array RS cs e where
   dims (RSImage img) = dims img
   {-# INLINE dims #-}
 
-  make !ix !f = computeS $ (make ix f :: Image RD cs e)
+  make !ix !f = computeS (make ix f :: Image RD cs e)
   {-# INLINE make #-}
 
   singleton = RSImage . singleton

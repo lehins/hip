@@ -72,7 +72,7 @@ readImage path = do
 -- representation.
 --
 -- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image RP YCbCr Word8))
--- Right <Image RepaDelayed YCbCr: 200x320>
+-- Right <Image RepaParallel YCbCr (Word8): 200x320>
 --
 -- The drawback here is that colorspace and precision has to match exactly,
 -- otherwise it will return an error:

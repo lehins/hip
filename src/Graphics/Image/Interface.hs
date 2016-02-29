@@ -130,7 +130,7 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs 
   --
   -- >>> frog <- readImageRGB "images/frog.jpg"
   -- >>> frog
-  -- <Image RepaDelayed RGB: 200x320>
+  -- <Image VectorUnboxed RGB (Double): 200x320>
   -- >>> dims frog
   -- (200,320)
   --
@@ -203,7 +203,7 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs 
   -- @n@ columns. All of the inner lists must be the same length and greater than @0@.
   --
   -- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [1..300]] | i <- [1..200]] :: Image VU Y Double
-  -- <Image VectorUnboxed Luma: 200x300>
+  -- <Image VectorUnboxed Y (Double): 200x300>
   --
   -- <<images/grad_fromLists.png>>
   --
@@ -246,11 +246,10 @@ class ManifestArray arr cs e => SequentialArray arr cs e where
 
   foldr :: (Pixel cs e -> a -> a) -> a -> Image arr cs e -> a
 
-  mapM :: (Array arr cs' e', Monad m) =>
+  mapM :: (SequentialArray arr cs' e', Monad m) =>
           (Pixel cs' e' -> m (Pixel cs e)) -> Image arr cs' e' -> m (Image arr cs e)
 
-  mapM_ :: (Array arr cs' e', Monad m) =>
-           (Pixel cs' e' -> m (Pixel cs e)) -> Image arr cs' e' -> m ()
+  mapM_ :: Monad m => (Pixel cs e -> m b) -> Image arr cs e -> m ()
 
   foldM :: Monad m => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m a
 

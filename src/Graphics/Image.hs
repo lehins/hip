@@ -96,7 +96,7 @@ import Graphics.Image.Interface.Vector
 import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
 --import Graphics.Image.Processing
---import Graphics.Image.Processing.Complex
+import Graphics.Image.Processing.Complex
 --import Graphics.Image.Processing.Binary
 
 
@@ -111,7 +111,7 @@ import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> frog
--- <Image RepaDelayed RGB: 200x320>
+-- <Image VectorUnboxed RGB (Double): 200x320>
 -- >>> rows frog
 -- 200
 --
@@ -124,7 +124,7 @@ rows = fst . dims
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> frog
--- <Image RepaDelayed RGB: 200x320>
+-- <Image VectorUnboxed RGB (Double): 200x320>
 -- >>> cols frog
 -- 320
 --

@@ -17,7 +17,7 @@ import qualified Data.Complex as C hiding (Complex(..))
 
 infix 6 +:
 
--- | Constrcut a complex pixel from two pixels containing real and imaginary parts.
+-- | Constrcut a complex pixel from two pixels representing real and imaginary parts.
 --
 -- @ PixelRGB 4 8 6 '+:' PixelRGB 7 1 1 __==__ PixelRGB (4 ':+' 7) (8 ':+' 1) (6 ':+' 1) @
 --

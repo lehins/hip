@@ -21,9 +21,13 @@ import Graphics.Image.Processing.Complex.Fourier
 
 infix 6 !+!
 
--- | Constrcut a complex image from two images containing real and imaginary parts.
+-- | Constrcut a complex image from two images representing real and imaginary parts.
 --
--- @ PixelRGB 4 8 6 '+:' PixelRGB 7 1 1 __==__ PixelRGB (4 ':+' 7) (8 ':+' 1) (6 ':+' 1) @
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog !+! 0
+-- <Image VectorUnboxed RGB (Complex Double): 200x320>
+-- >>> frog !+! frog
+-- <Image VectorUnboxed RGB (Complex Double): 200x320>
 --
 (!+!) :: (Array arr cs e, Array arr cs (Complex e)) =>
          Image arr cs e -> Image arr cs e -> Image arr cs (Complex e)
