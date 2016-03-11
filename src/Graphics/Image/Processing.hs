@@ -10,6 +10,7 @@ module Graphics.Image.Processing (
   Border(..), pixelGrid
   ) where
 
+import Prelude hiding (traverse)
 import Data.Word (Word8)
 import Graphics.Image.Interface
 import Graphics.Image.Processing.Convolution

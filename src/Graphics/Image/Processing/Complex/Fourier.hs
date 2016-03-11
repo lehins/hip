@@ -3,7 +3,7 @@ module Graphics.Image.Processing.Complex.Fourier (
   fft, ifft, isPowerOfTwo
   ) where
 
-import Prelude hiding (map)
+import Prelude hiding (map, traverse)
 import Data.Bits ((.&.))
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Complex
@@ -86,9 +86,10 @@ fftGeneral !sign !img = transpose $ go n 0 1 where
 -- Compute a twiddle factor.
 twiddle :: (ColorSpace cs, Floating e) =>
            Pixel cs e
-	-> Int 			-- index
-	-> Int 			-- length
-	-> Pixel cs (Complex e)
+        -> Int                  -- index
+        -> Int                  -- length
+        -> Pixel cs (Complex e)
 twiddle sign k n = cos alpha +: sign * sin alpha where
   !alpha = 2 * pi * fromIntegral k / fromIntegral n
 {-# INLINE twiddle #-}
+

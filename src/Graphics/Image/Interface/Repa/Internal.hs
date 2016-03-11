@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-dodgy-imports #-}
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
              UndecidableInstances, ViewPatterns #-}
@@ -7,7 +8,7 @@ module Graphics.Image.Interface.Repa.Internal (
   RD(..), RP(..), RS(..), computeP, computeS, delay
   ) where
 
-import Prelude hiding (map, zipWith, foldl, foldr, mapM, mapM_, read)
+import Prelude hiding (map, zipWith, foldl, foldr, mapM, mapM_, read, traverse)
 import qualified Prelude as P (map, mapM_)
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))

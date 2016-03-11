@@ -8,7 +8,7 @@ module Graphics.Image.ColorSpace.Luma (
 import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
-import Data.Monoid (mappend, mempty)
+import qualified Data.Monoid as M (mappend, mempty)
 
 -- | Luma or brightness, that is usually denoted as @Y'@.
 data Y = Y deriving (Eq, Enum, Typeable)
@@ -66,7 +66,7 @@ instance ColorSpace Y where
   chApp (PixelY fy) (PixelY y) = PixelY (fy y)
   {-# INLINE chApp #-}
 
-  pxFoldMap f (PixelY y) = f y `mappend` mempty
+  pxFoldMap f (PixelY y) = f y `M.mappend` M.mempty
   {-# INLINE pxFoldMap #-}
 
 
@@ -96,7 +96,7 @@ instance ColorSpace YA where
   chApp (PixelYA fy fa) (PixelYA y a) = PixelYA (fy y) (fa a)
   {-# INLINE chApp #-}
 
-  pxFoldMap f (PixelYA y a) = f y `mappend` f a
+  pxFoldMap f (PixelYA y a) = f y `M.mappend` f a
   {-# INLINE pxFoldMap #-}
   
 instance Alpha YA where
@@ -129,3 +129,10 @@ instance Show e => Show (Pixel YA e) where
   show (PixelYA g a) = "<LumaA:("++show g++"|"++show a++")>"
 
 
+instance Monad (Pixel Y) where
+
+  return = PixelY
+  {-# INLINE return #-}
+
+  (>>=) (PixelY y) f = f y
+  {-# INLINE (>>=) #-}

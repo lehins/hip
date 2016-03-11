@@ -9,7 +9,7 @@ module Graphics.Image.IO.External.JuicyPixels (
 
 import GHC.Float
 import Data.Either
-import Data.Monoid (mempty)
+import qualified Data.Monoid as M (mempty)
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface hiding (map)
 import Graphics.Image.IO.Base
@@ -884,9 +884,9 @@ instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) HDR w
 encodeJPG :: (JP.JpgEncodable px, ManifestArray arr cs e) =>
              [SaveOption JPG] -> (Pixel cs e -> px) -> Image arr cs e -> BL.ByteString
 encodeJPG []               conv =
-  JP.encodeDirectJpegAtQualityWithMetadata 100 mempty . imageToJPImage conv
+  JP.encodeDirectJpegAtQualityWithMetadata 100 M.mempty . imageToJPImage conv
 encodeJPG (JPGQuality q:_) conv =
-  JP.encodeDirectJpegAtQualityWithMetadata q mempty . imageToJPImage conv
+  JP.encodeDirectJpegAtQualityWithMetadata q M.mempty . imageToJPImage conv
 
 
 instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) JPG where

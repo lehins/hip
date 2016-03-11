@@ -15,6 +15,7 @@ module Graphics.Image.Processing.Geometric (
   resize, scale                                          
   ) where
 
+import Prelude hiding (traverse)
 import Graphics.Image.Interface
 import Graphics.Image.Processing.Interpolation
 

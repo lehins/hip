@@ -13,10 +13,10 @@ module Graphics.Image.Interface (
 import Prelude hiding (and, map, zipWith, sum, product)
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
-import Data.Monoid (Monoid)
+import qualified Data.Monoid as M (Monoid)
 import Control.DeepSeq (NFData(rnf))
 import Data.Word
-import Data.Foldable (Foldable(foldMap))
+import qualified Data.Foldable as F (Foldable)
 import Control.Applicative
 import Control.Monad.Primitive (PrimMonad (..))
 
@@ -24,7 +24,7 @@ import Control.Monad.Primitive (PrimMonad (..))
 -- | This class has all included color spaces installed into it and is also
 -- intended for implementing any other possible custom color spaces. Every
 -- instance of this class automatically installs an associated 'Pixel' into
--- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'Foldable',
+-- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'F.Foldable',
 -- which in turn make it possible to be used by the rest of the library.
 class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   
@@ -59,7 +59,7 @@ class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
 
   -- | A pixel eqiuvalent of 'foldMap'.
-  pxFoldMap :: Monoid m => (e -> m) -> Pixel cs e -> m
+  pxFoldMap :: M.Monoid m => (e -> m) -> Pixel cs e -> m
   
 
 class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
@@ -378,16 +378,21 @@ maybeIndex !img@(dims -> (m, n)) !(i, j) =
 instance ColorSpace cs => Functor (Pixel cs) where
 
   fmap = pxOp
+  {-# INLINE fmap #-}
   
 instance ColorSpace cs => Applicative (Pixel cs) where
 
   pure = fromChannel
+  {-# INLINE pure #-}
 
   (<*>) = chApp
+  {-# INLINE (<*>) #-}
 
-instance ColorSpace cs => Foldable (Pixel cs) where
+
+instance ColorSpace cs => F.Foldable (Pixel cs) where
 
   foldMap = pxFoldMap
+  {-# INLINE foldMap #-}
 
 
 instance (ColorSpace cs, Num e) => Num (Pixel cs e) where

@@ -8,7 +8,7 @@ module Graphics.Image.ColorSpace.HSI (
 import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
-import Data.Monoid (mappend)
+import qualified Data.Monoid as M (mappend)
 
 data HSI = HueHSI
          | SatHSI
@@ -70,7 +70,7 @@ instance ColorSpace HSI where
   chApp (PixelHSI fh fs fi) (PixelHSI h s i) = PixelHSI (fh h) (fs s) (fi i)
   {-# INLINE chApp #-}
 
-  pxFoldMap f (PixelHSI h s i) = f h `mappend` f s `mappend` f i 
+  pxFoldMap f (PixelHSI h s i) = f h `M.mappend` f s `M.mappend` f i 
   {-# INLINE pxFoldMap #-}
 
 
@@ -104,7 +104,7 @@ instance ColorSpace HSIA where
   chApp (PixelHSIA fh fs fi fa) (PixelHSIA h s i a) = PixelHSIA (fh h) (fs s) (fi i) (fa a)
   {-# INLINE chApp #-}
 
-  pxFoldMap f (PixelHSIA h s i a) = f h `mappend` f s `mappend` f i `mappend` f a
+  pxFoldMap f (PixelHSIA h s i a) = f h `M.mappend` f s `M.mappend` f i `M.mappend` f a
   {-# INLINE pxFoldMap #-}
 
 

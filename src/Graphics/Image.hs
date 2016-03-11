@@ -87,7 +87,7 @@ module Graphics.Image (
   exchange,
   VU(..), RD(..), RS(..), RP(..),
   ) where
-import Prelude hiding (map, zipWith, sum, product, maximum, minimum)
+import Prelude hiding (map, traverse, zipWith, sum, product, maximum, minimum)
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
@@ -95,15 +95,12 @@ import Graphics.Image.Interface
 import Graphics.Image.Interface.Vector
 import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
---import Graphics.Image.Processing
+
+import Graphics.Image.Processing
 import Graphics.Image.Processing.Complex
 --import Graphics.Image.Processing.Binary
+import Graphics.Image.Histogram
 
-
-
---------------------------------------------------------------------------------
----- Creation and Transformation -----------------------------------------------
---------------------------------------------------------------------------------
 
 
 

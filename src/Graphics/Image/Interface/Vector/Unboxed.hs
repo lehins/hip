@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
-             MultiParamTypeClasses, TemplateHaskell, TypeFamilies,
+             MultiParamTypeClasses, RankNTypes, TemplateHaskell, TypeFamilies,
              UndecidableInstances, ViewPatterns #-}
 module Graphics.Image.Interface.Vector.Unboxed (
   VU(..), Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx
@@ -237,7 +237,7 @@ derivingUnbox "Bit"
 
   
 derivingUnbox "Pixel"
-    [t| (ColorSpace cs, Unbox (PixelElt cs e)) => (Pixel cs e) -> (PixelElt cs e) |]
-    [| toElt                                                                      |]
-    [| fromElt                                                                    |]
+    [t| forall cs e . (ColorSpace cs, Unbox (PixelElt cs e)) => (Pixel cs e) -> (PixelElt cs e) |]
+    [| toElt                                                                                    |]
+    [| fromElt                                                                                  |]
 

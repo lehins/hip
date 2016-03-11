@@ -8,7 +8,7 @@ import Prelude hiding (map)
 import Data.Word (Word8)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
-import Data.Monoid (mappend, mempty)
+import qualified Data.Monoid as M (mappend, mempty)
 
 -- | This is a Binary colorspace, pixel's of which can be created using
 -- these __/constructors/__:
@@ -110,7 +110,7 @@ instance ColorSpace Binary where
   chApp (PixelBinary f) (PixelBinary b) = PixelBinary (f b)
   {-# INLINE chApp #-}
 
-  pxFoldMap f (PixelBinary b) = f b `mappend` mempty
+  pxFoldMap f (PixelBinary b) = f b `M.mappend` M.mempty
   {-# INLINE pxFoldMap #-}
 
 
