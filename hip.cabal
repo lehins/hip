@@ -1,5 +1,5 @@
 Name:              hip
-Version:           1.0.0.0
+Version:           1.0.1
 License:           BSD3
 License-File:      LICENSE
 Author:            Alexey Kuleshevich
@@ -13,7 +13,7 @@ Description:
             .
             Processing can be done sequentially as well as in parallel, with an inherited fusion capabily, all through <https://hackage.haskell.org/package/repa repa> and <https://hackage.haskell.org/package/vector vector> packages. It is highly extendable, with an ability to add custom color spaces or use some other underlying data structure.
             .
-            It is capable of reading and writing a number of popular image formats by using <https://hackage.haskell.org/package/JuicyPixels JuciyPixels> and <https://hackage.haskell.org/package/netpbm netpbm> packages. Being a pure Haskell library it does not require any external programs, but it can display images using a program of your choice.
+            It is capable of reading and writing a number of popular image formats by using <https://hackage.haskell.org/package/JuicyPixels JuciyPixels> and <https://hackage.haskell.org/package/netpbm netpbm> packages. Being a pure Haskell library it does not require any external programs, although it can display images using a program of your choice.
 Homepage:          https://github.com/lehins/hip
 Bug-Reports:       https://github.com/lehins/hip/issues
 Cabal-Version:     >= 1.10
@@ -27,7 +27,6 @@ Library
   Build-Depends: base            >= 4.5     && < 5
                , bytestring      >= 0.9.0.4
                , deepseq         >= 1.1
---               , easyplot        >= 1.0
                , filepath        >= 1.0
                , JuicyPixels     >= 3.2.7
                , netpbm          >= 1.0.1
@@ -39,7 +38,6 @@ Library
                , repa            >= 3.2.1.1 && < 4
                , temporary       >= 1.1.1
                , vector          >= 0.9     && < 0.11
-               , vector-th-unbox >= 0.2.1.0
 	  
   Other-Extensions: BangPatterns
                   , ConstraintKinds
@@ -49,7 +47,6 @@ Library
                   , MultiParamTypeClasses
                   , MultiWayIf
                   , ScopedTypeVariables
-                  , TemplateHaskell
                   , TypeFamilies
                   , UndecidableInstances
                   , ViewPatterns
@@ -58,12 +55,14 @@ Library
                  , Graphics.Image.ColorSpace
                  , Graphics.Image.IO
                  , Graphics.Image.IO.External
+                 , Graphics.Image.IO.Histogram
                  , Graphics.Image.Interface
                  , Graphics.Image.Interface.Repa
                  , Graphics.Image.Interface.Vector
                  , Graphics.Image.Processing
                  , Graphics.Image.Processing.Binary
                  , Graphics.Image.Processing.Complex
+                 , Graphics.Image.Types
                    
   Other-Modules:   Graphics.Image.ColorSpace.Binary
                  , Graphics.Image.ColorSpace.CMYK
@@ -78,6 +77,7 @@ Library
                  , Graphics.Image.IO.External.Netpbm
                  , Graphics.Image.Interface.Repa.Internal
                  , Graphics.Image.Interface.Vector.Unboxed
+                 , Graphics.Image.Interface.Vector.Unboxing
                  , Graphics.Image.Processing.Convolution
                  , Graphics.Image.Processing.Complex.Fourier
                  , Graphics.Image.Processing.Geometric
@@ -87,6 +87,7 @@ Library
               -Wall
               -Odph
               -fcpr-off
+              -ddump-splices
 
 Source-Repository head
   Type:     git

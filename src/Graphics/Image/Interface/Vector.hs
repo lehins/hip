@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.Interface.Vector (
   -- * Construction
-  makeImage, fromUnboxedVector, toUnboxedVector,
+  makeImage, fromLists, fromUnboxedVector, toUnboxedVector,
   -- * IO
   readImageY, readImageYA, readImageRGB, readImageRGBA,
   -- * Representation
@@ -9,7 +9,8 @@ module Graphics.Image.Interface.Vector (
   ) where
 
 import Graphics.Image.IO
-import Graphics.Image.Interface
+import Graphics.Image.Interface hiding (makeImage, fromLists)
+import qualified Graphics.Image.Interface as I (makeImage, fromLists)
 import Graphics.Image.Interface.Vector.Unboxed
 import Graphics.Image.ColorSpace
 
@@ -39,8 +40,24 @@ makeImage :: Array VU cs Double =>
              -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
              -- and returns a pixel for that location.
           -> Image VU cs Double
-makeImage = make
+makeImage = I.makeImage
 {-# INLINE makeImage #-}
+
+
+-- | Construct an image from a nested rectangular shaped list of pixels.
+-- Length of an outer list will constitute @m@ rows, while the length of inner lists -
+-- @n@ columns. All of the inner lists must be the same length and greater than @0@.
+--
+-- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [1..300]] | i <- [1..200]]
+-- <Image VectorUnboxed Y (Double): 200x300>
+--
+-- <<images/grad_fromLists.png>>
+--
+fromLists :: Array VU cs e =>
+             [[Pixel cs e]]
+          -> Image VU cs e
+fromLists = I.fromLists
+{-# INLINE fromLists #-}
 
 
 -- | Read image as luma (brightness).

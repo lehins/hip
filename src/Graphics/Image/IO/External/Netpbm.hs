@@ -222,36 +222,36 @@ pnmDataToImage :: (Array arr cs e, Convertible PNM.PbmPixel px,
                    Convertible PNM.PgmPixel16 px, Convertible PNM.PgmPixel8 px,
                    Convertible PNM.PpmPixelRGB16 px, Convertible PNM.PpmPixelRGB8 px) =>
                   (px -> Pixel cs e) -> Int -> Int -> PNM.PpmPixelData -> Image arr cs e
-pnmDataToImage conv w h (PNM.PbmPixelData v)      = make (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PgmPixelData8 v)     = make (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PgmPixelData16 v)    = make (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PpmPixelDataRGB8 v)  = make (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PpmPixelDataRGB16 v) = make (h, w) (conv . getPx v w)
+pnmDataToImage conv w h (PNM.PbmPixelData v)      = makeImage (h, w) (conv . getPx v w)
+pnmDataToImage conv w h (PNM.PgmPixelData8 v)     = makeImage (h, w) (conv . getPx v w)
+pnmDataToImage conv w h (PNM.PgmPixelData16 v)    = makeImage (h, w) (conv . getPx v w)
+pnmDataToImage conv w h (PNM.PpmPixelDataRGB8 v)  = makeImage (h, w) (conv . getPx v w)
+pnmDataToImage conv w h (PNM.PpmPixelDataRGB16 v) = makeImage (h, w) (conv . getPx v w)
 
 
 pnmDataPBMToImage :: (Array arr cs e, Convertible PNM.PbmPixel (Pixel cs e)) =>
                      Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPBMToImage w h (PNM.PbmPixelData v) = Right $ make (h, w) (getPx v w)
+pnmDataPBMToImage w h (PNM.PbmPixelData v) = Right $ makeImage (h, w) (getPx v w)
 pnmDataPBMToImage _ _ d                    = pnmCSError "Binary (Pixel Binary Bit)" d
 
 pnmDataPGM8ToImage :: (Array arr cs e, Convertible PNM.PgmPixel8 (Pixel cs e)) =>
                       Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPGM8ToImage w h (PNM.PgmPixelData8 v) = Right $ make (h, w) (getPx v w)
+pnmDataPGM8ToImage w h (PNM.PgmPixelData8 v) = Right $ makeImage (h, w) (getPx v w)
 pnmDataPGM8ToImage _ _ d                     = pnmCSError "Y8 (Pixel Y Word8)" d
 
 pnmDataPGM16ToImage :: (Array arr cs e, Convertible PNM.PgmPixel16 (Pixel cs e)) =>
                        Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPGM16ToImage w h (PNM.PgmPixelData16 v) = Right $ make (h, w) (getPx v w)
+pnmDataPGM16ToImage w h (PNM.PgmPixelData16 v) = Right $ makeImage (h, w) (getPx v w)
 pnmDataPGM16ToImage _ _ d                      = pnmCSError "Y16 (Pixel Y Word16)" d
 
 pnmDataPPM8ToImage :: (Array arr cs e, Convertible PNM.PpmPixelRGB8 (Pixel cs e)) =>
                       Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPPM8ToImage w h (PNM.PpmPixelDataRGB8 v) = Right $ make (h, w) (getPx v w)
+pnmDataPPM8ToImage w h (PNM.PpmPixelDataRGB8 v) = Right $ makeImage (h, w) (getPx v w)
 pnmDataPPM8ToImage _ _ d                        = pnmCSError "RGB8 (Pixel RGB Word8)" d
 
 pnmDataPPM16ToImage :: (Array arr cs e, Convertible PNM.PpmPixelRGB16 (Pixel cs e)) =>
                        Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPPM16ToImage w h (PNM.PpmPixelDataRGB16 v) = Right $ make (h, w) (getPx v w)
+pnmDataPPM16ToImage w h (PNM.PpmPixelDataRGB16 v) = Right $ makeImage (h, w) (getPx v w)
 pnmDataPPM16ToImage _ _ d                         = pnmCSError "RGB16 (Pixel RGB Word16)" d
 
 

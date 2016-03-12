@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.Interface.Repa (
   -- * Construction
-  makeImage,
+  makeImage, fromLists,
   -- * IO
   readImageY, readImageYA, readImageRGB, readImageRGBA,
   -- * Computation
@@ -11,7 +11,8 @@ module Graphics.Image.Interface.Repa (
   ) where
 
 import Graphics.Image.IO
-import Graphics.Image.Interface
+import Graphics.Image.Interface hiding (makeImage, fromLists)
+import qualified Graphics.Image.Interface as I (makeImage, fromLists)
 import Graphics.Image.Interface.Repa.Internal
 import Graphics.Image.ColorSpace
 
@@ -23,8 +24,16 @@ makeImage :: Array RD cs Double =>
              -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
              -- and returns a pixel for that location.
           -> Image RD cs Double
-makeImage = make
+makeImage = I.makeImage
 {-# INLINE makeImage #-}
+
+
+-- | Construct an image from a nested rectangular shaped list of pixels.
+fromLists :: Array RD cs e =>
+             [[Pixel cs e]]
+          -> Image RD cs e
+fromLists = I.fromLists
+{-# INLINE fromLists #-}
 
 
 -- | Read image as luma (brightness).

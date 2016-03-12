@@ -94,7 +94,7 @@ makeFilter :: (ManifestArray arr cs e, RealFloat e) =>
               -- of @2@, i.e. @m == 2^k@, where @k@ is some integer.
            -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
 makeFilter !(m, n) !getPx 
-  | isPowerOfTwo m && isPowerOfTwo n = make (m, n) getPx'
+  | isPowerOfTwo m && isPowerOfTwo n = makeImage (m, n) getPx'
   | otherwise = error " "
   where getPx' (i, j) = getPx (if i < (m `div` 2) then i else i - m,
                                if j < (n `div` 2) then j else j - n)

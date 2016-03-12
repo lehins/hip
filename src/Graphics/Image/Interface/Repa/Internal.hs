@@ -60,8 +60,8 @@ instance Elt RD cs e => Array RD cs e where
   singleton = RScalar
   {-# INLINE singleton #-}
 
-  make !(m, n) !f = RDImage $ fromFunction (Z :. m :. n) (f . shT2)
-  {-# INLINE make #-}
+  makeImage !(m, n) !f = RDImage $ fromFunction (Z :. m :. n) (f . shT2)
+  {-# INLINE makeImage #-}
 
   map f (RScalar px)        = RScalar (f px)
   map f (getDelayed -> arr) = RDImage (R.map f arr)
@@ -127,8 +127,8 @@ instance Elt RS cs e => Array RS cs e where
   dims (RSImage img) = dims img
   {-# INLINE dims #-}
 
-  make !ix !f = computeS (make ix f :: Image RD cs e)
-  {-# INLINE make #-}
+  makeImage !ix !f = computeS (makeImage ix f :: Image RD cs e)
+  {-# INLINE makeImage #-}
 
   singleton = RSImage . singleton
   {-# INLINE singleton #-}
@@ -173,8 +173,8 @@ instance Elt RP cs e => Array RP cs e where
   dims (RPImage img) = dims img
   {-# INLINE dims #-}
 
-  make !ix = suspendedComputeP . make ix
-  {-# INLINE make #-}
+  makeImage !ix = suspendedComputeP . makeImage ix
+  {-# INLINE makeImage #-}
 
   singleton = RPImage . singleton
   {-# INLINE singleton #-}

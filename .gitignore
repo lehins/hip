@@ -1,6 +1,8 @@
 dist
 .cabal-sandbox
 cabal.sandbox.config
+.stack-work
+stack.yaml
 *.o
 *.p_o
 *.hi

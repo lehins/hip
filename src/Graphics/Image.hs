@@ -1,23 +1,22 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
 -- |
--- Module      : Graphics.Image.Unboxed
+-- Module      : Graphics.Image
 -- Copyright   : (c) Alexey Kuleshevich 2016
--- License     : MIT
---
+-- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
 -- Haskell Image Processing (HIP) library is a wrapper around any array like
 -- data structure and is fully agnostic to the underlying representation. All of
--- the functionality in this library relies on few type classes that those
--- representations implement:
+-- the functionality in this library relies on few type classes that
+-- corresponding representation types are instances of:
 --
--- * @__`Array` arr cs e__@ - this is a base class for every __@`Image`@ @arr@ @cs@ @e@__,
--- where @__arr__@ stands for an underlying array representation, @__cs__@ is the
--- `ColorSpace` of an image and @__e__@ is the type denoting precision of an
--- image.
+-- * @__`Graphics.Image.Types.Array` arr cs e__@ - this is a base class for every
+-- __@`Graphics.Image.Types.Image`@ @arr@ @cs@ @e@__, where @__arr__@ stands for an underlying array
+-- representation, @__cs__@ is the `ColorSpace` of an image and @__e__@ is the
+-- type denoting precision of an image.
 --
 -- * @__`ManifestArray` arr cs e__@ - is a kind of array that is represented by an
 -- actual data in memory.
@@ -43,16 +42,30 @@
 -- representation should be used for fusing computation together, and later
 -- changed to `RS` or `RP` using `exchange`, which in turn performs the fused
 -- computation.
--- 
+--
+-- Just as it is mentioned above, Vector representation is a default one, so in
+-- order to create images with Repa representation
+-- "Graphics.Image.Interface.Repa" module can be used. It should be imported as
+-- qualified, since it contains image generating functions with same names as
+-- here.
+--
+-- Many of the function names exported by this module will clash with the ones
+-- from "Prelude", hence it can be more convenient to import it qualified and
+-- all relevenat types import using "Graphics.Image.Types" module:
+--
+-- @
+-- import qualified Graphics.Image as I
+-- import Graphics.Image.Types
+-- @
+--
 module Graphics.Image (
   -- * Color Space
   -- $colorspace
-  module Graphics.Image.ColorSpace,
 
   -- * Creation
   --
   -- If it is necessary to create an image in an other representation
-  -- or with some specific 'Pixel' precision, you can use 'makeImage' from
+  -- or with some specific 'Pixel' precision, you can use 'make' from
   -- "Graphics.Image.Interface" module and manually specifying function's output
   -- type, ex:
   --
@@ -91,7 +104,7 @@ import Prelude hiding (map, traverse, zipWith, sum, product, maximum, minimum)
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
-import Graphics.Image.Interface
+import Graphics.Image.Interface hiding (makeImage, fromLists)
 import Graphics.Image.Interface.Vector
 import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
@@ -99,7 +112,7 @@ import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 import Graphics.Image.Processing
 import Graphics.Image.Processing.Complex
 --import Graphics.Image.Processing.Binary
-import Graphics.Image.Histogram
+import Graphics.Image.IO.Histogram
 
 
 
@@ -163,7 +176,7 @@ normalize !img = if l == s
   where
     !(PixelGray l, PixelGray s) = (maximum $ map (PixelGray . F.maximum) img,
                                    minimum $ map (PixelGray . F.minimum) img)
-    normalizer !px = (px - pure s) / (pure (l - s))
+    normalizer !px = (px - pure s) / pure (l - s)
     {-# INLINE normalizer #-}
 {-# INLINE normalize #-}
 
@@ -191,5 +204,5 @@ normalize !img = if l == s
 -- Every 'Pixel' is an instance of 'Functor', 'Applicative', 'F.Foldable' and
 -- 'Num', as well as 'Floating' and 'Fractional' if __e__ is also an instance.
 --
--- All of the functionality related to every 'ColorSpace' is re-exported from here
--- for convenience.
+-- All of the functionality related to every 'ColorSpace' is re-exported by
+-- "Graphics.Image.Types" module.

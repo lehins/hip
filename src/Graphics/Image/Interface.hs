@@ -1,13 +1,13 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ConstraintKinds, FlexibleContexts, FlexibleInstances,
-             MultiParamTypeClasses, ScopedTypeVariables,
-             TypeFamilies, UndecidableInstances, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
+             MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
+             UndecidableInstances, ViewPatterns #-}
 
 module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..), Elevator(..),
   Array(..), ManifestArray(..), SequentialArray(..), MutableArray(..), 
   Exchangable(..),
-  defaultIndex, maybeIndex, Border(..), borderIndex
+  defaultIndex, maybeIndex, Border(..), borderIndex,
+  Applicative(..), (<$>), (<$), (<**>), liftA, liftA2, liftA3,
   ) where
 
 import Prelude hiding (and, map, zipWith, sum, product)
@@ -62,8 +62,9 @@ class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   pxFoldMap :: M.Monoid m => (e -> m) -> Pixel cs e -> m
   
 
+-- | A color space that supports transparency.
 class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
-  -- | An opaque version of this color space.
+  -- | An corresponding opaque version of this color space.
   type Opaque cs
 
   -- | Get an alpha channel of a transparant pixel. 
@@ -114,13 +115,13 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs 
   type Elt arr cs e = ()
   data Image arr cs e
 
-  -- | Create an Image by supplying it's dimensions and a pixel genrating
+  -- | Create an Image by supplying it's dimensions and a pixel generating
   -- function.
-  make :: (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
-            -> ((Int, Int) -> Pixel cs e)
-               -- ^ A function that takes (@i@-th row, and @j@-th column) as an
-               -- argument and returns a pixel for that location.
-            -> Image arr cs e
+  makeImage :: (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
+          -> ((Int, Int) -> Pixel cs e)
+          -- ^ A function that takes (@i@-th row, and @j@-th column) as an
+          -- argument and returns a pixel for that location.
+          -> Image arr cs e
 
   -- | Create a singleton image, required for various operations on images with
   -- a scalar.
@@ -201,12 +202,6 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs 
   -- | Construct an image from a nested rectangular shaped list of pixels.
   -- Length of an outer list will constitute @m@ rows, while the length of inner lists -
   -- @n@ columns. All of the inner lists must be the same length and greater than @0@.
-  --
-  -- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [1..300]] | i <- [1..200]] :: Image VU Y Double
-  -- <Image VectorUnboxed Y (Double): 200x300>
-  --
-  -- <<images/grad_fromLists.png>>
-  --
   fromLists :: [[Pixel cs e]]
             -> Image arr cs e
 
@@ -215,7 +210,7 @@ class Array arr cs e => ManifestArray arr cs e where
 
   -- | Get a pixel at @i@-th and @j@-th location.
   --
-  -- >>> let grad_gray = computeS $ makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+  -- >>> let grad_gray = makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
   -- >>> index grad_gray (20, 30) == PixelY ((20*30) / (200*200))
   -- True
   --

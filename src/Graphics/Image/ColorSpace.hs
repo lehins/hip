@@ -1,9 +1,17 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances,
-             MultiParamTypeClasses, MultiWayIf, ViewPatterns #-}
+             MultiParamTypeClasses, MultiWayIf #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace (
   -- * ColorSpace
-  ColorSpace(..), Alpha(..),
+  ColorSpace, Pixel(..), Alpha(Opaque), Elevator(..),
   -- * Luma
   module Graphics.Image.ColorSpace.Luma,
   -- * RGB
@@ -22,13 +30,10 @@ module Graphics.Image.ColorSpace (
   -- * Complex
   module Graphics.Image.ColorSpace.Complex,
   -- * Re-exports
-  Applicative(..), (<$>), (<$), (<**>), liftA, liftA2, liftA3,
   Word8, Word16, Word32, Word64
   ) where
 
 
-
-import Control.Applicative
 import Data.Word
 import GHC.Float
 import Graphics.Image.Interface hiding (map)
@@ -43,31 +48,31 @@ import Graphics.Image.ColorSpace.Complex
 import qualified Graphics.Image.Interface as I (map)
 
 
-
-
 -- Binary:
 
-
+-- | Convert any pixel to binary pixel.
 toPixelBinary :: (ColorSpace cs, Eq (Pixel cs e), Num e) => Pixel cs e -> Pixel Binary Bit
 toPixelBinary px = if px == 0 then on else off
 {-# INLINE toPixelBinary #-}
 
-
+-- | Convert a Binary pixel to Luma pixel
 fromPixelBinary :: Pixel Binary Bit -> Pixel Y Word8
 fromPixelBinary b = PixelY $ if isOn b then minBound else maxBound
 {-# INLINE fromPixelBinary #-}
 
 
+-- | Convert any image to binary image.
 toImageBinary :: (Array arr cs e, Array arr Binary Bit, Eq (Pixel cs e)) =>
-              Image arr cs e
-           -> Image arr Binary Bit
+                 Image arr cs e
+              -> Image arr Binary Bit
 toImageBinary = I.map toPixelBinary
 {-# INLINE toImageBinary #-}
 
 
+-- | Convert a Binary image to Luma image
 fromImageBinary :: (Array arr Binary Bit, Array arr Y Word8) =>
-                Image arr Binary Bit
-             -> Image arr Y Word8
+                   Image arr Binary Bit
+                -> Image arr Y Word8
 fromImageBinary = I.map fromPixelBinary
 {-# INLINE fromImageBinary #-}
 

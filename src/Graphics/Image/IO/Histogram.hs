@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
-module Graphics.Image.Histogram (
+module Graphics.Image.IO.Histogram (
   Histogram(..), getHistograms, getHistogram,
   writeHistogram
   ) where
 
 import Prelude hiding (map, mapM_)
-import qualified Prelude as P (map, mapM_, mapM)
+import qualified Prelude as P (map, mapM_)
 import Control.Monad.Primitive (PrimMonad (..))
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace
@@ -15,6 +15,8 @@ import qualified Data.Vector.Unboxed.Mutable as MV
 import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Cairo
 import qualified Data.Colour.SRGB as C
+
+
 
 data Histogram = Histogram { hBins :: V.Vector Int
                            , hName :: String }
@@ -39,15 +41,15 @@ getHistogram img = Histogram { hBins = V.modify countBins $
              
 
 modify :: (PrimMonad m, V.Unbox a) => MV.MVector (PrimState m) a -> (a -> a) -> Int -> m ()
-modify v f ix = do
-  e <- MV.read v ix
-  MV.write v ix $ f e
+modify v f idx = do
+  e <- MV.read v idx
+  MV.write v idx $ f e
 
 
+writeHistogram :: FilePath -> [Histogram] -> IO ()
 writeHistogram fileName hists = toFile def fileName $ do
   layout_title .= "Histogram"
-  setColors $ fmap opaque ([C.sRGB 1 0 0, C.sRGB 0 1 0, C.sRGB 0 0 1])
+  setColors $ fmap opaque [C.sRGB 1 0 0, C.sRGB 0 1 0, C.sRGB 0 0 1]
   --layoutlr_left_axis . laxis_override .= axisGridHide
   P.mapM_ plotHist hists where
-    plotHist h = do
-      plot (line (hName h) [V.toList $ V.imap (,) (hBins h)])
+    plotHist h = plot (line (hName h) [V.toList $ V.imap (,) (hBins h)])

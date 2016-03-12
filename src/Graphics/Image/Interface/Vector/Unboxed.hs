@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
-             MultiParamTypeClasses, RankNTypes, TemplateHaskell, TypeFamilies,
-             UndecidableInstances, ViewPatterns #-}
+             MultiParamTypeClasses, RankNTypes, TypeFamilies, UndecidableInstances,
+             ViewPatterns #-}
 module Graphics.Image.Interface.Vector.Unboxed (
   VU(..), Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx
   ) where
@@ -9,15 +9,13 @@ module Graphics.Image.Interface.Vector.Unboxed (
 import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Control.DeepSeq (deepseq)
-import Control.Monad (liftM)
-import Data.Word (Word8)
+import Control.Monad (liftM, void)
 import Data.Typeable (Typeable)
 import Data.Vector.Unboxed (Vector, Unbox)
-import Data.Vector.Unboxed.Deriving
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 import Graphics.Image.Interface
-import Graphics.Image.ColorSpace.Binary (Bit(..))
+import Graphics.Image.Interface.Vector.Unboxing()
 
 
 -- | Unboxed 'Vector' representation.
@@ -35,8 +33,8 @@ instance Elt VU cs e => Array VU cs e where
   data Image VU cs e = VScalar !(Pixel cs e)
                      | VUImage !Int !Int !(Vector (Pixel cs e))
   
-  make !(m, n) !f = VUImage m n $ V.generate (m * n) (f . toIx n)
-  {-# INLINE make #-}
+  makeImage !(m, n) !f = VUImage m n $ V.generate (m * n) (f . toIx n)
+  {-# INLINE makeImage #-}
 
   singleton = VScalar
   {-# INLINE singleton #-}
@@ -75,14 +73,14 @@ instance Elt VU cs e => Array VU cs e where
     else VUImage m1 n1 (V.izipWith (\ !k !px1 !px2 -> f (toIx n1 k) px1 px2) v1 v2)
   {-# INLINE izipWith #-}
 
-  traverse !img !getNewDims !getNewPx = make (getNewDims $ dims img) (getNewPx (index img))
+  traverse !img !getNewDims !getNewPx = makeImage (getNewDims $ dims img) (getNewPx (index img))
   {-# INLINE traverse #-}
 
   traverse2 !img1 !img2 !getNewDims !getNewPx =
-    make (getNewDims (dims img1) (dims img2)) (getNewPx (index img1) (index img2))
+    makeImage (getNewDims (dims img1) (dims img2)) (getNewPx (index img1) (index img2))
   {-# INLINE traverse2 #-}
 
-  transpose !img@(dims -> (m, n)) = make (n, m) getPx where
+  transpose !img@(dims -> (m, n)) = makeImage (n, m) getPx where
     getPx !(i, j) = index img (j, i)
     {-# INLINE getPx #-}
   {-# INLINE transpose #-}
@@ -90,7 +88,7 @@ instance Elt VU cs e => Array VU cs e where
   backpermute !(m, n) !f (VUImage _ n' v) =
     VUImage m n $ V.backpermute v $ V.generate (m*n) (fromIx n' . f . toIx n)
   backpermute !sz      _ (VScalar px)     =
-    if sz == (1, 1) then VScalar px else make sz (const px)
+    if sz == (1, 1) then VScalar px else makeImage sz (const px)
   {-# INLINE backpermute #-}
   
   fromLists !ls = if isSquare
@@ -116,12 +114,12 @@ instance Array VU cs e => ManifestArray VU cs e where
   fold !f !px0 (VScalar px)    = f px0 px
   {-# INLINE fold #-}
 
-  (|*|) img1@(VUImage m1 n1 v1) !img2@(VUImage {}) =
+  (|*|) img1@(VUImage m1 n1 v1) !img2@VUImage {} =
     if n1 /= m2 
     then error ("Inner dimensions of multiplying images must be the same, but received: "++
                 show img1 ++" X "++ show img2)
     else
-      make (m1, n2) getPx where
+      makeImage (m1, n2) getPx where
         VUImage n2 m2 v2 = transpose img2
         getPx !(i, j) = V.sum $ V.zipWith (*) (V.slice (i*n1) n1 v1) (V.slice (j*m2) m2 v2)
         {-# INLINE getPx #-}
@@ -146,12 +144,12 @@ instance ManifestArray VU cs e => SequentialArray VU cs e where
   foldr !f !a (VScalar px)    = f px a
   {-# INLINE foldr #-}
 
-  mapM !f (VUImage m n v) = liftM (VUImage m n) (V.mapM f v)
-  mapM !f (VScalar px)    = liftM VScalar (f px)
+  mapM !f (VUImage m n v) = VUImage m n <$> V.mapM f v
+  mapM !f (VScalar px)    = VScalar <$> f px
   {-# INLINE mapM #-}
 
   mapM_ !f (VUImage _ _ v) = V.mapM_ f v
-  mapM_ !f (VScalar px)    = (f px) >> return ()
+  mapM_ !f (VScalar px)    = void $ f px
   {-# INLINE mapM_ #-}
 
   foldM !f !a (VUImage _ _ v) = V.foldM' f a v
@@ -229,15 +227,16 @@ toIx :: Int -> Int -> (Int, Int)
 toIx !n !k = (k `div` n, k `mod` n)
 {-# INLINE toIx #-}
 
-
+{-
 derivingUnbox "Bit"
-    [t| Bit -> Word8 |]
-    [| \(Bit w) -> w |]
-    [| Bit           |]
+  [t| Bit -> Word8 |]
+  [| \(Bit w) -> w |]
+  [| Bit           |]
 
   
 derivingUnbox "Pixel"
-    [t| forall cs e . (ColorSpace cs, Unbox (PixelElt cs e)) => (Pixel cs e) -> (PixelElt cs e) |]
-    [| toElt                                                                                    |]
-    [| fromElt                                                                                  |]
+  [t| forall cs e . (ColorSpace cs, Unbox (PixelElt cs e)) => Pixel cs e -> PixelElt cs e |]
+  [| toElt                                                                                |]
+  [| fromElt                                                                              |]
 
+-}

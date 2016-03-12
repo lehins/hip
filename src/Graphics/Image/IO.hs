@@ -1,5 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# LANGUAGE BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts #-}
+-- |
+-- Module      : Graphics.Image.IO
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.IO (
   -- * Reading
   readImage, readImageExact,
@@ -7,7 +15,6 @@ module Graphics.Image.IO (
   writeImage, writeImageExact,
   -- * Displaying
   displayImage, setDisplayProgram, 
-  --displayImageHistograms, displayHistograms, writeHistograms,
   -- * Supported Image Formats
   module Graphics.Image.IO.External
   
@@ -17,17 +24,15 @@ module Graphics.Image.IO (
 
 import Prelude as P hiding (readFile, writeFile)
 import qualified Control.Monad as M (foldM)
-import Control.Concurrent -- (forkIO, ThreadId)
+import Control.Concurrent (forkIO, ThreadId)
 import Data.Char (toLower)
+import Data.Maybe (fromMaybe)
 import Data.IORef
 import Data.ByteString (readFile)
---import Graphics.EasyPlot hiding (TerminalType(..))
---import qualified Graphics.EasyPlot as Plot (TerminalType(PNG))
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface
 import Graphics.Image.IO.Base
 import Graphics.Image.IO.External
---import HIP.Histogram
 import qualified Data.ByteString.Lazy as BL (writeFile, hPut)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath (takeExtension)
@@ -57,9 +62,9 @@ readImage :: Readable (Image arr cs Double) InputFormat =>
           -> IO (Either String (Image arr cs Double))
 readImage path = do
   imgstr <- readFile path
-  let maybeFormat = (guessFormat path :: Maybe InputFormat)
+  let maybeFormat = guessFormat path :: Maybe InputFormat
       formats = enumFrom . toEnum $ 0
-      orderedFormats = maybe formats (\f -> f:(filter (/=f) formats)) maybeFormat
+      orderedFormats = maybe formats (\f -> f:filter (/=f) formats) maybeFormat
       reader (Left err) format = 
         return $ either (Left . ((err++"\n")++)) Right (decode format imgstr)
       reader img         _     = return img
@@ -107,9 +112,9 @@ writeImage :: (ManifestArray arr cs Double, Writable (Image arr cs Double) Outpu
            -> Image arr cs Double -- ^ An image to write. 
            -> IO ()
 writeImage path = BL.writeFile path . encode format [] where
-  format = maybe (error ("Could not guess output format. Use 'writeImageExact' "++
+  format = fromMaybe (error ("Could not guess output format. Use 'writeImageExact' "++
                          "or supply a filename with supported format."))
-           id (guessFormat path :: Maybe OutputFormat)
+           (guessFormat path :: Maybe OutputFormat)
 
   
 writeImageExact :: Writable img format =>
@@ -168,7 +173,7 @@ displayImage img = do
   let displayAction = withSystemTempFile "tmp-img.tiff" (displayUsing img program)
   if block
     then displayAction >> return Nothing
-    else forkIO displayAction >>= (return . Just)
+    else Just <$> forkIO displayAction
 
 
 displayUsing :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
@@ -254,62 +259,4 @@ List of image formats that are currently supported, and their exact
     * Also supports sequence of images in one file, when read as @['PPM']@
 
 -}
-
-
-{-
-displayImageHistograms :: (Strategy strat img (Channel px), AImage img px,
-                           Enum (Channel px), RealFrac (Channel px)) =>
-                          strat img (Channel px)
-                       -> Int 
-                       -> img px
-                       -> IO ()
-displayImageHistograms strat steps img = displayHistograms $ getHistograms strat steps img
-
-
--- | Displays a list of 'Histogram's supplied using an external program that can
--- be changed with 'setDisplayProgram'.
---
--- >>> centaurus <- readImageRGB "images/centaurus.jpg"
--- >>> cluster <- readImageRGB "images/cluster.jpg" 
--- >>> displayHistograms ((getHistograms 255 centaurus)++(getHistograms 255 cluster))
---
--- <<images/centaurus_cluster_histogram.png>>
---
-displayHistograms :: (Show a, Num a, Fractional a, Enum a) => [Histogram a] -> IO ()
-displayHistograms hists = do
-  program <- readIORef displayProgram
-  withSystemTempDirectory "hip_" (displayHistogramsUsing hists program)
-
-
-displayHistogramsUsing :: (Show a, Num a, Fractional a, Enum a) =>
-                          [Histogram a] -> String -> FilePath -> IO ()
-displayHistogramsUsing hists program tmpDir = do
-  let path = tmpDir </> "tmp-hist.png"
-  wrote <- writeHistograms path hists
-  if wrote
-    then do ph <- runCommand (program ++ " " ++ path)
-            e <- waitForProcess ph
-            let printExit ExitSuccess = return ()
-                printExit exitCode = print exitCode
-            printExit e
-    else print "Was unsuccessfull in using gnuplot."
-
-
--- | Writes histograms into a PNG file image.
---
--- >>> centaurus <- readImageRGB "images/centaurus.jpg"
--- >>> cluster <- readImageRGB "images/cluster.jpg"
--- >>> let histograms = ((getHistograms 255 centaurus)++(getHistograms 255 cluster)) 
--- >>> writeHistograms "images/centaurus_cluster_histogram.png" histograms
--- True
---
-writeHistograms :: (Show a, Num a, Fractional a, Enum a) =>
-                   FilePath -- ^ PNG image file name.
-                -> [Histogram a] -- ^ List of histograms to be plotted.
-                -> IO Bool -- ^ Returns 'True' in case of success.
-writeHistograms path = plot (Plot.PNG path)
-  
-  
--}
-
 
