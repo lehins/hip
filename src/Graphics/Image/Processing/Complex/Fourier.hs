@@ -1,9 +1,13 @@
-{-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts #-}
+{-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts #-}
 module Graphics.Image.Processing.Complex.Fourier (
   fft, ifft, isPowerOfTwo
   ) where
 
+#if MIN_VERSION_base(4,8,0)
 import Prelude hiding (map, traverse)
+#else
+import Prelude hiding (map)
+#endif
 import Data.Bits ((.&.))
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Complex

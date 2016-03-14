@@ -1,6 +1,14 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              TypeFamilies, ViewPatterns #-}
+-- |
+-- Module      : Graphics.Image.IO.External.JuicyPixels
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.IO.External.JuicyPixels (
   BMP(..),
   GIF(..), JP.GifDelay, JP.GifLooping(..), JP.PaletteOptions(..), JP.PaletteCreationMethod(..),

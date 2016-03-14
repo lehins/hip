@@ -1,4 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
+-- |
+-- Module      : Graphics.Image.Interface.Vector
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Interface.Vector (
   -- * Construction
   makeImage, fromLists, fromUnboxedVector, toUnboxedVector,

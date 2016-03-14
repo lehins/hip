@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              MultiParamTypeClasses #-}
+-- |
+-- Module      : Graphics.Image.Processing.Binary
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Processing.Binary (
   -- * Construction
   toImageBinaryUsing, toImageBinaryUsing2,

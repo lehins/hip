@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
              TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.RGB
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.RGB (
   RGB(..), RGBA(..), Pixel(..), 
   ToRGB(..), ToRGBA(..)
@@ -9,6 +17,8 @@ import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
+import qualified Data.Colour as C
+import qualified Data.Colour.Names as C
 
 
 data RGB = RedRGB
@@ -74,6 +84,10 @@ instance ColorSpace RGB where
   pxFoldMap f (PixelRGB r g b) = f r `M.mappend` f g `M.mappend` f b
   {-# INLINE pxFoldMap #-}
 
+  csColour RedRGB   = C.opaque C.red
+  csColour GreenRGB = C.opaque C.green
+  csColour BlueRGB  = C.opaque C.blue
+  
 
 instance ColorSpace RGBA where
   type PixelElt RGBA e = (e, e, e, e)
@@ -107,6 +121,9 @@ instance ColorSpace RGBA where
   pxFoldMap f (PixelRGBA r g b a) = f r `M.mappend` f g `M.mappend` f b `M.mappend` f a
   {-# INLINE pxFoldMap #-}
 
+  csColour AlphaRGBA = C.opaque C.gray
+  csColour ch        = csColour $ opaque ch
+
 
 instance Alpha RGBA where
   type Opaque RGBA = RGB
@@ -120,6 +137,11 @@ instance Alpha RGBA where
   dropAlpha (PixelRGBA r g b _) = PixelRGB r g b
   {-# INLINE dropAlpha #-}
 
+  opaque RedRGBA   = RedRGB
+  opaque GreenRGBA = GreenRGB
+  opaque BlueRGBA  = BlueRGB
+  opaque AlphaRGBA = error "Data.Image.ColorSpace.RGB (Alpha.opaque)"
+
 
 instance Show RGB where
   show RedRGB   = "Red"
@@ -128,10 +150,8 @@ instance Show RGB where
 
 
 instance Show RGBA where
-  show RedRGBA   = "Red"
-  show GreenRGBA = "Green"
-  show BlueRGBA  = "Blue"
   show AlphaRGBA = "Alpha"
+  show ch        = show $ opaque ch
 
  
 instance Show e => Show (Pixel RGB e) where

@@ -1,5 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.IO.External.Netpbm
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.IO.External.Netpbm (
   PBM(..), PGM(..), PPM(..)
   ) where

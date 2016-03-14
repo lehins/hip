@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
              TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.YCbCr
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.YCbCr (
   YCbCr(..), YCbCrA(..), Pixel(..), 
   ToYCbCr(..), ToYCbCrA(..)
@@ -9,6 +17,9 @@ import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
+import qualified Data.Colour as C
+import qualified Data.Colour.Names as C
+
 
 data YCbCr = LumaYCbCr
            | CBlueYCbCr
@@ -74,6 +85,10 @@ instance ColorSpace YCbCr where
   pxFoldMap f (PixelYCbCr y b r) = f y `M.mappend` f b `M.mappend` f r
   {-# INLINE pxFoldMap #-}
 
+  csColour LumaYCbCr  = C.opaque C.darkgray
+  csColour CBlueYCbCr = C.opaque C.darkblue
+  csColour CRedYCbCr  = C.opaque C.darkred
+  
 
 instance ColorSpace YCbCrA where
   type PixelElt YCbCrA e = (e, e, e, e)
@@ -107,6 +122,9 @@ instance ColorSpace YCbCrA where
   pxFoldMap f (PixelYCbCrA y b r a) = f y `M.mappend` f b `M.mappend` f r `M.mappend` f a
   {-# INLINE pxFoldMap #-}
 
+  csColour AlphaYCbCrA = C.opaque C.gray
+  csColour ch          = csColour $ opaque ch
+
 
 instance Alpha YCbCrA where
   type Opaque YCbCrA = YCbCr
@@ -120,6 +138,11 @@ instance Alpha YCbCrA where
   dropAlpha (PixelYCbCrA y b r _) = PixelYCbCr y b r
   {-# INLINE dropAlpha #-}
 
+  opaque LumaYCbCrA  = LumaYCbCr
+  opaque CBlueYCbCrA = CBlueYCbCr
+  opaque CRedYCbCrA  = CRedYCbCr
+  opaque AlphaYCbCrA = error "Data.Image.ColorSpace.YCbCr (Alpha.opaque)"
+
 
 instance Show YCbCr where
   show LumaYCbCr  = "Luma"
@@ -128,10 +151,8 @@ instance Show YCbCr where
 
 
 instance Show YCbCrA where
-  show LumaYCbCrA  = "Luma"
-  show CBlueYCbCrA = "Blue Chroma"
-  show CRedYCbCrA  = "Red Chroma"
   show AlphaYCbCrA = "Alpha"
+  show ch          = show $ opaque ch
 
  
 instance Show e => Show (Pixel YCbCr e) where

@@ -1,14 +1,24 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# OPTIONS_GHC -fno-warn-dodgy-imports #-}
-{-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
+{-# OPTIONS -fno-warn-orphans #-}
+{-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
              UndecidableInstances, ViewPatterns #-}
-
+-- |
+-- Module      : Graphics.Image.Interface.Repa.Internal
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Interface.Repa.Internal (
   RD(..), RP(..), RS(..), computeP, computeS, delay
   ) where
 
+#if MIN_VERSION_base(4,8,0)
 import Prelude hiding (map, zipWith, foldl, foldr, mapM, mapM_, read, traverse)
+#else
+import Prelude hiding (map, zipWith, foldl, foldr, mapM, mapM_, read)
+#endif
 import qualified Prelude as P (map, mapM_)
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))

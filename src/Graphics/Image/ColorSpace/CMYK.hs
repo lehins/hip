@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
              TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.CMYK
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.CMYK (
   CMYK(..), CMYKA(..), Pixel(..), 
   ToCMYK(..), ToCMYKA(..)
@@ -9,6 +17,8 @@ import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
+import qualified Data.Colour as C
+import qualified Data.Colour.Names as C
 
 data CMYK = CyanCMYK -- ^ Cyan
           | MagCMYK  -- ^ Mahenta
@@ -79,6 +89,10 @@ instance ColorSpace CMYK where
   pxFoldMap f (PixelCMYK c m y k) = f c `M.mappend` f m `M.mappend` f y `M.mappend` f k
   {-# INLINE pxFoldMap #-}
 
+  csColour CyanCMYK = C.opaque C.cyan
+  csColour MagCMYK  = C.opaque C.magenta
+  csColour YelCMYK  = C.opaque C.yellow
+  csColour KeyCMYK  = C.opaque C.black
 
 
 instance ColorSpace CMYKA where
@@ -116,6 +130,9 @@ instance ColorSpace CMYKA where
     f c `M.mappend` f m `M.mappend` f y `M.mappend` f k `M.mappend` f a
   {-# INLINE pxFoldMap #-}
 
+  csColour AlphaCMYKA = C.opaque C.grey
+  csColour ch         = csColour $ opaque ch
+
 
 instance Alpha CMYKA where
   type Opaque CMYKA = CMYK
@@ -129,6 +146,12 @@ instance Alpha CMYKA where
   dropAlpha (PixelCMYKA c m y k _) = PixelCMYK c m y k
   {-# INLINE dropAlpha #-}
 
+  opaque CyanCMYKA  = CyanCMYK
+  opaque MagCMYKA   = MagCMYK
+  opaque YelCMYKA   = YelCMYK
+  opaque KeyCMYKA   = KeyCMYK
+  opaque AlphaCMYKA = error "Data.Image.ColorSpace.CMYK (Alpha.opaque)"
+  
 
 instance Show CMYK where
   show CyanCMYK = "Cyan"
@@ -136,12 +159,11 @@ instance Show CMYK where
   show YelCMYK  = "Yellow"
   show KeyCMYK  = "Black"
 
+
 instance Show CMYKA where
-  show CyanCMYKA  = "Cyan"
-  show MagCMYKA   = "Magenta"
-  show YelCMYKA   = "Yellow"
-  show KeyCMYKA   = "Black"
   show AlphaCMYKA = "Alpha"
+  show ch         = show $ opaque ch
+
   
 instance Show e => Show (Pixel CMYK e) where
   show (PixelCMYK c m y k) = "<CMYK:("++show c++"|"++show m++"|"++show y++"|"++show k++")>"

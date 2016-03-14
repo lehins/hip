@@ -1,4 +1,12 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
+-- |
+-- Module      : Graphics.Image.Processing.Interpolation
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Processing.Interpolation (
   Interpolation(..), Nearest(..), Bilinear(..)
   ) where

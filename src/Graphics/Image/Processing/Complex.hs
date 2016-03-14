@@ -1,4 +1,12 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
+-- |
+-- Module      : Graphics.Image.Processing.Complex
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Processing.Complex (
   -- * Rectangular form
   (!+!), realPart', imagPart',
@@ -13,7 +21,6 @@ module Graphics.Image.Processing.Complex (
   ) where
 
 import Prelude hiding (map, zipWith)
---import qualified Data.Complex as C
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Complex
 import Graphics.Image.Processing.Complex.Fourier
@@ -107,7 +114,7 @@ applyFilter :: (ManifestArray arr cs e, ManifestArray arr cs (Complex e), RealFl
                Image arr cs e -- ^ Source image.
             -> Image arr cs e -- ^ Filter.
             -> Image arr cs e
-applyFilter img filt = realPart' . ifft $ ((fft (img !+! 0)) * (filt !+! filt))
+applyFilter img filt = realPart' . ifft $ (fft (img !+! 0) * (filt !+! filt))
 {-# INLINE applyFilter #-}
 
 {-

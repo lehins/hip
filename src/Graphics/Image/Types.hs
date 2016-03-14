@@ -1,6 +1,14 @@
+-- |
+-- Module      : Graphics.Image.Types
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Types (
   module Graphics.Image.ColorSpace,
-  Array(Image), ManifestArray, SequentialArray, MutableArray(MImage),
+  Array, Image, ManifestArray, SequentialArray, MutableArray, MImage,
   Exchangable, Border(..),
   VU(..), RD(..), RS(..), RP(..), 
   ) where

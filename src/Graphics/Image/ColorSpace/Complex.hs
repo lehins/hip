@@ -1,4 +1,12 @@
 {-# LANGUAGE BangPatterns #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.Complex
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.Complex (
   -- ** Rectangular form
   Complex(..), (+:), realPart, imagPart,

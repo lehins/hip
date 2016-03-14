@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
              ScopedTypeVariables, TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.Gray
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.Gray (
   Gray(..), Pixel(..), toGrayImages, fromGrayImages
   ) where
@@ -9,6 +17,8 @@ import qualified Prelude as P (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend, mempty)
+import qualified Data.Colour as C
+import qualified Data.Colour.Names as C
 
 -- ^ This is a signgle channel colorspace, that is designed to hold any channel
 -- from any other colorspace, hence it is not convertible to and from, but
@@ -53,14 +63,13 @@ toGrayImages !img = P.map getCh (enumFrom (toEnum 0)) where
 --
 fromGrayImages :: forall arr cs e . (Array arr Gray e, Array arr cs e) =>
                   [Image arr Gray e] -> [cs] -> Image arr cs e
-fromGrayImages imgs chs =
-  fromGrays (singleton (fromChannel 0)) imgs chs where
-    updateCh ch px (PixelGray e) = chOp (\ !ch' !e' -> if ch' == ch then e else e') px
-    {-# INLINE updateCh #-}
-    fromGrays img []     _      = img
-    fromGrays img _      []     = img
-    fromGrays img (i:is) (c:cs) = fromGrays (zipWith (updateCh c) img i) is cs
-    {-# INLINE fromGrays #-}
+fromGrayImages = fromGrays (singleton (fromChannel 0)) where
+  updateCh ch px (PixelGray e) = chOp (\ !ch' !e' -> if ch' == ch then e else e') px
+  {-# INLINE updateCh #-}
+  fromGrays img []     _      = img
+  fromGrays img _      []     = img
+  fromGrays img (i:is) (c:cs) = fromGrays (zipWith (updateCh c) img i) is cs
+  {-# INLINE fromGrays #-}
 {-# INLINE fromGrayImages #-}
 
 
@@ -91,6 +100,8 @@ instance ColorSpace Gray where
 
   pxFoldMap f (PixelGray g) = f g `M.mappend` M.mempty
   {-# INLINE pxFoldMap #-}
+
+  csColour _ = C.opaque C.gray
 
   
 instance Show e => Show (Pixel Gray e) where

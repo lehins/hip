@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# LANGUAGE BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE CPP, BangPatterns, FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -100,7 +100,12 @@ module Graphics.Image (
   exchange,
   VU(..), RD(..), RS(..), RP(..),
   ) where
-import Prelude hiding (map, traverse, zipWith, sum, product, maximum, minimum)
+
+#if MIN_VERSION_base(4,8,0)
+import Prelude hiding (map, zipWith, sum, product, maximum, minimum, traverse)
+#else
+import Prelude hiding (map, zipWith, sum, product, maximum, minimum)
+#endif
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO

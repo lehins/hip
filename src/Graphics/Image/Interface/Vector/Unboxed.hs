@@ -1,7 +1,14 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, RankNTypes, TypeFamilies, UndecidableInstances,
              ViewPatterns #-}
+-- |
+-- Module      : Graphics.Image.Interface.Vector.Unboxed
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Interface.Vector.Unboxed (
   VU(..), Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx
   ) where
@@ -9,7 +16,7 @@ module Graphics.Image.Interface.Vector.Unboxed (
 import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Control.DeepSeq (deepseq)
-import Control.Monad (liftM, void)
+import Control.Monad (void)
 import Data.Typeable (Typeable)
 import Data.Vector.Unboxed (Vector, Unbox)
 import qualified Data.Vector.Unboxed as V
@@ -157,7 +164,7 @@ instance ManifestArray VU cs e => SequentialArray VU cs e where
   {-# INLINE foldM #-}
 
   foldM_ !f !a (VUImage _ _ v) = V.foldM'_ f a v
-  foldM_ !f !a (VScalar px)    = f a px >> return ()
+  foldM_ !f !a (VScalar px)    = void $ f a px
   {-# INLINE foldM_ #-}
 
 
@@ -170,15 +177,15 @@ instance ManifestArray VU cs e => MutableArray VU cs e where
   mdims (MVScalar _)    = (1, 1)
   {-# INLINE mdims #-}
 
-  thaw (VUImage m n v) = liftM (MVImage m n) (V.thaw v)
-  thaw (VScalar px)    = liftM MVScalar (V.thaw (V.singleton px))
+  thaw (VUImage m n v) = MVImage m n <$> V.thaw v
+  thaw (VScalar px)    = MVScalar <$> V.thaw (V.singleton px)
   {-# INLINE thaw #-}
 
-  freeze (MVImage m n mv) = liftM (VUImage m n) (V.freeze mv)
-  freeze (MVScalar mv)    = liftM (VScalar . (V.! 0)) (V.freeze mv)
+  freeze (MVImage m n mv) = VUImage m n <$> V.freeze mv
+  freeze (MVScalar mv)    = VScalar . (V.! 0) <$> V.freeze mv
   {-# INLINE freeze #-}
 
-  new (m, n) = liftM (MVImage m n) (MV.new (m*n))
+  new (m, n) = MVImage m n <$> MV.new (m*n)
   {-# INLINE new #-}
 
   read (MVImage _ n mv) ix = MV.read mv (fromIx n ix)

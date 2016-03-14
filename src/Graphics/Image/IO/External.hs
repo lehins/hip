@@ -1,5 +1,13 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              TypeFamilies, UndecidableInstances #-}
+-- |
+-- Module      : Graphics.Image.IO.External
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.IO.External (
   module Graphics.Image.IO.External.JuicyPixels,
   module Graphics.Image.IO.External.Netpbm,

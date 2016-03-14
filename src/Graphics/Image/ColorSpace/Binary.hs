@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
              TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.Binary
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.Binary (
   Binary(..), Bit(..), on, off, isOn, isOff, fromBool, complement
   ) where
@@ -9,6 +17,7 @@ import Data.Word (Word8)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend, mempty)
+import qualified Data.Colour as C
 
 -- | This is a Binary colorspace, pixel's of which can be created using
 -- these __/constructors/__:
@@ -112,6 +121,8 @@ instance ColorSpace Binary where
 
   pxFoldMap f (PixelBinary b) = f b `M.mappend` M.mempty
   {-# INLINE pxFoldMap #-}
+
+  csColour _ = C.opaque C.black
 
 
 instance Show (Pixel Binary Bit) where

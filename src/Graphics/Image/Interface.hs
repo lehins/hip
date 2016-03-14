@@ -1,7 +1,14 @@
-{-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
+{-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
              UndecidableInstances, ViewPatterns #-}
-
+-- |
+-- Module      : Graphics.Image.Interface
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..), Elevator(..),
   Array(..), ManifestArray(..), SequentialArray(..), MutableArray(..), 
@@ -11,20 +18,23 @@ module Graphics.Image.Interface (
   ) where
 
 import Prelude hiding (and, map, zipWith, sum, product)
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (Monoid)
+import Data.Foldable (Foldable(foldMap))
+#endif
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
-import qualified Data.Monoid as M (Monoid)
 import Control.DeepSeq (NFData(rnf))
 import Data.Word
-import qualified Data.Foldable as F (Foldable)
 import Control.Applicative
 import Control.Monad.Primitive (PrimMonad (..))
+import qualified Data.Colour as C
 
 
 -- | This class has all included color spaces installed into it and is also
 -- intended for implementing any other possible custom color spaces. Every
 -- instance of this class automatically installs an associated 'Pixel' into
--- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'F.Foldable',
+-- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'Foldable',
 -- which in turn make it possible to be used by the rest of the library.
 class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   
@@ -59,7 +69,10 @@ class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
 
   -- | A pixel eqiuvalent of 'foldMap'.
-  pxFoldMap :: M.Monoid m => (e -> m) -> Pixel cs e -> m
+  pxFoldMap :: Monoid m => (e -> m) -> Pixel cs e -> m
+
+  -- | Get a pure colour representation of a channel.
+  csColour :: cs -> C.AlphaColour Double
   
 
 -- | A color space that supports transparency.
@@ -82,6 +95,8 @@ class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
   --
   dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
 
+  -- | Get a corresponding opaque channel type.
+  opaque :: cs -> Opaque cs
 
 
 -- | A class with a set of convenient functions that allow for changing precision of
@@ -107,12 +122,18 @@ class Elevator e where
 
   fromDouble :: ColorSpace cs => Pixel cs Double -> Pixel cs e
 
-  
-class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs e) =>
+
+-- | Base array like representation for an image.
+class (Show arr, ColorSpace cs, Num (Pixel cs e),
+       Functor (Pixel cs), Applicative (Pixel cs), Foldable (Pixel cs),
+       Num e, Typeable e, Elt arr cs e) =>
       Array arr cs e where
-  
+
+  -- | Required array specific constraints for an array element.
   type Elt arr cs e :: Constraint
   type Elt arr cs e = ()
+  
+  -- | Underlying image representation.
   data Image arr cs e
 
   -- | Create an Image by supplying it's dimensions and a pixel generating
@@ -206,6 +227,8 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e, Elt arr cs 
             -> Image arr cs e
 
 
+-- | Array representation that is actually has real data stored in memory, hence
+-- allowing for image indexing, forcing pixels into computed state etc.
 class Array arr cs e => ManifestArray arr cs e where
 
   -- | Get a pixel at @i@-th and @j@-th location.
@@ -235,40 +258,57 @@ class Array arr cs e => ManifestArray arr cs e where
   eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
 
 
+-- | Array representation that allows computation, which depends on some specific
+-- order, consequently making it possible to be computed only sequentially.
 class ManifestArray arr cs e => SequentialArray arr cs e where
 
+  -- | Fold an image from the left in a row major order.
   foldl :: (a -> Pixel cs e -> a) -> a -> Image arr cs e -> a
 
+  -- | Fold an image from the right in a row major order.
   foldr :: (Pixel cs e -> a -> a) -> a -> Image arr cs e -> a
 
-  mapM :: (SequentialArray arr cs' e', Monad m) =>
+  -- | Monading mapping over an image.
+  mapM :: (SequentialArray arr cs' e', Functor m, Monad m) =>
           (Pixel cs' e' -> m (Pixel cs e)) -> Image arr cs' e' -> m (Image arr cs e)
 
-  mapM_ :: Monad m => (Pixel cs e -> m b) -> Image arr cs e -> m ()
+  -- | Monading mapping over an image. Result is discarded.
+  mapM_ :: (Functor m, Monad m) => (Pixel cs e -> m b) -> Image arr cs e -> m ()
 
-  foldM :: Monad m => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m a
+  foldM :: (Functor m, Monad m) => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m a
 
-  foldM_ :: Monad m => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m ()
+  foldM_ :: (Functor m, Monad m) => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m ()
 
 
+-- | Array representation that supports mutation.
 class ManifestArray arr cs e => MutableArray arr cs e where
   data MImage st arr cs e
 
+  -- | Get dimensions of a mutable image.
   mdims :: MImage st arr cs e -> (Int, Int)
 
-  thaw :: PrimMonad m => Image arr cs e -> m (MImage (PrimState m) arr cs e)
+  -- | Yield a mutable copy of an image.
+  thaw :: (Functor m, PrimMonad m) => Image arr cs e -> m (MImage (PrimState m) arr cs e)
 
-  freeze :: PrimMonad m => MImage (PrimState m) arr cs e -> m (Image arr cs e)
+  -- | Yield an immutable copy of an image.
+  freeze :: (Functor m, PrimMonad m) => MImage (PrimState m) arr cs e -> m (Image arr cs e)
 
-  new :: PrimMonad m => (Int, Int) -> m (MImage (PrimState m) arr cs e)
+  -- | Create a mutable image with given dimensions. Pixels are uninitialized.
+  new :: (Functor m, PrimMonad m) => (Int, Int) -> m (MImage (PrimState m) arr cs e)
 
-  read :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> m (Pixel cs e)
+  -- | Yield the pixel at a given location.
+  read :: (Functor m, PrimMonad m) => MImage (PrimState m) arr cs e -> (Int, Int) -> m (Pixel cs e)
 
-  write :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> Pixel cs e -> m ()
+  -- | Set a pixel at a given location.
+  write :: (Functor m, PrimMonad m) =>
+           MImage (PrimState m) arr cs e -> (Int, Int) -> Pixel cs e -> m ()
 
-  swap :: PrimMonad m => MImage (PrimState m) arr cs e -> (Int, Int) -> (Int, Int) -> m ()
+  -- | Swap pixels at given locations.
+  swap :: (Functor m, PrimMonad m) =>
+          MImage (PrimState m) arr cs e -> (Int, Int) -> (Int, Int) -> m ()
 
 
+-- | Allows for changing an underlying image representation.
 class Exchangable arr' arr where
 
   -- | Exchange the underlying array representation of an image.
@@ -384,7 +424,7 @@ instance ColorSpace cs => Applicative (Pixel cs) where
   {-# INLINE (<*>) #-}
 
 
-instance ColorSpace cs => F.Foldable (Pixel cs) where
+instance ColorSpace cs => Foldable (Pixel cs) where
 
   foldMap = pxFoldMap
   {-# INLINE foldMap #-}

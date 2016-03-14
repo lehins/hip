@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
              TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.Luma
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.Luma (
   Y(..), YA(..), Pixel(..), 
   ToY(..), ToYA(..)
@@ -9,6 +17,8 @@ import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend, mempty)
+import qualified Data.Colour as C
+import qualified Data.Colour.Names as C
 
 -- | Luma or brightness, that is usually denoted as @Y'@.
 data Y = Y deriving (Eq, Enum, Typeable)
@@ -17,23 +27,28 @@ data Y = Y deriving (Eq, Enum, Typeable)
 data YA = YA
         | AlphaYA deriving (Eq, Enum, Typeable)
 
-
+-- | Color spaces that can be converted to Luma.
 class ColorSpace cs => ToY cs where
 
+  -- | Convert a pixel to Luma pixel.
   toPixelY :: Pixel cs Double -> Pixel Y Double
 
+  -- | Convert an image to Luma image.
   toImageY :: (Array arr cs Double, Array arr Y Double) =>
               Image arr cs Double
            -> Image arr Y Double
   toImageY = map toPixelY
   {-# INLINE toImageY #-}
-  
 
+  
+-- | Color spaces with Alpha channel that can be converted to Luma with Alpha channel.
 class (ToY (Opaque cs), Alpha cs) => ToYA cs where
 
+  -- | Convert a pixel to Luma pixel with Alpha.
   toPixelYA :: Pixel cs Double -> Pixel YA Double
   toPixelYA px = addAlpha (getAlpha px) (toPixelY (dropAlpha px))
 
+  -- | Convert an image to Luma image with Alpha.
   toImageYA :: (Array arr cs Double, Array arr YA Double) =>
                Image arr cs Double
             -> Image arr YA Double
@@ -69,6 +84,8 @@ instance ColorSpace Y where
   pxFoldMap f (PixelY y) = f y `M.mappend` M.mempty
   {-# INLINE pxFoldMap #-}
 
+  csColour _ = C.opaque C.darkgray
+  
 
 instance ColorSpace YA where
   type PixelElt YA e = (e, e)
@@ -98,6 +115,10 @@ instance ColorSpace YA where
 
   pxFoldMap f (PixelYA y a) = f y `M.mappend` f a
   {-# INLINE pxFoldMap #-}
+
+  csColour AlphaYA = C.opaque C.gray
+  csColour ch      = csColour $ opaque ch
+  
   
 instance Alpha YA where
   type Opaque YA = Y
@@ -111,14 +132,17 @@ instance Alpha YA where
   dropAlpha (PixelYA g _) = PixelY g
   {-# INLINE dropAlpha #-}
 
+  opaque YA = Y
+  opaque _  = error "Data.Image.ColorSpace.Luma (Alpha.opaque)"
+
 
 instance Show Y where
   show Y = "Luma"
   
 
 instance Show YA where
-  show YA  = "Luma"
   show AlphaYA = "Alpha"
+  show ch      = show $ opaque ch
   
 
 instance Show e => Show (Pixel Y e) where

@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ViewPatterns #-}
+{-# LANGUAGE CPP, BangPatterns, ViewPatterns #-}
 module Graphics.Image.Processing.Geometric (
   -- ** Sampling
   downsampleRows, downsampleCols, downsample, 
@@ -15,7 +15,10 @@ module Graphics.Image.Processing.Geometric (
   resize, scale                                          
   ) where
 
+#if MIN_VERSION_base(4,8,0)
 import Prelude hiding (traverse)
+#endif
+
 import Graphics.Image.Interface
 import Graphics.Image.Processing.Interpolation
 

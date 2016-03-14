@@ -1,5 +1,13 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
              TypeFamilies #-}
+-- |
+-- Module      : Graphics.Image.ColorSpace.HSI
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.ColorSpace.HSI (
   HSI(..), HSIA(..), Pixel(..), 
   ToHSI(..), ToHSIA(..)
@@ -9,6 +17,8 @@ import Prelude hiding (map)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
+import qualified Data.Colour as C
+import qualified Data.Colour.Names as C
 
 data HSI = HueHSI
          | SatHSI
@@ -73,6 +83,10 @@ instance ColorSpace HSI where
   pxFoldMap f (PixelHSI h s i) = f h `M.mappend` f s `M.mappend` f i 
   {-# INLINE pxFoldMap #-}
 
+  csColour HueHSI = C.opaque C.purple
+  csColour SatHSI = C.opaque C.orange
+  csColour IntHSI = C.opaque C.darkblue
+
 
 
 instance ColorSpace HSIA where
@@ -107,6 +121,9 @@ instance ColorSpace HSIA where
   pxFoldMap f (PixelHSIA h s i a) = f h `M.mappend` f s `M.mappend` f i `M.mappend` f a
   {-# INLINE pxFoldMap #-}
 
+  csColour AlphaHSIA = C.opaque C.gray
+  csColour ch        = csColour $ opaque ch
+  
 
 instance Alpha HSIA where
   type Opaque HSIA = HSI
@@ -120,6 +137,11 @@ instance Alpha HSIA where
   dropAlpha (PixelHSIA h s i _) = PixelHSI h s i
   {-# INLINE dropAlpha #-}
 
+  opaque HueHSIA = HueHSI
+  opaque SatHSIA = SatHSI
+  opaque IntHSIA = IntHSI
+  opaque _       = error "Data.Image.ColorSpace.HSI (Alpha.opaque)"
+
 
 instance Show HSI where
   show HueHSI = "Hue"
@@ -127,10 +149,8 @@ instance Show HSI where
   show IntHSI = "Intensity"
 
 instance Show HSIA where
-  show HueHSIA   = "Hue"
-  show SatHSIA   = "Saturation"
-  show IntHSIA   = "Intensity"
   show AlphaHSIA = "Alpha"
+  show ch        = show $ opaque ch
  
 instance Show e => Show (Pixel HSI e) where
   show (PixelHSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"

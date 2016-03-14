@@ -1,0 +1,5 @@
+1.0.1
+=====
+
+* Fixed compatibility with GHC 7.10
+* Added histogram plotting using Charts

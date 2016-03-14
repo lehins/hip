@@ -39,7 +39,13 @@ import System.FilePath (takeExtension)
 import System.IO (Handle, hFlush)
 import System.IO.Temp (withSystemTempFile)
 import System.IO.Unsafe (unsafePerformIO)
-import System.Process (spawnProcess, waitForProcess, showCommandForUser)
+import System.Process (proc, createProcess, waitForProcess, showCommandForUser, ProcessHandle)
+
+
+spawnProcess :: FilePath -> [String] -> IO ProcessHandle
+spawnProcess cmd args = do
+    (_,_,_,p) <- createProcess (proc cmd args)
+    return p
 
 
 guessFormat :: (ImageFormat f, Enum f) => FilePath -> Maybe f

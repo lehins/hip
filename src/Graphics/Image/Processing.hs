@@ -1,4 +1,12 @@
-{-# LANGUAGE BangPatterns, ViewPatterns #-}
+{-# LANGUAGE CPP, BangPatterns, ViewPatterns #-}
+-- |
+-- Module      : Graphics.Image.Processing
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Processing (
   -- * Geometric
   module Graphics.Image.Processing.Geometric,
@@ -10,7 +18,9 @@ module Graphics.Image.Processing (
   Border(..), pixelGrid
   ) where
 
+#if MIN_VERSION_base(4,8,0)
 import Prelude hiding (traverse)
+#endif
 import Data.Word (Word8)
 import Graphics.Image.Interface
 import Graphics.Image.Processing.Convolution
