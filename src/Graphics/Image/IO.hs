@@ -38,14 +38,7 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath (takeExtension)
 import System.IO (Handle, hFlush)
 import System.IO.Temp (withSystemTempFile)
-import System.IO.Unsafe (unsafePerformIO)
-import System.Process (proc, createProcess, waitForProcess, showCommandForUser, ProcessHandle)
-
-
-spawnProcess :: FilePath -> [String] -> IO ProcessHandle
-spawnProcess cmd args = do
-    (_,_,_,p) <- createProcess (proc cmd args)
-    return p
+import System.Process (waitForProcess, showCommandForUser)
 
 
 guessFormat :: (ImageFormat f, Enum f) => FilePath -> Maybe f
@@ -122,7 +115,11 @@ writeImage path = BL.writeFile path . encode format [] where
                          "or supply a filename with supported format."))
            (guessFormat path :: Maybe OutputFormat)
 
-  
+
+-- | Write an image in a specific format, while supplying any format specific
+-- options. Precision and color space that an image will be written is decided
+-- from image's type. Attempt to write image file in a format that does not
+-- support color space and precision combination will result in a compile error.
 writeImageExact :: Writable img format =>
                    format
                    -- ^ A file format that an image should be saved in. See
@@ -147,11 +144,6 @@ writeImageExact format opts path = BL.writeFile path . encode format opts
 --
 setDisplayProgram :: (String, Bool) -> IO ()
 setDisplayProgram = writeIORef displayProgram 
-
-
-displayProgram :: IORef (String, Bool)
-displayProgram = unsafePerformIO . newIORef $ ("gpicview", False)
-{-# NOINLINE displayProgram #-}
 
 
 {- | Makes a call to the current display program, which can be changed using

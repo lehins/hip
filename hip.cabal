@@ -87,7 +87,6 @@ Library
               -Wall
               -Odph
               -fcpr-off
-              -ddump-splices
 
 Source-Repository head
   Type:     git

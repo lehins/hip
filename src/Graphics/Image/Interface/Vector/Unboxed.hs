@@ -225,25 +225,14 @@ fromUnboxedVector (m, n) v
   | otherwise = error "fromUnboxedVector: m * n doesn't equal the length of a Vector."
 
 
+-- | 2D index conversion to a flat vector index.
 fromIx :: Int -> (Int, Int) -> Int
 fromIx !n !(i, j) = i * n + j
 {-# INLINE fromIx #-}
 
 
+-- | Vector to 2D index conversion.
 toIx :: Int -> Int -> (Int, Int)
 toIx !n !k = (k `div` n, k `mod` n)
 {-# INLINE toIx #-}
 
-{-
-derivingUnbox "Bit"
-  [t| Bit -> Word8 |]
-  [| \(Bit w) -> w |]
-  [| Bit           |]
-
-  
-derivingUnbox "Pixel"
-  [t| forall cs e . (ColorSpace cs, Unbox (PixelElt cs e)) => Pixel cs e -> PixelElt cs e |]
-  [| toElt                                                                                |]
-  [| fromElt                                                                              |]
-
--}

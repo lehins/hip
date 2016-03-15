@@ -21,21 +21,28 @@ import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
 
 
-data YCbCr = LumaYCbCr
-           | CBlueYCbCr
-           | CRedYCbCr deriving (Eq, Enum, Typeable)
+-- | Color space is used to encode RGB information and is used in JPEG compression.
+data YCbCr = LumaYCbCr  -- ^ Luma component (commonly denoted as __Y'__)
+           | CBlueYCbCr -- ^ Blue difference chroma component
+           | CRedYCbCr  -- ^ Red difference chroma component
+           deriving (Eq, Enum, Typeable)
 
 
-data YCbCrA = LumaYCbCrA
-            | CBlueYCbCrA
-            | CRedYCbCrA
-            | AlphaYCbCrA deriving (Eq, Enum, Typeable)
+-- | YCbCr color space with Alpha channel.
+data YCbCrA = LumaYCbCrA  -- ^ Luma component (commonly denoted as __Y'__)
+            | CBlueYCbCrA -- ^ Blue difference chroma component
+            | CRedYCbCrA  -- ^ Red difference chroma component
+            | AlphaYCbCrA -- ^ Alpha component.
+            deriving (Eq, Enum, Typeable)
 
 
+-- | Conversion to `YCbCr` color space.
 class ColorSpace cs => ToYCbCr cs where
 
+  -- | Convert to an `YCbCr` pixel.
   toPixelYCbCr :: Pixel cs Double -> Pixel YCbCr Double
 
+  -- | Convert to an `YCbCr` image.
   toImageYCbCr :: (Array arr cs Double, Array arr YCbCr Double) =>
                   Image arr cs Double
                -> Image arr YCbCr Double
@@ -43,11 +50,15 @@ class ColorSpace cs => ToYCbCr cs where
   {-# INLINE toImageYCbCr #-}
 
 
+-- | Conversion to `YCbCrA` from another color space with Alpha channel.
 class (ToYCbCr (Opaque cs), Alpha cs) => ToYCbCrA cs where
 
+  -- | Convert to an `YCbCrA` pixel.
   toPixelYCbCrA :: Pixel cs Double -> Pixel YCbCrA Double
   toPixelYCbCrA px = addAlpha (getAlpha px) (toPixelYCbCr (dropAlpha px))
+  {-# INLINE toPixelYCbCrA #-}
 
+  -- | Convert to an `YCbCrA` image.
   toImageYCbCrA :: (Array arr cs Double, Array arr YCbCrA Double) =>
                    Image arr cs Double
                 -> Image arr YCbCrA Double

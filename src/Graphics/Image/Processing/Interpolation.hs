@@ -13,34 +13,40 @@ module Graphics.Image.Processing.Interpolation (
 
 import Graphics.Image.Interface
 
-
+-- | Implementation for an interpolation method.
 class Interpolation method where
+
+  -- | Construct a new pixel by using information from neighboring pixels.
   interpolate :: (Elevator e, Num e, ColorSpace cs) =>
                  method (Pixel cs e) -- ^ Interpolation method
               -> (Int, Int)          -- ^ Image dimensions @m@ rows and @n@ columns.
               -> ((Int, Int) -> Pixel cs e)
                  -- ^ Lookup function that returns a pixel at @i@th and @j@th
                  -- location.
-              -> (Double, Double) -- ^ real values of @i@ and @j@ index
+              -> (Double, Double) -- ^ Real values of @i@ and @j@ index
               -> Pixel cs e
 
 
 -- | Nearest Neighbor interpolation method.
-data Nearest px = Nearest
+data Nearest px = Nearest !(Border px)
 
 
 -- | Bilinear interpolation method.
-data Bilinear px = Bilinear (Border px)
+data Bilinear px = Bilinear !(Border px)
 
 
 instance Interpolation Nearest where
-  interpolate _ !(m, n) !getPx !(round -> i, round -> j) =
-    if i >= 0 && j >= 0 && i < m && j < n then getPx (i, j) else 0
+
+  interpolate (Nearest border) !sz !getPx !(round -> i, round -> j) =
+    borderIndex border sz getPx (i, j)
+  {-# INLINE interpolate #-}
 
 
 instance Interpolation Bilinear where
+
   interpolate (Bilinear border) !sz !getPx !(i, j) = fi0 + jPx*(fi1-fi0) where
     getPx' = borderIndex border sz getPx
+    {-# INLINE getPx' #-}
     !(i0, j0) = (floor i, floor j)
     !(i1, j1) = (i0 + 1, j0 + 1)
     !iPx = fromDouble $ fromChannel (i - fromIntegral i0)

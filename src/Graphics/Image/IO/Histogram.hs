@@ -9,7 +9,7 @@
 --
 module Graphics.Image.IO.Histogram (
   Histogram(..), getHistograms, getHistogram,
-  writeHistograms
+  displayHistograms, writeHistograms
   ) where
 
 import Prelude hiding (map, mapM_, zipWith)
@@ -17,17 +17,29 @@ import qualified Prelude as P (map, mapM_, zipWith)
 import Control.Monad.Primitive (PrimMonad (..))
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace
-import qualified Data.Vector.Unboxed as V
-import qualified Data.Vector.Unboxed.Mutable as MV
-
+import Graphics.Image.IO.Base (displayProgram, spawnProcess)
 import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Cairo
 import qualified Data.Colour as C
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
+import Data.IORef
+import Control.Concurrent (forkIO, ThreadId)
+import System.Exit (ExitCode(ExitSuccess))
+import System.Process (waitForProcess, showCommandForUser)
+import System.IO.Temp (withSystemTempDirectory)
+import System.FilePath ((</>))
 
-
+-- | A single channel histogram of an image.
 data Histogram = Histogram { hBins :: V.Vector Int
+                             -- ^ Vector containing pixel counts. Index of a
+                             -- vector serves as an original pixel value.
                            , hName :: String
-                           , hColour :: C.AlphaColour Double}
+                             -- ^ Name of the channel that will be displayed in
+                             -- the legend.
+                           , hColour :: C.AlphaColour Double
+                             -- ^ Color of a plotted line.
+                           }
 
 
 -- | Create a histogram per channel with 256 bins each.
@@ -39,7 +51,7 @@ getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogr
   where setCh cs h = h { hName = show cs
                        , hColour = csColour cs }
 
--- | Generate a histogram with 256 bins.
+-- | Generate a histogram with 256 bins for a single channel Gray image.
 getHistogram :: (SequentialArray arr Gray e, Elevator e) =>
                 Image arr Gray e
              -> Histogram
@@ -69,6 +81,38 @@ writeHistograms fileName hists = toFile def fileName $ do
     plotHist h = plot (line (hName h) [V.toList $ V.imap (,) $ hBins h])
              
 
+-- | Display image histograms using an external program. Works the same way as
+-- `Graphics.Image.IO.displayImage`.
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> displayHistograms $ getHistograms frog
+--
+displayHistograms :: [Histogram] -> IO (Maybe ThreadId)
+displayHistograms hists = do
+  (program, block) <- readIORef displayProgram
+  let displayAction = withSystemTempDirectory "hip" (displayUsing hists program)
+  if block
+    then displayAction >> return Nothing
+    else Just <$> forkIO displayAction
+
+
+-- | IO action that writes histogram to file into a system temporary directory
+-- and spawns an external program that displays it. File is deleted after
+-- program is closed.
+displayUsing :: [Histogram] -> String -> FilePath -> IO ()
+displayUsing hists program path = do
+  let path' = path </> "tmp-hist.png"
+  writeHistograms path' hists
+  ph <- spawnProcess program [path']
+  e <- waitForProcess ph
+  let printExit ExitSuccess = return ()
+      printExit exitCode = do
+        putStrLn $ showCommandForUser program [path']
+        print exitCode
+  printExit e
+
+
+-- | Used for backwards compatibility with vector.
 modify :: (PrimMonad m, V.Unbox a) => MV.MVector (PrimState m) a -> (a -> a) -> Int -> m ()
 modify v f idx = do
   e <- MV.read v idx

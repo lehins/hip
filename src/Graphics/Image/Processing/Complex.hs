@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image.Processing.Complex
 -- Copyright   : (c) Alexey Kuleshevich 2016

@@ -8,11 +8,16 @@
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Base (
-  ImageFormat(..), Readable(..), Writable(..), Convertible(..)
+  ImageFormat(..), Readable(..), Writable(..), Convertible(..),
+  displayProgram, spawnProcess
   ) where
 
 import qualified Data.ByteString as B (ByteString)
 import qualified Data.ByteString.Lazy as BL (ByteString)
+import Data.IORef
+import System.IO.Unsafe (unsafePerformIO)
+import System.Process (proc, createProcess, ProcessHandle)
+
 
 -- | Used during converting pixels between libraries.
 class Convertible a b where
@@ -21,7 +26,7 @@ class Convertible a b where
 -- | Image file format. Helps in guessing image format using a file extension,
 -- as well as supplying format specific options during saving an image.
 class ImageFormat format where
-  -- | Options that can be used during writing an image this format.
+  -- | Options that can be used during writing an image in this format.
   data SaveOption format
 
   -- | Default file extension for this image format.
@@ -31,7 +36,7 @@ class ImageFormat format where
   exts :: format -> [String]
   exts f = [ext f]
 
-  -- | Returns `True` if file extension (ex. ".png") corresponds to this format.
+  -- | Returns `True` if a file extension (ex. @".png"@) corresponds to this format.
   isFormat :: String -> format -> Bool
   isFormat e f = e `elem` exts f
 
@@ -49,5 +54,17 @@ class ImageFormat format => Writable img format where
   -- | Encode an image to `BL.ByteString`.
   encode :: format -> [SaveOption format] -> img -> BL.ByteString
 
+
+-- | Global variable for setting display program.
+displayProgram :: IORef (String, Bool)
+displayProgram = unsafePerformIO . newIORef $ ("gpicview", False)
+{-# NOINLINE displayProgram #-}
+
+
+-- | Implemented here for backwards compatibility with `process < 1.2.0.0`
+spawnProcess :: FilePath -> [String] -> IO ProcessHandle
+spawnProcess cmd args = do
+    (_,_,_,p) <- createProcess (proc cmd args)
+    return p
 
 

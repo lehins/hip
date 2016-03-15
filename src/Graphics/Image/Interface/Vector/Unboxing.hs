@@ -18,6 +18,7 @@ import qualified Data.Vector.Generic.Mutable    as M
 import qualified Data.Vector.Unboxed            as U
 import Control.Monad
 
+-- | Unboxing of a `Bit`.
 instance U.Unbox Bit
 
 newtype instance U.MVector s Bit = MV_Bit (U.MVector s Word8)
@@ -70,6 +71,7 @@ instance V.Vector U.Vector Bit where
 
 
 
+-- | Unboxing of a `Pixel`.
 instance (ColorSpace cs, U.Unbox (PixelElt cs e)) => U.Unbox (Pixel cs e)
 
 newtype instance U.MVector s (Pixel cs e) = MV_Pixel (U.MVector s (PixelElt cs e))

@@ -20,24 +20,29 @@ import qualified Data.Monoid as M (mappend)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
 
+-- | Cyan, Magenta, Yellow and Black color space.
 data CMYK = CyanCMYK -- ^ Cyan
-          | MagCMYK  -- ^ Mahenta
+          | MagCMYK  -- ^ Magenta
           | YelCMYK  -- ^ Yellow
           | KeyCMYK  -- ^ Key (Black)
           deriving (Eq, Enum, Typeable)
 
+-- | Cyan, Magenta, Yellow and Black color space with Alpha channel.
 data CMYKA = CyanCMYKA  -- ^ Cyan
-           | MagCMYKA   -- ^ Mahenta
+           | MagCMYKA   -- ^ Magenta
            | YelCMYKA   -- ^ Yellow
            | KeyCMYKA   -- ^ Key (Black)
            | AlphaCMYKA -- ^ Alpha 
            deriving (Eq, Enum, Typeable)
 
 
+-- | Conversion to `CMYK` color space.
 class ColorSpace cs => ToCMYK cs where
 
+  -- | Convert to a `CMYK` pixel.
   toPixelCMYK :: Pixel cs Double -> Pixel CMYK Double
 
+  -- | Convert to a `CMYK` image.
   toImageCMYK :: (Array arr cs Double, Array arr CMYK Double) =>
                  Image arr cs Double
               -> Image arr CMYK Double
@@ -45,11 +50,15 @@ class ColorSpace cs => ToCMYK cs where
   {-# INLINE toImageCMYK #-}
 
 
+-- | Conversion to `CMYKA` from another color space with Alpha channel.
 class (ToCMYK (Opaque cs), Alpha cs) => ToCMYKA cs where
 
+  -- | Convert to a `CMYKA` pixel.
   toPixelCMYKA :: Pixel cs Double -> Pixel CMYKA Double
   toPixelCMYKA px = addAlpha (getAlpha px) (toPixelCMYK (dropAlpha px))
+  {-# INLINE toPixelCMYKA #-}
 
+  -- | Convert to a `CMYKA` image.
   toImageCMYKA :: (Array arr cs Double, Array arr CMYKA Double) =>
                   Image arr cs Double
                -> Image arr CMYKA Double

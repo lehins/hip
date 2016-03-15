@@ -21,20 +21,25 @@ import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
 
 
+-- | Red, Green and Blue color space.
 data RGB = RedRGB
          | GreenRGB
          | BlueRGB deriving (Eq, Enum, Typeable)
 
+-- | Red, Green and Blue color space with Alpha channel.
 data RGBA = RedRGBA
           | GreenRGBA
           | BlueRGBA
           | AlphaRGBA deriving (Eq, Enum, Typeable)
 
 
+-- | Conversion to `RGB` color space.
 class ColorSpace cs => ToRGB cs where
 
+  -- | Convert to an `RGB` pixel.
   toPixelRGB :: Pixel cs Double -> Pixel RGB Double
 
+  -- | Convert to an `RGB` image.
   toImageRGB :: (Array arr cs Double, Array arr RGB Double) =>
                 Image arr cs Double
              -> Image arr RGB Double
@@ -42,11 +47,15 @@ class ColorSpace cs => ToRGB cs where
   {-# INLINE toImageRGB #-}
 
 
+-- | Conversion to `RGBA` from another color space with Alpha channel.
 class (ToRGB (Opaque cs), Alpha cs) => ToRGBA cs where
 
+  -- | Convert to an `RGBA` pixel.
   toPixelRGBA :: Pixel cs Double -> Pixel RGBA Double
   toPixelRGBA px = addAlpha (getAlpha px) (toPixelRGB (dropAlpha px))
+  {-# INLINE toPixelRGBA #-}
 
+  -- | Convert to an `RGBA` image.
   toImageRGBA :: (Array arr cs Double, Array arr RGBA Double) =>
                 Image arr cs Double
              -> Image arr RGBA Double

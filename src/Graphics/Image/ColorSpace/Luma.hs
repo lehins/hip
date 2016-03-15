@@ -23,11 +23,14 @@ import qualified Data.Colour.Names as C
 -- | Luma or brightness, that is usually denoted as @Y'@.
 data Y = Y deriving (Eq, Enum, Typeable)
 
--- | Luma with Alpha channel.
-data YA = YA
-        | AlphaYA deriving (Eq, Enum, Typeable)
 
--- | Color spaces that can be converted to Luma.
+-- | Luma with Alpha channel.
+data YA = YA      -- ^ Luma
+        | AlphaYA -- ^ Alpha channel
+        deriving (Eq, Enum, Typeable)
+
+
+-- | Conversion to Luma color space.
 class ColorSpace cs => ToY cs where
 
   -- | Convert a pixel to Luma pixel.
@@ -41,12 +44,13 @@ class ColorSpace cs => ToY cs where
   {-# INLINE toImageY #-}
 
   
--- | Color spaces with Alpha channel that can be converted to Luma with Alpha channel.
+-- | Conversion to Luma from another color space with Alpha channel.
 class (ToY (Opaque cs), Alpha cs) => ToYA cs where
 
   -- | Convert a pixel to Luma pixel with Alpha.
   toPixelYA :: Pixel cs Double -> Pixel YA Double
   toPixelYA px = addAlpha (getAlpha px) (toPixelY (dropAlpha px))
+  {-# INLINE toPixelYA #-}
 
   -- | Convert an image to Luma image with Alpha.
   toImageYA :: (Array arr cs Double, Array arr YA Double) =>

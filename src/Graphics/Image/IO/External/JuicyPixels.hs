@@ -29,7 +29,8 @@ import qualified Codec.Picture.Types as JP
 import qualified Codec.Picture.ColorQuant as JP
 
 
-data BMP = BMP -- ^ Bitmap image with @.bmp@ extension.
+-- | Bitmap image with @.bmp@ extension.
+data BMP = BMP
 
 instance ImageFormat BMP where
   data SaveOption BMP
@@ -37,7 +38,8 @@ instance ImageFormat BMP where
   ext _ = ".bmp"
 
 
-data GIF = GIF -- ^ Graphics Interchange Format image with @.gif@ extension.
+-- | Graphics Interchange Format image with @.gif@ extension.
+data GIF = GIF
 
 instance ImageFormat GIF where
   data SaveOption GIF = GIFPalette JP.PaletteOptions
@@ -50,7 +52,8 @@ instance ImageFormat [GIF] where
 
   ext _ = ext GIF
 
-data HDR = HDR -- ^ High-dynamic-range image with @.hdr@ extension.
+-- | High-dynamic-range image with @.hdr@ or @.pic@ extension.
+data HDR = HDR
 
 instance ImageFormat HDR where
   data SaveOption HDR
@@ -60,8 +63,8 @@ instance ImageFormat HDR where
   exts _ = [".hdr", ".pic"]
 
 
-data JPG = JPG -- ^ Joint Photographic Experts Group image with @.jpg@ or
-               -- @.jpeg@ extension.
+-- | Joint Photographic Experts Group image with @.jpg@ or @.jpeg@ extension.
+data JPG = JPG
 
 instance ImageFormat JPG where
   data SaveOption JPG = JPGQuality Word8
@@ -71,7 +74,8 @@ instance ImageFormat JPG where
   exts _ = [".jpg", ".jpeg"]
 
 
-data PNG = PNG -- ^ Portable Network Graphics image with @.png@ extension.
+-- | Portable Network Graphics image with @.png@ extension.
+data PNG = PNG
 
 instance ImageFormat PNG where
   data SaveOption PNG
@@ -79,7 +83,8 @@ instance ImageFormat PNG where
   ext _ = ".png"
 
 
-data TGA = TGA -- ^ Truevision Graphics Adapter image with .tga extension.
+-- | Truevision Graphics Adapter image with .tga extension.
+data TGA = TGA
 
 instance ImageFormat TGA where
   data SaveOption TGA
@@ -87,8 +92,8 @@ instance ImageFormat TGA where
   ext _ = ".tga"
 
 
-data TIF = TIF -- ^ Tagged Image File Format image with @.tif@ or @.tiff@
-               -- extension.
+-- | Tagged Image File Format image with @.tif@ or @.tiff@ extension.
+data TIF = TIF
 
 instance ImageFormat TIF where
   data SaveOption TIF  

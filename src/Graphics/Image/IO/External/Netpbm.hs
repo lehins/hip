@@ -22,7 +22,8 @@ import qualified Graphics.Netpbm as PNM
 import qualified Data.Vector.Storable as VS ((!), Vector)
 
 
-data PBM = PBM -- ^ Netpbm: portable bitmap image with .pbm extension.
+-- | Netpbm: portable bitmap image with @.pbm@ extension.
+data PBM = PBM
 
 instance ImageFormat PBM where
   data SaveOption PBM
@@ -30,7 +31,8 @@ instance ImageFormat PBM where
   ext _ = ".pbm"
 
 
-data PGM = PGM -- ^ Netpbm: portable graymap image with .pgm extension.
+-- | Netpbm: portable graymap image with @.pgm@ extension.
+data PGM = PGM
 
 instance ImageFormat PGM where
   data SaveOption PGM
@@ -38,7 +40,8 @@ instance ImageFormat PGM where
   ext _ = ".pgm"
 
 
-data PPM = PPM -- ^ Netpbm: portable pixmap image with .ppm extension.
+-- | Netpbm: portable pixmap image with @.ppm@ extension.
+data PPM = PPM
 
 instance ImageFormat PPM where
   data SaveOption PPM

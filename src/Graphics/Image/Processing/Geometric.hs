@@ -1,4 +1,12 @@
 {-# LANGUAGE CPP, BangPatterns, ViewPatterns #-}
+-- |
+-- Module      : Graphics.Image.Processing.Geometric
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Processing.Geometric (
   -- ** Sampling
   downsampleRows, downsampleCols, downsample, 

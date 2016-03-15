@@ -202,8 +202,8 @@ normalize !img = if l == s
 --     * __'Pixel' 'YCbCrA' e = PixelYCbCrA e__ - YCbCr with alpha.
 --       ------------------------------------------------------------------------------------------
 --     * __'Pixel' 'Binary' 'Bit'     = 'on' | 'off'__ - Bi-tonal.
---     * __'Pixel' 'Gray' e         = PixelGray e__ - Used for separating channels from other color spaces.
 --     * __'Pixel' cs ('Complex' e) = ('Pixel' cs e) '+:' ('Pixel' cs e)__ - Complex pixels with any color space.
+--     * __'Pixel' 'Gray' e         = PixelGray e__ - Used for separating channels from other color spaces.
 -- @
 --
 -- Every 'Pixel' is an instance of 'Functor', 'Applicative', 'F.Foldable' and

@@ -20,32 +20,43 @@ import qualified Data.Monoid as M (mappend)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
 
-data HSI = HueHSI
-         | SatHSI
-         | IntHSI deriving (Eq, Enum, Typeable)
+-- | Hue, Saturation and Intensity color space.
+data HSI = HueHSI -- ^ Hue
+         | SatHSI -- ^ Saturation 
+         | IntHSI -- ^ Intensity
+         deriving (Eq, Enum, Typeable)
 
-data HSIA = HueHSIA
-          | SatHSIA
-          | IntHSIA
-          | AlphaHSIA deriving (Eq, Enum, Typeable)
+-- | Hue, Saturation and Intensity color space with Alpha channel.
+data HSIA = HueHSIA   -- ^ Hue
+          | SatHSIA   -- ^ Saturation
+          | IntHSIA   -- ^ Intensity
+          | AlphaHSIA -- ^ Alpha
+          deriving (Eq, Enum, Typeable)
 
 
+-- | Conversion to `HSI` color space.
 class ColorSpace cs => ToHSI cs where
 
+  -- | Convert to an `HSI` pixel.
   toPixelHSI :: Pixel cs Double -> Pixel HSI Double
 
+  -- | Convert to an `HSI` image.
   toImageHSI :: (Array arr cs Double, Array arr HSI Double) =>
                 Image arr cs Double
              -> Image arr HSI Double
   toImageHSI = map toPixelHSI
   {-# INLINE toImageHSI #-}
+  
 
-
+-- | Conversion to `HSIA` from another color space with Alpha channel.
 class (ToHSI (Opaque cs), Alpha cs) => ToHSIA cs where
 
+  -- | Convert to an `HSIA` pixel.
   toPixelHSIA :: Pixel cs Double -> Pixel HSIA Double
   toPixelHSIA px = addAlpha (getAlpha px) (toPixelHSI (dropAlpha px))
+  {-# INLINE toPixelHSIA #-}
 
+  -- | Convert to an `HSIA` image.
   toImageHSIA :: (Array arr cs Double, Array arr HSIA Double) =>
                  Image arr cs Double
               -> Image arr HSIA Double
@@ -147,11 +158,13 @@ instance Show HSI where
   show HueHSI = "Hue"
   show SatHSI = "Saturation"
   show IntHSI = "Intensity"
+  
 
 instance Show HSIA where
   show AlphaHSIA = "Alpha"
   show ch        = show $ opaque ch
- 
+
+  
 instance Show e => Show (Pixel HSI e) where
   show (PixelHSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"
 

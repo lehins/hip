@@ -1,4 +1,12 @@
 {-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts #-}
+-- |
+-- Module      : Graphics.Image.Processing.Complex.Fourier
+-- Copyright   : (c) Alexey Kuleshevich 2016
+-- License     : BSD3
+-- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
+-- Stability   : experimental
+-- Portability : non-portable
+--
 module Graphics.Image.Processing.Complex.Fourier (
   fft, ifft, isPowerOfTwo
   ) where
