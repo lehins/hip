@@ -16,6 +16,8 @@ module Graphics.Image.Interface.Repa (
   computeS, computeP, delay,
   -- * Representation
   RD(..), RS(..), RP(..),
+  -- * Conversion
+  fromRepaArray, toRepaArray
   ) where
 
 import Graphics.Image.IO

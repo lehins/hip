@@ -11,7 +11,8 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Repa.Internal (
-  RD(..), RP(..), RS(..), computeP, computeS, delay
+  RD(..), RP(..), RS(..), computeP, computeS, delay,
+  fromRepaArray, toRepaArray
   ) where
 
 #if MIN_VERSION_base(4,8,0)
@@ -223,12 +224,12 @@ instance Array RS cs e => ManifestArray RS cs e where
 
   index (RSImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
   index (RSImage (RScalar px))  (_, _) = px
-  index _ _ = _error_compute
+  index _ _ = _errorCompute
   {-# INLINE index #-}
 
   deepSeqImage (RSImage (RUImage arr)) = deepSeqArray arr
   deepSeqImage (RSImage (RScalar px))  = seq px
-  deepSeqImage _ = _error_compute
+  deepSeqImage _ = _errorCompute
   {-# INLINE deepSeqImage #-}
 
   (|*|) i1@(RSImage img1) i2@(RSImage img2) =
@@ -237,11 +238,11 @@ instance Array RS cs e => ManifestArray RS cs e where
 
   fold !f !px0 (RSImage (RUImage arr)) = R.foldAllS f px0 $ arr
   fold !f !px0 (RSImage (RScalar px))  = f px0 px
-  fold _  _  _ = _error_compute
+  fold _  _  _ = _errorCompute
   {-# INLINE fold #-}
 
   eq (RSImage (RUImage arr1)) (RSImage (RUImage arr2)) = R.equalsS arr1 arr2
-  eq _ _ = _error_compute
+  eq _ _ = _errorCompute
   {-# INLINE eq #-}
 
 
@@ -250,12 +251,12 @@ instance Array RP cs e => ManifestArray RP cs e where
   index (RPImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
   index (RPImage (RScalar px))  (0, 0) = px
   index (RPImage (RScalar _))   (_, _) = error "Scalar Image can only be indexed at (0,0)."
-  index _ _ = _error_compute
+  index _ _ = _errorCompute
   {-# INLINE index #-}
 
   deepSeqImage (RPImage (RUImage arr)) = deepSeqArray arr
   deepSeqImage (RPImage (RScalar px))  = seq px
-  deepSeqImage _ = _error_compute
+  deepSeqImage _ = _errorCompute
   {-# INLINE deepSeqImage #-}
 
   (|*|) i1@(RPImage img1) i2@(RPImage img2) =
@@ -264,11 +265,11 @@ instance Array RP cs e => ManifestArray RP cs e where
 
   fold !f !px0 (RPImage (RUImage arr)) = head . R.foldAllP f px0 $ arr
   fold !f !px0 (RPImage (RScalar px))  = f px0 px
-  fold _  _  _ = _error_compute
+  fold _  _  _ = _errorCompute
   {-# INLINE fold #-}
 
   eq (RPImage (RUImage arr1)) (RPImage (RUImage arr2)) = head $ R.equalsP arr1 arr2
-  eq _ _ = _error_compute
+  eq _ _ = _errorCompute
   {-# INLINE eq #-}
 
   
@@ -379,7 +380,7 @@ instance Exchangable VU RP where
 instance Exchangable RS VU where
   exchange _ img@(RSImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
   exchange _ (RSImage (RScalar px)) = singleton px
-  exchange _ _                     = _error_compute
+  exchange _ _                     = _errorCompute
   {-# INLINE exchange #-}
 
 
@@ -387,7 +388,7 @@ instance Exchangable RS VU where
 instance Exchangable RP VU where
   exchange _ img@(RPImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
   exchange _ (RPImage (RScalar px)) = singleton px
-  exchange _ _                     = _error_compute
+  exchange _ _                     = _errorCompute
   {-# INLINE exchange #-}
 
 -- | Computes an image in parallel and ensures that all elements are evaluated.
@@ -424,7 +425,7 @@ mult img1@(RUImage arr1) img2@(RUImage arr2) =
     getPx (Z :. i :. j) =
       sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
     {-# INLINE getPx #-}
-mult _ _ = _error_compute
+mult _ _ = _errorCompute
 {-# INLINE mult #-}
 
 
@@ -450,13 +451,25 @@ getDelayed (RDImage arr) = arr
 getDelayed _             = error "Scalar image is not an array."
 {-# INLINE getDelayed #-}
 
+
+-- | Create an image from a 2D Repa delayed array.
+fromRepaArray :: (ColorSpace cs, Unbox (PixelElt cs e)) =>
+                 R.Array D DIM2 (Pixel cs e) -> Image RD cs e
+fromRepaArray = RDImage
+
+
+-- | Retrieve an underlying Repa array from `RD` image type.
+toRepaArray :: (ColorSpace cs, Unbox (PixelElt cs e)) =>
+               Image RD cs e -> R.Array D DIM2 (Pixel cs e)
+toRepaArray (RUImage arr) = R.delay arr
+toRepaArray (RDImage arr) = arr
+toRepaArray (RScalar px) = R.fromFunction (Z :. 1 :. 1) $ const px
   
-_error_compute :: t
-_error_compute = error "Image should be computed at ths point. Please report this error"
+_errorCompute :: t
+_errorCompute = error "Image should be computed at ths point. Please report this error"
                          
-_error_scalar_op :: t
-_error_scalar_op =
-  error "This operation is not allowed on scalar images."
+_errorScalarOp :: t
+_errorScalarOp = error "This operation is not allowed on scalar images."
 
 
 instance R.Elt Bit where

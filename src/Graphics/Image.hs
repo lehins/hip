@@ -10,11 +10,11 @@
 --
 -- Haskell Image Processing (HIP) library is a wrapper around any array like
 -- data structure and is fully agnostic to the underlying representation. All of
--- the functionality in this library relies on few type classes that
+-- the functionality in this library relies upon a few type classes, which
 -- corresponding representation types are instances of:
 --
--- * @__`Graphics.Image.Types.Array` arr cs e__@ - this is a base class for every
--- __@`Graphics.Image.Types.Image`@ @arr@ @cs@ @e@__, where @__arr__@ stands for an underlying array
+-- * @__`Array` arr cs e__@ - this is a base class for every
+-- __@`Image`@ @arr@ @cs@ @e@__, where @__arr__@ stands for an underlying array
 -- representation, @__cs__@ is the `ColorSpace` of an image and @__e__@ is the
 -- type denoting precision of an image.
 --
@@ -116,7 +116,7 @@ import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
 import Graphics.Image.Processing
 import Graphics.Image.Processing.Complex
---import Graphics.Image.Processing.Binary
+import Graphics.Image.Processing.Geometric
 import Graphics.Image.IO.Histogram
 
 

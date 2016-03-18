@@ -18,7 +18,7 @@ module Graphics.Image.Processing.Geometric (
   -- ** Flipping
   flipV, flipH,
   -- ** Rotation
-  rotate90, rotate180, rotate270,
+  rotate90, rotate180, rotate270, rotate,
   -- ** Scaling
   resize, scale                                          
   ) where
@@ -115,6 +115,7 @@ topToBottom !img1@(dims -> (m1, _)) !img2 = traverse2 img1 img2 newDims newPx wh
   {-# INLINE newPx #-}
 {-# INLINE topToBottom #-}
 
+
 -- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
 -- columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
 -- source image.
@@ -193,6 +194,39 @@ rotate270 = transpose . flipH
 {-# INLINE rotate270 #-}
 
 
+
+-- | Rotate an image clockwise by an angle Θ in radians.
+--
+-- >>> frog <- readImageRGBA "images/frog.jpg"
+-- >>> writeImage "images/frog_rotate330.png" $ rotate (Bilinear (Fill 0)) (11*pi/6) frog
+--
+-- <<images/frog.jpg>> <<images/frog_rotate330.png>>
+--
+rotate :: (Array arr cs e, Elevator e, Interpolation method) =>
+          method (Pixel cs e) -- ^ Interpolation method to be used
+       -> Double -- ^ Angle in radians
+       -> Image arr cs e -- ^ Source image
+       -> Image arr cs e -- ^ Rotated image
+rotate !method !theta' !img = traverse img getNewDims getNewPx where
+  !theta = angle0to2pi (-theta') -- invert angle direction and put it into [0, 2*pi) range
+  !sz@(m, n) = dims img
+  !(mD, nD) = (fromIntegral m, fromIntegral n)
+  !(sinTheta, cosTheta) = (sin' theta, cos' theta)
+  !(sinThetaAbs, cosThetaAbs) = (abs sinTheta, abs cosTheta)
+  !(mD', nD') = (mD * cosThetaAbs + nD * sinThetaAbs, nD * cosThetaAbs + mD * sinThetaAbs)
+  !(iDelta, jDelta) =
+    case (sinTheta >= 0, cosTheta >= 0) of
+         (True         , True         ) -> (nD * sinTheta, 0)    -- I quadrant
+         (True         , False        ) -> (mD', -nD * cosTheta) -- II quadrant
+         (False        , False        ) -> (-mD * cosTheta, nD') -- III quadrant
+         (False        , True         ) -> (0, -mD * sinTheta)   -- IV quadrant
+  getNewDims _ = (ceiling mD', ceiling nD')
+  getNewPx getPx (i, j) = interpolate method sz getPx (i', j') where
+    (iD, jD) = (fromIntegral i - iDelta + 0.5, fromIntegral j - jDelta + 0.5)
+    i' = iD * cosTheta + jD * sinTheta - 0.5
+    j' = jD * cosTheta - iD * sinTheta - 0.5
+
+
 -- | Resize an image using an interpolation method.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
@@ -204,7 +238,7 @@ resize :: (Interpolation method, Array arr cs e, Elevator e) =>
           method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
        -> (Int, Int)     -- ^ Dimensions of a result image.
        -> Image arr cs e -- ^ Source image.
-       -> Image arr cs e -- ^ Reuslt image.
+       -> Image arr cs e -- ^ Result image.
 resize !method !sz'@(m', n') !img = traverse img (const sz') getNewPx where
   !sz@(m, n) = dims img
   !(fM, fN) = (fromIntegral m' / fromIntegral m, fromIntegral n' / fromIntegral n)
@@ -229,3 +263,25 @@ scale !method !(fM, fN) !img@(dims -> (m, n)) =
   then error "scale: scaling factor must be greater than 0."
   else resize method (round (fM * fromIntegral m), round (fN * fromIntegral n)) img
 {-# INLINE scale #-}
+
+
+
+-- | Put an angle into @[0, 2*pi)@ range.
+angle0to2pi :: Double -> Double
+angle0to2pi !f = f - 2 * pi * floor' (f / (2 * pi))
+ where  floor' :: Double -> Double
+        floor' !x = fromIntegral (floor x :: Int)
+        {-# INLINE floor' #-}
+{-# INLINE angle0to2pi #-}
+
+
+sin' :: Double -> Double
+sin' a = if abs sinA <= _0 then 0 else sinA
+  where !_0   = 10 * sin pi
+        !sinA = sin a
+{-# INLINE sin' #-}
+
+
+cos' a = sin' (a + pi/2)
+cos' :: Double -> Double
+{-# INLINE cos' #-}

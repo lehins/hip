@@ -35,7 +35,12 @@ infixr 2  .||.
 
 -- | 'Thresholding' contains a convenient set of functions for binary image
 -- construction, which is done by comparing either a single pixel with every
--- pixel in an image or two same size images pointwise.
+-- pixel in an image or two same size images pointwise. For example:
+--
+-- >>> frog <- readImageY "images/frog.jpg"
+-- >>> frog .==. PixelY 0    -- (or: PixelY 0 .==. frog)
+-- >>> frog .<. flipH frog   -- (or: flipH frog .>. frog)
+--
 class Array arr Binary Bit => Thresholding a b arr | a b -> arr where
   (.==.) :: (Eq (Pixel cs e), Array arr cs e)  => a cs e -> b cs e -> Image arr Binary Bit
   (./=.) :: (Eq (Pixel cs e), Array arr cs e)  => a cs e -> b cs e -> Image arr Binary Bit
@@ -119,7 +124,7 @@ instance Array arr Binary Bit => Thresholding (Image arr) Pixel arr where
 {-# INLINE (.||.) #-}
 
 
--- | Complement each pixel in the image
+-- | Complement each pixel in a binary image
 invert :: Array arr Binary Bit => Image arr Binary Bit -> Image arr Binary Bit
 invert = map complement
 {-# INLINE invert #-}

@@ -199,61 +199,61 @@ List of image formats that are currently supported, and their exact
   
 * 'BMP':
 
-    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __read__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __write__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
 
 * 'GIF':
 
-    * __in__: ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __out__: ('RGB'  'Word8')
+    * __read__: ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __write__: ('RGB'  'Word8')
     * Also supports reading and writing animated images, when used as @['GIF']@
 
 * 'HDR':
 
-    * __in__: ('RGB'  'Float')
-    * __out__: ('RGB'  'Float')
+    * __read__: ('RGB'  'Float')
+    * __write__: ('RGB'  'Float')
 
 * 'JPG':
 
-    * __in__: ('Y' 'Word8'), ('YA' 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    * __read__: ('Y' 'Word8'), ('YA' 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
     ('YCbCr', 'Word8')
-    * __out__: ('Y' 'Word8'), ('YA', 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    * __write__: ('Y' 'Word8'), ('YA', 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
     ('YCbCr', 'Word8')
 
 * 'PNG':
 
-    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    * __read__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
     ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
-    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    * __write__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
     ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
 
 * 'TGA':
 
-    * __in__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __out__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __read__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __write__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
 
 * 'TIF':
 
-    * __in__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    * __read__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
     ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16'),
     ('CMYK'  'Word8'), ('CMYK'  'Word16')
-    * __out__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
+    * __write__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
     ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
     ('CMYK'  'Word8'), ('CMYK'  'Word16'), ('YCbCr'  'Word8')
 
 * 'PBM':
 
-    * __in__: ('Binary' 'Bit')
+    * __read__: ('Binary' 'Bit')
     * Also supports sequence of images in one file, when read as @['PBM']@
 
 * 'PGM':
 
-    * __in__: ('Y' 'Word8'), ('Y' 'Word16')
+    * __read__: ('Y' 'Word8'), ('Y' 'Word16')
     * Also supports sequence of images in one file, when read as @['PGM']@
 
 * 'PPM':
 
-    * __in__: ('RGB'  'Word8'), ('RGB'  'Word16')
+    * __read__: ('RGB'  'Word8'), ('RGB'  'Word16')
     * Also supports sequence of images in one file, when read as @['PPM']@
 
 -}
