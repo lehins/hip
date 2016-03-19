@@ -275,6 +275,7 @@ angle0to2pi !f = f - 2 * pi * floor' (f / (2 * pi))
 {-# INLINE angle0to2pi #-}
 
 
+-- | Make sure @sin' pi == 0@ instead of @sin pi == 1.2246467991473532e-16@
 sin' :: Double -> Double
 sin' a = if abs sinA <= _0 then 0 else sinA
   where !_0   = 10 * sin pi
@@ -282,6 +283,8 @@ sin' a = if abs sinA <= _0 then 0 else sinA
 {-# INLINE sin' #-}
 
 
-cos' a = sin' (a + pi/2)
+-- | Make sure @cos' (pi/2) == 0@ instead of @cos (pi/2) == 6.123233995736766e-17@
+-- and @cos' (3*pi/2) == 0@ instead of @cos (3*pi/2) == -1.8369701987210297e-16@
 cos' :: Double -> Double
+cos' a = sin' (a + pi/2)
 {-# INLINE cos' #-}
