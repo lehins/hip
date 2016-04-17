@@ -45,8 +45,8 @@
 --
 -- Just as it is mentioned above, Vector representation is a default one, so in
 -- order to create images with Repa representation
--- "Graphics.Image.Interface.Repa" module can be used. It should be imported as
--- qualified, since it contains image generating functions with same names as
+-- "Graphics.Image.Interface.Repa" module should be used. It has to be imported
+-- as qualified, since it contains image generating functions with same names as
 -- here.
 --
 -- Many of the function names exported by this module will clash with the ones
@@ -71,7 +71,7 @@ module Graphics.Image (
   --
   -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
   --
-  makeImage, fromLists,
+  makeImage, fromLists, toLists,
   -- * IO
   -- ** Reading
   -- | Read any supported image file into an 'Image' with 'VU' (Vector Unboxed)
@@ -115,10 +115,10 @@ import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
 
 
 import Graphics.Image.Processing
+import Graphics.Image.Processing.Binary
 import Graphics.Image.Processing.Complex
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.IO.Histogram
-
 
 
 
@@ -186,24 +186,31 @@ normalize !img = if l == s
 {-# INLINE normalize #-}
 
 
+-- | Generates a nested list of pixels from an image.
+--
+-- @ img == fromLists (toLists img) @
+--
+toLists :: ManifestArray arr cs e => Image arr cs e -> [[Pixel cs e]]
+toLists img = [[index img (i, j) | j <- [0..cols img - 1]] | i <- [0..rows img - 1]]
+
 -- $colorspace
 -- Here is a list of default Pixels with their respective constructors:
 --
 -- @
---     * __'Pixel' 'Y' e      = PixelY e__ - Luma, also commonly denoted as __Y'__.
---     * __'Pixel' 'YA' e     = PixelYA e__ - Luma with alpha.
---     * __'Pixel' 'RGB' e    = PixelRGB e__ - Red, Green and Blue.
---     * __'Pixel' 'RGBA' e   = PixelRGBA e__ - RGB with alpha
---     * __'Pixel' 'HSI' e    = PixelHSI e__ - Hue, Saturation and Intensity.
---     * __'Pixel' 'HSIA' e   = PixelHSIA e__ - HSI with alpha
---     * __'Pixel' 'CMYK' e   = PixelCMYK e__ - Cyan, Magenta, Yellow and Key (Black).
---     * __'Pixel' 'CMYKA' e  = PixelCMYKA e__ - CMYK with alpha.
---     * __'Pixel' 'YCbCr' e  = PixelYCbCr e__ - Luma, blue-difference and red-difference chromas.
---     * __'Pixel' 'YCbCrA' e = PixelYCbCrA e__ - YCbCr with alpha.
+--     * __'Pixel' 'Y' e      = PixelY y__              - Luma, also commonly denoted as __Y'__.
+--     * __'Pixel' 'YA' e     = PixelYA y a__           - Luma with alpha.
+--     * __'Pixel' 'RGB' e    = PixelRGB r g b__        - Red, Green and Blue.
+--     * __'Pixel' 'RGBA' e   = PixelRGBA r g b a__     - RGB with alpha
+--     * __'Pixel' 'HSI' e    = PixelHSI h s i__        - Hue, Saturation and Intensity.
+--     * __'Pixel' 'HSIA' e   = PixelHSIA h s i a__     - HSI with alpha
+--     * __'Pixel' 'CMYK' e   = PixelCMYK c m y k__     - Cyan, Magenta, Yellow and Key (Black).
+--     * __'Pixel' 'CMYKA' e  = PixelCMYKA c m y k a__  - CMYK with alpha.
+--     * __'Pixel' 'YCbCr' e  = PixelYCbCr y cb cr__    - Luma, blue-difference and red-difference chromas.
+--     * __'Pixel' 'YCbCrA' e = PixelYCbCrA y cb cr a__ - YCbCr with alpha.
 --       ------------------------------------------------------------------------------------------
 --     * __'Pixel' 'Binary' 'Bit'     = 'on' | 'off'__ - Bi-tonal.
 --     * __'Pixel' cs ('Complex' e) = ('Pixel' cs e) '+:' ('Pixel' cs e)__ - Complex pixels with any color space.
---     * __'Pixel' 'Gray' e         = PixelGray e__ - Used for separating channels from other color spaces.
+--     * __'Pixel' 'Gray' e         = PixelGray g__ - Used for separating channels from other color spaces.
 -- @
 --
 -- Every 'Pixel' is an instance of 'Functor', 'Applicative', 'F.Foldable' and
@@ -211,3 +218,4 @@ normalize !img = if l == s
 --
 -- All of the functionality related to every 'ColorSpace' is re-exported by
 -- "Graphics.Image.Types" module.
+

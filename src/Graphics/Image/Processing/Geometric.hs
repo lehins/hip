@@ -137,7 +137,7 @@ flipUsing getNewIndex !img@(dims -> d) = backpermute d (getNewIndex d) img
 -- | Flip an image vertically.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_flipV.jpg" (computeS $ flipV frog) 
+-- >>> writeImage "images/frog_flipV.jpg" $ flipV frog
 --
 -- <<images/frog.jpg>> <<images/frog_flipV.jpg>>
 --
@@ -149,7 +149,7 @@ flipV = flipUsing (\ (m, _) !(i, j) -> (m - 1 - i, j))
 -- | Flip an image horizontally.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_flipH.jpg" (flipH frog) 
+-- >>> writeImage "images/frog_flipH.jpg" $ flipH frog
 --
 -- <<images/frog.jpg>> <<images/frog_flipH.jpg>>
 --
@@ -161,7 +161,7 @@ flipH = flipUsing (\ (_, n) !(i, j) -> (i, n - 1 - j))
 -- | Rotate an image clockwise by 90°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate90.jpg" (rotate90 frog) 
+-- >>> writeImage "images/frog_rotate90.jpg" $ rotate90 frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate90.jpg>>
 --
@@ -173,7 +173,7 @@ rotate90 = transpose . flipV
 -- | Rotate an image by 180°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate180.jpg" (rotate180 frog) 
+-- >>> writeImage "images/frog_rotate180.jpg" $ rotate180 frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate180.jpg>>
 --
@@ -185,7 +185,7 @@ rotate180 = flipUsing (\ !(m, n) !(i, j) -> (m - 1 - i, n - 1 - j))
 -- | Rotate an image clockwise by 270°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate270.jpg" (rotate270 frog) 
+-- >>> writeImage "images/frog_rotate270.jpg" $ rotate270 frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate270.jpg>>
 --
@@ -230,7 +230,7 @@ rotate !method !theta' !img = traverse img getNewDims getNewPx where
 -- | Resize an image using an interpolation method.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_resize.jpg" (resize (Bilinear Edge) (100, 640) frog)
+-- >>> writeImage "images/frog_resize.jpg" $ resize (Bilinear Edge) (100, 640) frog
 --
 -- <<images/frog_resize.jpg>>
 --

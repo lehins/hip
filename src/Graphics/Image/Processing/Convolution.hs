@@ -43,6 +43,16 @@ convolve'' !border !kernel !img =
 {-# INLINE convolve'' #-}
 
 -- | Convolution of an image using a kernel. Border resolution technique is required.
+--
+-- Example using <https://en.wikipedia.org/wiki/Sobel_operator Sobel operator>:
+--
+-- >>> frog <- readImageY "frog.jpg"
+-- >>> let frogX = convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) frog
+-- >>> let frogY = convolve Edge (fromLists [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]]) frog
+-- >>> displayImage $ normalize $ sqrt (frogX ^ 2 + frogY ^ 2)
+--
+-- <<images/frogY.jpg>> <<images/frog_sobel.jpg>>
+--
 convolve  :: ManifestArray arr cs e =>
              Border (Pixel cs e)   -- ^ Approach to be used near the borders.
           -> Image arr cs e -- ^ Kernel image.

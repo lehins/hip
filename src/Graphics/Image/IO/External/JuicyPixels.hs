@@ -12,7 +12,12 @@
 module Graphics.Image.IO.External.JuicyPixels (
   BMP(..),
   GIF(..), JP.GifDelay, JP.GifLooping(..), JP.PaletteOptions(..), JP.PaletteCreationMethod(..),
-  HDR(..), JPG(..), PNG(..), TGA(..), TIF(..)
+  HDR(..),
+  JPG(..),
+  PNG(..),
+  TGA(..),
+  TIF(..),
+  SaveOption(..),
   ) where
 
 import GHC.Float

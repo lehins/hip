@@ -164,7 +164,7 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e),
          -- ^ A function that takes a pixel of a source image and returns a pixel
          -- for the result image a the same location.
       -> Image arr cs' e' -- ^ Source image.
-      -> Image arr cs  e  -- ^ Result image.
+      -> Image arr cs e   -- ^ Result image.
 
   -- | Map an index aware function over each pixel in an image.
   imap :: Array arr cs' e' =>
@@ -288,16 +288,20 @@ class ManifestArray arr cs e => MutableArray arr cs e where
   mdims :: MImage st arr cs e -> (Int, Int)
 
   -- | Yield a mutable copy of an image.
-  thaw :: (Functor m, PrimMonad m) => Image arr cs e -> m (MImage (PrimState m) arr cs e)
+  thaw :: (Functor m, PrimMonad m) =>
+          Image arr cs e -> m (MImage (PrimState m) arr cs e)
 
   -- | Yield an immutable copy of an image.
-  freeze :: (Functor m, PrimMonad m) => MImage (PrimState m) arr cs e -> m (Image arr cs e)
+  freeze :: (Functor m, PrimMonad m) =>
+            MImage (PrimState m) arr cs e -> m (Image arr cs e)
 
-  -- | Create a mutable image with given dimensions. Pixels are uninitialized.
-  new :: (Functor m, PrimMonad m) => (Int, Int) -> m (MImage (PrimState m) arr cs e)
+  -- | Create a mutable image with given dimensions. Pixels are likely uninitialized.
+  new :: (Functor m, PrimMonad m) =>
+         (Int, Int) -> m (MImage (PrimState m) arr cs e)
 
   -- | Yield the pixel at a given location.
-  read :: (Functor m, PrimMonad m) => MImage (PrimState m) arr cs e -> (Int, Int) -> m (Pixel cs e)
+  read :: (Functor m, PrimMonad m) =>
+          MImage (PrimState m) arr cs e -> (Int, Int) -> m (Pixel cs e)
 
   -- | Set a pixel at a given location.
   write :: (Functor m, PrimMonad m) =>
@@ -318,7 +322,7 @@ class Exchangable arr' arr where
            -> Image arr cs e
 
 
--- | Changing to the same array representation as before is disabled and `changeTo`
+-- | Changing to the same array representation as before is disabled and `exchange`
 -- will behave simply as an identitity function.
 instance Exchangable arr arr where
 
@@ -327,9 +331,10 @@ instance Exchangable arr arr where
 
 
 
--- | Approach to be used near the border during transformations, which, besides a pixel
--- of interest, also use it's neighbors, consequently going out of bounds at the
--- edges of an image.
+-- | Approach to be used near the borders during various transformations.
+-- Whenever a function needs information not only about a pixel of interest, but
+-- also about it's neighbours, it will go out of bounds around the image edges,
+-- hence is this set of approaches that can be used in such situtation.
 data Border px =
   Fill !px    -- ^ Fill in a constant pixel.
               --
@@ -447,7 +452,7 @@ instance (ColorSpace cs, Num e) => Num (Pixel cs e) where
   {-# INLINE signum #-}
   
   fromInteger = pure . fromInteger
-  {-# INLINE fromInteger#-}
+  {-# INLINE fromInteger #-}
   
 
 instance (ColorSpace cs, Fractional e) => Fractional (Pixel cs e) where
