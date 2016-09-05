@@ -1,5 +1,5 @@
 Name:              hip
-Version:           1.0.1.2
+Version:           1.0.1.3
 License:           BSD3
 License-File:      LICENSE
 Author:            Alexey Kuleshevich
@@ -37,7 +37,7 @@ Library
                , process         >= 1.1.0.0
                , repa            >= 3.2.1.1 && < 4
                , temporary       >= 1.1.1
-               , vector          >= 0.10    && < 0.11
+               , vector          >= 0.10
 	  
   Other-Extensions: BangPatterns
                   , ConstraintKinds
@@ -85,8 +85,6 @@ Library
                   
   GHC-Options:
               -Wall
-              -Odph
-              -fcpr-off
 
 Source-Repository head
   Type:     git

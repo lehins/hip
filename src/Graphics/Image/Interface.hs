@@ -14,7 +14,6 @@ module Graphics.Image.Interface (
   Array(..), ManifestArray(..), SequentialArray(..), MutableArray(..), 
   Exchangable(..),
   defaultIndex, maybeIndex, Border(..), borderIndex,
-  Applicative(..), (<$>), (<$), (<**>), liftA, liftA2, liftA3,
   ) where
 
 import Prelude hiding (and, map, zipWith, sum, product)
