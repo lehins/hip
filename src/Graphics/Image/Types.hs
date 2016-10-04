@@ -8,7 +8,7 @@
 --
 module Graphics.Image.Types (
   module Graphics.Image.ColorSpace,
-  module Graphics.Image.IO.External,
+  module Graphics.Image.IO.Formats,
   Array, Image, ManifestArray, SequentialArray, MutableArray, MImage,
   Exchangable, Border(..),
   VU(..), RD(..), RS(..), RP(..),
@@ -19,4 +19,4 @@ import Graphics.Image.ColorSpace
 import Graphics.Image.Interface
 import Graphics.Image.Interface.Vector (VU(..))
 import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
-import Graphics.Image.IO.External
+import Graphics.Image.IO.Formats

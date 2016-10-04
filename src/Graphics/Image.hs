@@ -110,8 +110,8 @@ import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
 import Graphics.Image.Interface hiding (makeImage, fromLists)
-import Graphics.Image.Interface.Vector
-import Graphics.Image.Interface.Repa (RD(..), RS(..), RP(..))
+import Graphics.Image.Interface.Vector as V
+import Graphics.Image.Interface.Repa as R (RD(..), RS(..), RP(..))
 
 
 import Graphics.Image.Processing

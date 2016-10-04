@@ -1,4 +1,7 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables, ViewPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.IO.Histogram
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -12,23 +15,23 @@ module Graphics.Image.IO.Histogram (
   displayHistograms, writeHistograms
   ) where
 
-import Prelude hiding (map, mapM_, zipWith)
-import qualified Prelude as P (map, mapM_, zipWith)
+import Prelude as P 
+import Control.Concurrent (forkIO)
 import Control.Monad.Primitive (PrimMonad (..))
-import Graphics.Image.Interface
+import Graphics.Image.Interface as I
+import Graphics.Image.IO
 import Graphics.Image.ColorSpace
-import Graphics.Image.IO.Base (displayProgram, spawnProcess)
+#if defined(USE_Chart)  
 import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Cairo
+#endif
 import qualified Data.Colour as C
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
-import Data.IORef
-import Control.Concurrent (forkIO, ThreadId)
-import System.Exit (ExitCode(ExitSuccess))
-import System.Process (waitForProcess, showCommandForUser)
-import System.IO.Temp (withSystemTempDirectory)
+import System.Directory (getTemporaryDirectory)
 import System.FilePath ((</>))
+import System.IO.Temp (createTempDirectory)
+
 
 -- | A single channel histogram of an image.
 data Histogram = Histogram { hBins :: V.Vector Int
@@ -60,8 +63,8 @@ getHistogram img = Histogram { hBins = V.modify countBins $
                                        (1 + fromIntegral (maxBound :: Word8)) (0 :: Int)
                              , hName = show Gray
                              , hColour = csColour Gray } where
-  incBin v (toWord8 -> (PixelGray g)) = modify v (+1) $ fromIntegral g
-  countBins v = mapM_ (incBin v) img
+  incBin v (toWord8 -> PixelGray g) = modify v (+1) $ fromIntegral g
+  countBins v = I.mapM_ (incBin v) img
   
 
 -- | Write histograms into a PNG image file.
@@ -72,44 +75,45 @@ getHistogram img = Histogram { hBins = V.modify countBins $
 -- <<images/frog_histogram.png>>
 --
 writeHistograms :: FilePath -> [Histogram] -> IO ()
-writeHistograms fileName hists = toFile def fileName $ do
-  layout_title .= "Histogram"
-  setColors $ P.map hColour hists
-  let axis = set la_nTicks 20 . set la_nLabels 14
-  layout_x_axis . laxis_generate .= scaledIntAxis (axis defaultIntAxis) (0, 260)
-  P.mapM_ plotHist hists where
-    plotHist h = plot (line (hName h) [V.toList $ V.imap (,) $ hBins h])
-             
+#if defined(USE_Chart)  
+writeHistograms fileName hists =
+  toFile def fileName $ do
+    layout_title .= "Histogram"
+    setColors $ P.map hColour hists
+    let axis = set la_nTicks 20 . set la_nLabels 14
+    layout_x_axis . laxis_generate .= scaledIntAxis (axis defaultIntAxis) (0, 260)
+    P.mapM_ plotHist hists where
+      plotHist h = plot (line (hName h) [V.toList $ V.imap (,) $ hBins h])
+#else
+writeHistograms _ _ =
+  error "There is currently no backend that can plot histograms."
+#endif
 
--- | Display image histograms using an external program. Works the same way as
+-- | Display image histograms using an external program. Works in a similar way as
 -- `Graphics.Image.IO.displayImage`.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> displayHistograms $ getHistograms frog
 --
-displayHistograms :: [Histogram] -> IO (Maybe ThreadId)
-displayHistograms hists = do
-  (program, block) <- readIORef displayProgram
-  let displayAction = withSystemTempDirectory "hip" (displayUsing hists program)
+displayHistograms :: [Histogram] -> IO ()
+displayHistograms = displayHistogramsUsing defaultViewer False
+
+
+-- | Display image histograms using an external program. Works in a similar way as
+-- `Graphics.Image.IO.displayImageUsing`.
+displayHistogramsUsing :: ExternalViewer
+                       -> Bool
+                       -> [Histogram] -> IO ()
+displayHistogramsUsing viewer block hists = do
+  let display = do
+        tmpDir <- getTemporaryDirectory
+        histPath <- (</> "tmp-hist.png") <$> createTempDirectory tmpDir "hip-histogram"
+        writeHistograms histPath hists
+        displayImageFile viewer histPath
   if block
-    then displayAction >> return Nothing
-    else Just <$> forkIO displayAction
+    then display
+    else forkIO display >> return ()
 
-
--- | IO action that writes histogram to file into a system temporary directory
--- and spawns an external program that displays it. File is deleted after
--- program is closed.
-displayUsing :: [Histogram] -> String -> FilePath -> IO ()
-displayUsing hists program path = do
-  let path' = path </> "tmp-hist.png"
-  writeHistograms path' hists
-  ph <- spawnProcess program [path']
-  e <- waitForProcess ph
-  let printExit ExitSuccess = return ()
-      printExit exitCode = do
-        putStrLn $ showCommandForUser program [path']
-        print exitCode
-  printExit e
 
 
 -- | Used for backwards compatibility with vector.

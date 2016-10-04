@@ -1,14 +1,17 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 -- |
--- Module      : Graphics.Image.IO.External.Netpbm
+-- Module      : Graphics.Image.IO.Formats.Netpbm
 -- Copyright   : (c) Alexey Kuleshevich 2016
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.IO.External.Netpbm (
+module Graphics.Image.IO.Formats.Netpbm (
   PBM(..), PGM(..), PPM(..)
   ) where
 

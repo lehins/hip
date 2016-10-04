@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image.IO
@@ -14,9 +15,18 @@ module Graphics.Image.IO (
   -- * Writing
   writeImage, writeImageExact,
   -- * Displaying
-  displayImage, setDisplayProgram, 
+  ExternalViewer(..),
+  displayImage,
+  displayImageUsing,
+  displayImageFile,
+  -- ** Common viewers
+  defaultViewer,
+  eogViewer,
+  gpicviewViewer,
+  fehViewer,
+  gimpViewer,
   -- * Supported Image Formats
-  module Graphics.Image.IO.External
+  module Graphics.Image.IO.Formats
   
   -- $supported
   
@@ -24,21 +34,35 @@ module Graphics.Image.IO (
 
 import Prelude as P hiding (readFile, writeFile)
 import qualified Control.Monad as M (foldM)
-import Control.Concurrent (forkIO, ThreadId)
+
+
+import Control.Concurrent (forkIO)
 import Data.Char (toLower)
 import Data.Maybe (fromMaybe)
-import Data.IORef
-import Data.ByteString (readFile)
+
+import qualified Data.ByteString as B (readFile)
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface
 import Graphics.Image.IO.Base
-import Graphics.Image.IO.External
+import Graphics.Image.IO.Formats
 import qualified Data.ByteString.Lazy as BL (writeFile, hPut)
-import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath (takeExtension)
-import System.IO (Handle, hFlush)
-import System.IO.Temp (withSystemTempFile)
-import System.Process (waitForProcess, showCommandForUser)
+import System.Directory (createDirectoryIfMissing, getTemporaryDirectory)
+import System.FilePath (takeExtension, (</>))
+import System.IO (hClose, openBinaryTempFile)
+import System.Process (readProcess)
+import Control.Exception (bracket)
+
+
+-- | External viewing application to use for displaying images.
+data ExternalViewer =
+  ExternalViewer FilePath [String] Int
+    -- ^ Any custom viewer, which can be specified:
+    -- 
+    -- * @FilePath@ - to the actual viewer executable.
+    -- * @[String]@ - command line arguments that will be passed to the executable.
+    -- * @Int@ - position index in the above list where `FilePath` to an image should be
+    -- injected
+  deriving Show
 
 
 guessFormat :: (ImageFormat f, Enum f) => FilePath -> Maybe f
@@ -60,7 +84,7 @@ readImage :: Readable (Image arr cs Double) InputFormat =>
              FilePath
           -> IO (Either String (Image arr cs Double))
 readImage path = do
-  imgstr <- readFile path
+  imgstr <- B.readFile path
   let maybeFormat = guessFormat path :: Maybe InputFormat
       formats = enumFrom . toEnum $ 0
       orderedFormats = maybe formats (\f -> f:filter (/=f) formats) maybeFormat
@@ -93,7 +117,7 @@ readImageExact :: Readable img format =>
                    -- <#g:4 Supported Image Formats>
                -> FilePath -- ^ Location of an image.
                -> IO (Either String img)
-readImageExact format path = fmap (decode format) (readFile path)
+readImageExact format path = fmap (decode format) (B.readFile path)
 
 
 -- | Just like 'readImage', this function will guess an output file format from the
@@ -132,60 +156,85 @@ writeImageExact :: Writable img format =>
 writeImageExact format opts path = BL.writeFile path . encode format opts
   
 
--- | Sets the program to be use when displaying an image, where 'Bool'
--- specifies if current thread should block until the program is closed when
--- calling 'displayImage' function. GPicView @("gpicview", False)@ is set as a
--- default program with a nonblocking flag. Here are some examples:
---
--- >>> setDisplayProgram ("gpicview", True) -- use gpicview and block current thread.
--- >>> setDisplayProgram ("gimp", False) -- use gimp and don't block current thread.
--- >>> setDisplayProgram ("xv", False)
--- >>> setDisplayProgram ("display", False)
---
-setDisplayProgram :: (String, Bool) -> IO ()
-setDisplayProgram = writeIORef displayProgram 
+{- | An image is written as a @.tiff@ file into an operating system's temporary
+directory and passed as an argument to the external viewer program. -}
+displayImageUsing :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
+                     ExternalViewer -- ^ External viewer to use
+                  -> Bool -- ^ Should the call be blocking
+                  -> Image arr cs e -- ^ Image to display
+                  -> IO ()
+displayImageUsing viewer block img = do
+  let display = do
+        tmpDir <- (</> "hip") <$> getTemporaryDirectory
+        createDirectoryIfMissing True tmpDir
+        bracket (openBinaryTempFile tmpDir "tmp-img.tiff")
+          (hClose . snd)
+          (\ (imgPath, imgHandle) -> do
+              BL.hPut imgHandle $ encode TIF [] img
+              hClose imgHandle
+              displayImageFile viewer imgPath)
+  if block
+    then display
+    else forkIO display >> return ()
 
 
-{- | Makes a call to the current display program, which can be changed using
-'setDisplayProgram'. An image is written as a @.tiff@ file into an operating
-system's temporary directory and passed as an argument to the display
-program. If a blocking flag was set to 'False' using 'setDisplayProgram', then
-function will return immediately with ('Just' 'ThreadId'), otherwise it will
-block current thread until external program is terminated, in which case
-'Nothing' is returned. Temporary file is deleted, after a program displaying an
-image is closed.
+
+-- | Displays an image file by calling an external image viewer.
+displayImageFile :: ExternalViewer -> FilePath -> IO ()
+displayImageFile (ExternalViewer exe args ix) imgPath =
+  readProcess exe (argsBefore ++ [imgPath] ++ argsAfter) "" >> return ()
+  where (argsBefore, argsAfter) = splitAt ix args
+
+
+{- | Makes a call to an external viewer that is set as a default image viewer by
+the OS. This is a non-blocking function call, so it will take some time before
+an image will appear.
 
   >>> frog <- readImageRGB "images/frog.jpg"
   >>> displayImage frog
-  Just ThreadId 505
-  >>> setDisplayProgram ("gimp", True)
-  >>> displayImage frog -- will only return after gimp is closed.
-  Nothing
 
 -}
 displayImage :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
                 Image arr cs e -- ^ Image to be displayed
-             -> IO (Maybe ThreadId)
-displayImage img = do
-  (program, block) <- readIORef displayProgram
-  let displayAction = withSystemTempFile "tmp-img.tiff" (displayUsing img program)
-  if block
-    then displayAction >> return Nothing
-    else Just <$> forkIO displayAction
+             -> IO ()
+displayImage = displayImageUsing defaultViewer False
 
 
-displayUsing :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
-                Image arr cs e -> String -> FilePath -> Handle -> IO ()
-displayUsing img program path h = do
-  BL.hPut h $ encode TIF [] img
-  hFlush h
-  ph <- spawnProcess program [path]
-  e <- waitForProcess ph
-  let printExit ExitSuccess = return ()
-      printExit exitCode = do
-        putStrLn $ showCommandForUser program [path]
-        print exitCode
-  printExit e
+defaultViewer :: ExternalViewer
+defaultViewer =
+#if defined(OS_Win32)
+  (ExternalViewer "explorer.exe" [] 0)
+#elif defined(OS_Linux)
+  (ExternalViewer "xdg-open" [] 0)
+#elif defined(OS_Mac)
+  (ExternalViewer "open" [] 0)
+#else
+  error $ "Graphics.Image.IO.defaultViewer: Could not determine default viewer."
+#endif
+
+
+-- | @eog /tmp/hip/img.tiff@
+-- <https://help.gnome.org/users/eog/stable/ Eye of GNOME>
+eogViewer :: ExternalViewer
+eogViewer = ExternalViewer "eog" [] 0
+
+
+-- | @feh --fullscreen --auto-zoom /tmp/hip/img.tiff@
+-- <https://feh.finalrewind.org/ FEH>
+fehViewer :: ExternalViewer
+fehViewer = ExternalViewer "feh" ["--fullscreen", "--auto-zoom"] 2
+
+
+-- | @gpicview /tmp/hip/img.tiff@
+-- <http://lxde.sourceforge.net/gpicview/ GPicView>
+gpicviewViewer :: ExternalViewer
+gpicviewViewer = ExternalViewer "gpicview" [] 0
+
+
+-- | @gimp /tmp/hip/img.tiff@
+-- <https://www.gimp.org/ GIMP>
+gimpViewer :: ExternalViewer
+gimpViewer = ExternalViewer "gimp" [] 0
 
 
 

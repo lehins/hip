@@ -1,24 +1,27 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
-             TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- |
--- Module      : Graphics.Image.IO.External
+-- Module      : Graphics.Image.IO.Formats
 -- Copyright   : (c) Alexey Kuleshevich 2016
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.IO.External (
-  module Graphics.Image.IO.External.JuicyPixels,
-  module Graphics.Image.IO.External.Netpbm,
+module Graphics.Image.IO.Formats (
+  module Graphics.Image.IO.Formats.JuicyPixels,
+  module Graphics.Image.IO.Formats.Netpbm,
   InputFormat, OutputFormat,
   Readable(..), Writable(..), ImageFormat(..),
   ) where
 
 import Graphics.Image.Interface
 import Graphics.Image.IO.Base
-import Graphics.Image.IO.External.JuicyPixels
-import Graphics.Image.IO.External.Netpbm
+import Graphics.Image.IO.Formats.JuicyPixels
+import Graphics.Image.IO.Formats.Netpbm
 
 
 -- | A collection of all image formats that can be read into HIP images with
@@ -75,8 +78,8 @@ instance (Readable (Image arr cs Double) BMP,
 
 
 
--- | A collection of all image formats that can be written from HIP images with
--- 'Double' precision pixel channels.
+-- | A collection of all image formats that can be written to file using images with
+-- 'Double' precision pixels.
 data OutputFormat = OutputBMP
                   | OutputGIF
                   | OutputHDR

@@ -9,14 +9,10 @@
 --
 module Graphics.Image.IO.Base (
   ImageFormat(..), Readable(..), Writable(..), Convertible(..),
-  displayProgram, spawnProcess
   ) where
 
 import qualified Data.ByteString as B (ByteString)
 import qualified Data.ByteString.Lazy as BL (ByteString)
-import Data.IORef
-import System.IO.Unsafe (unsafePerformIO)
-import System.Process (proc, createProcess, ProcessHandle)
 
 
 -- | Used during converting pixels between libraries.
@@ -53,18 +49,3 @@ class ImageFormat format => Writable img format where
 
   -- | Encode an image to `BL.ByteString`.
   encode :: format -> [SaveOption format] -> img -> BL.ByteString
-
-
--- | Global variable for setting display program.
-displayProgram :: IORef (String, Bool)
-displayProgram = unsafePerformIO . newIORef $ ("gpicview", False)
-{-# NOINLINE displayProgram #-}
-
-
--- | Implemented here for backwards compatibility with `process < 1.2.0.0`
-spawnProcess :: FilePath -> [String] -> IO ProcessHandle
-spawnProcess cmd args = do
-    (_,_,_,p) <- createProcess (proc cmd args)
-    return p
-
-

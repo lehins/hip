@@ -138,10 +138,10 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e),
   -- | Create an Image by supplying it's dimensions and a pixel generating
   -- function.
   makeImage :: (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
-          -> ((Int, Int) -> Pixel cs e)
-          -- ^ A function that takes (@i@-th row, and @j@-th column) as an
-          -- argument and returns a pixel for that location.
-          -> Image arr cs e
+            -> ((Int, Int) -> Pixel cs e)
+               -- ^ A function that takes (@i@-th row, and @j@-th column) as an
+               -- argument and returns a pixel for that location.
+            -> Image arr cs e
 
   -- | Create a singleton image, required for various operations on images with
   -- a scalar.
