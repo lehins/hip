@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
              MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
              UndecidableInstances, ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 800
+  {-# LANGUAGE UndecidableSuperClasses #-}
+#endif
 -- |
 -- Module      : Graphics.Image.Interface
 -- Copyright   : (c) Alexey Kuleshevich 2016
