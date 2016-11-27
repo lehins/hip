@@ -122,17 +122,17 @@ readImageExact format path = fmap (decode format) (B.readFile path)
 
 -- | Just like 'readImage', this function will guess an output file format from the
 -- extension and write to file any image that is in one of 'Y', 'YA', 'RGB' or
--- 'RGBA' 'ColorSpace's with 'Double' precision. While doing necessary
+-- 'RGBA' color spaces with 'Double' precision. While doing necessary
 -- conversions the choice will be given to the most suited color space supported
--- by the format, for instance, in case of a 'PNG' format, an ('Image' @arr@
--- 'RGBA' 'Double') would be written as 'RGBA'16, hence preserving transparency
+-- by the format. For instance, in case of a 'PNG' format, an ('Image' @arr@
+-- 'RGBA' 'Double') would be written as @RGBA16@, hence preserving transparency
 -- and using highest supported precision 'Word16'. At the same time, writing
 -- that image in 'GIF' format would save it in @RGB8@, since 'Word8' is the
 -- highest precision 'GIF' supports and it currently cannot be saved with
 -- transparency.
-writeImage :: (ManifestArray arr cs Double, Writable (Image arr cs Double) OutputFormat) =>
+writeImage :: Writable (Image arr cs e) OutputFormat =>
               FilePath            -- ^ Location where an image should be written.
-           -> Image arr cs Double -- ^ An image to write. 
+           -> Image arr cs e -- ^ An image to write. 
            -> IO ()
 writeImage path = BL.writeFile path . encode format [] where
   format = fromMaybe (error ("Could not guess output format. Use 'writeImageExact' "++
@@ -158,7 +158,7 @@ writeImageExact format opts path = BL.writeFile path . encode format opts
 
 {- | An image is written as a @.tiff@ file into an operating system's temporary
 directory and passed as an argument to the external viewer program. -}
-displayImageUsing :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
+displayImageUsing :: Writable (Image arr cs e) TIF =>
                      ExternalViewer -- ^ External viewer to use
                   -> Bool -- ^ Should the call be blocking
                   -> Image arr cs e -- ^ Image to display
@@ -194,7 +194,7 @@ an image will appear.
   >>> displayImage frog
 
 -}
-displayImage :: (ManifestArray arr cs e, Writable (Image arr cs e) TIF) =>
+displayImage :: Writable (Image arr cs e) TIF =>
                 Image arr cs e -- ^ Image to be displayed
              -> IO ()
 displayImage = displayImageUsing defaultViewer False

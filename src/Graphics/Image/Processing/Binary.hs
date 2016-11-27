@@ -1,5 +1,12 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
-             MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+#if __GLASGOW_HASKELL__ >= 800
+  {-# LANGUAGE UndecidableSuperClasses #-}
+#endif
 -- |
 -- Module      : Graphics.Image.Processing.Binary
 -- Copyright   : (c) Alexey Kuleshevich 2016

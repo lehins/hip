@@ -1,9 +1,6 @@
-resolver: lts-5.0
-packages:
-- .
-extra-deps:
-- attoparsec-binary-0.2
-- storable-record-0.0.3.1
-- netpbm-1.0.2
 flags: {}
 extra-package-dbs: []
+packages:
+- '.'
+extra-deps: []
+resolver: lts-7.10

@@ -34,12 +34,12 @@ infix 6 +:
 {-# INLINE (+:) #-}
 
 -- | Extracts the real part of a complex pixel.
-realPart :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
+realPart :: ColorSpace cs => Pixel cs (Complex e) -> Pixel cs e
 realPart = liftA C.realPart
 {-# INLINE realPart #-}
 
 -- | Extracts the imaginary part of a complex pixel.
-imagPart :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
+imagPart :: ColorSpace cs => Pixel cs (Complex e) -> Pixel cs e
 imagPart = liftA C.imagPart
 {-# INLINE imagPart #-}
 

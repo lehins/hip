@@ -27,7 +27,7 @@ convolve'' !border !kernel !img =
     !krnM2            = krnM `div` 2
     !krnN2            = krnN `div` 2
     !sz               = dims img
-    getPxB !getPx !ix = borderIndex border sz getPx ix
+    getPxB !getPx !ix = handleBorderIndex border sz getPx ix
     {-# INLINE getPxB #-}
     stencil !getKrnPx !getImgPx !(i, j) = integrate 0 0 0 where
       !ikrnM = i - krnM2

@@ -5,7 +5,7 @@ module Graphics.Image.ColorSpaceSpec (spec) where
 
 import Test.Hspec
 import Test.QuickCheck
-
+  
 import Graphics.Image as I
 import Graphics.Image.Interface as II
 import Graphics.Image.ColorSpace

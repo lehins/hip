@@ -1,4 +1,6 @@
-{-# LANGUAGE CPP, BangPatterns, ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Processing
 -- Copyright   : (c) Alexey Kuleshevich 2016

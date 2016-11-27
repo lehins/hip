@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# LANGUAGE CPP, BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -86,7 +88,7 @@ module Graphics.Image (
   -- ** Dimensions
   rows, cols, dims,
   -- ** Indexing
-  index, defaultIndex, maybeIndex,
+  index, maybeIndex, defaultIndex, borderIndex,
   -- * Transformation
   -- ** Pointwise
   map, imap, zipWith, izipWith,

@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image.Processing.Complex
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -28,7 +29,7 @@ import Graphics.Image.Processing.Complex.Fourier
 
 infix 6 !+!
 
--- | Constrcut a complex image from two images representing real and imaginary parts.
+-- | Construct a complex image from two images representing real and imaginary parts.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> frog !+! 0
@@ -42,13 +43,13 @@ infix 6 !+!
 {-# INLINE (!+!) #-}
 
 -- | Extracts the real part of a complex image.
-realPart' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+realPart' :: (Array arr cs e, Array arr cs (Complex e)) =>
              Image arr cs (Complex e) -> Image arr cs e
 realPart' = map realPart
 {-# INLINE realPart' #-}
 
 -- | Extracts the imaginary part of a complex image.
-imagPart' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+imagPart' :: (Array arr cs e, Array arr cs (Complex e)) =>
              Image arr cs (Complex e) -> Image arr cs e
 imagPart' = map imagPart
 {-# INLINE imagPart' #-}

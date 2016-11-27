@@ -1,4 +1,7 @@
-{-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image.Processing.Complex.Fourier
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -26,7 +29,7 @@ data Mode = Forward
           | Inverse
 
 -- | Fast Fourier Transform
-fft :: (ManifestArray arr cs (Complex e), Num e, RealFloat e) =>
+fft :: (ManifestArray arr cs (Complex e), RealFloat e) =>
        Image arr cs (Complex e)
     -> Image arr cs (Complex e)
 fft = fft2d Forward
@@ -34,7 +37,7 @@ fft = fft2d Forward
 
 
 -- | Inverse Fast Fourier Transform
-ifft :: (ManifestArray arr cs (Complex e), Num e, RealFloat e) =>
+ifft :: (ManifestArray arr cs (Complex e), RealFloat e) =>
         Image arr cs (Complex e)
      -> Image arr cs (Complex e)
 ifft = fft2d Inverse

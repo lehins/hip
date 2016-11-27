@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Processing.Interpolation
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -38,14 +39,14 @@ data Bilinear px = Bilinear !(Border px)
 instance Interpolation Nearest where
 
   interpolate (Nearest border) !sz !getPx !(round -> i, round -> j) =
-    borderIndex border sz getPx (i, j)
+    handleBorderIndex border sz getPx (i, j)
   {-# INLINE interpolate #-}
 
 
 instance Interpolation Bilinear where
 
   interpolate (Bilinear border) !sz !getPx !(i, j) = fi0 + jPx*(fi1-fi0) where
-    getPx' = borderIndex border sz getPx
+    getPx' = handleBorderIndex border sz getPx
     {-# INLINE getPx' #-}
     !(i0, j0) = (floor i, floor j)
     !(i1, j1) = (i0 + 1, j0 + 1)

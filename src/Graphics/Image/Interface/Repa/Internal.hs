@@ -1,7 +1,14 @@
 {-# OPTIONS -fno-warn-orphans #-}
-{-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
-             MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
-             UndecidableInstances, ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Interface.Repa.Internal
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -29,9 +36,7 @@ import Data.Array.Repa.Repr.Unboxed (Unbox)
 import qualified Data.Vector.Unboxed as V ((!))
 import Data.Function (on)
 import Data.Typeable (Typeable)
-import Data.Array.Repa hiding (
-  Array, map, zipWith, rank, index, traverse, (++), computeP, computeS, delay,
-  traverse, traverse2, transpose, backpermute)
+import Data.Array.Repa.Index
 import qualified Data.Array.Repa as R 
 import qualified Data.Array.Repa.Eval as R (Elt(..), suspendedComputeP)
 
@@ -60,18 +65,18 @@ instance Elt RD cs e => Array RD cs e where
                       R.Elt (Pixel cs e), Unbox (Pixel cs e))
                      
   data Image RD cs e = RScalar !(Pixel cs e)
-                     | RUImage !(R.Array U DIM2 (Pixel cs e))
-                     | RDImage !(R.Array D DIM2 (Pixel cs e))
+                     | RUImage !(R.Array R.U R.DIM2 (Pixel cs e))
+                     | RDImage !(R.Array R.D R.DIM2 (Pixel cs e))
 
   dims (RScalar _                        ) = (1, 1)
-  dims (RUImage (extent -> (Z :. m :. n))) = (m, n)
-  dims (RDImage (extent -> (Z :. m :. n))) = (m, n)
+  dims (RUImage (R.extent -> (Z :. m :. n))) = (m, n)
+  dims (RDImage (R.extent -> (Z :. m :. n))) = (m, n)
   {-# INLINE dims #-}
 
   singleton = RScalar
   {-# INLINE singleton #-}
 
-  makeImage !(m, n) !f = RDImage $ fromFunction (Z :. m :. n) (f . shT2)
+  makeImage !(m, n) !f = RDImage $ R.fromFunction (Z :. m :. n) (f . shT2)
   {-# INLINE makeImage #-}
 
   map f (RScalar px)        = RScalar (f px)
@@ -79,7 +84,7 @@ instance Elt RD cs e => Array RD cs e where
   {-# INLINE map #-}
 
   imap f (RScalar px)  = RScalar (f (0, 0) px)
-  imap f (getDelayed -> arr) = RDImage (R.zipWith f (R.fromFunction (extent arr) shT2) arr)
+  imap f (getDelayed -> arr) = RDImage (R.zipWith f (R.fromFunction (R.extent arr) shT2) arr)
   {-# INLINE imap #-}
     
   zipWith f (RScalar px1)        (RScalar px2)        = RScalar (f px1 px2)
@@ -109,7 +114,7 @@ instance Elt RD cs e => Array RD cs e where
 
   transpose (RDImage arr) = RDImage (R.transpose arr)
   transpose (RUImage arr) = RDImage (R.transpose arr)
-  transpose img           = img
+  transpose !img          = img
   {-# INLINE transpose #-}
 
   backpermute _ _ img@(RScalar _)                = img
@@ -227,7 +232,7 @@ instance Array RS cs e => ManifestArray RS cs e where
   index _ _ = _errorCompute
   {-# INLINE index #-}
 
-  deepSeqImage (RSImage (RUImage arr)) = deepSeqArray arr
+  deepSeqImage (RSImage (RUImage arr)) = R.deepSeqArray arr
   deepSeqImage (RSImage (RScalar px))  = seq px
   deepSeqImage _ = _errorCompute
   {-# INLINE deepSeqImage #-}
@@ -254,7 +259,7 @@ instance Array RP cs e => ManifestArray RP cs e where
   index _ _ = _errorCompute
   {-# INLINE index #-}
 
-  deepSeqImage (RPImage (RUImage arr)) = deepSeqArray arr
+  deepSeqImage (RPImage (RUImage arr)) = R.deepSeqArray arr
   deepSeqImage (RPImage (RScalar px))  = seq px
   deepSeqImage _ = _errorCompute
   {-# INLINE deepSeqImage #-}
@@ -419,11 +424,11 @@ mult img1@(RUImage arr1) img2@(RUImage arr2) =
   if n1 /= m2 
   then error ("Inner dimensions of multiplied images must be the same, but received: "++
               show img1 ++" X "++ show img2)
-  else RDImage . fromFunction (Z :. m1 :. n2) $ getPx where
-    (Z :. m1 :. n1) = extent arr1
-    (Z :. m2 :. n2) = extent arr2
+  else RDImage . R.fromFunction (Z :. m1 :. n2) $ getPx where
+    (Z :. m1 :. n1) = R.extent arr1
+    (Z :. m2 :. n2) = R.extent arr2
     getPx (Z :. i :. j) =
-      sumAllS (slice arr1 (Any :. (i :: Int) :. All) *^ slice arr2 (Any :. (j :: Int)))
+      R.sumAllS (R.slice arr1 (R.Any :. (i :: Int) :. R.All) R.*^ R.slice arr2 (R.Any :. (j :: Int)))
     {-# INLINE getPx #-}
 mult _ _ = _errorCompute
 {-# INLINE mult #-}
@@ -445,7 +450,7 @@ suspendedComputeP !img          = RPImage img
 {-# INLINE suspendedComputeP #-}
 
 
-getDelayed :: Array RD cs e => Image RD cs e -> R.Array D DIM2 (Pixel cs e)
+getDelayed :: Array RD cs e => Image RD cs e -> R.Array R.D DIM2 (Pixel cs e)
 getDelayed (RUImage arr) = R.delay arr
 getDelayed (RDImage arr) = arr
 getDelayed _             = error "Scalar image is not an array."
@@ -453,14 +458,13 @@ getDelayed _             = error "Scalar image is not an array."
 
 
 -- | Create an image from a 2D Repa delayed array.
-fromRepaArray :: (ColorSpace cs, Unbox (PixelElt cs e)) =>
-                 R.Array D DIM2 (Pixel cs e) -> Image RD cs e
+fromRepaArray :: R.Array R.D DIM2 (Pixel cs e) -> Image RD cs e
 fromRepaArray = RDImage
 
 
 -- | Retrieve an underlying Repa array from `RD` image type.
 toRepaArray :: (ColorSpace cs, Unbox (PixelElt cs e)) =>
-               Image RD cs e -> R.Array D DIM2 (Pixel cs e)
+               Image RD cs e -> R.Array R.D DIM2 (Pixel cs e)
 toRepaArray (RUImage arr) = R.delay arr
 toRepaArray (RDImage arr) = arr
 toRepaArray (RScalar px) = R.fromFunction (Z :. 1 :. 1) $ const px

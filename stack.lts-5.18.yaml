@@ -1,0 +1,13 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- Chart-diagrams-1.5.4
+- OneTuple-0.2.1
+- SVGFonts-1.5.0.1
+- attoparsec-binary-0.2
+- netpbm-1.0.2
+- storable-record-0.0.3.1
+- tuple-0.3.0.2
+resolver: lts-5.18

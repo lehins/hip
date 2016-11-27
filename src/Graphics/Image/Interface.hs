@@ -1,9 +1,17 @@
-{-# LANGUAGE CPP, BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
-             MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies,
-             UndecidableInstances, ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 #if __GLASGOW_HASKELL__ >= 800
+    {-# OPTIONS_GHC -Wno-redundant-constraints #-}
   {-# LANGUAGE UndecidableSuperClasses #-}
 #endif
+{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Interface
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -16,7 +24,7 @@ module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..), Elevator(..),
   Array(..), ManifestArray(..), SequentialArray(..), MutableArray(..), 
   Exchangable(..),
-  defaultIndex, maybeIndex, Border(..), borderIndex,
+  defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   ) where
 
 import Prelude hiding (and, map, zipWith, sum, product)
@@ -377,12 +385,12 @@ data Border px =
 -- | Border handling function. If @(i, j)@ location is within bounds, then supplied
 -- lookup function will be used, otherwise it will be handled according to a
 -- supplied border strategy.
-borderIndex :: Border (Pixel cs e) -- ^ Border handling strategy.
+handleBorderIndex :: Border (Pixel cs e) -- ^ Border handling strategy.
             -> (Int, Int) -- ^ Image dimensions
             -> ((Int, Int) -> Pixel cs e) -- ^ Image's indexing function.
             -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
             -> Pixel cs e
-borderIndex border !(m, n) !getPx !(i, j) =
+handleBorderIndex border !(m, n) !getPx !(i, j) =
   if i >= 0 && j >= 0 && i < m && j < n then getPx (i, j) else getPxB border where
     getPxB (Fill px) = px
     getPxB Wrap      = getPx (i `mod` m, j `mod` n)
@@ -397,18 +405,26 @@ borderIndex border !(m, n) !getPx !(i, j) =
                               if j < 0 then abs j `mod` n else
                                 if j >= n then n - (j - n + 2) `mod` n else j)
     {-# INLINE getPxB #-}
-{-# INLINE borderIndex #-}
+{-# INLINE handleBorderIndex #-}
 
 
 -- | Image indexing function that returns a default pixel if index is out of bounds.
 defaultIndex :: ManifestArray arr cs e =>
                 Pixel cs e -> Image arr cs e -> (Int, Int) -> Pixel cs e
-defaultIndex !px !img = borderIndex (Fill px) (dims img) (index img)
+defaultIndex !px !img = handleBorderIndex (Fill px) (dims img) (index img)
 {-# INLINE defaultIndex #-}
 
 
--- | Image indexing function that returns 'Nothing' if index is out of bounds,
--- 'Just' pixel otherwise.
+-- | Image indexing function that uses a special border resolutions strategy for
+-- out of bounds pixels.
+borderIndex :: ManifestArray arr cs e =>
+                Border (Pixel cs e) -> Image arr cs e -> (Int, Int) -> Pixel cs e
+borderIndex !atBorder !img = handleBorderIndex atBorder (dims img) (index img)
+{-# INLINE borderIndex #-}
+
+
+-- | Image indexing function that returns @'Nothing'@ if index is out of bounds,
+-- @'Just' px@ otherwise.
 maybeIndex :: ManifestArray arr cs e =>
               Image arr cs e -> (Int, Int) -> Maybe (Pixel cs e)
 maybeIndex !img@(dims -> (m, n)) !(i, j) =
@@ -534,7 +550,7 @@ instance Array arr cs e => Num (Image arr cs e) where
   {-# INLINE fromInteger#-}
 
 
-instance (Fractional (Pixel cs e), Fractional e, Array arr cs e) =>
+instance (Fractional (Pixel cs e), Array arr cs e) =>
          Fractional (Image arr cs e) where
   (/)          = zipWith (/)
   {-# INLINE (/) #-}
@@ -543,7 +559,7 @@ instance (Fractional (Pixel cs e), Fractional e, Array arr cs e) =>
   {-# INLINE fromRational #-}
 
 
-instance (Floating (Pixel cs e), Floating e, Array arr cs e) =>
+instance (Floating (Pixel cs e), Array arr cs e) =>
          Floating (Image arr cs e) where
   pi    = singleton pi
   {-# INLINE pi #-}

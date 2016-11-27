@@ -1,6 +1,12 @@
-{-# LANGUAGE BangPatterns, ConstraintKinds, FlexibleContexts, FlexibleInstances,
-             MultiParamTypeClasses, RankNTypes, TypeFamilies, UndecidableInstances,
-             ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector.Unboxed
 -- Copyright   : (c) Alexey Kuleshevich 2016

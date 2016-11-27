@@ -1,5 +1,5 @@
 Name:              hip
-Version:           1.0.2.0
+Version:           1.1.0.0
 License:           BSD3
 License-File:      LICENSE
 Author:            Alexey Kuleshevich
@@ -11,31 +11,26 @@ Description:
             .
             Haskell Image Processing (HIP) Library provides an easy to use interface with a whole variaty of image manipulation capabilities.
             .
-            Processing can be done sequentially as well as in parallel, with an inherited fusion capabily, all through <https://hackage.haskell.org/package/repa repa> and <https://hackage.haskell.org/package/vector vector> packages. It is highly extendable, with an ability to add custom color spaces or use some other underlying data structure.
+            Processing can be done sequentially as well as in parallel, with an inherited fusion capabily, all through <https://hackage.haskell.org/package/repa repa> and <https://hackage.haskell.org/package/vector vector> packages. It is highly extendable, with an ability to add various color spaces or provide implementations for underlying array like custom data structures.
             .
-            It is capable of reading and writing a number of popular image formats by using <https://hackage.haskell.org/package/JuicyPixels JuciyPixels> and <https://hackage.haskell.org/package/netpbm netpbm> packages. Being a pure Haskell library it does not require any external programs, although it can display images using a program of your choice and create histograms using @cairo@.
+            It is capable of reading and writing a number of popular image formats by using <https://hackage.haskell.org/package/JuicyPixels JuciyPixels> and <https://hackage.haskell.org/package/netpbm netpbm> packages. Being a pure Haskell library it does not require any external programs, although it can display images using a program of your choice.
 Homepage:          https://github.com/lehins/hip
 Bug-Reports:       https://github.com/lehins/hip/issues
 Cabal-Version:     >= 1.10
 Build-Type:        Simple
 Extra-Doc-Files:   images/*.jpg
                  , images/*.png
+                 , images/*.svg
                  , README.md
                    CHANGELOG.md
-Flag use-chart
-     Description: Use Chart package for plotting histograms.
-     Default: True
-
 Library
   Default-Language: Haskell2010
   HS-Source-Dirs: src
 
-  if flag(use-chart)
-    Build-Depends: Chart           >= 1.5
-                 , Chart-cairo     >= 1.5
-
-  Build-Depends: base            >= 4.5     && < 5
+  Build-Depends: base            >= 4.5
                , bytestring      >= 0.9.0.4
+               , Chart           >= 1.5
+               , Chart-diagrams  >= 1.5
                , colour          >= 2.3.3
                , deepseq         >= 1.1
                , directory       >= 1.2.2.0
@@ -97,15 +92,13 @@ Library
     else
       if os(darwin)
         CPP-Options:  -DOS_Mac
-  if flag(use-chart)
-     CPP-Options:     -DUSE_Chart
 
 Test-Suite hip-tests
   Type:               exitcode-stdio-1.0
   HS-Source-Dirs:     tests
   Main-Is:            Spec.hs
   Other-Modules:      Graphics.Image.ColorSpaceSpec
-  Build-Depends:      base            >= 4.5     && < 5
+  Build-Depends:      base            >= 4.5
                     , hip
                     , hspec
                     , QuickCheck
