@@ -165,7 +165,7 @@ displayImageUsing :: Writable (Image arr cs e) TIF =>
                   -> IO ()
 displayImageUsing viewer block img = do
   let display = do
-        tmpDir <- (</> "hip") <$> getTemporaryDirectory
+        tmpDir <- fmap (</> "hip") getTemporaryDirectory
         createDirectoryIfMissing True tmpDir
         bracket (openBinaryTempFile tmpDir "tmp-img.tiff")
           (hClose . snd)

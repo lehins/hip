@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 #if __GLASGOW_HASKELL__ >= 800
-    {-# OPTIONS_GHC -Wno-redundant-constraints #-}
+  {-# OPTIONS_GHC -Wno-redundant-constraints #-}
   {-# LANGUAGE UndecidableSuperClasses #-}
 #endif
 {-# LANGUAGE ViewPatterns #-}

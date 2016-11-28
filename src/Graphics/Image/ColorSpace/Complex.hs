@@ -1,4 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 800
+  {-# OPTIONS_GHC -Wno-redundant-constraints #-}
+#endif
 -- |
 -- Module      : Graphics.Image.ColorSpace.Complex
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -34,12 +38,12 @@ infix 6 +:
 {-# INLINE (+:) #-}
 
 -- | Extracts the real part of a complex pixel.
-realPart :: ColorSpace cs => Pixel cs (Complex e) -> Pixel cs e
+realPart :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
 realPart = liftA C.realPart
 {-# INLINE realPart #-}
 
 -- | Extracts the imaginary part of a complex pixel.
-imagPart :: ColorSpace cs => Pixel cs (Complex e) -> Pixel cs e
+imagPart :: (ColorSpace cs, RealFloat e) => Pixel cs (Complex e) -> Pixel cs e
 imagPart = liftA C.imagPart
 {-# INLINE imagPart #-}
 

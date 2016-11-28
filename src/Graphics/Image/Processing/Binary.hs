@@ -29,6 +29,9 @@ module Graphics.Image.Processing.Binary (
   ) where
 
 import Prelude hiding (map, zipWith)
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<*>))
+#endif
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace
 import Graphics.Image.Processing.Convolution

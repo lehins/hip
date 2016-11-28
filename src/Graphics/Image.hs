@@ -107,6 +107,7 @@ module Graphics.Image (
 import Prelude hiding (map, zipWith, sum, product, maximum, minimum, traverse)
 #else
 import Prelude hiding (map, zipWith, sum, product, maximum, minimum)
+import Control.Applicative (pure)
 #endif
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace

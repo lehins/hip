@@ -43,13 +43,13 @@ infix 6 !+!
 {-# INLINE (!+!) #-}
 
 -- | Extracts the real part of a complex image.
-realPart' :: (Array arr cs e, Array arr cs (Complex e)) =>
+realPart' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
              Image arr cs (Complex e) -> Image arr cs e
 realPart' = map realPart
 {-# INLINE realPart' #-}
 
 -- | Extracts the imaginary part of a complex image.
-imagPart' :: (Array arr cs e, Array arr cs (Complex e)) =>
+imagPart' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
              Image arr cs (Complex e) -> Image arr cs e
 imagPart' = map imagPart
 {-# INLINE imagPart' #-}

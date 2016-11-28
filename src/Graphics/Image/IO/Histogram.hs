@@ -102,7 +102,7 @@ displayHistogramsUsing :: ExternalViewer
 displayHistogramsUsing viewer block hists = do
   let display = do
         tmpDir <- getTemporaryDirectory
-        histPath <- (</> "tmp-hist.svg") <$> createTempDirectory tmpDir "hip-histogram"
+        histPath <- fmap (</> "tmp-hist.svg") $ createTempDirectory tmpDir "hip-histogram"
         writeHistograms histPath hists
         displayImageFile viewer histPath
   if block

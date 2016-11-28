@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -22,7 +23,11 @@ module Graphics.Image.Interface.Vector.Unboxed (
 import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Control.DeepSeq (deepseq)
+#if MIN_VERSION_base(4,8,0)
 import Control.Monad (void)
+#else
+import Data.Functor
+#endif
 import Data.Typeable (Typeable)
 import Data.Vector.Unboxed (Vector, Unbox)
 import qualified Data.Vector.Unboxed as V

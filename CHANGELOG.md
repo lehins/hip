@@ -1,3 +1,8 @@
+1.1.0.1
+=======
+
+* Backwards compatibility with GHC 7.8
+
 1.1.0.0
 =======
 
