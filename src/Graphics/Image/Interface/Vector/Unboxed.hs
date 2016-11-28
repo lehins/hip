@@ -23,9 +23,8 @@ module Graphics.Image.Interface.Vector.Unboxed (
 import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Control.DeepSeq (deepseq)
-#if MIN_VERSION_base(4,8,0)
 import Control.Monad (void)
-#else
+#if !MIN_VERSION_base(4,8,0)
 import Data.Functor
 #endif
 import Data.Typeable (Typeable)
