@@ -23,7 +23,7 @@
 module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..), Elevator(..),
   Array(..), ManifestArray(..), SequentialArray(..), MutableArray(..), 
-  Exchangable(..),
+  Exchangable(..), exchangeFrom,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   ) where
 
@@ -241,6 +241,8 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e),
 -- allowing for image indexing, forcing pixels into computed state etc.
 class Array arr cs e => ManifestArray arr cs e where
 
+  unsafeIndex :: Image arr cs e -> (Int, Int) -> Pixel cs e
+  
   -- | Get a pixel at @i@-th and @j@-th location.
   --
   -- >>> let grad_gray = makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
@@ -248,7 +250,9 @@ class Array arr cs e => ManifestArray arr cs e where
   -- True
   --
   index :: Image arr cs e -> (Int, Int) -> Pixel cs e
-  
+  index !img !ix = borderIndex (error $ show img ++ " - Index out of bounds: " ++ show ix) img ix
+  {-# INLINE index #-}
+
   -- | Make sure that an image is fully evaluated.
   deepSeqImage :: Image arr cs e -> a -> a
 
@@ -277,6 +281,15 @@ class ManifestArray arr cs e => SequentialArray arr cs e where
 
   -- | Fold an image from the right in a row major order.
   foldr :: (Pixel cs e -> a -> a) -> a -> Image arr cs e -> a
+
+  -- | Create an Image by supplying it's dimensions and a monadic pixel
+  -- generating action.
+  makeImageM :: (Functor m, Monad m) =>
+                (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
+             -> ((Int, Int) -> m (Pixel cs e))
+                -- ^ A function that takes (@i@-th row, and @j@-th column) as an
+                -- argument and generates a pixel for that location.
+             -> m (Image arr cs e)
 
   -- | Monading mapping over an image.
   mapM :: (SequentialArray arr cs' e', Functor m, Monad m) =>
@@ -331,6 +344,14 @@ class Exchangable arr' arr where
            -> Image arr' cs e -- ^ Source image.
            -> Image arr cs e
 
+-- | `exchange` function that is allows restricting the representation type of
+-- source image.
+exchangeFrom :: (Exchangable arr' arr, Array arr' cs e, Array arr cs e) =>
+                arr'
+             -> arr -- ^ New representation of an image.
+             -> Image arr' cs e -- ^ Source image.
+             -> Image arr cs e
+exchangeFrom _ = exchange
 
 -- | Changing to the same array representation as before is disabled and `exchange`
 -- will behave simply as an identitity function.
@@ -381,15 +402,16 @@ data Border px =
               -- 'Continue' : 1 4 3 2 | 1 2 3 4 | 3 2 1 4
               -- @
               --
+  deriving Show
 
 -- | Border handling function. If @(i, j)@ location is within bounds, then supplied
 -- lookup function will be used, otherwise it will be handled according to a
 -- supplied border strategy.
-handleBorderIndex :: Border (Pixel cs e) -- ^ Border handling strategy.
+handleBorderIndex :: Border px -- ^ Border handling strategy.
             -> (Int, Int) -- ^ Image dimensions
-            -> ((Int, Int) -> Pixel cs e) -- ^ Image's indexing function.
+            -> ((Int, Int) -> px) -- ^ Image's indexing function.
             -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
-            -> Pixel cs e
+            -> px
 handleBorderIndex border !(m, n) !getPx !(i, j) =
   if i >= 0 && j >= 0 && i < m && j < n then getPx (i, j) else getPxB border where
     getPxB (Fill px) = px
@@ -400,10 +422,10 @@ handleBorderIndex border !(m, n) !getPx !(i, j) =
                                 if i >= m then (m - (i - m + 1)) `mod` m else i,
                               if j < 0 then (abs j - 1) `mod` n else
                                 if j >= n then (n - (j - n + 1)) `mod` n else j)
-    getPxB Continue  = getPx (if i < 0 then abs i `mod` m else
-                                if i >= m then m - (i - m + 2) `mod` m else i,
-                              if j < 0 then abs j `mod` n else
-                                if j >= n then n - (j - n + 2) `mod` n else j)
+    getPxB Continue  = getPx (if i < 0 then (abs i) `mod` m else
+                                if i >= m then (m - (i - m + 2)) `mod` m else i,
+                              if j < 0 then (abs j) `mod` n else
+                                if j >= n then (n - (j - n + 2)) `mod` n else j)
     {-# INLINE getPxB #-}
 {-# INLINE handleBorderIndex #-}
 
@@ -418,8 +440,8 @@ defaultIndex !px !img = handleBorderIndex (Fill px) (dims img) (index img)
 -- | Image indexing function that uses a special border resolutions strategy for
 -- out of bounds pixels.
 borderIndex :: ManifestArray arr cs e =>
-                Border (Pixel cs e) -> Image arr cs e -> (Int, Int) -> Pixel cs e
-borderIndex !atBorder !img = handleBorderIndex atBorder (dims img) (index img)
+               Border (Pixel cs e) -> Image arr cs e -> (Int, Int) -> Pixel cs e
+borderIndex atBorder !img = handleBorderIndex atBorder (dims img) (unsafeIndex img)
 {-# INLINE borderIndex #-}
 
 
@@ -523,6 +545,14 @@ instance (ColorSpace cs, Floating e) => Floating (Pixel cs e) where
   
   acosh   = liftA acosh
   {-# INLINE acosh #-}
+
+
+instance (ColorSpace cs, Bounded e) => Bounded (Pixel cs e) where
+  maxBound = fromChannel maxBound
+  {-# INLINE maxBound #-}
+  
+  minBound = fromChannel minBound
+  {-# INLINE minBound #-}
 
 
 instance (ManifestArray arr cs e, Eq (Pixel cs e)) => Eq (Image arr cs e) where
