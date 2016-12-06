@@ -7,24 +7,23 @@ import Test.QuickCheck
 import qualified Graphics.Image.Interface as I
 import Graphics.Image.Types
 import Graphics.Image.Processing
-import Graphics.Image.Interface.Vector (VU(..))
 
 import Graphics.Image.InterfaceSpec (translateWrap, dummyImage10x20)
 
-data Interpol b = I1 (Nearest b)
-                | I2 (Bilinear b)
+data Interpol
+  = I1 Nearest
+  | I2 Bilinear
 
-instance Show b => Show (Interpol b) where
+instance Show Interpol where
   show (I1 i) = "I1 " ++ show i
   show (I2 i) = "I2 " ++ show i
 
-instance Arbitrary b => Arbitrary (Interpol b) where
+instance Arbitrary Interpol where
   arbitrary = do
     ix <- arbitrary
-    border <- arbitrary
     case ix `mod` (2 :: Int) of
-      0 -> return . I1 $ Nearest border
-      1 -> return . I2 $ Bilinear border
+      0 -> return $ I1 Nearest
+      1 -> return $ I2 Bilinear
       _ -> error $ "Unknown interpolation: " ++ show ix
 
 
@@ -56,21 +55,21 @@ prop_concatRotate img =
   rotate90 (leftToRight img $ rotate180 img)
 
 
-prop_rotate90 :: (Interpol (Pixel RGB Double)) -> Image VU RGB Double -> Bool
-prop_rotate90 (I1 i) img = rotate90 img == rotate i (pi/2) img
-prop_rotate90 (I2 i) img = rotate90 img == rotate i (pi/2) img
+prop_rotate90 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
+prop_rotate90 (I1 i) border img = rotate90 img == rotate i border (pi/2) img
+prop_rotate90 (I2 i) border img = rotate90 img == rotate i border (pi/2) img
 
-prop_rotate180 :: (Interpol (Pixel RGB Double)) -> Image VU RGB Double -> Bool
-prop_rotate180 (I1 i) img = rotate180 img == rotate i pi img
-prop_rotate180 (I2 i) img = rotate180 img == rotate i pi img
+prop_rotate180 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
+prop_rotate180 (I1 i) border img = rotate180 img == rotate i border pi img
+prop_rotate180 (I2 i) border img = rotate180 img == rotate i border pi img
 
-prop_rotate270 :: (Interpol (Pixel RGB Double)) -> Image VU RGB Double -> Bool
-prop_rotate270 (I1 i) img = rotate270 img == rotate i (3*pi/2) img
-prop_rotate270 (I2 i) img = rotate270 img == rotate i (3*pi/2) img
+prop_rotate270 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
+prop_rotate270 (I1 i) border img = rotate270 img == rotate i border (3*pi/2) img
+prop_rotate270 (I2 i) border img = rotate270 img == rotate i border (3*pi/2) img
 
-prop_rotate360 :: (Interpol (Pixel RGB Double)) -> Image VU RGB Double -> Bool
-prop_rotate360 (I1 i) img = (rotate270 . rotate90) img == rotate i (2*pi) img
-prop_rotate360 (I2 i) img = (rotate270 . rotate90) img == rotate i (2*pi) img
+prop_rotate360 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
+prop_rotate360 (I1 i) border img = (rotate270 . rotate90) img == rotate i border (2*pi) img
+prop_rotate360 (I2 i) border img = (rotate270 . rotate90) img == rotate i border (2*pi) img
 
 
 spec :: Spec

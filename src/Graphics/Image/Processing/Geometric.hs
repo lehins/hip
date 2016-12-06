@@ -241,16 +241,17 @@ rotate270 = transpose . flipH
 -- | Rotate an image clockwise by an angle Θ in radians.
 --
 -- >>> frog <- readImageRGBA "images/frog.jpg"
--- >>> writeImage "images/frog_rotate330.png" $ rotate (Bilinear (Fill 0)) (11*pi/6) frog
+-- >>> writeImage "images/frog_rotate330.png" $ rotate Bilinear (Fill 0) (11*pi/6) frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate330.png>>
 --
 rotate :: (Array arr cs e, Elevator e, Interpolation method) =>
-          method (Pixel cs e) -- ^ Interpolation method to be used
+          method -- ^ Interpolation method to be used
+       -> Border (Pixel cs e) -- ^ Border handling strategy
        -> Double -- ^ Angle in radians
        -> Image arr cs e -- ^ Source image
        -> Image arr cs e -- ^ Rotated image
-rotate !method !theta' !img = traverse img getNewDims getNewPx where
+rotate !method border !theta' !img = traverse img getNewDims getNewPx where
   !theta = angle0to2pi (-theta') -- invert angle direction and put it into [0, 2*pi) range
   !sz@(m, n) = dims img
   !(mD, nD) = (fromIntegral m, fromIntegral n)
@@ -264,7 +265,7 @@ rotate !method !theta' !img = traverse img getNewDims getNewPx where
          (False, False) -> (-mD * cosTheta, nD') -- III quadrant
          (False, True ) -> (0, -mD * sinTheta)   -- IV quadrant
   getNewDims _ = (ceiling mD', ceiling nD')
-  getNewPx getPx (i, j) = interpolate method sz getPx (i', j') where
+  getNewPx getPx (i, j) = interpolate method border sz getPx (i', j') where
     (iD, jD) = (fromIntegral i - iDelta + 0.5, fromIntegral j - jDelta + 0.5)
     i' = iD * cosTheta + jD * sinTheta - 0.5
     j' = jD * cosTheta - iD * sinTheta - 0.5
@@ -273,20 +274,21 @@ rotate !method !theta' !img = traverse img getNewDims getNewPx where
 -- | Resize an image using an interpolation method.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_resize.jpg" $ resize (Bilinear Edge) (100, 640) frog
+-- >>> writeImage "images/frog_resize.jpg" $ resize Bilinear Edge (100, 640) frog
 --
 -- <<images/frog_resize.jpg>>
 --
 resize :: (Interpolation method, Array arr cs e, Elevator e) =>
-          method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
+          method -- ^ Interpolation method to be used during scaling.
+       -> Border (Pixel cs e) -- ^ Border handling strategy
        -> (Int, Int)     -- ^ Dimensions of a result image.
        -> Image arr cs e -- ^ Source image.
        -> Image arr cs e -- ^ Result image.
-resize !method !sz'@(m', n') !img = traverse img (const sz') getNewPx where
+resize !method border !sz'@(m', n') !img = traverse img (const sz') getNewPx where
   !sz@(m, n) = dims img
   !(fM, fN) = (fromIntegral m' / fromIntegral m, fromIntegral n' / fromIntegral n)
   getNewPx !getPx !(i, j) =
-    interpolate method sz getPx ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
+    interpolate method border sz getPx ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
@@ -297,14 +299,15 @@ resize !method !sz'@(m', n') !img = traverse img (const sz') getNewPx where
 -- @ scale ('Bilinear' 'Edge') (0.5, 2) frog == resize ('Bilinear' 'Edge') (100, 640) frog @
 --
 scale :: (Interpolation method, Array arr cs e, Elevator e) =>
-         method (Pixel cs e) -- ^ Interpolation method to be used during scaling.
+         method -- ^ Interpolation method to be used during scaling.
+      -> Border (Pixel cs e) -- ^ Border handling strategy
       -> (Double, Double) -- ^ Positive scaling factors.
       -> Image arr cs e -- ^ Source image.
       -> Image arr cs e
-scale !method !(fM, fN) !img@(dims -> (m, n)) =
+scale !method border !(fM, fN) !img@(dims -> (m, n)) =
   if fM <= 0 || fN <= 0
   then error "scale: scaling factor must be greater than 0."
-  else resize method (round (fM * fromIntegral m), round (fN * fromIntegral n)) img
+  else resize method border (round (fM * fromIntegral m), round (fN * fromIntegral n)) img
 {-# INLINE scale #-}
 
 
