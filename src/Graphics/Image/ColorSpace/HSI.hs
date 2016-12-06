@@ -69,7 +69,7 @@ class (ToHSI (Opaque cs), Alpha cs) => ToHSIA cs where
   
 instance ColorSpace HSI where
   type PixelElt HSI e = (e, e, e)
-  data Pixel HSI e = PixelHSI !e !e !e deriving (Eq, Typeable)
+  data Pixel HSI e = PixelHSI !e !e !e deriving Eq
 
   fromChannel !e = PixelHSI e e e
   {-# INLINE fromChannel #-}
@@ -105,7 +105,7 @@ instance ColorSpace HSI where
 
 instance ColorSpace HSIA where
   type PixelElt HSIA e = (e, e, e, e)
-  data Pixel HSIA e = PixelHSIA !e !e !e !e deriving (Eq, Typeable)
+  data Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
 
   fromChannel !e = PixelHSIA e e e e
   {-# INLINE fromChannel #-}

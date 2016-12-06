@@ -1,8 +1,12 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 module Graphics.Image.ColorSpaceSpec (spec) where
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
 import Test.Hspec
 import Test.QuickCheck
   

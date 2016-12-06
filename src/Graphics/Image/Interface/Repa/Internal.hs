@@ -304,7 +304,7 @@ instance ManifestArray RS cs e => SequentialArray RS cs e where
   foldr !f !a = foldr f a . exchange VU
   {-# INLINE foldr #-}
 
-  makeImageM !(checkDims "RS.makeImageM" -> ix) !f = exchangeFrom VU RS <$> makeImageM ix f
+  makeImageM !(checkDims "RS.makeImageM" -> ix) !f = fmap (exchangeFrom VU RS) (makeImageM ix f)
 
   mapM !f img = liftM (exchange RS) (mapM f (exchange VU img))
   {-# INLINE mapM #-}

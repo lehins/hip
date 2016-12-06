@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -9,6 +10,9 @@ module Graphics.Image.InterfaceSpec
   , Identical (..)
   ) where
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
 import Data.Typeable (Typeable, typeOf)
 import Test.Hspec
 import Test.QuickCheck
@@ -72,8 +76,14 @@ instance Arbitrary px => Arbitrary (Border px) where
       _ -> error "Unknown method"
 
 
+#if MIN_VERSION_base(4,8,0)
 instance (Typeable a, Typeable b) => Show (a -> b) where
   show _ = show $ typeOf (undefined :: a -> b)
+#else
+instance Show (a -> b) where
+  show _ = "Function"
+#endif
+
 
 instance CoArbitrary e => CoArbitrary (Pixel Y e) where
   coarbitrary (PixelY y) = coarbitrary y

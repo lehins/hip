@@ -65,7 +65,7 @@ class (ToY (Opaque cs), Alpha cs) => ToYA cs where
 
 instance ColorSpace Y where
   type PixelElt Y e = e
-  data Pixel Y e = PixelY !e deriving (Ord, Eq, Typeable)
+  data Pixel Y e = PixelY !e deriving (Ord, Eq)
 
   fromChannel = PixelY
   {-# INLINE fromChannel #-}
@@ -96,7 +96,7 @@ instance ColorSpace Y where
 
 instance ColorSpace YA where
   type PixelElt YA e = (e, e)
-  data Pixel YA e = PixelYA !e !e deriving (Eq, Typeable)
+  data Pixel YA e = PixelYA !e !e deriving Eq
 
   fromChannel !e = PixelYA e e 
   {-# INLINE fromChannel #-}

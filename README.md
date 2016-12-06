@@ -5,6 +5,8 @@ Haskell Image Processing (HIP) Library
 
 Documentation is on [Hackage](http://hackage.haskell.org/package/hip).
 
+[![Build Status](https://travis-ci.org/lehins/hip.svg?branch=master)](https://travis-ci.org/lehins/hip)
+
 Installation
 ------------
 

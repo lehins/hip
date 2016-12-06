@@ -79,7 +79,7 @@ fromGrayImages = fromGrays (singleton (fromChannel 0)) where
 
 instance ColorSpace Gray where
   type PixelElt Gray e = e
-  data Pixel Gray e = PixelGray !e deriving (Ord, Eq, Typeable)
+  data Pixel Gray e = PixelGray !e deriving (Ord, Eq)
 
   fromChannel = PixelGray
   {-# INLINE fromChannel #-}

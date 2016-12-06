@@ -99,7 +99,7 @@ complement = fromBool . isOff
 
 instance ColorSpace Binary where
   type PixelElt Binary e = e
-  data Pixel Binary e = PixelBinary !e deriving (Ord, Eq, Typeable)
+  data Pixel Binary e = PixelBinary !e deriving (Ord, Eq)
 
   fromChannel = PixelBinary
   {-# INLINE fromChannel #-}
