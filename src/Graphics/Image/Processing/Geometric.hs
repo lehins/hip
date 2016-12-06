@@ -11,12 +11,12 @@
 --
 module Graphics.Image.Processing.Geometric (
   -- ** Sampling
-  downsampleRows, downsampleCols, downsample, 
-  upsampleRows, upsampleCols, upsample, 
+  downsampleRows, downsampleCols, downsample, downsampleF,
+  upsampleRows, upsampleCols, upsample, upsampleF,
   -- ** Concatenation
   leftToRight, topToBottom,
   -- ** Canvas
-  crop,
+  translate, crop, superimpose,
   -- ** Flipping
   flipV, flipH,
   -- ** Rotation
@@ -33,60 +33,64 @@ import Graphics.Image.Interface
 import Graphics.Image.Processing.Interpolation
 
 
-
-downsampleF :: Array arr cs e => Int -> Int -> Image arr cs e -> Image arr cs e
-downsampleF !fm !fn !img = traverse img
-                           (\ !(m, n) -> (m `div` fm, n `div` fn))
-                           (\ !getPx !(i, j) -> getPx (i*fm, j*fn))
+downsampleF :: Array arr cs e => (Int, Int) -> Image arr cs e -> Image arr cs e
+downsampleF !(fm, fn) !img =
+  traverse
+    img
+    (\ !(m, n) -> (m `div` fm, n `div` fn))
+    (\ !getPx !(i, j) -> getPx (i * fm, j * fn))
 {-# INLINE downsampleF #-}
 
 
-upsampleF :: Array arr cs e => Int -> Int -> Image arr cs e -> Image arr cs e
-upsampleF !fm !fn !img = traverse img 
-                         (\ !(m, n) -> (m*fm, n*fn))
-                         (\ !getPx !(i, j) ->
-                           if i `mod` fm == 0 && j `mod` fn == 0
-                           then getPx (i `div` fm, j `div` fn)
-                           else fromChannel 0)
+-- | Upsample an image by a positive factor. Every 
+upsampleF :: Array arr cs e => (Int, Int) -> Image arr cs e -> Image arr cs e
+upsampleF !(fm, fn) !img =
+  traverse
+    img
+    (\ !(m, n) -> (m * fm, n * fn))
+    (\ !getPx !(i, j) ->
+        if i `mod` fm == 0 && j `mod` fn == 0
+          then getPx (i `div` fm, j `div` fn)
+          else fromChannel 0)
 {-# INLINE upsampleF #-}
 
 
 -- | Downsample an image by discarding every odd row.
 downsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
-downsampleRows = downsampleF 2 1
+downsampleRows = downsampleF (2, 1)
 {-# INLINE downsampleRows #-}
 
 
 -- | Downsample an image by discarding every odd column.
 downsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
-downsampleCols = downsampleF 1 2
+downsampleCols = downsampleF (1, 2)
 {-# INLINE downsampleCols #-}
 
 
 -- | Downsample an image by discarding every odd row and column.
 downsample :: Array arr cs e => Image arr cs e -> Image arr cs e
-downsample = downsampleF 2 2
+downsample = downsampleF (2, 2)
 {-# INLINE downsample #-}
 
 
 -- | Upsample an image by inserting a row of back pixels after each row of a
 -- source image.
 upsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
-upsampleRows = upsampleF 2 1
+upsampleRows = upsampleF (2, 1)
 {-# INLINE upsampleRows #-}
 
 
 -- | Upsample an image by inserting a column of back pixels after each column of a
 -- source image.
 upsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
-upsampleCols = upsampleF 1 2
+upsampleCols = upsampleF (1, 2)
 {-# INLINE upsampleCols #-}
 
 
 -- | Upsample an image by inserting a row and a column of back pixels after each
 -- row and a column of a source image.
 upsample :: Array arr cs e => Image arr cs e -> Image arr cs e
-upsample = upsampleF 2 2
+upsample = upsampleF (2, 2)
 {-# INLINE upsample #-}
 
 
@@ -96,7 +100,7 @@ leftToRight :: Array arr cs e => Image arr cs e -> Image arr cs e -> Image arr c
 leftToRight !img1@(dims -> (_, n1)) !img2 = traverse2 img1 img2 newDims newPx where
   newDims !(m1, _) !(m2, n2)
     | m1 == m2  = (m1, n1 + n2)
-    | otherwise = error ("Images must agree in numer of rows, but received: " 
+    | otherwise = error ("leftToRight: Images must agree in numer of rows, but received: " 
                          ++ show img1 ++ " and " ++ show img2)
   {-# INLINE newDims #-}
   newPx !getPx1 !getPx2 !(i, j) = if j < n1 then getPx1 (i, j) else getPx2 (i, j-n1)
@@ -110,7 +114,7 @@ topToBottom :: Array arr cs e => Image arr cs e -> Image arr cs e -> Image arr c
 topToBottom !img1@(dims -> (m1, _)) !img2 = traverse2 img1 img2 newDims newPx where
   newDims !(_, n1) !(m2, n2)
     | n1 == n2  = (m1 + m2, n1)
-    | otherwise = error ("Images must agree in numer of columns, but received: "
+    | otherwise = error ("topToBottom: Images must agree in numer of columns, but received: "
                          ++ show img1 ++ " and " ++ show img2)
   {-# INLINE newDims #-}
   newPx !getPx1 !getPx2 !(i, j) = if i < m1 then getPx1 (i, j) else getPx2 (i-m1, j)
@@ -118,16 +122,53 @@ topToBottom !img1@(dims -> (m1, _)) !img2 = traverse2 img1 img2 newDims newPx wh
 {-# INLINE topToBottom #-}
 
 
+translate
+  :: Array arr cs e
+  => Border (Pixel cs e) -> (Int, Int) -> Image arr cs e -> Image arr cs e
+translate atBorder  !(dm, dn) !img = traverse img id newPx where
+  newPx !getPx !(i, j) = handleBorderIndex atBorder (dims img) getPx (i - dm, j - dn)
+  {-# INLINE newPx #-}
+{-# INLINE translate #-}
+
+
 -- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
--- columns. Make sure @(m + i, n + j)@ is not greater than dimensions of a
+-- columns. Make sure @(i + m, j + n)@ is not greater than dimensions of a
 -- source image.
 crop :: Array arr cs e =>
         (Int, Int)     -- ^ @(i, j)@ starting index from within a source image.
      -> (Int, Int)     -- ^ @(m, n)@ dimensions of a new image.
      -> Image arr cs e -- ^ Source image.
      -> Image arr cs e              
-crop !(i, j) sz = backpermute sz (\ !(i', j') -> (i' + i, j' + j))
+crop !(i0, j0) !sz@(m', n') !img
+  | i0 < 0 || j0 < 0 || i0 >= m || j0 >= n =
+    error $
+    "Graphics.Image.Processing.crop: Starting index: " ++
+    show (i0, j0) ++
+    " is greater than dimensions of the source image: " ++ show img
+  | i0 + m' > m || j0 + n' > n =
+    error $
+    "Graphics.Image.Processing.crop: Result image dimensions: " ++
+    show (m', n') ++
+    " plus the offset: " ++
+    show (i0, j0) ++ " are bigger than the source image: " ++ show img
+  | otherwise = backpermute sz (\ !(i, j) -> (i + i0, j + j0)) img
+  where !(m, n) = dims img
 {-# INLINE crop #-}
+
+
+-- | Place one image on top of a source image, starting at a particular location within
+-- a source image.
+superimpose :: Array arr cs e =>
+              (Int, Int)     -- ^ @(i, j)@ starting index from within a source image.
+           -> Image arr cs e -- ^ Image to be positioned above the source image.
+           -> Image arr cs e -- ^ Source image.
+           -> Image arr cs e              
+superimpose !(i0, j0) !imgA !imgB = traverse2 imgB imgA (id . const) newPx where
+  (m, n) = dims imgA
+  newPx getPxB getPxA (i, j) = let !(i', j') = (i - i0, j - j0) in
+    if i' >= 0 && j' >= 0 && i' < m && j' < n then getPxA (i', j') else getPxB (i, j)
+{-# INLINE superimpose #-}
+
 
 
 flipUsing :: Array arr cs e =>
@@ -218,10 +259,10 @@ rotate !method !theta' !img = traverse img getNewDims getNewPx where
   !(mD', nD') = (mD * cosThetaAbs + nD * sinThetaAbs, nD * cosThetaAbs + mD * sinThetaAbs)
   !(iDelta, jDelta) =
     case (sinTheta >= 0, cosTheta >= 0) of
-         (True         , True         ) -> (nD * sinTheta, 0)    -- I quadrant
-         (True         , False        ) -> (mD', -nD * cosTheta) -- II quadrant
-         (False        , False        ) -> (-mD * cosTheta, nD') -- III quadrant
-         (False        , True         ) -> (0, -mD * sinTheta)   -- IV quadrant
+         (True,  True ) -> (nD * sinTheta, 0)    -- I quadrant
+         (True,  False) -> (mD', -nD * cosTheta) -- II quadrant
+         (False, False) -> (-mD * cosTheta, nD') -- III quadrant
+         (False, True ) -> (0, -mD * sinTheta)   -- IV quadrant
   getNewDims _ = (ceiling mD', ceiling nD')
   getNewPx getPx (i, j) = interpolate method sz getPx (i', j') where
     (iD, jD) = (fromIntegral i - iDelta + 0.5, fromIntegral j - jDelta + 0.5)

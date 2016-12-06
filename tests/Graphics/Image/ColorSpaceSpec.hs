@@ -26,7 +26,7 @@ instance (SequentialArray VU RGB e, Arbitrary e) => Arbitrary (Image VU RGB e) w
     II.mapM (const arbitrary) $ I.makeImage (m, n) (const $ PixelGray (0 :: Double))
   
 
-prop_ToFromElt :: (ColorSpace cs, Arbitrary cs, Arbitrary (Pixel cs e), Eq (Pixel cs e)) =>
+prop_ToFromElt :: (ColorSpace cs, Eq (Pixel cs e)) =>
                   Pixel cs e -> Bool
 prop_ToFromElt px = px == fromElt (toElt px)
 

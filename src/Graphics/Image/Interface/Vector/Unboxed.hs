@@ -17,7 +17,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Vector.Unboxed (
-  VU(..), Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx
+  VU(..), Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx, checkDims
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -50,7 +50,8 @@ instance Elt VU cs e => Array VU cs e where
   data Image VU cs e = VScalar !(Pixel cs e)
                      | VUImage !Int !Int !(Vector (Pixel cs e))
   
-  makeImage !(m, n) !f = VUImage m n $ V.generate (m * n) (f . toIx n)
+  makeImage !(checkDims "VU.makeImage" -> (m, n)) !f =
+    VUImage m n $ V.generate (m * n) (f . toIx n)
   {-# INLINE makeImage #-}
 
   singleton = VScalar
@@ -90,7 +91,7 @@ instance Elt VU cs e => Array VU cs e where
     else VUImage m1 n1 (V.izipWith (\ !k !px1 !px2 -> f (toIx n1 k) px1 px2) v1 v2)
   {-# INLINE izipWith #-}
 
-  traverse !img !getNewDims !getNewPx = makeImage (getNewDims $ dims img) (getNewPx (index img))
+  traverse !img !getNewDims !getNewPx = makeImage (getNewDims (dims img)) (getNewPx (index img))
   {-# INLINE traverse #-}
 
   traverse2 !img1 !img2 !getNewDims !getNewPx =
@@ -102,7 +103,7 @@ instance Elt VU cs e => Array VU cs e where
     {-# INLINE getPx #-}
   {-# INLINE transpose #-}
 
-  backpermute !(m, n) !f (VUImage _ n' v) =
+  backpermute !(checkDims "VU.backpermute" -> (m, n)) !f (VUImage _ n' v) =
     VUImage m n $ V.backpermute v $ V.generate (m*n) (fromIx n' . f . toIx n)
   backpermute !sz      _ (VScalar px)     =
     if sz == (1, 1) then VScalar px else makeImage sz (const px)
@@ -119,9 +120,9 @@ instance Elt VU cs e => Array VU cs e where
 
 instance Array VU cs e => ManifestArray VU cs e where
 
-  index (VUImage _ n v) !ix = v V.! fromIx n ix
-  index (VScalar px)      _ = px
-  {-# INLINE index #-}
+  unsafeIndex (VUImage _ n v) !ix = V.unsafeIndex v (fromIx n ix)
+  unsafeIndex (VScalar px)      _ = px
+  {-# INLINE unsafeIndex #-}
 
   deepSeqImage (VUImage m n v) = m `seq` n `seq` deepseq v
   deepSeqImage (VScalar px)    = seq px
@@ -147,7 +148,9 @@ instance Array VU cs e => ManifestArray VU cs e where
   eq (VUImage m1 n1 v1) (VUImage m2 n2 v2) =
     m1 == m2 && n1 == n2 && V.all id (V.zipWith (==) v1 v2)
   eq (VScalar px1)           (VScalar px2) = px1 == px2
-  eq _                       _             = False
+  eq (VUImage 1 1 v1) (VScalar px2) = v1 V.! 0 == px2
+  eq (VScalar px1) (VUImage 1 1 v2) = v2 V.! 0 == px1
+  eq _ _ = False
   {-# INLINE eq #-}
 
 
@@ -160,6 +163,10 @@ instance ManifestArray VU cs e => SequentialArray VU cs e where
   foldr !f !a (VUImage _ _ v) = V.foldr' f a v
   foldr !f !a (VScalar px)    = f px a
   {-# INLINE foldr #-}
+
+  makeImageM !(checkDims "VU.makeImageM" -> (m, n)) !f =
+    VUImage m n <$> V.generateM (m * n) (f . toIx n)
+  {-# INLINE makeImageM #-}
 
   mapM !f (VUImage m n v) = VUImage m n <$> V.mapM f v
   mapM !f (VScalar px)    = VScalar <$> f px
@@ -235,14 +242,27 @@ fromUnboxedVector (m, n) v
   | otherwise = error "fromUnboxedVector: m * n doesn't equal the length of a Vector."
 
 
--- | 2D index conversion to a flat vector index.
-fromIx :: Int -> (Int, Int) -> Int
-fromIx !n !(i, j) = i * n + j
+-- | 2D to a flat vector index conversion.
+--
+-- __Note__: There is an implicit assumption that @j < n@
+fromIx :: Int -- ^ @n@ columns
+       -> (Int, Int) -- ^ @(i, j)@ row, column index
+       -> Int -- ^ Flat vector index
+fromIx !n !(i, j) = n * i + j
 {-# INLINE fromIx #-}
 
 
--- | Vector to 2D index conversion.
-toIx :: Int -> Int -> (Int, Int)
+-- | Flat vector to 2D index conversion.
+toIx :: Int -- ^ @n@ columns
+     -> Int -- ^ Flat vector index
+     -> (Int, Int) -- ^ @(i, j)@ row, column index
 toIx !n !k = (k `div` n, k `mod` n)
 {-# INLINE toIx #-}
 
+
+checkDims :: String -> (Int, Int) -> (Int, Int)
+checkDims err !ds@(m, n)
+  | m <= 0 || n <= 0 = 
+    error $
+    show err ++ ": Image dimensions are expected to be non-negative: " ++ show ds
+  | otherwise = ds

@@ -71,7 +71,7 @@ class (ToYCbCr (Opaque cs), Alpha cs) => ToYCbCrA cs where
   
 instance ColorSpace YCbCr where
   type PixelElt YCbCr e = (e, e, e)
-  data Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
+  data Pixel YCbCr e = PixelYCbCr !e !e !e deriving (Eq, Typeable)
 
   fromChannel !e = PixelYCbCr e e e
   {-# INLINE fromChannel #-}
@@ -106,7 +106,7 @@ instance ColorSpace YCbCr where
 
 instance ColorSpace YCbCrA where
   type PixelElt YCbCrA e = (e, e, e, e)
-  data Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
+  data Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving (Eq, Typeable)
 
   fromChannel !e = PixelYCbCrA e e e e
   {-# INLINE fromChannel #-}

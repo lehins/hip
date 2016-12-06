@@ -30,11 +30,12 @@ import Prelude hiding (map, zipWith, foldl, foldr, mapM, mapM_, read)
 import qualified Prelude as P (map, mapM_)
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))
-import Graphics.Image.Interface.Vector.Unboxed (VU(..), fromUnboxedVector, toUnboxedVector)
+import Graphics.Image.Interface.Vector.Unboxed
+       (VU(..), fromUnboxedVector, toUnboxedVector, checkDims)
 import Control.Monad (liftM)
 import Data.Array.Repa.Repr.Unboxed (Unbox)
 import qualified Data.Vector.Unboxed as V ((!))
-import Data.Function (on)
+
 import Data.Typeable (Typeable)
 import Data.Array.Repa.Index
 import qualified Data.Array.Repa as R 
@@ -68,7 +69,7 @@ instance Elt RD cs e => Array RD cs e where
                      | RUImage !(R.Array R.U R.DIM2 (Pixel cs e))
                      | RDImage !(R.Array R.D R.DIM2 (Pixel cs e))
 
-  dims (RScalar _                        ) = (1, 1)
+  dims (RScalar _                          ) = (1, 1)
   dims (RUImage (R.extent -> (Z :. m :. n))) = (m, n)
   dims (RDImage (R.extent -> (Z :. m :. n))) = (m, n)
   {-# INLINE dims #-}
@@ -76,7 +77,8 @@ instance Elt RD cs e => Array RD cs e where
   singleton = RScalar
   {-# INLINE singleton #-}
 
-  makeImage !(m, n) !f = RDImage $ R.fromFunction (Z :. m :. n) (f . shT2)
+  makeImage !(checkDims "RD.makeImage" -> (m, n)) !f =
+    RDImage $ R.fromFunction (Z :. m :. n) (f . shT2)
   {-# INLINE makeImage #-}
 
   map f (RScalar px)        = RScalar (f px)
@@ -103,13 +105,18 @@ instance Elt RD cs e => Array RD cs e where
   {-# INLINE izipWith #-}
 
   traverse (getDelayed -> arr) newDims newPx =
-    RDImage $ R.traverse arr (tSh2 . newDims . shT2) newPixel where
-    newPixel getPx = newPx (getPx . tSh2) . shT2
+    RDImage $ R.traverse arr (tSh2 . checkDims "RD.traverse" . newDims . shT2) newPixel
+    where
+      newPixel getPx = newPx (getPx . tSh2) . shT2
   {-# INLINE traverse #-}
 
   traverse2 (getDelayed -> arr1) (getDelayed -> arr2) newDims newPx =
-    RDImage $ R.traverse2 arr1 arr2 (((.).(.)) tSh2 (newDims `on` shT2)) newPixel where
-    newPixel getPx1 getPx2 = newPx (getPx1 . tSh2) (getPx2 . tSh2) . shT2
+    RDImage $ R.traverse2 arr1 arr2 getNewDims getNewPx
+    where getNewPx getPx1 getPx2 = newPx (getPx1 . tSh2) (getPx2 . tSh2) . shT2
+          {-# INLINE getNewPx #-}
+          getNewDims !dims1 !dims2 =
+            tSh2 . checkDims "RD.traverse2" $ newDims (shT2 dims1) (shT2 dims2)
+          {-# INLINE getNewDims #-}
   {-# INLINE traverse2 #-}
 
   transpose (RDImage arr) = RDImage (R.transpose arr)
@@ -117,17 +124,17 @@ instance Elt RD cs e => Array RD cs e where
   transpose !img          = img
   {-# INLINE transpose #-}
 
-  backpermute _ _ img@(RScalar _)                = img
-  backpermute (tSh2 -> sh) g (getDelayed -> arr) =
+  backpermute ds _ img@(RScalar _) = checkDims "RD.backpermute" ds `seq` img
+  backpermute !((tSh2 . checkDims "RD.backpermute") -> sh) g (getDelayed -> arr) =
     RDImage (R.backpermute sh (tSh2 . g . shT2) arr)
   {-# INLINE backpermute #-}
 
-  fromLists !ls = if isSquare
+  fromLists !ls = if isRect
                   then RUImage . R.fromListUnboxed (Z :. m :. n) . concat $ ls
                   else error "fromLists: Inner lists do not all have an equal length."
     where
       !(m, n) = (length ls, length $ head ls)
-      !isSquare = (n > 0) && all (==n) (P.map length ls)
+      !isRect = (m > 0) && (n > 0) && all (==n) (P.map length ls)
   {-# INLINE fromLists #-}
   
 
@@ -143,7 +150,7 @@ instance Elt RS cs e => Array RS cs e where
   dims (RSImage img) = dims img
   {-# INLINE dims #-}
 
-  makeImage !ix !f = computeS (makeImage ix f :: Image RD cs e)
+  makeImage !(checkDims "RS.makeImage" -> ix) !f = computeS (makeImage ix f :: Image RD cs e)
   {-# INLINE makeImage #-}
 
   singleton = RSImage . singleton
@@ -189,7 +196,7 @@ instance Elt RP cs e => Array RP cs e where
   dims (RPImage img) = dims img
   {-# INLINE dims #-}
 
-  makeImage !ix = suspendedComputeP . makeImage ix
+  makeImage !(checkDims "RP.makeImage" -> ix) !f = suspendedComputeP $ makeImage ix f
   {-# INLINE makeImage #-}
 
   singleton = RPImage . singleton
@@ -227,14 +234,14 @@ instance Elt RP cs e => Array RP cs e where
   
 instance Array RS cs e => ManifestArray RS cs e where
 
-  index (RSImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
-  index (RSImage (RScalar px))  (_, _) = px
-  index _ _ = _errorCompute
-  {-# INLINE index #-}
+  unsafeIndex (RSImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
+  unsafeIndex (RSImage (RScalar px))  _      = px
+  unsafeIndex _ _ = _errorCompute "ManifestArray RS cs e :: unsafeIndex"
+  {-# INLINE unsafeIndex #-}
 
   deepSeqImage (RSImage (RUImage arr)) = R.deepSeqArray arr
   deepSeqImage (RSImage (RScalar px))  = seq px
-  deepSeqImage _ = _errorCompute
+  deepSeqImage _ = _errorCompute "ManifestArray RS cs e :: deepSeqImage"
   {-# INLINE deepSeqImage #-}
 
   (|*|) i1@(RSImage img1) i2@(RSImage img2) =
@@ -243,25 +250,30 @@ instance Array RS cs e => ManifestArray RS cs e where
 
   fold !f !px0 (RSImage (RUImage arr)) = R.foldAllS f px0 $ arr
   fold !f !px0 (RSImage (RScalar px))  = f px0 px
-  fold _  _  _ = _errorCompute
+  fold _  _  _ = _errorCompute "ManifestArray RS cs e :: fold"
   {-# INLINE fold #-}
 
   eq (RSImage (RUImage arr1)) (RSImage (RUImage arr2)) = R.equalsS arr1 arr2
-  eq _ _ = _errorCompute
+  eq (RSImage (RScalar arr1)) (RSImage (RScalar arr2)) = arr1 == arr2
+  eq (RSImage (RUImage arr1)) (RSImage (RScalar arr2))
+    | R.extent arr1 == (Z :. 1 :. 1) = R.index arr1 (Z :. 0 :. 0) == arr2
+    | otherwise = False
+  eq img1@(RSImage (RScalar _)) img2@(RSImage (RUImage _)) = img2 `eq` img1
+  eq (RSImage (RDImage _)) _ = _errorCompute "ManifestArray RS cs e :: eq"
+  eq _ (RSImage (RDImage _)) = _errorCompute "ManifestArray RS cs e :: eq"
   {-# INLINE eq #-}
 
 
 instance Array RP cs e => ManifestArray RP cs e where
 
-  index (RPImage (RUImage arr)) (i, j) = R.index arr (Z :. i :. j)
-  index (RPImage (RScalar px))  (0, 0) = px
-  index (RPImage (RScalar _))   (_, _) = error "Scalar Image can only be indexed at (0,0)."
-  index _ _ = _errorCompute
-  {-# INLINE index #-}
+  unsafeIndex (RPImage (RUImage arr)) (i, j) = R.unsafeIndex arr (Z :. i :. j)
+  unsafeIndex (RPImage (RScalar px))  _      = px
+  unsafeIndex _ _ = _errorCompute "ManifestArray RP cs e :: unsafeIndex"
+  {-# INLINE unsafeIndex #-}
 
   deepSeqImage (RPImage (RUImage arr)) = R.deepSeqArray arr
   deepSeqImage (RPImage (RScalar px))  = seq px
-  deepSeqImage _ = _errorCompute
+  deepSeqImage _ = _errorCompute "ManifestArray RP cs e :: deepSeqImage"
   {-# INLINE deepSeqImage #-}
 
   (|*|) i1@(RPImage img1) i2@(RPImage img2) =
@@ -270,11 +282,17 @@ instance Array RP cs e => ManifestArray RP cs e where
 
   fold !f !px0 (RPImage (RUImage arr)) = head . R.foldAllP f px0 $ arr
   fold !f !px0 (RPImage (RScalar px))  = f px0 px
-  fold _  _  _ = _errorCompute
+  fold _  _  _ = _errorCompute "ManifestArray RP cs e :: fold"
   {-# INLINE fold #-}
 
   eq (RPImage (RUImage arr1)) (RPImage (RUImage arr2)) = head $ R.equalsP arr1 arr2
-  eq _ _ = _errorCompute
+  eq (RPImage (RScalar arr1)) (RPImage (RScalar arr2)) = arr1 == arr2
+  eq (RPImage (RUImage arr1)) (RPImage (RScalar arr2))
+    | R.extent arr1 == (Z :. 1 :. 1) = R.index arr1 (Z :. 0 :. 0) == arr2
+    | otherwise = False
+  eq img1@(RPImage (RScalar _)) img2@(RPImage (RUImage _)) = img2 `eq` img1
+  eq (RPImage (RDImage _)) _ = _errorCompute "ManifestArray RP cs e :: eq"
+  eq _ (RPImage (RDImage _)) = _errorCompute "ManifestArray RP cs e :: eq"
   {-# INLINE eq #-}
 
   
@@ -285,6 +303,8 @@ instance ManifestArray RS cs e => SequentialArray RS cs e where
 
   foldr !f !a = foldr f a . exchange VU
   {-# INLINE foldr #-}
+
+  makeImageM !(checkDims "RS.makeImageM" -> ix) !f = exchangeFrom VU RS <$> makeImageM ix f
 
   mapM !f img = liftM (exchange RS) (mapM f (exchange VU img))
   {-# INLINE mapM #-}
@@ -367,6 +387,13 @@ instance Exchangable RS RP where
   exchange _ (RSImage img) = RPImage img
   {-# INLINE exchange #-}
 
+
+-- | O(1) - Changes to Repa representation.
+instance Exchangable VU RD where
+  exchange _ = delay . exchange RS
+  {-# INLINE exchange #-}
+
+
 -- | O(1) - Changes to Repa representation.
 instance Exchangable VU RS where
   exchange _ img@(dims -> (1, 1)) = singleton (toUnboxedVector img V.! 0)
@@ -385,7 +412,7 @@ instance Exchangable VU RP where
 instance Exchangable RS VU where
   exchange _ img@(RSImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
   exchange _ (RSImage (RScalar px)) = singleton px
-  exchange _ _                     = _errorCompute
+  exchange _ _                     = _errorCompute "Exchangable RS VU :: unsafeIndex"
   {-# INLINE exchange #-}
 
 
@@ -393,7 +420,7 @@ instance Exchangable RS VU where
 instance Exchangable RP VU where
   exchange _ img@(RPImage (RUImage arr)) = fromUnboxedVector (dims img) (R.toUnboxed arr)
   exchange _ (RPImage (RScalar px)) = singleton px
-  exchange _ _                     = _errorCompute
+  exchange _ _                     = _errorCompute "Exchangable RP VU :: unsafeIndex"
   {-# INLINE exchange #-}
 
 -- | Computes an image in parallel and ensures that all elements are evaluated.
@@ -430,7 +457,7 @@ mult img1@(RUImage arr1) img2@(RUImage arr2) =
     getPx (Z :. i :. j) =
       R.sumAllS (R.slice arr1 (R.Any :. (i :: Int) :. R.All) R.*^ R.slice arr2 (R.Any :. (j :: Int)))
     {-# INLINE getPx #-}
-mult _ _ = _errorCompute
+mult _ _ = _errorCompute "Graphics.Image.Interface.Repa.Internal.mult"
 {-# INLINE mult #-}
 
 
@@ -469,12 +496,11 @@ toRepaArray (RUImage arr) = R.delay arr
 toRepaArray (RDImage arr) = arr
 toRepaArray (RScalar px) = R.fromFunction (Z :. 1 :. 1) $ const px
   
-_errorCompute :: t
-_errorCompute = error "Image should be computed at ths point. Please report this error"
+_errorCompute :: String -> t
+_errorCompute err =
+  error $
+  err ++ ": Image should be computed at ths point. Please report this error."
                          
-_errorScalarOp :: t
-_errorScalarOp = error "This operation is not allowed on scalar images."
-
 
 instance R.Elt Bit where
   touch (Bit w) = R.touch w

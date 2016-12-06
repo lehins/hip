@@ -13,7 +13,9 @@ module Graphics.Image.Interface.Vector (
   -- * IO
   readImageY, readImageYA, readImageRGB, readImageRGBA,
   -- * Representation
-  VU(..), 
+  VU(..),
+  -- * Flat index conversion
+  toIx, fromIx
   ) where
 
 import Graphics.Image.IO
