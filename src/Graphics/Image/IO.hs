@@ -35,8 +35,8 @@ module Graphics.Image.IO (
 import Prelude as P hiding (readFile, writeFile)
 import qualified Control.Monad as M (foldM)
 
-
 import Control.Concurrent (forkIO)
+import Control.Monad (void)
 import Data.Char (toLower)
 import Data.Maybe (fromMaybe)
 
@@ -175,14 +175,14 @@ displayImageUsing viewer block img = do
               displayImageFile viewer imgPath)
   if block
     then display
-    else forkIO display >> return ()
+    else void $ forkIO display
 
 
 
 -- | Displays an image file by calling an external image viewer.
 displayImageFile :: ExternalViewer -> FilePath -> IO ()
 displayImageFile (ExternalViewer exe args ix) imgPath =
-  readProcess exe (argsBefore ++ [imgPath] ++ argsAfter) "" >> return ()
+  void $ readProcess exe (argsBefore ++ [imgPath] ++ argsAfter) ""
   where (argsBefore, argsAfter) = splitAt ix args
 
 
@@ -209,7 +209,7 @@ defaultViewer =
 #elif defined(OS_Mac)
   (ExternalViewer "open" [] 0)
 #else
-  error $ "Graphics.Image.IO.defaultViewer: Could not determine default viewer."
+  error "Graphics.Image.IO.defaultViewer: Could not determine default viewer."
 #endif
 
 

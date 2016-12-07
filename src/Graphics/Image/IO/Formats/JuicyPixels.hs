@@ -392,7 +392,7 @@ instance Convertible (Pixel CMYK Word16) JP.PixelCMYK16 where
 -- BMP Format Reading
 
 instance (Array arr Y Word8, Array arr Binary Bit) => Readable (Image arr Binary Bit) BMP where
-  decode _ = either Left (Right . toImageBinary) . jpImageY8ToImage . JP.decodeBitmap
+  decode _ = fmap toImageBinary . jpImageY8ToImage . JP.decodeBitmap
 
 instance Array arr Y Word8 => Readable (Image arr Y Word8) BMP where
   decode _ = jpImageY8ToImage . JP.decodeBitmap
@@ -786,8 +786,10 @@ jpError err = Left ("JuicyPixel decoding error: "++err)
 
 jpCSError :: String -> Either String JP.DynamicImage -> Either String a
 jpCSError _  (Left err)   = jpError err
-jpCSError cs (Right jimg) = jpError ("Input image is in "++(jpImageShowCS jimg)++
-                                     ", cannot convert it to "++cs++" colorspace.")
+jpCSError cs (Right jimg) =
+  jpError $
+  "Input image is in " ++
+  jpImageShowCS jimg ++ ", cannot convert it to " ++ cs ++ " colorspace."
 
 
 --------------------------------------------------------------------------------

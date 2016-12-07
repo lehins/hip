@@ -7,7 +7,6 @@ import Test.QuickCheck
 import qualified Graphics.Image as IM
 import qualified Graphics.Image.Interface.Vector as IV
 import Graphics.Image.Types
-import Graphics.Image.Interface.Vector (VU(..))
 
 import Graphics.Image.InterfaceSpec ()
 

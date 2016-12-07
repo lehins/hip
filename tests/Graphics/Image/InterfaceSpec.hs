@@ -10,10 +10,11 @@ module Graphics.Image.InterfaceSpec
   , Identical (..)
   ) where
 
-#if !MIN_VERSION_base(4,8,0)
+#if MIN_VERSION_base(4,8,0)
+import Data.Typeable (Typeable, typeOf)
+#else
 import Control.Applicative
 #endif
-import Data.Typeable (Typeable, typeOf)
 import Test.Hspec
 import Test.QuickCheck
 
@@ -21,7 +22,6 @@ import qualified Graphics.Image as IM
 import qualified Graphics.Image.Interface as I
 import Graphics.Image.Types
 import Graphics.Image.Processing
-import Graphics.Image.Interface.Vector (VU(..))
 
 
 data Identical arr1 arr2 cs e =

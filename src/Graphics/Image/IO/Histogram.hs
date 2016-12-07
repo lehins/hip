@@ -17,6 +17,7 @@ module Graphics.Image.IO.Histogram (
 
 import Prelude as P 
 import Control.Concurrent (forkIO)
+import Control.Monad (void)
 import Control.Monad.Primitive (PrimMonad (..))
 import Graphics.Image.Interface as I
 import Graphics.Image.IO
@@ -102,12 +103,12 @@ displayHistogramsUsing :: ExternalViewer
 displayHistogramsUsing viewer block hists = do
   let display = do
         tmpDir <- getTemporaryDirectory
-        histPath <- fmap (</> "tmp-hist.svg") $ createTempDirectory tmpDir "hip-histogram"
+        histPath <- fmap (</> "tmp-hist.svg") (createTempDirectory tmpDir "hip-histogram")
         writeHistograms histPath hists
         displayImageFile viewer histPath
   if block
     then display
-    else forkIO display >> return ()
+    else void $ forkIO display
 
 
 

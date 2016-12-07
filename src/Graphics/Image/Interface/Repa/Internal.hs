@@ -32,7 +32,6 @@ import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))
 import Graphics.Image.Interface.Vector.Unboxed
        (VU(..), fromUnboxedVector, toUnboxedVector, checkDims)
-import Control.Monad (liftM)
 import Data.Array.Repa.Repr.Unboxed (Unbox)
 import qualified Data.Vector.Unboxed as V ((!))
 
@@ -96,7 +95,7 @@ instance Elt RD cs e => Array RD cs e where
   {-# INLINE zipWith #-}
 
   izipWith f (RScalar px1)        (RScalar px2)        = RScalar (f (0, 0) px1 px2)
-  izipWith f (RScalar px1)        !img2                = imap (flip f px1) img2
+  izipWith f (RScalar px1)        !img2                = imap (`f` px1) img2
   izipWith f !img1                (RScalar px2)        = imap (\ !ix !px -> f ix px px2) img1
   izipWith f (getDelayed -> arr1) (getDelayed -> arr2) =
     RDImage (R.traverse2 arr1 arr2 const getNewPx) where
@@ -125,7 +124,7 @@ instance Elt RD cs e => Array RD cs e where
   {-# INLINE transpose #-}
 
   backpermute ds _ img@(RScalar _) = checkDims "RD.backpermute" ds `seq` img
-  backpermute !((tSh2 . checkDims "RD.backpermute") -> sh) g (getDelayed -> arr) =
+  backpermute !(tSh2 . checkDims "RD.backpermute" -> sh) g (getDelayed -> arr) =
     RDImage (R.backpermute sh (tSh2 . g . shT2) arr)
   {-# INLINE backpermute #-}
 
@@ -248,7 +247,7 @@ instance Array RS cs e => ManifestArray RS cs e where
     i1 `deepSeqImage` i2 `deepSeqImage` computeS (mult img1 img2)
   {-# INLINE (|*|) #-}
 
-  fold !f !px0 (RSImage (RUImage arr)) = R.foldAllS f px0 $ arr
+  fold !f !px0 (RSImage (RUImage arr)) = R.foldAllS f px0 arr
   fold !f !px0 (RSImage (RScalar px))  = f px0 px
   fold _  _  _ = _errorCompute "ManifestArray RS cs e :: fold"
   {-# INLINE fold #-}
@@ -306,7 +305,7 @@ instance ManifestArray RS cs e => SequentialArray RS cs e where
 
   makeImageM !(checkDims "RS.makeImageM" -> ix) !f = fmap (exchangeFrom VU RS) (makeImageM ix f)
 
-  mapM !f img = liftM (exchange RS) (mapM f (exchange VU img))
+  mapM !f img = fmap (exchange RS) (mapM f (exchange VU img))
   {-# INLINE mapM #-}
 
   mapM_ !f img = mapM_ f (exchange VU img)
@@ -326,13 +325,13 @@ instance ManifestArray RS cs e => MutableArray RS cs e where
   mdims (MRSImage (mdims -> sz)) = sz
   {-# INLINE mdims #-}
 
-  thaw img = liftM MRSImage (thaw (exchange VU img))
+  thaw img = fmap MRSImage (thaw (exchange VU img))
   {-# INLINE thaw #-}
 
-  freeze (MRSImage mimg) = liftM (exchange RS) (freeze mimg)
+  freeze (MRSImage mimg) = fmap (exchange RS) (freeze mimg)
   {-# INLINE freeze #-}
 
-  new sz = liftM MRSImage (new sz)
+  new sz = fmap MRSImage (new sz)
   {-# INLINE new #-}
 
   read (MRSImage mimg) = read mimg
@@ -426,16 +425,16 @@ instance Exchangable RP VU where
 -- | Computes an image in parallel and ensures that all elements are evaluated.
 computeP :: (Array arr cs e, Array RP cs e, Exchangable arr RP) =>
             Image arr cs e -> Image RP cs e
-computeP !img = head $ do
-  img' <- return $ exchange RP img
+computeP !img = head $! do
+  let img' = exchange RP img
   img' `deepSeqImage` return img'
 {-# INLINE computeP #-}
 
 -- | Computes an image sequentially and ensures that all elements are evaluated.
 computeS :: (Array arr cs e, Array RS cs e, Exchangable arr RS) =>
             Image arr cs e -> Image RS cs e
-computeS !img = head $ do
-  img' <- return $ exchange RS img
+computeS !img = head $! do
+  let img' = exchange RS img
   img' `deepSeqImage` return img'
 {-# INLINE computeS #-}
 
@@ -448,25 +447,29 @@ delay = exchange RD
 
 mult :: Array RD cs e => Image RD cs e -> Image RD cs e -> Image RD cs e
 mult img1@(RUImage arr1) img2@(RUImage arr2) =
-  if n1 /= m2 
-  then error ("Inner dimensions of multiplied images must be the same, but received: "++
-              show img1 ++" X "++ show img2)
-  else RDImage . R.fromFunction (Z :. m1 :. n2) $ getPx where
+  if n1 /= m2
+    then error $
+         "Inner dimensions of multiplied images must be the same, but received: " ++
+         show img1 ++ " X " ++ show img2
+    else RDImage . R.fromFunction (Z :. m1 :. n2) $ getPx
+  where
     (Z :. m1 :. n1) = R.extent arr1
     (Z :. m2 :. n2) = R.extent arr2
     getPx (Z :. i :. j) =
-      R.sumAllS (R.slice arr1 (R.Any :. (i :: Int) :. R.All) R.*^ R.slice arr2 (R.Any :. (j :: Int)))
+      R.sumAllS
+        (R.slice arr1 (R.Any :. (i :: Int) :. R.All) R.*^
+         R.slice arr2 (R.Any :. (j :: Int)))
     {-# INLINE getPx #-}
 mult _ _ = _errorCompute "Graphics.Image.Interface.Repa.Internal.mult"
 {-# INLINE mult #-}
 
 
 shT2 :: DIM2 -> (Int, Int)
-shT2 !(Z :. i :. j) = (i, j)
+shT2 (Z :. i :. j) = (i, j)
 {-# INLINE shT2 #-}
 
 tSh2 :: (Int, Int) -> DIM2
-tSh2 !(i, j) = (Z :. i :. j) 
+tSh2 !(i, j) = Z :. i :. j 
 {-# INLINE tSh2 #-}
 
 

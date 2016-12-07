@@ -163,7 +163,7 @@ superimpose :: Array arr cs e =>
            -> Image arr cs e -- ^ Image to be positioned above the source image.
            -> Image arr cs e -- ^ Source image.
            -> Image arr cs e              
-superimpose !(i0, j0) !imgA !imgB = traverse2 imgB imgA (id . const) newPx where
+superimpose !(i0, j0) !imgA !imgB = traverse2 imgB imgA const newPx where
   (m, n) = dims imgA
   newPx getPxB getPxA (i, j) = let !(i', j') = (i - i0, j - j0) in
     if i' >= 0 && j' >= 0 && i' < m && j' < n then getPxA (i', j') else getPxB (i, j)

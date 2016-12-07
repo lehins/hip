@@ -171,22 +171,22 @@ instance Convertible PNM.PpmPixelRGB16 (Pixel RGB Word16) where
 -- BMP Format Reading (general)
 
 instance Array arr Y Double => Readable (Image arr Y Double) PBM where
-  decode _ = either Left (Right . ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
 
 instance Array arr Y Double => Readable (Image arr Y Double) PGM where
-  decode _ = either Left (Right . ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
 
 instance Array arr Y Double => Readable (Image arr Y Double) PPM where
-  decode _ = either Left (Right . ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
 
 instance Array arr YA Double => Readable (Image arr YA Double) PPM where
-  decode _ = either Left (Right . ppmToImageUsing (pnmDataToImage (addAlpha 1)) . head) . decodePnm
+  decode _ = fmap (ppmToImageUsing (pnmDataToImage (addAlpha 1)) . head) . decodePnm
 
 instance Array arr RGB Double => Readable (Image arr RGB Double) PPM where
-  decode _ = either Left (Right . ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
 
 instance Array arr RGBA Double => Readable (Image arr RGBA Double) PPM where
-  decode _ = either Left (Right . ppmToImageUsing (pnmDataToImage (addAlpha 1)) . head) . decodePnm
+  decode _ = fmap (ppmToImageUsing (pnmDataToImage (addAlpha 1)) . head) . decodePnm
 
 -- BMP Format Reading (exact)
 
@@ -222,10 +222,10 @@ instance Array arr RGB Word16 => Readable [Image arr RGB Word16] [PPM] where
   decode _ = pnmToImagesUsing pnmDataPPM16ToImage
 
 
-pnmToImagesUsing :: (Int -> Int -> PNM.PpmPixelData -> Either [Char] b)
+pnmToImagesUsing :: (Int -> Int -> PNM.PpmPixelData -> Either String b)
                  -> B.ByteString -> Either String [b]
 pnmToImagesUsing conv =
-  either Left (Right . map (either error id . ppmToImageUsing conv)) . decodePnm
+  fmap (map (either error id . ppmToImageUsing conv)) . decodePnm
 
 
 getPx :: (Storable a, Convertible a b) => VS.Vector a -> Int -> (Int, Int) -> b
@@ -270,9 +270,9 @@ pnmDataPPM16ToImage _ _ d                         = pnmCSError "RGB16 (Pixel RGB
 
 
 ppmToImageUsing :: (Int -> Int -> PNM.PpmPixelData -> t) -> PNM.PPM -> t
-ppmToImageUsing conv (PNM.PPM { PNM.ppmHeader = PNM.PPMHeader { PNM.ppmWidth  = w
-                                                              , PNM.ppmHeight = h }
-                              , PNM.ppmData   = ppmData }) = conv w h ppmData
+ppmToImageUsing conv PNM.PPM {PNM.ppmHeader = PNM.PPMHeader {PNM.ppmWidth = w
+                                                            ,PNM.ppmHeight = h}
+                             ,PNM.ppmData = ppmData} = conv w h ppmData
                                                         
 
 decodePnm :: B.ByteString -> Either String [PNM.PPM]
@@ -282,15 +282,15 @@ decodePnm = pnmResultToImage . PNM.parsePPM where
   pnmResultToImage (Left err)        = pnmError err
 
 
-
-
 pnmError :: String -> Either String a
 pnmError err = Left ("Netpbm decoding error: "++err)
 
 
 pnmCSError :: String -> PNM.PpmPixelData -> Either String a
-pnmCSError cs ppmData = pnmError ("Input image is in "++(pnmShowData ppmData)++
-                                  ", cannot convert it to "++cs++" colorspace.")
+pnmCSError cs ppmData =
+  pnmError $
+  "Input image is in " ++
+  pnmShowData ppmData ++ ", cannot convert it to " ++ cs ++ " colorspace."
 
 pnmShowData :: PNM.PpmPixelData -> String
 pnmShowData (PNM.PbmPixelData _)      = "Binary (Pixel Binary Bit)"

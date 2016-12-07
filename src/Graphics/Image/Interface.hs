@@ -422,9 +422,9 @@ handleBorderIndex border !(m, n) !getPx !(i, j) =
                                 if i >= m then (m - (i - m + 1)) `mod` m else i,
                               if j < 0 then (abs j - 1) `mod` n else
                                 if j >= n then (n - (j - n + 1)) `mod` n else j)
-    getPxB Continue  = getPx (if i < 0 then (abs i) `mod` m else
+    getPxB Continue  = getPx (if i < 0 then abs i `mod` m else
                                 if i >= m then (m - (i - m + 2)) `mod` m else i,
-                              if j < 0 then (abs j) `mod` n else
+                              if j < 0 then abs j `mod` n else
                                 if j >= n then (n - (j - n + 2)) `mod` n else j)
     {-# INLINE getPxB #-}
 {-# INLINE handleBorderIndex #-}
@@ -577,7 +577,7 @@ instance Array arr cs e => Num (Image arr cs e) where
   {-# INLINE signum #-}
   
   fromInteger = singleton . fromInteger
-  {-# INLINE fromInteger#-}
+  {-# INLINE fromInteger #-}
 
 
 instance (Fractional (Pixel cs e), Array arr cs e) =>
@@ -598,7 +598,7 @@ instance (Floating (Pixel cs e), Array arr cs e) =>
   {-# INLINE exp #-}
   
   log   = map log
-  {-# INLINE log#-}
+  {-# INLINE log #-}
   
   sin   = map sin
   {-# INLINE sin #-}
@@ -637,17 +637,23 @@ instance ManifestArray arr cs e => NFData (Image arr cs e) where
 
 
 
-instance Array arr cs e => Show (Image arr cs e) where
-  show ((dims -> (m, n)) :: Image arr cs e) =
-    "<Image "++show (undefined :: arr)++" "++
-    ((showsTypeRep (typeOf (undefined :: cs))) " (")++
-    ((showsTypeRep (typeOf (undefined :: e))) "): "++show m++"x"++show n++">")
+instance Array arr cs e =>
+         Show (Image arr cs e) where
+  show (dims -> (m, n)) =
+    "<Image " ++
+    show (undefined :: arr) ++
+    " " ++
+    showsTypeRep (typeOf (undefined :: cs)) " (" ++
+    showsTypeRep (typeOf (undefined :: e)) "): " ++
+     show m ++ "x" ++ show n ++ ">"
 
 
-instance MutableArray arr cs e => Show (MImage st arr cs e) where
-  show ((mdims -> (m, n)) :: MImage st arr cs e) =
-    "<MutableImage "++show (undefined :: arr)++" "++
-    ((showsTypeRep (typeOf (undefined :: cs))) " (")++
-    ((showsTypeRep (typeOf (undefined :: e))) "): "++show m++"x"++show n++">")
-
-
+instance MutableArray arr cs e =>
+         Show (MImage st arr cs e) where
+  show (mdims -> (m, n)) =
+    "<MutableImage " ++
+    show (undefined :: arr) ++
+    " " ++
+    showsTypeRep (typeOf (undefined :: cs)) " (" ++
+    showsTypeRep (typeOf (undefined :: e)) "): " ++
+     show m ++ "x" ++ show n ++ ">"

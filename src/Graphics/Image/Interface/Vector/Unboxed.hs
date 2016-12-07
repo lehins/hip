@@ -226,6 +226,7 @@ instance ManifestArray VU cs e => MutableArray VU cs e where
 toUnboxedVector :: Array VU cs e => Image VU cs e -> Vector (Pixel cs e)
 toUnboxedVector (VUImage _ _ v) = v
 toUnboxedVector (VScalar px) = V.singleton px
+{-# INLINE toUnboxedVector #-}
 
 
 -- | Construct a two dimensional image with @m@ rows and @n@ columns from a flat
@@ -237,9 +238,10 @@ toUnboxedVector (VScalar px) = V.singleton px
 -- <<images/grad_fromVector.png>>
 -- 
 fromUnboxedVector :: Array VU cs e => (Int, Int) -> Vector (Pixel cs e) -> Image VU cs e
-fromUnboxedVector (m, n) v
+fromUnboxedVector !(m, n) !v
   | m * n == V.length v = VUImage m n v
   | otherwise = error "fromUnboxedVector: m * n doesn't equal the length of a Vector."
+{-# INLINE fromUnboxedVector #-}
 
 
 -- | 2D to a flat vector index conversion.
@@ -266,3 +268,4 @@ checkDims err !ds@(m, n)
     error $
     show err ++ ": Image dimensions are expected to be non-negative: " ++ show ds
   | otherwise = ds
+{-# INLINE checkDims #-}
