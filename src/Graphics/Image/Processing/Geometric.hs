@@ -296,7 +296,7 @@ resize !method border !sz'@(m', n') !img = traverse img (const sz') getNewPx whe
 -- | Scale an image. Same as resize, except scaling factors are supplied
 -- instead of new dimensions.
 --
--- @ scale ('Bilinear' 'Edge') (0.5, 2) frog == resize ('Bilinear' 'Edge') (100, 640) frog @
+-- @ scale 'Bilinear' 'Edge' (0.5, 2) frog == resize 'Bilinear' 'Edge' (100, 640) frog @
 --
 scale :: (Interpolation method, Array arr cs e, Elevator e) =>
          method -- ^ Interpolation method to be used during scaling.
