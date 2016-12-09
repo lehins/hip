@@ -1,3 +1,18 @@
+1.2.0.1
+=======
+
+* Introduced function `canvasSize`.
+
+1.2.0.0
+=======
+
+* Changed `Interpolation` in a way that border resolution is supplied separatly
+  from the method.
+* Introduced function `translate`.
+* Added a better test suite. Improved coverage.
+* Fixed a bug with border resolution strategy `Continue`.
+* Added better error messaging for border checks.
+
 1.1.0.1
 =======
 
@@ -18,8 +33,6 @@
 
 * Changed the way image displaying works. Now `displayImage` function will try
   to automatically detect the default external viewer program.
-* Made Histogram plotting using Chart dependency optional, which is controlled
-  by a compile time flag `use-chart`.
 * Renamed module `Graphics.Image.IO.External` to `Graphics.Image.IO.Formats`,
   so it reflects the purpose slightly better.
 

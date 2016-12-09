@@ -92,6 +92,10 @@ matrix:
   - env: BUILD=cabal GHCVER=head  CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
   - env: BUILD=stack ARGS="--resolver nightly"
 
+branches:
+  except:
+    - /^v[0-9].[0-9].[0-9].[0-9]/ # turn off ci for tags
+
 before_install:
 # Using compiler above sets CC to an invalid value, so unset it
 - unset CC

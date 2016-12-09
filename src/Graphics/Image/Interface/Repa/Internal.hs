@@ -123,17 +123,17 @@ instance Elt RD cs e => Array RD cs e where
   transpose !img          = img
   {-# INLINE transpose #-}
 
-  backpermute ds _ img@(RScalar _) = checkDims "RD.backpermute" ds `seq` img
+  backpermute !(tSh2 . checkDims "RD.backpermute" -> sh) _ (RScalar px) =
+    RDImage $ R.fromFunction sh (const px)
   backpermute !(tSh2 . checkDims "RD.backpermute" -> sh) g (getDelayed -> arr) =
     RDImage (R.backpermute sh (tSh2 . g . shT2) arr)
   {-# INLINE backpermute #-}
 
-  fromLists !ls = if isRect
+  fromLists !ls = if all (==n) (P.map length ls)
                   then RUImage . R.fromListUnboxed (Z :. m :. n) . concat $ ls
-                  else error "fromLists: Inner lists do not all have an equal length."
+                  else error "RD.fromLists: Inner lists do not all have an equal length."
     where
-      !(m, n) = (length ls, length $ head ls)
-      !isRect = (m > 0) && (n > 0) && all (==n) (P.map length ls)
+      !(m, n) = checkDims "RD.fromLists" (length ls, length $ head ls)
   {-# INLINE fromLists #-}
   
 
@@ -483,7 +483,7 @@ suspendedComputeP !img          = RPImage img
 getDelayed :: Array RD cs e => Image RD cs e -> R.Array R.D DIM2 (Pixel cs e)
 getDelayed (RUImage arr) = R.delay arr
 getDelayed (RDImage arr) = arr
-getDelayed _             = error "Scalar image is not an array."
+getDelayed (RScalar px)  = R.fromFunction (Z :. 1 :. 1) (const px)
 {-# INLINE getDelayed #-}
 
 

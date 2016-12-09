@@ -16,7 +16,7 @@ module Graphics.Image.Processing.Geometric (
   -- ** Concatenation
   leftToRight, topToBottom,
   -- ** Canvas
-  translate, crop, superimpose,
+  translate, canvasSize, crop, superimpose,
   -- ** Flipping
   flipV, flipH,
   -- ** Rotation
@@ -122,18 +122,67 @@ topToBottom !img1@(dims -> (m1, _)) !img2 = traverse2 img1 img2 newDims newPx wh
 {-# INLINE topToBottom #-}
 
 
+-- | Shift an image towards its bottom right corner by @(delatM, deltaN)@ rows and
+-- columns, while specifying a border resolution strategy.
+--
+-- @
+-- λ> frog <- readImageRGB "images/frog.jpg"
+-- λ> writeImage "images/frog_translate_wrap.jpg" $ translate Wrap (50, 100) frog
+-- λ> writeImage "images/frog_translate_edge.jpg" $ translate Edge (50, 100) frog
+-- @
+--
+-- <<images/frog.jpg>> <<images/frog_translate_wrap.jpg>> <<images/frog_translate_edge.jpg>>
+-- 
+-- @since 1.2.0.0
+--
 translate
   :: Array arr cs e
-  => Border (Pixel cs e) -> (Int, Int) -> Image arr cs e -> Image arr cs e
-translate atBorder  !(dm, dn) !img = traverse img id newPx where
-  newPx !getPx !(i, j) = handleBorderIndex atBorder (dims img) getPx (i - dm, j - dn)
-  {-# INLINE newPx #-}
+  => Border (Pixel cs e) -- ^ Border resolution strategy
+  -> (Int, Int) -- ^ Number of rows and columns image will be shifted by.
+  -> Image arr cs e -> Image arr cs e
+translate atBorder !(dm, dn) !img = traverse img id newPx
+  where
+    newPx !getPx !(i, j) =
+      handleBorderIndex atBorder (dims img) getPx (i - dm, j - dn)
+    {-# INLINE newPx #-}
 {-# INLINE translate #-}
 
 
+-- | Change the size of an image. Pixel values and positions will not change,
+-- except the ones outside the border, which are handled according to supplied
+-- resolution strategy.
+--
+-- <<images/haskell_40.png>>
+--
+-- For example, it can be used to make a tile from the image above, or simply
+-- scale the canvas and place it in a middle:
+--
+-- @
+-- λ> logo <- readImageRGBA "images/logo_40.png"
+-- λ> let incBy (fm, fn) = (rows logo * fm, cols logo * fn)
+-- λ> writeImage "images/logo_tile.png" $ canvasSize Wrap (incBy (6, 10)) logo
+-- λ> writeImage "images/logo_center.png" $ translate (Fill 0) (incBy (2, 3)) $ canvasSize (Fill 0) (incBy (5, 7)) logo
+-- @
+--
+-- <<images/logo_tile.png>> <<images/logo_center.png>>
+--
+-- @since 1.2.0.1
+--
+canvasSize
+  :: Array arr cs e
+  => Border (Pixel cs e) -- ^ Border resolution strategy
+  -> (Int, Int) -- ^ New dimensions of the image
+  -> Image arr cs e -- ^ Source image
+  -> Image arr cs e
+canvasSize atBorder !ds !img = traverse img (const ds) newPx
+  where
+    newPx !getPx !ix = handleBorderIndex atBorder (dims img) getPx ix
+    {-# INLINE newPx #-}
+{-# INLINE canvasSize #-}
+
 -- | Crop an image, i.e. retrieves a sub-image image with @m@ rows and @n@
 -- columns. Make sure @(i + m, j + n)@ is not greater than dimensions of a
--- source image.
+-- source image, otherwise it will result in an error.
 crop :: Array arr cs e =>
         (Int, Int)     -- ^ @(i, j)@ starting index from within a source image.
      -> (Int, Int)     -- ^ @(m, n)@ dimensions of a new image.

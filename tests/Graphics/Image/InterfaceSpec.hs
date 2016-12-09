@@ -61,7 +61,13 @@ instance (Array arr1 cs e, Array arr2 cs e, Arbitrary (Pixel cs e)) =>
   arbitrary = do
     (Positive (Small m), Positive (Small n)) <- arbitrary
     getPx <- arbitrary
-    return $ Identical (I.makeImage (m, n) getPx) (I.makeImage (m, n) getPx)
+    if (m, n) == (1, 1)
+      then do
+        img1 <- elements [I.makeImage (m, n) getPx, I.singleton (getPx (0, 0))]
+        img2 <- elements [I.makeImage (m, n) getPx, I.singleton (getPx (0, 0))]
+        return $ Identical img1 img2
+      else return $
+           Identical (I.makeImage (m, n) getPx) (I.makeImage (m, n) getPx)
 
 
 instance Arbitrary px => Arbitrary (Border px) where
@@ -157,12 +163,12 @@ translateWrap (dm, dn) img = I.traverse img id newPx
     newPx getPx (i, j) = getPx ((i - dm) `mod` m, (j - dn) `mod` n)
 
 
-prop_toFormLists :: Image VU Y Word8 -> Bool
-prop_toFormLists img = img == I.fromLists (IM.toLists img)
+prop_toFormLists :: ManifestArray arr Y Word8 => arr -> Image arr Y Word8 -> Bool
+prop_toFormLists _ img = img == I.fromLists (IM.toLists img)
 
 
 prop_sameDims :: Array arr Y Word8 => arr -> Identical VU arr Y Word8 -> Bool
-prop_sameDims _ (Identical img1 img2) = IM.dims img1 == IM.dims img2
+prop_sameDims _ (Identical img1 img2) = I.dims img1 == I.dims img2
 
 prop_sameImage
   :: (Exchangable arr RS, Array arr Y Word8)
@@ -226,11 +232,57 @@ prop_sameTraverse _ g f (Identical img1 img2) =
     (m, n) = I.dims img1
 
 
+prop_sameTraverse2
+  :: (Exchangable arr RS, Array arr Y Word8)
+  => arr
+  -> ((Int, Int) -> (Int, Int) -> (Positive (Small Int), Positive (Small Int)))
+  -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8 -> Pixel Y Word8)
+  -> Identical VU arr Y Word8
+  -> Identical VU arr Y Word8
+  -> Bool
+prop_sameTraverse2 _ g f (Identical img1a img2a) (Identical img1b img2b) =
+  I.exchange RS (I.traverse2 img1a img1b g' f') ==
+  I.exchange RS (I.traverse2 img2a img2b g' f')
+  where
+    g' dimsA dimsB =
+      case g dimsA dimsB of
+        (Positive (Small i), Positive (Small j)) -> (i, j)
+    f' getPx1 getPx2 ix@(i, j) =
+      f ix (getPx1 (i `mod` ma, j `mod` na)) (getPx2 (i `mod` mb, j `mod` nb))
+    (ma, na) = I.dims img1a
+    (mb, nb) = I.dims img1b
+
+
+prop_sameTranspose
+  :: (Exchangable arr RS, Array arr Y Word8)
+  => arr
+  -> Identical VU arr Y Word8
+  -> Bool
+prop_sameTranspose _ (Identical img1 img2) =
+  I.exchange RS (I.transpose img1) == I.exchange RS (I.transpose img2)
+
+
+prop_sameBackpermute
+  :: (Exchangable arr RP, Array arr Y Word8)
+  => arr
+  -> (Positive (Small Int), Positive (Small Int))
+  -> ((Int, Int) -> (Int, Int))
+  -> Identical VU arr Y Word8
+  -> Bool
+prop_sameBackpermute _ (Positive (Small m), Positive (Small n)) f (Identical img1 img2) =
+  I.exchange RP (I.backpermute (m, n) (f' . f) img1) ==
+  I.exchange RP (I.backpermute (m, n) (f' . f) img2)
+  where
+    (m', n') = I.dims img1
+    f' (i, j) = (i `mod` m', j `mod` n')
+
+
 spec :: Spec
 spec = do
   describe "Interface Properties" $ do
     it "borderIndex" $ property prop_borderIndex
-    it "toFormLists" $ property prop_toFormLists
+    it "toFormLists" $ property $ prop_toFormLists VU
+    it "toFormLists" $ property $ prop_toFormLists RS
   describe "Representation Properties" $ do
     it "sameDims RD" $ property $ prop_sameDims RD
     it "sameDims RS" $ property $ prop_sameDims RS
@@ -253,3 +305,12 @@ spec = do
     it "sameTraverse RD" $ property $ prop_sameTraverse RD
     it "sameTraverse RS" $ property $ prop_sameTraverse RS
     it "sameTraverse RP" $ property $ prop_sameTraverse RP
+    it "sameTraverse2 RD" $ property $ prop_sameTraverse2 RD
+    it "sameTraverse2 RS" $ property $ prop_sameTraverse2 RS
+    it "sameTraverse2 RP" $ property $ prop_sameTraverse2 RP
+    it "sameTranspose RD" $ property $ prop_sameTranspose RD
+    it "sameTranspose RS" $ property $ prop_sameTranspose RS
+    it "sameTranspose RP" $ property $ prop_sameTranspose RP
+    it "sameBackpermute RD" $ property $ prop_sameBackpermute RD
+    it "sameBackpermute RS" $ property $ prop_sameBackpermute RS
+    it "sameBackpermute RP" $ property $ prop_sameBackpermute RP

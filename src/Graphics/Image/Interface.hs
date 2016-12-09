@@ -344,7 +344,7 @@ class Exchangable arr' arr where
            -> Image arr' cs e -- ^ Source image.
            -> Image arr cs e
 
--- | `exchange` function that is allows restricting the representation type of
+-- | `exchange` function that allows restricting representation type of the
 -- source image.
 exchangeFrom :: (Exchangable arr' arr, Array arr' cs e, Array arr cs e) =>
                 arr'

@@ -58,7 +58,7 @@ instance Elt VU cs e => Array VU cs e where
   {-# INLINE singleton #-}
   
   dims (VUImage m n _) = (m, n)
-  dims _               = (1, 1)
+  dims (VScalar _)     = (1, 1)
   {-# INLINE dims #-}
   
   map !f (VScalar px)    = VScalar (f px)
@@ -105,8 +105,7 @@ instance Elt VU cs e => Array VU cs e where
 
   backpermute !(checkDims "VU.backpermute" -> (m, n)) !f (VUImage _ n' v) =
     VUImage m n $ V.backpermute v $ V.generate (m*n) (fromIx n' . f . toIx n)
-  backpermute !sz      _ (VScalar px)     =
-    if sz == (1, 1) then VScalar px else makeImage sz (const px)
+  backpermute !sz _ (VScalar px) = makeImage sz (const px)
   {-# INLINE backpermute #-}
   
   fromLists !ls = if isSquare

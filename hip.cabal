@@ -98,6 +98,7 @@ Test-Suite hip-tests
   HS-Source-Dirs:     tests
   Main-Is:            Spec.hs
   Other-Modules:      Graphics.Image.ColorSpaceSpec
+                    , Graphics.Image.ProcessingSpec
                     , Graphics.Image.InterfaceSpec
                     , Graphics.Image.Interface.VectorSpec
   Build-Depends:      base            >= 4.5 && < 5
@@ -105,7 +106,7 @@ Test-Suite hip-tests
                     , hspec
                     , QuickCheck
   Default-Language:   Haskell2010
-  GHC-Options:        -Wall -O0
+  GHC-Options:        -Wall -O2 -threaded -with-rtsopts=-N
 
 Source-Repository head
   Type:     git
