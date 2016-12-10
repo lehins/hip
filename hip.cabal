@@ -106,7 +106,7 @@ Test-Suite hip-tests
                     , hspec
                     , QuickCheck
   Default-Language:   Haskell2010
-  GHC-Options:        -Wall -O2 -threaded -with-rtsopts=-N
+  GHC-Options:        -Wall -threaded -with-rtsopts=-N
 
 Source-Repository head
   Type:     git
