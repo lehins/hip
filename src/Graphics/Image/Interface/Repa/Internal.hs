@@ -149,34 +149,34 @@ instance Elt RS cs e => Array RS cs e where
   dims (RSImage img) = dims img
   {-# INLINE dims #-}
 
-  makeImage !(checkDims "RS.makeImage" -> ix) !f = computeS (makeImage ix f :: Image RD cs e)
+  makeImage !ix !img = exchangeFrom RD RS $ makeImage ix img
   {-# INLINE makeImage #-}
 
   singleton = RSImage . singleton
   {-# INLINE singleton #-}
 
-  map !f (RSImage img) = computeS $ map f img
+  map !f (RSImage img) = exchange RS $ map f img
   {-# INLINE map #-}
 
-  imap !f (RSImage img) = computeS $ imap f img
+  imap !f (RSImage img) = exchange RS $ imap f img
   {-# INLINE imap #-}
 
-  zipWith !f (RSImage img1) (RSImage img2) = computeS $ zipWith f img1 img2
+  zipWith !f (RSImage img1) (RSImage img2) = exchange RS $ zipWith f img1 img2
   {-# INLINE zipWith #-}
 
-  izipWith !f (RSImage img1) (RSImage img2) = computeS $ izipWith f img1 img2
+  izipWith !f (RSImage img1) (RSImage img2) = exchange RS $ izipWith f img1 img2
   {-# INLINE izipWith #-}
 
-  traverse (RSImage img) newDims = computeS . traverse img newDims 
+  traverse (RSImage img) newDims = exchange RS . traverse img newDims 
   {-# INLINE traverse #-}
 
-  traverse2 (RSImage img1) (RSImage img2) newDims = computeS . traverse2 img1 img2 newDims 
+  traverse2 (RSImage img1) (RSImage img2) newDims = exchange RS . traverse2 img1 img2 newDims 
   {-# INLINE traverse2 #-}
 
-  transpose (RSImage img) = computeS $ transpose img
+  transpose (RSImage img) = exchange RS $ transpose img
   {-# INLINE transpose #-}
   
-  backpermute !f !g (RSImage img) = computeS $ backpermute f g img
+  backpermute !f !g (RSImage img) = exchange RS $ backpermute f g img
   {-# INLINE backpermute #-}
 
   fromLists = RSImage . fromLists
@@ -195,7 +195,7 @@ instance Elt RP cs e => Array RP cs e where
   dims (RPImage img) = dims img
   {-# INLINE dims #-}
 
-  makeImage !(checkDims "RP.makeImage" -> ix) !f = suspendedComputeP $ makeImage ix f
+  makeImage !ix !img = exchangeFrom RD RP $ makeImage ix img
   {-# INLINE makeImage #-}
 
   singleton = RPImage . singleton
@@ -244,7 +244,7 @@ instance Array RS cs e => ManifestArray RS cs e where
   {-# INLINE deepSeqImage #-}
 
   (|*|) i1@(RSImage img1) i2@(RSImage img2) =
-    i1 `deepSeqImage` i2 `deepSeqImage` computeS (mult img1 img2)
+    i1 `deepSeqImage` i2 `deepSeqImage` exchange RS (mult img1 img2)
   {-# INLINE (|*|) #-}
 
   fold !f !px0 (RSImage (RUImage arr)) = R.foldAllS f px0 arr
@@ -425,18 +425,23 @@ instance Exchangable RP VU where
 -- | Computes an image in parallel and ensures that all elements are evaluated.
 computeP :: (Array arr cs e, Array RP cs e, Exchangable arr RP) =>
             Image arr cs e -> Image RP cs e
-computeP !img = head $! do
-  let img' = exchange RP img
-  img' `deepSeqImage` return img'
+computeP !img =
+  case exchange RP img of
+    RPImage (RUImage arr) -> arr `R.deepSeqArray` RPImage (RUImage arr)
+    RPImage (RScalar px)  -> px `seq` RPImage (RScalar px)
+    _ -> _errorCompute "computeP"
 {-# INLINE computeP #-}
 
 -- | Computes an image sequentially and ensures that all elements are evaluated.
 computeS :: (Array arr cs e, Array RS cs e, Exchangable arr RS) =>
             Image arr cs e -> Image RS cs e
-computeS !img = head $! do
-  let img' = exchange RS img
-  img' `deepSeqImage` return img'
+computeS !img = do
+  case exchange RS img of
+    RSImage (RUImage arr) -> arr `R.deepSeqArray` RSImage (RUImage arr)
+    RSImage (RScalar px)  -> px `seq` RSImage (RScalar px)
+    _ -> _errorCompute "computeS"
 {-# INLINE computeS #-}
+
 
 -- | Delays an image, so further operations can be fused together.
 delay :: (ManifestArray arr cs e, Array RD cs e, Exchangable arr RD) =>

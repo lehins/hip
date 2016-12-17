@@ -39,8 +39,8 @@ data Bilinear = Bilinear deriving Show
 
 instance Interpolation Nearest where
 
-  interpolate Nearest border !sz !getPx !(round -> i, round -> j) =
-    handleBorderIndex border sz getPx (i, j)
+  interpolate Nearest border !sz !getPx !(i, j) =
+    handleBorderIndex border sz getPx (round i, round j)
   {-# INLINE interpolate #-}
 
 

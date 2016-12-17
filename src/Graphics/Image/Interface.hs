@@ -344,6 +344,14 @@ class Exchangable arr' arr where
            -> Image arr' cs e -- ^ Source image.
            -> Image arr cs e
 
+-- | Changing to the same array representation as before is disabled and `exchange`
+-- will behave simply as an identitity function.
+instance Exchangable arr arr where
+
+  exchange _ !img = img
+  {-# INLINE exchange #-}
+
+
 -- | `exchange` function that allows restricting representation type of the
 -- source image.
 exchangeFrom :: (Exchangable arr' arr, Array arr' cs e, Array arr cs e) =>
@@ -351,15 +359,8 @@ exchangeFrom :: (Exchangable arr' arr, Array arr' cs e, Array arr cs e) =>
              -> arr -- ^ New representation of an image.
              -> Image arr' cs e -- ^ Source image.
              -> Image arr cs e
-exchangeFrom _ = exchange
-
--- | Changing to the same array representation as before is disabled and `exchange`
--- will behave simply as an identitity function.
-instance Exchangable arr arr where
-
-  exchange _ = id
-  {-# INLINE exchange #-}
-
+exchangeFrom _ to !img = exchange to img
+{-# INLINE exchangeFrom #-}
 
 
 -- | Approach to be used near the borders during various transformations.

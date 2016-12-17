@@ -108,6 +108,19 @@ Test-Suite hip-tests
   Default-Language:   Haskell2010
   GHC-Options:        -Wall -threaded -with-rtsopts=-N
 
+
+benchmark interface-benchmarks
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmarks
+  main-is:             Interface.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , criterion
+                     , deepseq
+                     , hip
+                     , vector
+  default-language:    Haskell2010
+
 Source-Repository head
   Type:     git
   Location: https://github.com/lehins/hip.git
