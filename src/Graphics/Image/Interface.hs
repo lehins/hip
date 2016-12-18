@@ -173,6 +173,10 @@ class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
   -- a scalar.
   singleton :: Pixel cs e -> Image arr cs e
 
+  -- | Retrieves a pixel at @(0, 0)@ index. Useful together with `fold`, when
+  -- arbitrary initial pixel is needed.
+  index00 :: Image arr cs e -> Pixel cs e
+
   -- | Map a function over a an image.
   map :: Array arr cs' e' =>
          (Pixel cs' e' -> Pixel cs e)

@@ -157,19 +157,19 @@ product = fold (+) 1
 
 
 -- | Retrieve the biggest pixel from an image
-maximum :: (MArray arr cs e, Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
-maximum !img = fold max (index img (0, 0)) img
+maximum :: (Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
+maximum !img = fold max (index00 img) img
 {-# INLINE maximum #-}
 
 
 -- | Retrieve the smallest pixel from an image
-minimum :: (MArray arr cs e, Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
-minimum !img = fold min (index img (0, 0)) img
+minimum :: (Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
+minimum !img = fold min (index00 img) img
 {-# INLINE minimum #-}
 
 
 -- | Scales all of the pixels to be in the range @[0, 1]@.
-normalize :: (MArray arr Gray e, Array arr cs e, Array arr Gray e, Fractional e, Ord e) =>
+normalize :: (Array arr cs e, Array arr Gray e, Fractional e, Ord e) =>
              Image arr cs e -> Image arr cs e
 normalize !img = if l == s
                  then (if s < 0 then (*0) else if s > 1 then (*1) else id) img

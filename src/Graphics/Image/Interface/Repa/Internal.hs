@@ -82,6 +82,11 @@ instance (BaseArray RS cs e) => Array RS cs e where
   singleton = SScalar
   {-# INLINE singleton #-}
 
+  index00 (SScalar px)  = px
+  index00 (SUImage arr) = R.index arr (Z :. 0 :. 0)
+  index00 (SDImage arr) = R.index arr (Z :. 0 :. 0)
+  {-# INLINE index00 #-}
+
   map !f (SScalar px)  = SScalar (f px)
   map !f (SUImage arr) = SDImage (R.map f arr)
   map !f (SDImage arr) = SDImage (R.map f arr)
@@ -187,6 +192,11 @@ instance (BaseArray RP cs e) => Array RP cs e where
   
   singleton = PScalar
   {-# INLINE singleton #-}
+
+  index00 (PScalar px)  = px
+  index00 (PUImage arr) = R.index arr (Z :. 0 :. 0)
+  index00 (PDImage arr) = R.index arr (Z :. 0 :. 0)
+  {-# INLINE index00 #-}
 
   map !f (PScalar px)  = PScalar (f px)
   map !f (PUImage arr) = PDImage (R.map f arr)

@@ -65,6 +65,10 @@ instance BaseArray VU cs e => Array VU cs e where
 
   singleton = VScalar
   {-# INLINE singleton #-}
+
+  index00 (VScalar px) = px
+  index00 (VUImage _ _ v) = v V.! 0
+  {-# INLINE index00 #-}
   
   map !f (VScalar px)    = VScalar (f px)
   map !f (VUImage m n v) = VUImage m n (V.map f v)
@@ -151,6 +155,7 @@ instance BaseArray VU cs e => Array VU cs e where
   {-# INLINE compute #-}
 
   toManifest = id
+  {-# INLINE toManifest #-}
 
 
 instance Array VU cs e => MArray VU cs e where
