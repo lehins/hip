@@ -20,14 +20,9 @@
 -- representation, @__cs__@ is the `ColorSpace` of an image and @__e__@ is the
 -- type denoting precision of an image.
 --
--- * @__`ManifestArray` arr cs e__@ - is a kind of array that is represented by an
--- actual data in memory.
---
--- * @__`SequentialArray` arr cs e__@ - contains functionality that can only be
--- computed sequentially.
---
--- * @__`MutableArray` arr cs e__@ - allows mutation on __@`MImage`@ @st@ @arr@ @cs@ @e@__,
--- which is `Image`'s mutable cousin.
+-- * @__`MArray` arr cs e__@ - is a kind of array, that can be indexed in
+-- constant time and allows monadic operations and mutation on __@`MImage`@ @st@
+-- @arr@ @cs@ @e@__, which is `Image`'s mutable cousin.
 --
 -- Array representation type and the above classes it is installed in determine
 -- operations that can be done on the image with that representation.
@@ -36,20 +31,18 @@
 -- <http://hackage.haskell.org/package/repa Repa> packages:
 --
 -- * `VU` - Unboxed Vector representation. (Default)
--- * `RD` - Delayed Repa array representation.
 -- * `RS` - Unboxed Repa array representation (computation is done sequentially).
 -- * `RP` - Unboxed Repa array representation (computation is done in parallel).
 --
--- Images with `RD` type hold functions rather then actual data, so this
--- representation should be used for fusing computation together, and later
--- changed to `RS` or `RP` using `exchange`, which in turn performs the fused
--- computation.
+-- Images with `RS` and `RP` types, most of the time hold functions rather then
+-- actual data, this way computation can be fused together, and later changed to
+-- `VU` using `toManifest`, which in turn performs the fused computation. If at
+-- any time computation needs to be forced, `compute` can be used for that
+-- purpose.
 --
 -- Just as it is mentioned above, Vector representation is a default one, so in
 -- order to create images with Repa representation
--- "Graphics.Image.Interface.Repa" module should be used. It has to be imported
--- as qualified, since it contains image generating functions with same names as
--- here.
+-- "Graphics.Image.Interface.Repa" module should be used.
 --
 -- Many of the function names exported by this module will clash with the ones
 -- from "Prelude", hence it can be more convenient to import it qualified and
@@ -73,7 +66,7 @@ module Graphics.Image (
   --
   -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
   --
-  makeImage, fromLists, toLists,
+  makeImage, V.fromLists, toLists,
   -- * IO
   -- ** Reading
   -- | Read any supported image file into an 'Image' with 'VU' (Vector Unboxed)
@@ -100,7 +93,7 @@ module Graphics.Image (
   fold, sum, product, maximum, minimum, normalize,
   -- * Representations
   exchange,
-  VU(..), RD(..), RS(..), RP(..),
+  VU(..), RS(..), RP(..),
   ) where
 
 #if MIN_VERSION_base(4,8,0)
@@ -112,9 +105,9 @@ import Control.Applicative (pure)
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
-import Graphics.Image.Interface hiding (makeImage, fromLists)
+import Graphics.Image.Interface as I hiding (makeImage)
 import Graphics.Image.Interface.Vector as V
-import Graphics.Image.Interface.Repa as R (RD(..), RS(..), RP(..))
+import Graphics.Image.Interface.Repa as R (RS(..), RP(..))
 
 
 import Graphics.Image.Processing
@@ -133,7 +126,7 @@ import Graphics.Image.IO.Histogram
 -- >>> rows frog
 -- 200
 --
-rows :: Array arr cs e => Image arr cs e -> Int
+rows :: BaseArray arr cs e => Image arr cs e -> Int
 rows = fst . dims
 {-# INLINE rows #-}
 
@@ -146,37 +139,37 @@ rows = fst . dims
 -- >>> cols frog
 -- 320
 --
-cols :: Array arr cs e => Image arr cs e -> Int
+cols :: BaseArray arr cs e => Image arr cs e -> Int
 cols = snd . dims
 {-# INLINE cols #-}
 
 
 -- | Sum all pixels in the image.
-sum :: ManifestArray arr cs e => Image arr cs e -> Pixel cs e
+sum :: Array arr cs e => Image arr cs e -> Pixel cs e
 sum = fold (+) 0
 {-# INLINE sum #-}
 
 
 -- | Multiply all pixels in the image.
-product :: ManifestArray arr cs e => Image arr cs e -> Pixel cs e
+product :: Array arr cs e => Image arr cs e -> Pixel cs e
 product = fold (+) 1
 {-# INLINE product #-}
 
 
 -- | Retrieve the biggest pixel from an image
-maximum :: (ManifestArray arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
+maximum :: (MArray arr cs e, Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
 maximum !img = fold max (index img (0, 0)) img
 {-# INLINE maximum #-}
 
 
 -- | Retrieve the smallest pixel from an image
-minimum :: (ManifestArray arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
+minimum :: (MArray arr cs e, Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
 minimum !img = fold min (index img (0, 0)) img
 {-# INLINE minimum #-}
 
 
 -- | Scales all of the pixels to be in the range @[0, 1]@.
-normalize :: (ManifestArray arr cs e, ManifestArray arr Gray e, Fractional e, Ord e) =>
+normalize :: (MArray arr Gray e, Array arr cs e, Array arr Gray e, Fractional e, Ord e) =>
              Image arr cs e -> Image arr cs e
 normalize !img = if l == s
                  then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
@@ -193,7 +186,7 @@ normalize !img = if l == s
 --
 -- @ img == fromLists (toLists img) @
 --
-toLists :: ManifestArray arr cs e => Image arr cs e -> [[Pixel cs e]]
+toLists :: MArray arr cs e => Image arr cs e -> [[Pixel cs e]]
 toLists img = [[index img (i, j) | j <- [0..cols img - 1]] | i <- [0..rows img - 1]]
 
 -- $colorspace

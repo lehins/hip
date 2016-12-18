@@ -24,7 +24,7 @@ instance Arbitrary e => Arbitrary (Pixel RGB e) where
   arbitrary = PixelRGB <$> arbitrary <*> arbitrary <*> arbitrary
 
 
-instance (SequentialArray VU RGB e, Arbitrary e) => Arbitrary (Image VU RGB e) where
+instance (MArray VU RGB e, Arbitrary e) => Arbitrary (Image VU RGB e) where
   arbitrary = do
     (Positive m, Positive n) <- arbitrary
     II.mapM (const arbitrary) $ I.makeImage (m, n) (const $ PixelGray (0 :: Double))

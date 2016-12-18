@@ -18,10 +18,10 @@ import Graphics.Image.Processing.Geometric
 
 
 
-convolve'' :: ManifestArray arr cs e =>
+convolve'' :: Array arr cs e =>
               Border (Pixel cs e) -> Image arr cs e -> Image arr cs e -> Image arr cs e
 convolve'' !border !kernel !img =
-  img `deepSeqImage` kernel `deepSeqImage` traverse2 kernel img (const . const sz) stencil
+  traverse2 (compute kernel) (compute img) (const . const sz) stencil
   where
     !(krnM, krnN)     = dims kernel
     !krnM2            = krnM `div` 2
@@ -46,14 +46,14 @@ convolve'' !border !kernel !img =
 --
 -- Example using <https://en.wikipedia.org/wiki/Sobel_operator Sobel operator>:
 --
--- >>> frog <- readImageY "frog.jpg"
+-- >>> frog <- readImageY "images/frog.jpg"
 -- >>> let frogX = convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) frog
 -- >>> let frogY = convolve Edge (fromLists [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]]) frog
 -- >>> displayImage $ normalize $ sqrt (frogX ^ 2 + frogY ^ 2)
 --
 -- <<images/frogY.jpg>> <<images/frog_sobel.jpg>>
 --
-convolve  :: ManifestArray arr cs e =>
+convolve  :: Array arr cs e =>
              Border (Pixel cs e)   -- ^ Approach to be used near the borders.
           -> Image arr cs e -- ^ Kernel image.
           -> Image arr cs e -- ^ Source image.
@@ -63,14 +63,14 @@ convolve !out = convolve'' out . rotate180
 
 
 -- | Convolve image's rows with a vector kernel represented by a list of pixels.
-convolveRows :: ManifestArray arr cs e =>
+convolveRows :: Array arr cs e =>
                 Border (Pixel cs e) -> [Pixel cs e] -> Image arr cs e -> Image arr cs e
 convolveRows !out = convolve out . fromLists . (:[]) . reverse
 {-# INLINE convolveRows #-}
 
 
 -- | Convolve image's columns with a vector kernel represented by a list of pixels.
-convolveCols :: ManifestArray arr cs e =>
+convolveCols :: Array arr cs e =>
                 Border (Pixel cs e) -> [Pixel cs e] -> Image arr cs e -> Image arr cs e
 convolveCols !out = convolve out . fromLists . P.map (:[]) . reverse
 {-# INLINE convolveCols #-}

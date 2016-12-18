@@ -96,7 +96,7 @@ conjugate' = map conjugate
 
 -- | Make a filter by using a function that works around a regular @(x, y)@
 -- coordinate system.
-makeFilter :: (ManifestArray arr cs e, RealFloat e) =>
+makeFilter :: (Array arr cs e, RealFloat e) =>
               (Int, Int)
               -- ^ Dimensions of the filter. Both @m@ and @n@ have to be powers
               -- of @2@, i.e. @m == 2^k@, where @k@ is some integer.
@@ -111,7 +111,7 @@ makeFilter !(m, n) !getPx
 
 
 -- | Apply a filter to an image created by 'makeFilter'.
-applyFilter :: (ManifestArray arr cs e, ManifestArray arr cs (Complex e), RealFloat e) =>
+applyFilter :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
                Image arr cs e -- ^ Source image.
             -> Image arr cs e -- ^ Filter.
             -> Image arr cs e

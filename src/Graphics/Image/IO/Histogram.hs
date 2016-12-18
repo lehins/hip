@@ -47,8 +47,8 @@ data Histogram = Histogram { hBins :: V.Vector Int
 type Histograms = [Histogram]
 
 -- | Create a histogram per channel with 256 bins each.
-getHistograms :: forall arr cs e . (SequentialArray arr Gray e,
-                                    SequentialArray arr cs e, Elevator e) =>
+getHistograms :: forall arr cs e . (MArray arr Gray e, Array arr Gray e, 
+                                    MArray arr cs e, Array arr cs e, Elevator e) =>
                  Image arr cs e
               -> Histograms
 getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogram . toGrayImages
@@ -56,7 +56,7 @@ getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogr
                        , hColour = csColour cs }
 
 -- | Generate a histogram with 256 bins for a single channel Gray image.
-getHistogram :: (SequentialArray arr Gray e, Elevator e) =>
+getHistogram :: (MArray arr Gray e, Elevator e) =>
                 Image arr Gray e
              -> Histogram
 getHistogram img = Histogram { hBins = V.modify countBins $

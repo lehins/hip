@@ -71,7 +71,7 @@ matrix:
     compiler: ": #stack 7.10.2"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--stack-yaml 	stack.lts-6.20.yaml"
+  - env: BUILD=stack ARGS="--stack-yaml 	stack.lts-6.26.yaml"
     compiler: ": #stack 7.10.3"
     addons: {apt: {packages: [libgmp-dev]}}
 

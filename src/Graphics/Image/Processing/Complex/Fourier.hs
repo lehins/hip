@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Graphics.Image.Processing.Complex.Fourier
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -29,7 +30,7 @@ data Mode = Forward
           | Inverse
 
 -- | Fast Fourier Transform
-fft :: (ManifestArray arr cs (Complex e), RealFloat e) =>
+fft :: (Array arr cs (Complex e), RealFloat e) =>
        Image arr cs (Complex e)
     -> Image arr cs (Complex e)
 fft = fft2d Forward
@@ -37,7 +38,7 @@ fft = fft2d Forward
 
 
 -- | Inverse Fast Fourier Transform
-ifft :: (ManifestArray arr cs (Complex e), RealFloat e) =>
+ifft :: (Array arr cs (Complex e), RealFloat e) =>
         Image arr cs (Complex e)
      -> Image arr cs (Complex e)
 ifft = fft2d Inverse
@@ -57,7 +58,7 @@ isPowerOfTwo n = n /= 0 && (n .&. (n-1)) == 0
 
 
 -- | Compute the DFT of a matrix. Array dimensions must be powers of two else `error`.
-fft2d :: (ManifestArray arr cs (Complex e), Num e, RealFloat e) =>
+fft2d :: (Array arr cs (Complex e), Num e, RealFloat e) =>
          Mode
       -> Image arr cs (Complex e)
       -> Image arr cs (Complex e)
@@ -76,11 +77,12 @@ fft2d mode img =
 {-# INLINE fft2d #-}
 
 
-fftGeneral :: (ManifestArray arr cs (Complex e), Num e, RealFloat e) =>
+fftGeneral :: (Array arr cs (Complex e), Num e, RealFloat e) =>
               Pixel cs e
            -> Image arr cs (Complex e)
            -> Image arr cs (Complex e)
 fftGeneral !sign !img = transpose $ go n 0 1 where
+  imgM = toManifest img
   !(m, n) = dims img
   go !len !offset !stride
     | len == 2 = makeImage (m, 2) swivel
@@ -89,8 +91,8 @@ fftGeneral !sign !img = transpose $ go n 0 1 where
                   (go (len `div` 2) (offset + stride) (stride * 2))
     where
       swivel (m', j) = case j of
-        0 -> index img (m', offset) + index img (m', offset + stride)
-        1 -> index img (m', offset) - index img (m', offset + stride)
+        0 -> index imgM (m', offset) + index imgM (m', offset + stride)
+        1 -> index imgM (m', offset) - index imgM (m', offset + stride)
         _ -> error "FFT: Image must have exactly 2 columns. Please, report this bug."
       combine !len' evens odds =  
         let odds' = traverse odds id

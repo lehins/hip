@@ -50,7 +50,7 @@ instance Arbitrary (Pixel RGB Word8) where
 instance Arbitrary (Pixel RGB Double) where
   arbitrary = PixelRGB <$> arbitraryDouble <*> arbitraryDouble <*> arbitraryDouble
 
-instance (SequentialArray arr cs e, Arbitrary (Pixel cs e)) => Arbitrary (Image arr cs e) where
+instance (MArray arr cs e, Arbitrary (Pixel cs e)) => Arbitrary (Image arr cs e) where
   arbitrary = do
     (Positive (Small m), Positive (Small n)) <- arbitrary
     I.makeImageM (m, n) (const arbitrary)
@@ -163,7 +163,7 @@ translateWrap (dm, dn) img = I.traverse img id newPx
     newPx getPx (i, j) = getPx ((i - dm) `mod` m, (j - dn) `mod` n)
 
 
-prop_toFormLists :: ManifestArray arr Y Word8 => arr -> Image arr Y Word8 -> Bool
+prop_toFormLists :: (Array arr Y Word8, MArray arr Y Word8) => arr -> Image arr Y Word8 -> Bool
 prop_toFormLists _ img = img == I.fromLists (IM.toLists img)
 
 
@@ -282,35 +282,24 @@ spec = do
   describe "Interface Properties" $ do
     it "borderIndex" $ property prop_borderIndex
     it "toFormLists" $ property $ prop_toFormLists VU
-    it "toFormLists" $ property $ prop_toFormLists RS
   describe "Representation Properties" $ do
-    it "sameDims RD" $ property $ prop_sameDims RD
     it "sameDims RS" $ property $ prop_sameDims RS
     it "sameDims RP" $ property $ prop_sameDims RP
-    it "sameImage RD" $ property $ prop_sameImage RD
     it "sameImage RS" $ property $ prop_sameImage RS
     it "sameImage RP" $ property $ prop_sameImage RP
-    it "sameMap RD" $ property $ prop_sameMap RD
     it "sameMap RS" $ property $ prop_sameMap RS
     it "sameMap RP" $ property $ prop_sameMap RP
-    it "sameImap RD" $ property $ prop_sameImap RD
     it "sameImap RS" $ property $ prop_sameImap RS
     it "sameImap RP" $ property $ prop_sameImap RP
-    it "sameZipWith RD" $ property $ prop_sameZipWith RD
     it "sameZipWith RS" $ property $ prop_sameZipWith RS
     it "sameZipWith RP" $ property $ prop_sameZipWith RP
-    it "sameIZipWith RD" $ property $ prop_sameIZipWith RD
     it "sameIZipWith RS" $ property $ prop_sameIZipWith RS
     it "sameIZipWith RP" $ property $ prop_sameIZipWith RP
-    it "sameTraverse RD" $ property $ prop_sameTraverse RD
     it "sameTraverse RS" $ property $ prop_sameTraverse RS
     it "sameTraverse RP" $ property $ prop_sameTraverse RP
-    it "sameTraverse2 RD" $ property $ prop_sameTraverse2 RD
     it "sameTraverse2 RS" $ property $ prop_sameTraverse2 RS
     it "sameTraverse2 RP" $ property $ prop_sameTraverse2 RP
-    it "sameTranspose RD" $ property $ prop_sameTranspose RD
     it "sameTranspose RS" $ property $ prop_sameTranspose RS
     it "sameTranspose RP" $ property $ prop_sameTranspose RP
-    it "sameBackpermute RD" $ property $ prop_sameBackpermute RD
     it "sameBackpermute RS" $ property $ prop_sameBackpermute RS
     it "sameBackpermute RP" $ property $ prop_sameBackpermute RP

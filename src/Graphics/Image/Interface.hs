@@ -22,7 +22,7 @@
 --
 module Graphics.Image.Interface (
   ColorSpace(..), Alpha(..), Elevator(..),
-  Array(..), ManifestArray(..), SequentialArray(..), MutableArray(..), 
+  BaseArray(..), Array(..), MArray(..),
   Exchangable(..), exchangeFrom,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   ) where
@@ -137,14 +137,29 @@ class Elevator e where
 class (Show arr, ColorSpace cs, Num (Pixel cs e),
        Functor (Pixel cs), Applicative (Pixel cs), Foldable (Pixel cs),
        Num e, Typeable e, Elt arr cs e) =>
-      Array arr cs e where
+      BaseArray arr cs e where
 
   -- | Required array specific constraints for an array element.
   type Elt arr cs e :: Constraint
   type Elt arr cs e = ()
-  
+
   -- | Underlying image representation.
   data Image arr cs e
+
+  -- | Get dimensions of an image.
+  --
+  -- >>> frog <- readImageRGB "images/frog.jpg"
+  -- >>> frog
+  -- <Image VectorUnboxed RGB (Double): 200x320>
+  -- >>> dims frog
+  -- (200,320)
+  --
+  dims :: Image arr cs e -> (Int, Int)
+
+class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
+
+  type Manifest arr :: *
+  
 
   -- | Create an Image by supplying it's dimensions and a pixel generating
   -- function.
@@ -157,16 +172,6 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e),
   -- | Create a singleton image, required for various operations on images with
   -- a scalar.
   singleton :: Pixel cs e -> Image arr cs e
-
-  -- | Get dimensions of an image.
-  --
-  -- >>> frog <- readImageRGB "images/frog.jpg"
-  -- >>> frog
-  -- <Image VectorUnboxed RGB (Double): 200x320>
-  -- >>> dims frog
-  -- (200,320)
-  --
-  dims :: Image arr cs e -> (Int, Int)
 
   -- | Map a function over a an image.
   map :: Array arr cs' e' =>
@@ -236,26 +241,6 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e),
   fromLists :: [[Pixel cs e]]
             -> Image arr cs e
 
-
--- | Array representation that is actually has real data stored in memory, hence
--- allowing for image indexing, forcing pixels into computed state etc.
-class Array arr cs e => ManifestArray arr cs e where
-
-  unsafeIndex :: Image arr cs e -> (Int, Int) -> Pixel cs e
-  
-  -- | Get a pixel at @i@-th and @j@-th location.
-  --
-  -- >>> let grad_gray = makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
-  -- >>> index grad_gray (20, 30) == PixelY ((20*30) / (200*200))
-  -- True
-  --
-  index :: Image arr cs e -> (Int, Int) -> Pixel cs e
-  index !img !ix = borderIndex (error $ show img ++ " - Index out of bounds: " ++ show ix) img ix
-  {-# INLINE index #-}
-
-  -- | Make sure that an image is fully evaluated.
-  deepSeqImage :: Image arr cs e -> a -> a
-
   -- | Perform matrix multiplication on two images. Inner dimensions must agree.
   (|*|) :: Image arr cs e -> Image arr cs e -> Image arr cs e
 
@@ -271,10 +256,30 @@ class Array arr cs e => ManifestArray arr cs e where
   -- the 'Eq' typeclass.
   eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
 
+  compute :: Image arr cs e -> Image arr cs e
 
--- | Array representation that allows computation, which depends on some specific
--- order, consequently making it possible to be computed only sequentially.
-class ManifestArray arr cs e => SequentialArray arr cs e where
+  toManifest :: Image arr cs e -> Image (Manifest arr) cs e
+  
+
+-- | Array representation that is actually has real data stored in memory, hence
+-- allowing for image indexing, forcing pixels into computed state etc.
+class BaseArray arr cs e => MArray arr cs e  where
+  data MImage st arr cs e
+
+  unsafeIndex :: Image arr cs e -> (Int, Int) -> Pixel cs e
+  
+  -- | Get a pixel at @i@-th and @j@-th location.
+  --
+  -- >>> let grad_gray = makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+  -- >>> index grad_gray (20, 30) == PixelY ((20*30) / (200*200))
+  -- True
+  --
+  index :: Image arr cs e -> (Int, Int) -> Pixel cs e
+  index !img !ix = borderIndex (error $ show img ++ " - Index out of bounds: " ++ show ix) img ix
+  {-# INLINE index #-}
+
+  -- | Make sure that an image is fully evaluated.
+  deepSeqImage :: Image arr cs e -> a -> a
 
   -- | Fold an image from the left in a row major order.
   foldl :: (a -> Pixel cs e -> a) -> a -> Image arr cs e -> a
@@ -292,20 +297,17 @@ class ManifestArray arr cs e => SequentialArray arr cs e where
              -> m (Image arr cs e)
 
   -- | Monading mapping over an image.
-  mapM :: (SequentialArray arr cs' e', Functor m, Monad m) =>
+  mapM :: (MArray arr cs' e', Functor m, Monad m) =>
           (Pixel cs' e' -> m (Pixel cs e)) -> Image arr cs' e' -> m (Image arr cs e)
 
   -- | Monading mapping over an image. Result is discarded.
   mapM_ :: (Functor m, Monad m) => (Pixel cs e -> m b) -> Image arr cs e -> m ()
 
+  -- | Monadic folding.
   foldM :: (Functor m, Monad m) => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m a
 
+  -- | Monadic folding. Result is discarded.
   foldM_ :: (Functor m, Monad m) => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m ()
-
-
--- | Array representation that supports mutation.
-class ManifestArray arr cs e => MutableArray arr cs e where
-  data MImage st arr cs e
 
   -- | Get dimensions of a mutable image.
   mdims :: MImage st arr cs e -> (Int, Int)
@@ -432,7 +434,7 @@ handleBorderIndex border !(m, n) !getPx !(i, j) =
 
 
 -- | Image indexing function that returns a default pixel if index is out of bounds.
-defaultIndex :: ManifestArray arr cs e =>
+defaultIndex :: MArray arr cs e =>
                 Pixel cs e -> Image arr cs e -> (Int, Int) -> Pixel cs e
 defaultIndex !px !img = handleBorderIndex (Fill px) (dims img) (index img)
 {-# INLINE defaultIndex #-}
@@ -440,7 +442,7 @@ defaultIndex !px !img = handleBorderIndex (Fill px) (dims img) (index img)
 
 -- | Image indexing function that uses a special border resolutions strategy for
 -- out of bounds pixels.
-borderIndex :: ManifestArray arr cs e =>
+borderIndex :: MArray arr cs e =>
                Border (Pixel cs e) -> Image arr cs e -> (Int, Int) -> Pixel cs e
 borderIndex atBorder !img = handleBorderIndex atBorder (dims img) (unsafeIndex img)
 {-# INLINE borderIndex #-}
@@ -448,7 +450,7 @@ borderIndex atBorder !img = handleBorderIndex atBorder (dims img) (unsafeIndex i
 
 -- | Image indexing function that returns @'Nothing'@ if index is out of bounds,
 -- @'Just' px@ otherwise.
-maybeIndex :: ManifestArray arr cs e =>
+maybeIndex :: MArray arr cs e =>
               Image arr cs e -> (Int, Int) -> Maybe (Pixel cs e)
 maybeIndex !img@(dims -> (m, n)) !(i, j) =
   if i >= 0 && j >= 0 && i < m && j < n then Just $ index img (i, j) else Nothing
@@ -556,7 +558,7 @@ instance (ColorSpace cs, Bounded e) => Bounded (Pixel cs e) where
   {-# INLINE minBound #-}
 
 
-instance (ManifestArray arr cs e, Eq (Pixel cs e)) => Eq (Image arr cs e) where
+instance (Array arr cs e, Eq (Pixel cs e)) => Eq (Image arr cs e) where
   (==) = eq
   {-# INLINE (==) #-}
 
@@ -632,13 +634,13 @@ instance (Floating (Pixel cs e), Array arr cs e) =>
   {-# INLINE acosh #-}  
 
 
-instance ManifestArray arr cs e => NFData (Image arr cs e) where
+instance MArray arr cs e => NFData (Image arr cs e) where
   rnf img = img `deepSeqImage` ()
   {-# INLINE rnf #-}
 
 
 
-instance Array arr cs e =>
+instance BaseArray arr cs e =>
          Show (Image arr cs e) where
   show (dims -> (m, n)) =
     "<Image " ++
@@ -649,7 +651,7 @@ instance Array arr cs e =>
      show m ++ "x" ++ show n ++ ">"
 
 
-instance MutableArray arr cs e =>
+instance MArray arr cs e =>
          Show (MImage st arr cs e) where
   show (mdims -> (m, n)) =
     "<MutableImage " ++

@@ -166,7 +166,7 @@ translate atBorder !(dm, dn) !img = traverse img id newPx
 --
 -- <<images/logo_tile.png>> <<images/logo_center.png>>
 --
--- @since 1.2.0.1
+-- @since 1.2.1.0
 --
 canvasSize
   :: Array arr cs e

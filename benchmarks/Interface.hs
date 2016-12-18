@@ -5,7 +5,7 @@ import Prelude as P
 import Criterion.Main
 import Graphics.Image.Interface as I
 --import Graphics.Image.Processing
-import qualified Graphics.Image.Interface.Repa as R
+
 --import qualified Graphics.Image.Interface.Vector as V
 import Graphics.Image.Types
 
@@ -15,31 +15,23 @@ main = do
     [ bgroup
         "RP fusion"
         [ bench "native" $
-          nf
-            (R.computeP . (noFusion :: (Int, Int) -> Image RD Y Double))
+          whnf
+            (compute  . (noFusion :: (Int, Int) -> Image RP Y Double))
             (1000, 1000)
-        , bench "RD fusion" $
-          nf
-            (R.computeP . (fusion :: (Int, Int) -> Image RD Y Double))
-            (1000, 1000)
-        , bench "RP no fusion (suspendedComputeP)" $
-          nf
-            (R.computeP . (fusion :: (Int, Int) -> Image RP Y Double))
+        , bench "RP fusion" $
+          whnf
+            (compute  . (fusion :: (Int, Int) -> Image RP Y Double))
             (1000, 1000)
         ]
     , bgroup
         "RS fusion"
         [ bench "native" $
-          nf
-            (R.computeS . (noFusion :: (Int, Int) -> Image RD Y Double))
+          whnf
+            (compute . (noFusion :: (Int, Int) -> Image RS Y Double))
             (1000, 1000)
-        , bench "RD fusion" $
-          nf
-            (R.computeS . (fusion :: (Int, Int) -> Image RD Y Double))
-            (1000, 1000)
-        , bench "RS no fusion" $
-          nf
-            (R.computeS . (fusion :: (Int, Int) -> Image RS Y Double))
+        , bench "RS fusion" $
+          whnf
+            (compute . (fusion :: (Int, Int) -> Image RS Y Double))
             (1000, 1000)
         ]
     , bgroup

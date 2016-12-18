@@ -796,38 +796,38 @@ jpCSError cs (Right jimg) =
 -- Encoding images using JuicyPixels -------------------------------------------
 --------------------------------------------------------------------------------
 
-instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) BMP where
+instance Array arr Y Word8 => Writable (Image arr Y Word8) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel Y Word8 -> JP.Pixel8) 
 
-instance ManifestArray arr RGB Word8 => Writable (Image arr RGB Word8) BMP where
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel RGB Word8 -> JP.PixelRGB8) 
 
-instance ManifestArray arr RGBA Word8 => Writable (Image arr RGBA Word8) BMP where
+instance Array arr RGBA Word8 => Writable (Image arr RGBA Word8) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage (convert :: Pixel RGBA Word8 -> JP.PixelRGBA8) 
 
-instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) BMP where
+instance Array arr Binary Bit => Writable (Image arr Binary Bit) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                                  . fromPixelBinary)
 
-instance ManifestArray arr Y Double => Writable (Image arr Y Double) BMP where
+instance Array arr Y Double => Writable (Image arr Y Double) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                                  . toWord8)
 
-instance ManifestArray arr YA Double => Writable (Image arr YA Double) BMP where
+instance Array arr YA Double => Writable (Image arr YA Double) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                                  . toWord8 . dropAlpha)
 
-instance ManifestArray arr RGB Double => Writable (Image arr RGB Double) BMP where
+instance Array arr RGB Double => Writable (Image arr RGB Double) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                                  . toWord8)
 
-instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) BMP where
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage ((convert :: Pixel RGBA Word8 -> JP.PixelRGBA8)
                                                  . toWord8)
 
 -- Writable GIF
 
-encodeGIF :: ManifestArray arr cs e =>
+encodeGIF :: Array arr cs e =>
              [SaveOption GIF] -> (Pixel cs e -> JP.PixelRGB8)
              -> Image arr cs e -> BL.ByteString
 encodeGIF []                     !conv =
@@ -838,27 +838,27 @@ encodeGIF (GIFPalette palOpts:_) !conv =
   JP.palettize palOpts . imageToJPImage conv
 
 
-instance ManifestArray arr RGB Word8 => Writable (Image arr RGB Word8) GIF where
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) GIF where
   encode _ opts = encodeGIF opts (convert :: Pixel RGB Word8 -> JP.PixelRGB8)
   
-instance ManifestArray arr Y Double => Writable (Image arr Y Double) GIF where
+instance Array arr Y Double => Writable (Image arr Y Double) GIF where
   encode _ opts = encodeGIF opts ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                   . toWord8 . toPixelRGB)
     
-instance ManifestArray arr YA Double => Writable (Image arr YA Double) GIF where
+instance Array arr YA Double => Writable (Image arr YA Double) GIF where
   encode _ opts = encodeGIF opts ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                   . toWord8 . toPixelRGB . dropAlpha)
 
-instance ManifestArray arr RGB Double => Writable (Image arr RGB Double) GIF where
+instance Array arr RGB Double => Writable (Image arr RGB Double) GIF where
   encode _ opts = encodeGIF opts ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                   . toWord8)
 
-instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) GIF where
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) GIF where
   encode _ opts = encodeGIF opts ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                   . toWord8 . dropAlpha)
 
 
-encodeGIFs :: ManifestArray arr cs e =>
+encodeGIFs :: Array arr cs e =>
               [SaveOption [GIF]] -> (Pixel cs e -> JP.PixelRGB8)
            -> [(JP.GifDelay, Image arr cs e)] -> BL.ByteString
 encodeGIFs !opts !conv =
@@ -873,31 +873,31 @@ encodeGIFs !opts !conv =
       !(jimg, p) = JP.palettize (getGIFsPal opts) $ imageToJPImage conv img
 
 
-instance ManifestArray arr RGB Word8 => Writable [(JP.GifDelay, Image arr RGB Word8)] [GIF] where
+instance Array arr RGB Word8 => Writable [(JP.GifDelay, Image arr RGB Word8)] [GIF] where
   encode _ opts = encodeGIFs opts (convert :: Pixel RGB Word8 -> JP.PixelRGB8)
 
-instance ManifestArray arr RGB Double => Writable [(JP.GifDelay, Image arr RGB Double)] [GIF] where
+instance Array arr RGB Double => Writable [(JP.GifDelay, Image arr RGB Double)] [GIF] where
   encode _ opts = encodeGIFs opts ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                    . toWord8)
 
 -- Writable HDR
 
-instance ManifestArray arr RGB Float => Writable (Image arr RGB Float) HDR where
+instance Array arr RGB Float => Writable (Image arr RGB Float) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage (convert :: Pixel RGB Float -> JP.PixelRGBF) 
 
-instance ManifestArray arr Y Double => Writable (Image arr Y Double) HDR where
+instance Array arr Y Double => Writable (Image arr Y Double) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage ((convert :: Pixel RGB Float -> JP.PixelRGBF)
                                               . toFloat . toPixelRGB)
 
-instance ManifestArray arr YA Double => Writable (Image arr YA Double) HDR where
+instance Array arr YA Double => Writable (Image arr YA Double) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage ((convert :: Pixel RGB Float -> JP.PixelRGBF)
                                               . toFloat . toPixelRGB . dropAlpha)
 
-instance ManifestArray arr RGB Double => Writable (Image arr RGB Double) HDR where
+instance Array arr RGB Double => Writable (Image arr RGB Double) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage ((convert :: Pixel RGB Float -> JP.PixelRGBF)
                                               . toFloat)
 
-instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) HDR where
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage ((convert :: Pixel RGB Float -> JP.PixelRGBF)
                                               . toFloat . dropAlpha)
  
@@ -905,7 +905,7 @@ instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) HDR w
 -- Writable JPG
 
 
-encodeJPG :: (JP.JpgEncodable px, ManifestArray arr cs e) =>
+encodeJPG :: (JP.JpgEncodable px, Array arr cs e) =>
              [SaveOption JPG] -> (Pixel cs e -> px) -> Image arr cs e -> BL.ByteString
 encodeJPG []               conv =
   JP.encodeDirectJpegAtQualityWithMetadata 100 M.mempty . imageToJPImage conv
@@ -913,185 +913,188 @@ encodeJPG (JPGQuality q:_) conv =
   JP.encodeDirectJpegAtQualityWithMetadata q M.mempty . imageToJPImage conv
 
 
-instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) JPG where
+instance Array arr Y Word8 => Writable (Image arr Y Word8) JPG where
   encode _ opts = encodeJPG opts (convert :: Pixel Y Word8 -> JP.Pixel8)
 
-instance ManifestArray arr RGB Word8 => Writable (Image arr RGB Word8) JPG where
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) JPG where
   encode _ opts = encodeJPG opts (convert :: Pixel RGB Word8 -> JP.PixelRGB8) 
 
-instance ManifestArray arr CMYK Word8 => Writable (Image arr CMYK Word8) JPG where
+instance Array arr CMYK Word8 => Writable (Image arr CMYK Word8) JPG where
   encode _ opts = encodeJPG opts (convert :: Pixel CMYK Word8 -> JP.PixelCMYK8) 
                
-instance ManifestArray arr YCbCr Word8 => Writable (Image arr YCbCr Word8) JPG where
+instance Array arr YCbCr Word8 => Writable (Image arr YCbCr Word8) JPG where
   encode _ opts = encodeJPG opts (convert :: Pixel YCbCr Word8 -> JP.PixelYCbCr8) 
 
-instance ManifestArray arr Y Double => Writable (Image arr Y Double) JPG where
+instance Array arr Y Double => Writable (Image arr Y Double) JPG where
   encode _ opts = encodeJPG opts ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                   . toWord8) 
 
-instance ManifestArray arr YA Double => Writable (Image arr YA Double) JPG where
+instance Array arr YA Double => Writable (Image arr YA Double) JPG where
   encode _ opts = encodeJPG opts ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                   . toWord8 . dropAlpha) 
 
-instance ManifestArray arr RGB Double => Writable (Image arr RGB Double) JPG where
+instance Array arr RGB Double => Writable (Image arr RGB Double) JPG where
   encode _ opts = encodeJPG opts ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                   . toWord8) 
 
-instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) JPG where
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) JPG where
   encode _ opts = encodeJPG opts ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                   . toWord8 . dropAlpha) 
 
 
 -- Writable PNG
 
-instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) PNG where
+instance Array arr Binary Bit => Writable (Image arr Binary Bit) PNG where
   encode _ _ = JP.encodePng . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8) 
                                               . fromPixelBinary)
   
-instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) PNG where
+instance Array arr Y Word8 => Writable (Image arr Y Word8) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel Y Word8 -> JP.Pixel8) 
 
-instance ManifestArray arr Y Word16 => Writable (Image arr Y Word16) PNG where
+instance Array arr Y Word16 => Writable (Image arr Y Word16) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel Y Word16 -> JP.Pixel16) 
 
-instance ManifestArray arr YA Word8 => Writable (Image arr YA Word8) PNG where
+instance Array arr YA Word8 => Writable (Image arr YA Word8) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel YA Word8 -> JP.PixelYA8) 
 
-instance ManifestArray arr YA Word16 => Writable (Image arr YA Word16) PNG where
+instance Array arr YA Word16 => Writable (Image arr YA Word16) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel YA Word16 -> JP.PixelYA16) 
 
-instance ManifestArray arr RGB Word8 => Writable (Image arr RGB Word8) PNG where
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGB Word8 -> JP.PixelRGB8) 
 
-instance ManifestArray arr RGB Word16 => Writable (Image arr RGB Word16) PNG where
+instance Array arr RGB Word16 => Writable (Image arr RGB Word16) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGB Word16 -> JP.PixelRGB16) 
 
-instance ManifestArray arr RGBA Word8 => Writable (Image arr RGBA Word8) PNG where
+instance Array arr RGBA Word8 => Writable (Image arr RGBA Word8) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGBA Word8 -> JP.PixelRGBA8) 
 
-instance ManifestArray arr RGBA Word16 => Writable (Image arr RGBA Word16) PNG where
+instance Array arr RGBA Word16 => Writable (Image arr RGBA Word16) PNG where
   encode _ _ = JP.encodePng . imageToJPImage (convert :: Pixel RGBA Word16 -> JP.PixelRGBA16) 
 
 
-instance ManifestArray arr Y Double => Writable (Image arr Y Double) PNG where
+instance Array arr Y Double => Writable (Image arr Y Double) PNG where
   encode _ _ = JP.encodePng . imageToJPImage ((convert :: Pixel Y Word16 -> JP.Pixel16)
                                               . toWord16)
 
-instance ManifestArray arr YA Double => Writable (Image arr YA Double) PNG where
+instance Array arr YA Double => Writable (Image arr YA Double) PNG where
   encode _ _ = JP.encodePng . imageToJPImage ((convert :: Pixel YA Word16 -> JP.PixelYA16)
                                               . toWord16)
 
-instance ManifestArray arr RGB Double => Writable (Image arr RGB Double) PNG where
+instance Array arr RGB Double => Writable (Image arr RGB Double) PNG where
   encode _ _ = JP.encodePng . imageToJPImage ((convert :: Pixel RGB Word16 -> JP.PixelRGB16)
                                               . toWord16)
 
-instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) PNG where
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) PNG where
   encode _ _ = JP.encodePng . imageToJPImage ((convert :: Pixel RGBA Word16 -> JP.PixelRGBA16)
                                               . toWord16)
 
 -- Writable TGA
 
-instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) TGA where
+instance Array arr Binary Bit => Writable (Image arr Binary Bit) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                               . fromPixelBinary)
   
-instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) TGA where
+instance Array arr Y Word8 => Writable (Image arr Y Word8) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage (convert :: Pixel Y Word8 -> JP.Pixel8) 
 
-instance ManifestArray arr RGB Word8 => Writable (Image arr RGB Word8) TGA where
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage (convert :: Pixel RGB Word8 -> JP.PixelRGB8) 
 
-instance ManifestArray arr RGBA Word8 => Writable (Image arr RGBA Word8) TGA where
+instance Array arr RGBA Word8 => Writable (Image arr RGBA Word8) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage (convert :: Pixel RGBA Word8 -> JP.PixelRGBA8) 
 
 
-instance ManifestArray arr Y Double => Writable (Image arr Y Double) TGA where
+instance Array arr Y Double => Writable (Image arr Y Double) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                               . toWord8)
 
-instance ManifestArray arr YA Double => Writable (Image arr YA Double) TGA where
+instance Array arr YA Double => Writable (Image arr YA Double) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                               . toWord8 . dropAlpha)
 
-instance ManifestArray arr RGB Double => Writable (Image arr RGB Double) TGA where
+instance Array arr RGB Double => Writable (Image arr RGB Double) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage ((convert :: Pixel RGB Word8 -> JP.PixelRGB8)
                                               . toWord8)
 
-instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) TGA where
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) TGA where
   encode _ _ = JP.encodeTga . imageToJPImage ((convert :: Pixel RGBA Word8 -> JP.PixelRGBA8)
                                               . toWord8)
 
 -- Writable TIF
 
-instance ManifestArray arr Y Word8 => Writable (Image arr Y Word8) TIF where
+instance Array arr Y Word8 => Writable (Image arr Y Word8) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel Y Word8 -> JP.Pixel8) 
 
-instance ManifestArray arr Y Word16 => Writable (Image arr Y Word16) TIF where
+instance Array arr Y Word16 => Writable (Image arr Y Word16) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel Y Word16 -> JP.Pixel16) 
 
-instance ManifestArray arr YA Word8 => Writable (Image arr YA Word8) TIF where
+instance Array arr YA Word8 => Writable (Image arr YA Word8) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel YA Word8 -> JP.PixelYA8) 
 
-instance ManifestArray arr YA Word16 => Writable (Image arr YA Word16) TIF where
+instance Array arr YA Word16 => Writable (Image arr YA Word16) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel YA Word16 -> JP.PixelYA16) 
 
-instance ManifestArray arr RGB Word8 => Writable (Image arr RGB Word8) TIF where
+instance Array arr RGB Word8 => Writable (Image arr RGB Word8) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel RGB Word8 -> JP.PixelRGB8) 
 
-instance ManifestArray arr RGB Word16 => Writable (Image arr RGB Word16) TIF where
+instance Array arr RGB Word16 => Writable (Image arr RGB Word16) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel RGB Word16 -> JP.PixelRGB16) 
 
-instance ManifestArray arr RGBA Word8 => Writable (Image arr RGBA Word8) TIF where
+instance Array arr RGBA Word8 => Writable (Image arr RGBA Word8) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel RGBA Word8 -> JP.PixelRGBA8) 
 
-instance ManifestArray arr RGBA Word16 => Writable (Image arr RGBA Word16) TIF where
+instance Array arr RGBA Word16 => Writable (Image arr RGBA Word16) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel RGBA Word16 -> JP.PixelRGBA16) 
 
-instance ManifestArray arr YCbCr Word8 => Writable (Image arr YCbCr Word8) TIF where
+instance Array arr YCbCr Word8 => Writable (Image arr YCbCr Word8) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel YCbCr Word8 -> JP.PixelYCbCr8)
   
-instance ManifestArray arr CMYK Word8 => Writable (Image arr CMYK Word8) TIF where
+instance Array arr CMYK Word8 => Writable (Image arr CMYK Word8) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel CMYK Word8 -> JP.PixelCMYK8) 
 
-instance ManifestArray arr CMYK Word16 => Writable (Image arr CMYK Word16) TIF where
+instance Array arr CMYK Word16 => Writable (Image arr CMYK Word16) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (convert :: Pixel CMYK Word16 -> JP.PixelCMYK16) 
 
 
-instance ManifestArray arr Binary Bit => Writable (Image arr Binary Bit) TIF where
+instance Array arr Binary Bit => Writable (Image arr Binary Bit) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel Y Word8 -> JP.Pixel8)
                                                . fromPixelBinary)
   
-instance ManifestArray arr Y Double => Writable (Image arr Y Double) TIF where
+instance Array arr Y Double => Writable (Image arr Y Double) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel Y Word16 -> JP.Pixel16)
                                                . toWord16)
 
-instance ManifestArray arr YA Double => Writable (Image arr YA Double) TIF where
+instance Array arr YA Double => Writable (Image arr YA Double) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel YA Word16 -> JP.PixelYA16)
                                                . toWord16)
 
-instance ManifestArray arr RGB Double => Writable (Image arr RGB Double) TIF where
+instance Array arr RGB Double => Writable (Image arr RGB Double) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel RGB Word16 -> JP.PixelRGB16)
                                                . toWord16)
 
-instance ManifestArray arr RGBA Double => Writable (Image arr RGBA Double) TIF where
+instance Array arr RGBA Double => Writable (Image arr RGBA Double) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel RGBA Word16 -> JP.PixelRGBA16)
                                                . toWord16)
 
-instance ManifestArray arr YCbCr Double => Writable (Image arr YCbCr Double) TIF where
+instance Array arr YCbCr Double => Writable (Image arr YCbCr Double) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel YCbCr Word8 -> JP.PixelYCbCr8)
                                                . toWord8)
 
-instance ManifestArray arr CMYK Double => Writable (Image arr CMYK Double) TIF where
+instance Array arr CMYK Double => Writable (Image arr CMYK Double) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage ((convert :: Pixel CMYK Word16 -> JP.PixelCMYK16)
                                                . toWord16)
 
 
 
-imageToJPImage :: (JP.Pixel a, ManifestArray arr cs e) =>
+imageToJPImage :: (JP.Pixel a, Array arr cs e) =>
                   (Pixel cs e -> a) -> Image arr cs e -> JP.Image a
-imageToJPImage !f img@(dims -> (m, n)) = JP.generateImage g n m
-  where g !j !i = f (index img (i, j))
-        {-# INLINE g #-}
+imageToJPImage !f imgD = JP.generateImage g n m
+  where
+    !(m, n) = dims imgD
+    !img = toManifest imgD
+    g !j !i = f (index img (i, j))
+    {-# INLINE g #-}
 {-# INLINE imageToJPImage #-}
 
 

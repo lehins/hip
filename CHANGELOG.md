@@ -1,6 +1,9 @@
-1.2.0.1
+1.2.1.0
 =======
 
+* Significantly simplified interface:
+  * Removed `ManifestArray`, `SequentialArray` and `MutableArray` classes in favor of `MArray`.
+* Rewrite of Repa image representations. Removed `RD` representation.
 * Introduced function `canvasSize`.
 
 1.2.0.0

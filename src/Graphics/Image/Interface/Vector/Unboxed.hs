@@ -43,23 +43,28 @@ instance Show VU where
   show _ = "VectorUnboxed"
 
 
-instance Elt VU cs e => Array VU cs e where
+instance Elt VU cs e => BaseArray VU cs e where
   type Elt VU cs e = (ColorSpace cs, Num e, Unbox e, Typeable e, 
                       Unbox (PixelElt cs e), Unbox (Pixel cs e))
-                     
+
   data Image VU cs e = VScalar !(Pixel cs e)
                      | VUImage !Int !Int !(Vector (Pixel cs e))
-  
+
+  dims (VUImage m n _) = (m, n)
+  dims (VScalar _)     = (1, 1)
+  {-# INLINE dims #-}
+
+
+instance BaseArray VU cs e => Array VU cs e where
+
+  type Manifest VU = VU
+
   makeImage !(checkDims "VU.makeImage" -> (m, n)) !f =
     VUImage m n $ V.generate (m * n) (f . toIx n)
   {-# INLINE makeImage #-}
 
   singleton = VScalar
   {-# INLINE singleton #-}
-  
-  dims (VUImage m n _) = (m, n)
-  dims (VScalar _)     = (1, 1)
-  {-# INLINE dims #-}
   
   map !f (VScalar px)    = VScalar (f px)
   map !f (VUImage m n v) = VUImage m n (V.map f v)
@@ -116,17 +121,6 @@ instance Elt VU cs e => Array VU cs e where
       !isSquare = (n > 0) && all (==n) (P.map length ls)
   {-# INLINE fromLists #-}
 
-
-instance Array VU cs e => ManifestArray VU cs e where
-
-  unsafeIndex (VUImage _ n v) !ix = V.unsafeIndex v (fromIx n ix)
-  unsafeIndex (VScalar px)      _ = px
-  {-# INLINE unsafeIndex #-}
-
-  deepSeqImage (VUImage m n v) = m `seq` n `seq` deepseq v
-  deepSeqImage (VScalar px)    = seq px
-  {-# INLINE deepSeqImage #-}
-  
   fold !f !px0 (VUImage _ _ v) = V.foldl' f px0 v
   fold !f !px0 (VScalar px)    = f px0 px
   {-# INLINE fold #-}
@@ -152,8 +146,26 @@ instance Array VU cs e => ManifestArray VU cs e where
   eq _ _ = False
   {-# INLINE eq #-}
 
+  compute (VUImage m n v) = m `seq` n `seq` v `deepseq` (VUImage m n v)
+  compute (VScalar px)    = px `seq` (VScalar px)
+  {-# INLINE compute #-}
 
-instance ManifestArray VU cs e => SequentialArray VU cs e where
+  toManifest = id
+
+
+instance Array VU cs e => MArray VU cs e where
+  
+  data MImage st VU cs e = MVImage !Int !Int (MV.MVector st (Pixel cs e))
+                         | MVScalar (MV.MVector st (Pixel cs e))
+
+
+  unsafeIndex (VUImage _ n v) !ix = V.unsafeIndex v (fromIx n ix)
+  unsafeIndex (VScalar px)      _ = px
+  {-# INLINE unsafeIndex #-}
+
+  deepSeqImage (VUImage m n v) = m `seq` n `seq` deepseq v
+  deepSeqImage (VScalar px)    = seq px
+  {-# INLINE deepSeqImage #-}
 
   foldl !f !a (VUImage _ _ v) = V.foldl' f a v
   foldl !f !a (VScalar px)    = f a px
@@ -183,11 +195,6 @@ instance ManifestArray VU cs e => SequentialArray VU cs e where
   foldM_ !f !a (VScalar px)    = void $ f a px
   {-# INLINE foldM_ #-}
 
-
-instance ManifestArray VU cs e => MutableArray VU cs e where
-
-  data MImage st VU cs e = MVImage !Int !Int (MV.MVector st (Pixel cs e))
-                         | MVScalar (MV.MVector st (Pixel cs e))
 
   mdims (MVImage m n _) = (m, n)
   mdims (MVScalar _)    = (1, 1)
