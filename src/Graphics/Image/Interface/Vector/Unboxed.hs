@@ -269,7 +269,7 @@ fromIx !n !(i, j) = n * i + j
 toIx :: Int -- ^ @n@ columns
      -> Int -- ^ Flat vector index
      -> (Int, Int) -- ^ @(i, j)@ row, column index
-toIx !n !k = (k `div` n, k `mod` n)
+toIx !n !k = divMod k n
 {-# INLINE toIx #-}
 
 
