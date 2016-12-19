@@ -59,7 +59,7 @@ toGrayImages !img = P.map getCh (enumFrom (toEnum 0)) where
 --
 -- <<images/frog.jpg>> <<images/frog_rbg.jpg>>
 --
--- It is worth noting though, that separating image channels can be sometimes
+-- It is worth noting though, despite that separating image channels can be sometimes
 -- pretty useful, the same effect as above can be achieved in a much simpler and
 -- more efficient way:
 --

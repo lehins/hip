@@ -47,7 +47,7 @@ infixr 2  .||.
 -- construction, which is done by comparing either a single pixel with every
 -- pixel in an image or two same size images pointwise. For example:
 --
--- >>> frog <- readImageY "images/frog.jpg"
+-- >>> frog <- readImageY VU "images/frog.jpg"
 -- >>> frog .==. PixelY 0    -- (or: PixelY 0 .==. frog)
 -- >>> frog .<. flipH frog   -- (or: flipH frog .>. frog)
 --
@@ -161,7 +161,7 @@ toImageBinaryUsing2 !f =  zipWith (((.).(.)) fromBool f)
 
 -- | Threshold a source image with an applicative pixel.
 --
--- >>> yield <- readImageRGB "images/yield.jpg"
+-- >>> yield <- readImageRGB VU "images/yield.jpg"
 -- >>> writeImageExact PNG [] "images/yield_bin.png" $ thresholdWith (PixelRGB (>0.55) (<0.6) (<0.5)) yield
 --
 -- <<images/yield.jpg>> <<images/yield_bin.png>>

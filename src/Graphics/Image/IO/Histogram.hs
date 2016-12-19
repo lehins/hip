@@ -70,7 +70,7 @@ getHistogram img = Histogram { hBins = V.modify countBins $
 
 -- | Write histograms into a PNG image file.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeHistograms "images/frog_histogram.svg" $ getHistograms frog
 --
 -- <<images/frog_histogram.svg>>
@@ -88,7 +88,7 @@ writeHistograms fileName hists =
 -- | Display image histograms using an external program. Works in a similar way as
 -- `Graphics.Image.IO.displayImage`.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> displayHistograms $ getHistograms frog
 --
 displayHistograms :: Histograms -> IO ()

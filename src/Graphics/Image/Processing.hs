@@ -34,7 +34,7 @@ import Graphics.Image.Processing.Interpolation
 -- | This function magnifies an image by a positive factor and draws a grid
 -- around the original pixels. It is here simply as useful inspection tool.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeImage "images/frog_eye_grid.png" $ pixelGrid 10 $ crop (51, 112) (20, 20) frog
 --
 -- <<images/frog.jpg>> <<images/frog_eye_grid.png>>

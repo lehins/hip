@@ -456,7 +456,7 @@ fromRepaArrayP :: R.Array R.D DIM2 (Pixel cs e) -> Image RP cs e
 fromRepaArrayP = PDImage
 
 
--- | Retrieve an underlying Repa array from `RD` image type.
+-- | Retrieve an underlying Repa array from an image.
 toRepaArray
   :: (Array arr cs e, Array RS cs e, Exchangable arr RS)
   => Image arr cs e -> R.Array R.U DIM2 (Pixel cs e)

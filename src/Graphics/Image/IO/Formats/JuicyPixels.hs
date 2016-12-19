@@ -1089,7 +1089,7 @@ instance Array arr CMYK Double => Writable (Image arr CMYK Double) TIF where
 
 imageToJPImage :: (JP.Pixel a, Array arr cs e) =>
                   (Pixel cs e -> a) -> Image arr cs e -> JP.Image a
-imageToJPImage !f imgD = JP.generateImage g n m
+imageToJPImage !f !imgD = JP.generateImage g n m
   where
     !(m, n) = dims imgD
     !img = toManifest imgD

@@ -125,11 +125,9 @@ topToBottom !img1@(dims -> (m1, _)) !img2 = traverse2 img1 img2 newDims newPx wh
 -- | Shift an image towards its bottom right corner by @(delatM, deltaN)@ rows and
 -- columns, while specifying a border resolution strategy.
 --
--- @
--- λ> frog <- readImageRGB "images/frog.jpg"
--- λ> writeImage "images/frog_translate_wrap.jpg" $ translate Wrap (50, 100) frog
--- λ> writeImage "images/frog_translate_edge.jpg" $ translate Edge (50, 100) frog
--- @
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
+-- >>> writeImage "images/frog_translate_wrap.jpg" $ translate Wrap (50, 100) frog
+-- >>> writeImage "images/frog_translate_edge.jpg" $ translate Edge (50, 100) frog
 --
 -- <<images/frog.jpg>> <<images/frog_translate_wrap.jpg>> <<images/frog_translate_edge.jpg>>
 -- 
@@ -157,12 +155,10 @@ translate atBorder !(dm, dn) !img = traverse img id newPx
 -- For example, it can be used to make a tile from the image above, or simply
 -- scale the canvas and place it in a middle:
 --
--- @
--- λ> logo <- readImageRGBA "images/logo_40.png"
--- λ> let incBy (fm, fn) = (rows logo * fm, cols logo * fn)
--- λ> writeImage "images/logo_tile.png" $ canvasSize Wrap (incBy (6, 10)) logo
--- λ> writeImage "images/logo_center.png" $ translate (Fill 0) (incBy (2, 3)) $ canvasSize (Fill 0) (incBy (5, 7)) logo
--- @
+-- >>> logo <- readImageRGBA VU "images/logo_40.png"
+-- >>> let incBy (fm, fn) = (rows logo * fm, cols logo * fn)
+-- >>> writeImage "images/logo_tile.png" $ canvasSize Wrap (incBy (6, 10)) logo
+-- >>> writeImage "images/logo_center.png" $ translate (Fill 0) (incBy (2, 3)) $ canvasSize (Fill 0) (incBy (5, 7)) logo
 --
 -- <<images/logo_tile.png>> <<images/logo_center.png>>
 --
@@ -228,7 +224,7 @@ flipUsing getNewIndex !img@(dims -> d) = backpermute d (getNewIndex d) img
 
 -- | Flip an image vertically.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeImage "images/frog_flipV.jpg" $ flipV frog
 --
 -- <<images/frog.jpg>> <<images/frog_flipV.jpg>>
@@ -240,7 +236,7 @@ flipV = flipUsing (\ (m, _) !(i, j) -> (m - 1 - i, j))
 
 -- | Flip an image horizontally.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeImage "images/frog_flipH.jpg" $ flipH frog
 --
 -- <<images/frog.jpg>> <<images/frog_flipH.jpg>>
@@ -252,7 +248,7 @@ flipH = flipUsing (\ (_, n) !(i, j) -> (i, n - 1 - j))
 
 -- | Rotate an image clockwise by 90°.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeImage "images/frog_rotate90.jpg" $ rotate90 frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate90.jpg>>
@@ -264,7 +260,7 @@ rotate90 = transpose . flipV
 
 -- | Rotate an image by 180°.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeImage "images/frog_rotate180.jpg" $ rotate180 frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate180.jpg>>
@@ -276,7 +272,7 @@ rotate180 = flipUsing (\ !(m, n) !(i, j) -> (m - 1 - i, n - 1 - j))
 
 -- | Rotate an image clockwise by 270°.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeImage "images/frog_rotate270.jpg" $ rotate270 frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate270.jpg>>
@@ -289,7 +285,7 @@ rotate270 = transpose . flipH
 
 -- | Rotate an image clockwise by an angle Θ in radians.
 --
--- >>> frog <- readImageRGBA "images/frog.jpg"
+-- >>> frog <- readImageRGBA VU "images/frog.jpg"
 -- >>> writeImage "images/frog_rotate330.png" $ rotate Bilinear (Fill 0) (11*pi/6) frog
 --
 -- <<images/frog.jpg>> <<images/frog_rotate330.png>>
@@ -322,7 +318,7 @@ rotate !method border !theta' !img = traverse img getNewDims getNewPx where
 
 -- | Resize an image using an interpolation method.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> writeImage "images/frog_resize.jpg" $ resize Bilinear Edge (100, 640) frog
 --
 -- <<images/frog_resize.jpg>>

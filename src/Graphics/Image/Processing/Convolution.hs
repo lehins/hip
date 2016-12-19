@@ -46,7 +46,7 @@ convolve'' !border !kernel !img =
 --
 -- Example using <https://en.wikipedia.org/wiki/Sobel_operator Sobel operator>:
 --
--- >>> frog <- readImageY "images/frog.jpg"
+-- >>> frog <- readImageY RP "images/frog.jpg"
 -- >>> let frogX = convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) frog
 -- >>> let frogY = convolve Edge (fromLists [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]]) frog
 -- >>> displayImage $ normalize $ sqrt (frogX ^ 2 + frogY ^ 2)

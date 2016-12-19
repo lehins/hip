@@ -148,7 +148,7 @@ class (Show arr, ColorSpace cs, Num (Pixel cs e),
 
   -- | Get dimensions of an image.
   --
-  -- >>> frog <- readImageRGB "images/frog.jpg"
+  -- >>> frog <- readImageRGB VU "images/frog.jpg"
   -- >>> frog
   -- <Image VectorUnboxed RGB (Double): 200x320>
   -- >>> dims frog

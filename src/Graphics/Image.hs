@@ -66,14 +66,26 @@ module Graphics.Image (
   --
   -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
   --
-  makeImage, V.fromLists, toLists,
+  makeImage, makeImageS, makeImageP, fromLists, fromListsS, fromListsP, toLists,
   -- * IO
   -- ** Reading
-  -- | Read any supported image file into an 'Image' with 'VU' (Vector Unboxed)
-  -- representation and pixels with 'Double' precision. In order to read an
-  -- image with different representation, color space and precision 'readImage'
-  -- or 'readImageExact' from <Graphics-Image-IO.html Graphics.Image.IO> can be
-  -- used.
+  -- | Read supported files into an 'Image' with pixels in 'Double'
+  -- precision. In order to read an image with different representation, color
+  -- space and precision use 'readImage' or 'readImageExact' from
+  -- <Graphics-Image-IO.html Graphics.Image.IO> instead. While reading an
+  -- image, it's underlying representation can be specified by passing one of
+  -- `VU`, `RS` or `RP` as the first argument to @readImage*@ functions. Here is
+  -- a quick demonstration of how two images can be read as different
+  -- representations and later easily combined as their average.
+  --
+  -- >>> cluster <- readImageRGB RP "images/cluster.jpg"
+  -- >>> displayImage cluster
+  -- >>> centaurus <- readImageRGB VU "images/centaurus.jpg"
+  -- >>> displayImage centaurus
+  -- >>> displayImage ((cluster + exchange RP centaurus) / 2)
+  --
+  -- <<images/cluster.jpg>> <<images/centaurus.jpg>> <<images/centaurus_and_cluster.jpg>>
+  --
   readImageY, readImageYA, readImageRGB, readImageRGBA, readImageExact,
   -- ** Writing
   writeImage, writeImageExact, displayImage,
@@ -105,9 +117,9 @@ import Control.Applicative (pure)
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
-import Graphics.Image.Interface as I hiding (makeImage)
-import Graphics.Image.Interface.Vector as V
-import Graphics.Image.Interface.Repa as R (RS(..), RP(..))
+import Graphics.Image.Interface as I hiding (makeImage, fromLists)
+import Graphics.Image.Interface.Vector
+import Graphics.Image.Interface.Repa
 
 
 import Graphics.Image.Processing
@@ -117,10 +129,33 @@ import Graphics.Image.Processing.Geometric
 import Graphics.Image.IO.Histogram
 
 
+-- | Read image as luma (brightness).
+readImageY :: Array arr Y Double => arr -> FilePath -> IO (Image arr Y Double)
+readImageY _ = fmap (either error id) . readImage
+{-# INLINE readImageY #-}
+
+
+-- | Read image as luma with 'Alpha' channel.
+readImageYA :: Array arr YA Double => arr -> FilePath -> IO (Image arr YA Double)
+readImageYA _ = fmap (either error id) . readImage
+{-# INLINE readImageYA #-}
+
+
+-- | Read image in RGB colorspace.
+readImageRGB :: Array arr RGB Double => arr -> FilePath -> IO (Image arr RGB Double)
+readImageRGB _ = fmap (either error id) . readImage
+{-# INLINE readImageRGB #-}
+
+
+-- | Read image in RGB colorspace with 'Alpha' channel.
+readImageRGBA :: Array arr RGBA Double => arr -> FilePath -> IO (Image arr RGBA Double)
+readImageRGBA _ = fmap (either error id) . readImage
+{-# INLINE readImageRGBA #-}
+
 
 -- | Get the number of rows in an image.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> frog
 -- <Image VectorUnboxed RGB (Double): 200x320>
 -- >>> rows frog
@@ -133,7 +168,7 @@ rows = fst . dims
 
 -- | Get the number of columns in an image.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> frog
 -- <Image VectorUnboxed RGB (Double): 200x320>
 -- >>> cols frog

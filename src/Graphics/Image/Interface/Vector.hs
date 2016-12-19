@@ -10,23 +10,19 @@
 module Graphics.Image.Interface.Vector (
   -- * Construction
   makeImage, fromLists, fromUnboxedVector, toUnboxedVector,
-  -- * IO
-  readImageY, readImageYA, readImageRGB, readImageRGBA,
   -- * Representation
   VU(..),
-  -- * Flat index conversion
+  -- * Linear index conversion
   toIx, fromIx
   ) where
 
-import Graphics.Image.IO
 import Graphics.Image.Interface hiding (makeImage, fromLists)
 import qualified Graphics.Image.Interface as I (makeImage, fromLists)
 import Graphics.Image.Interface.Vector.Unboxed
-import Graphics.Image.ColorSpace
 
 
 -- | Create an image with 'VU' (Vector Unboxed) representation and pixels of 'Double'
--- precision. Note, that for 'Double' precision pixels it is essential to keep values
+-- precision. Note, that it is essential for 'Double' precision pixels to keep values
 -- normalized in the @[0, 1]@ range in order for an image to be written to file
 -- properly.
 --
@@ -68,28 +64,3 @@ fromLists :: Array VU cs e =>
           -> Image VU cs e
 fromLists = I.fromLists
 {-# INLINE fromLists #-}
-
-
--- | Read image as luma (brightness).
-readImageY :: FilePath -> IO (Image VU Y Double)
-readImageY = fmap (either error id) . readImage
-{-# INLINE readImageY #-}
-
-
--- | Read image as luma with 'Alpha' channel.
-readImageYA :: FilePath -> IO (Image VU YA Double)
-readImageYA = fmap (either error id) . readImage
-{-# INLINE readImageYA #-}
-
-
--- | Read image in RGB colorspace.
-readImageRGB :: FilePath -> IO (Image VU RGB Double)
-readImageRGB = fmap (either error id) . readImage
-{-# INLINE readImageRGB #-}
-
-
--- | Read image in RGB colorspace with 'Alpha' channel.
-readImageRGBA :: FilePath -> IO (Image VU RGBA Double)
-readImageRGBA = fmap (either error id) . readImage
-{-# INLINE readImageRGBA #-}
-

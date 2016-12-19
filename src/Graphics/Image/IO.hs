@@ -105,7 +105,7 @@ readImage path = do
 -- The drawback here is that colorspace and precision has to match exactly,
 -- otherwise it will return an error:
 --
--- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image RD RGB Word8))
+-- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image RP RGB Word8))
 -- Left "JuicyPixel decoding error: Input image is in YCbCr8 (Pixel YCbCr Word8), cannot convert it to RGB8 (Pixel RGB Word8) colorspace."
 --
 -- Attempt to read an image in a particular color space that is not supported by
@@ -141,7 +141,7 @@ writeImage path = BL.writeFile path . encode format [] where
 
 
 -- | Write an image in a specific format, while supplying any format specific
--- options. Precision and color space that an image will be written is decided
+-- options. Precision and color space, that an image will be written as, is decided
 -- from image's type. Attempt to write image file in a format that does not
 -- support color space and precision combination will result in a compile error.
 writeImageExact :: Writable img format =>
@@ -190,7 +190,7 @@ displayImageFile (ExternalViewer exe args ix) imgPath =
 the OS. This is a non-blocking function call, so it will take some time before
 an image will appear.
 
-  >>> frog <- readImageRGB "images/frog.jpg"
+  >>> frog <- readImageRGB VU "images/frog.jpg"
   >>> displayImage frog
 
 -}

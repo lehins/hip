@@ -31,7 +31,7 @@ infix 6 !+!
 
 -- | Construct a complex image from two images representing real and imaginary parts.
 --
--- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> frog <- readImageRGB VU "images/frog.jpg"
 -- >>> frog !+! 0
 -- <Image VectorUnboxed RGB (Complex Double): 200x320>
 -- >>> frog !+! frog
