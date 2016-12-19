@@ -70,8 +70,8 @@ module Graphics.Image (
   -- * IO
   -- ** Reading
   -- | Read supported files into an 'Image' with pixels in 'Double'
-  -- precision. In order to read an image with different representation, color
-  -- space and precision use 'readImage' or 'readImageExact' from
+  -- precision. In order to read an image in a different representation, color
+  -- space or precision, use 'readImage' or 'readImageExact' from
   -- <Graphics-Image-IO.html Graphics.Image.IO> instead. While reading an
   -- image, it's underlying representation can be specified by passing one of
   -- `VU`, `RS` or `RP` as the first argument to @readImage*@ functions. Here is

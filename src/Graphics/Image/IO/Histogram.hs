@@ -18,7 +18,6 @@ module Graphics.Image.IO.Histogram (
 import Prelude as P 
 import Control.Concurrent (forkIO)
 import Control.Monad (void)
-import Control.Monad.Primitive (PrimMonad (..))
 import Graphics.Image.Interface as I
 import Graphics.Image.IO
 import Graphics.Image.ColorSpace
@@ -26,10 +25,21 @@ import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Diagrams
 import qualified Data.Colour as C
 import qualified Data.Vector.Unboxed as V
-import qualified Data.Vector.Unboxed.Mutable as MV
 import System.Directory (getTemporaryDirectory)
 import System.FilePath ((</>))
 import System.IO.Temp (createTempDirectory)
+
+#if MIN_VERSION_vector(0,11,0)
+import Data.Vector.Unboxed.Mutable (modify)
+#else
+import Control.Monad.Primitive (PrimMonad (..))
+import qualified Data.Vector.Unboxed.Mutable as MV
+
+modify :: (PrimMonad m, V.Unbox a) => MV.MVector (PrimState m) a -> (a -> a) -> Int -> m ()
+modify v f idx = do
+  e <- MV.read v idx
+  MV.write v idx $ f e
+#endif
 
 
 -- | A single channel histogram of an image.
@@ -109,11 +119,3 @@ displayHistogramsUsing viewer block hists = do
   if block
     then display
     else void $ forkIO display
-
-
-
--- | Used for backwards compatibility with vector.
-modify :: (PrimMonad m, V.Unbox a) => MV.MVector (PrimState m) a -> (a -> a) -> Int -> m ()
-modify v f idx = do
-  e <- MV.read v idx
-  MV.write v idx $ f e
