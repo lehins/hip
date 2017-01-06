@@ -188,8 +188,9 @@ compareWith !f = zipWith (\ !px1 !px2 -> fromBool . F.and $ (f <*> px1 <*> px2))
 
 
 {- $morphology In order to demonstrate how morphological operations work, a
-/binary source image/ = __B__ constructed here together with a /structuring element/ =
-__S__ will be used in examples that follow.
+/binary source image/ = __B__ constructed here together with a /structuring element/
+= __S__ will be used in examples that follow. Origin of the structuring
+element is always at it's center, eg. @(1,1)@ for the one below.
 
 @
 figure :: Image VU Binary Bit
@@ -211,7 +212,7 @@ figure = fromLists [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
 struct :: Image VU Binary Bit
-struct = fromLists [[0,1],[1,1],[0,1]]
+struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 @
 -}
 
