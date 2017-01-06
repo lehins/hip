@@ -18,9 +18,9 @@ import Graphics.Image.Processing.Geometric
 
 
 
-convolve'' :: Array arr cs e =>
+convolve' :: Array arr cs e =>
               Border (Pixel cs e) -> Image arr cs e -> Image arr cs e -> Image arr cs e
-convolve'' !border !kernel !img =
+convolve' !border !kernel !img =
   traverse2 (compute kernel) (compute img) (const . const sz) stencil
   where
     !(krnM, krnN)     = dims kernel
@@ -38,9 +38,8 @@ convolve'' !border !kernel !img =
         | otherwise             = let !krnPx = getKrnPx (ki, kj)
                                       !imgPx = getPxB getImgPx (ki + ikrnM, kj + jkrnN)
                                   in integrate ki (kj + 1) (acc + krnPx * imgPx)
-      {-# INLINE integrate #-}
     {-# INLINE stencil #-}
-{-# INLINE convolve'' #-}
+{-# INLINE convolve' #-}
 
 -- | Convolution of an image using a kernel. Border resolution technique is required.
 --
@@ -54,11 +53,11 @@ convolve'' !border !kernel !img =
 -- <<images/frogY.jpg>> <<images/frog_sobel.jpg>>
 --
 convolve  :: Array arr cs e =>
-             Border (Pixel cs e)   -- ^ Approach to be used near the borders.
+             Border (Pixel cs e) -- ^ Approach to be used near the borders.
           -> Image arr cs e -- ^ Kernel image.
           -> Image arr cs e -- ^ Source image.
           -> Image arr cs e
-convolve !out = convolve'' out . rotate180
+convolve !out = convolve' out . rotate180
 {-# INLINE convolve #-}
 
 

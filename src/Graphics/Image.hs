@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image
@@ -59,14 +58,17 @@ module Graphics.Image (
 
   -- * Creation
   --
-  -- If it is necessary to create an image in an other representation
-  -- or with some specific 'Pixel' precision, you can use 'make' from
-  -- "Graphics.Image.Interface" module and manually specifying function's output
-  -- type, ex:
+  -- `makeImageR` is a type restricted `makeImage` function, that simplifies
+  -- creation of images with `Double` precision and a particular representation
+  -- through an extra argument.
+  --
+  -- If it is necessary to create an image with an arbitrary precision and
+  -- representation, `makeImage` function can be used with a manual type
+  -- specification of result image, eg:
   --
   -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
   --
-  makeImage, makeImageS, makeImageP, fromLists, fromListsS, fromListsP, toLists,
+  makeImageR, makeImage, fromLists, toLists,
   -- * IO
   -- ** Reading
   -- | Read supported files into an 'Image' with pixels in 'Double'
@@ -96,9 +98,9 @@ module Graphics.Image (
   index, maybeIndex, defaultIndex, borderIndex,
   -- * Transformation
   -- ** Pointwise
-  map, imap, zipWith, izipWith,
+  I.map, imap, I.zipWith, izipWith,
   -- ** Geometric
-  traverse, traverse2,
+  I.traverse, traverse2,
   transpose, backpermute,
   (|*|), 
   -- * Reduction
@@ -106,28 +108,51 @@ module Graphics.Image (
   -- * Representations
   exchange,
   VU(..), RS(..), RP(..),
+  module IP
   ) where
 
-#if MIN_VERSION_base(4,8,0)
-import Prelude hiding (map, zipWith, sum, product, maximum, minimum, traverse)
-#else
-import Prelude hiding (map, zipWith, sum, product, maximum, minimum)
-import Control.Applicative (pure)
-#endif
+import Prelude as P hiding (maximum, minimum, sum, product)
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
-import Graphics.Image.Interface as I hiding (makeImage, fromLists)
-import Graphics.Image.Interface.Vector
-import Graphics.Image.Interface.Repa
+import Graphics.Image.Interface as I
+import Graphics.Image.Types as IP
+
+import Graphics.Image.Processing as IP
+import Graphics.Image.Processing.Binary as IP
+import Graphics.Image.Processing.Complex as IP
+import Graphics.Image.Processing.Geometric as IP
+import Graphics.Image.IO.Histogram as IP
 
 
-import Graphics.Image.Processing
-import Graphics.Image.Processing.Binary
-import Graphics.Image.Processing.Complex
-import Graphics.Image.Processing.Geometric
-import Graphics.Image.IO.Histogram
-
+-- | Create an image with a specified representation and pixels of 'Double'
+-- precision. Note, that it is essential for 'Double' precision pixels to keep values
+-- normalized in the @[0, 1]@ range in order for an image to be written to file
+-- properly.
+--
+-- >>> let grad_gray = makeImageR VU (200, 200) (\(i, j) -> PixelY (fromIntegral i) / 200 * (fromIntegral j) / 200)
+--
+-- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
+--
+-- >>> let grad_gray = makeImageR RP (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+-- >>> writeImage "images/grad_gray.png" grad_gray
+--
+-- Creating color images is just as easy.
+--
+-- >>> let grad_color = makeImageR VU (200, 200) (\(i, j) -> PixelRGB (fromIntegral i) (fromIntegral j) (fromIntegral (i + j))) / 400
+-- >>> writeImage "images/grad_color.png" grad_color
+--
+-- <<images/grad_gray.png>> <<images/grad_color.png>>
+--
+makeImageR :: Array arr cs Double =>
+              arr -- ^ Underlying image representation.
+           -> (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
+           -> ((Int, Int) -> Pixel cs Double)
+           -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
+           -- and returns a pixel for that location.
+           -> Image arr cs Double
+makeImageR _ = I.makeImage
+{-# INLINE makeImageR #-}
 
 -- | Read image as luma (brightness).
 readImageY :: Array arr Y Double => arr -> FilePath -> IO (Image arr Y Double)
@@ -208,11 +233,11 @@ normalize :: (Array arr cs e, Array arr Gray e, Fractional e, Ord e) =>
              Image arr cs e -> Image arr cs e
 normalize !img = if l == s
                  then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
-                 else map normalizer img
+                 else I.map normalizer img
   where
-    !(PixelGray l, PixelGray s) = (maximum $ map (PixelGray . F.maximum) img,
-                                   minimum $ map (PixelGray . F.minimum) img)
-    normalizer !px = (px - pure s) / pure (l - s)
+    !(PixelGray l, PixelGray s) = (maximum $ I.map (PixelGray . F.maximum) img,
+                                   minimum $ I.map (PixelGray . F.minimum) img)
+    normalizer !px = (px - fromChannel s) / fromChannel (l - s)
     {-# INLINE normalizer #-}
 {-# INLINE normalize #-}
 

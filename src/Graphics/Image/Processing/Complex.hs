@@ -118,22 +118,3 @@ applyFilter :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
 applyFilter img filt = realPart' . ifft $ (fft (img !+! 0) * (filt !+! filt))
 {-# INLINE applyFilter #-}
 
-{-
-gaussianBandpass :: (ManifestArray arr cs e, RealFloat e) =>
-                    Int -> e -> e -> Image arr cs e
-gaussianBandpass n center variance = makeFilter (n, n) bandpass where
-  gaussian (x, y) = fromChannel $ exp (-(x^(2 :: Int) + y^(2 :: Int)) / (2*variance))
-  bandpass (fromIntegral -> y, fromIntegral -> x) = gaussian (x', y')
-    where (x' :+ y') = C.mkPolar (mag - center) ph
-          (mag, ph) = C.polar (x :+ y)
--}          
-
-{-
-idealBandpass :: (ManifestArray arr cs e, RealFloat e) =>
-                 Int -> e -> e -> Image arr cs e
-idealBandpass n width center = makeFilter (n, n) bandpass where
-  bandpass (fromIntegral -> r, fromIntegral -> c)
-    | center <= mag && mag <= (width + center) = 1
-    | otherwise = 0
-    where mag = C.magnitude (r :+ c)
--}

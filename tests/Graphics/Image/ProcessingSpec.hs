@@ -9,6 +9,7 @@ import Graphics.Image.Types
 import Graphics.Image.Processing
 
 import Graphics.Image.InterfaceSpec (translateWrap, dummyImage10x20)
+--import Graphics.Image.Processing.BinarySpec
 
 data Interpol
   = I1 Nearest
@@ -112,3 +113,4 @@ spec = do
             shouldThrow
               (return $! topToBottom dummyImage10x20 $ I.transpose dummyImage10x20)
               anyException
+--  binarySpec

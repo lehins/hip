@@ -10,6 +10,7 @@ module Graphics.Image.InterfaceSpec
   , Identical (..)
   ) where
 
+import Prelude as P
 #if MIN_VERSION_base(4,8,0)
 import Data.Typeable (Typeable, typeOf)
 #else
@@ -18,10 +19,8 @@ import Control.Applicative
 import Test.Hspec
 import Test.QuickCheck
 
-import qualified Graphics.Image as IM
-import qualified Graphics.Image.Interface as I
-import Graphics.Image.Types
-import Graphics.Image.Processing
+import Graphics.Image as I
+import Graphics.Image.Interface as I
 
 
 data Identical arr1 arr2 cs e =
@@ -107,7 +106,7 @@ prop_borderIndex
 prop_borderIndex border img (Positive i, Positive j) =
   I.borderIndex border img (iOut, jOut) == I.index bigImg (iBig, jBig)
   where
-    bigImg = foldr1 topToBottom $ map (foldr1 leftToRight) imgs
+    bigImg = foldr1 topToBottom $ P.map (foldr1 leftToRight) imgs
     (m, n) = I.dims img
     (iBig, jBig) = (i `mod` (3 * m), j `mod` (3 * n))
     (iOut, jOut) = (iBig - m, jBig - n)
@@ -161,10 +160,6 @@ translateWrap (dm, dn) img = I.traverse img id newPx
   where
     (m, n) = I.dims img
     newPx getPx (i, j) = getPx ((i - dm) `mod` m, (j - dn) `mod` n)
-
-
-prop_toFormLists :: (Array arr Y Word8, MArray arr Y Word8) => arr -> Image arr Y Word8 -> Bool
-prop_toFormLists _ img = img == I.fromLists (IM.toLists img)
 
 
 prop_sameDims :: Array arr Y Word8 => arr -> Identical VU arr Y Word8 -> Bool
@@ -275,6 +270,10 @@ prop_sameBackpermute _ (Positive (Small m), Positive (Small n)) f (Identical img
   where
     (m', n') = I.dims img1
     f' (i, j) = (i `mod` m', j `mod` n')
+
+
+prop_toFormLists :: (Array arr Y Word8, MArray arr Y Word8) => arr -> Image arr Y Word8 -> Bool
+prop_toFormLists _ img = img == I.fromLists (I.toLists img)
 
 
 spec :: Spec

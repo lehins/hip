@@ -242,6 +242,12 @@ class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
   -- | Construct an image from a nested rectangular shaped list of pixels.
   -- Length of an outer list will constitute @m@ rows, while the length of inner lists -
   -- @n@ columns. All of the inner lists must be the same length and greater than @0@.
+  --
+  -- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [1..300]] | i <- [1..200]]
+  -- <Image VectorUnboxed Y (Double): 200x300>
+  --
+  -- <<images/grad_fromLists.png>>
+  --
   fromLists :: [[Pixel cs e]]
             -> Image arr cs e
 
@@ -664,3 +670,14 @@ instance MArray arr cs e =>
     showsTypeRep (typeOf (undefined :: cs)) " (" ++
     showsTypeRep (typeOf (undefined :: e)) "): " ++
      show m ++ "x" ++ show n ++ ">"
+
+
+double :: Array arr cs e => Image arr cs e -> Image arr cs e
+double x = x * x
+{-# NOINLINE double #-}
+
+{-# RULES
+"Test/Double Image arr cs e" forall img. double img = map (^ (2 :: Int)) img
+ #-}
+
+
