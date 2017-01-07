@@ -14,7 +14,7 @@
 {-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Interface
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -32,9 +32,10 @@ import Prelude hiding (and, map, zipWith, sum, product)
 import Data.Monoid (Monoid)
 import Data.Foldable (Foldable(foldMap))
 #endif
+import Data.Foldable (foldr')
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
-import Control.DeepSeq (NFData(rnf))
+import Control.DeepSeq (NFData(rnf), deepseq)
 import Data.Word
 import Control.Applicative
 import Control.Monad.Primitive (PrimMonad (..))
@@ -169,6 +170,14 @@ class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
                -- argument and returns a pixel for that location.
             -> Image arr cs e
 
+  makeImageWindowed :: (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
+                    -> ((Int, Int), (Int, Int))
+                    -> ((Int, Int) -> Pixel cs e)
+                       -- ^ Function that generates inner pixels.
+                    -> ((Int, Int) -> Pixel cs e)
+                       -- ^ Function that generates border pixels
+                    -> Image arr cs e
+
   -- | Create a singleton image, required for various operations on images with
   -- a scalar.
   singleton :: Pixel cs e -> Image arr cs e
@@ -254,11 +263,19 @@ class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
   -- | Perform matrix multiplication on two images. Inner dimensions must agree.
   (|*|) :: Image arr cs e -> Image arr cs e -> Image arr cs e
 
-  -- | Undirected reduction of an image.
+  -- | Undirected reduction of an image. 
   fold :: (Pixel cs e -> Pixel cs e -> Pixel cs e) -- ^ An associative folding function.
        -> Pixel cs e -- ^ Initial element, that is neutral with respect to the folding function.
        -> Image arr cs e -- ^ Source image.
        -> Pixel cs e
+
+  -- | Undirected reduction of an image with an index aware function.
+  foldIx :: (Pixel cs e -> (Int, Int) -> Pixel cs e -> Pixel cs e)
+            -- ^ Function that takes an accumulator, index, a pixel at that
+            -- index and returns a new accumulator pixel.
+         -> Pixel cs e -- ^ Initial element, that is neutral with respect to the folding function.
+         -> Image arr cs e -- ^ Source image.
+         -> Pixel cs e
 
   -- | Pixelwise equality function of two images. Images are
   -- considered distinct if either images' dimensions or at least one pair of
@@ -566,6 +583,12 @@ instance (ColorSpace cs, Bounded e) => Bounded (Pixel cs e) where
   
   minBound = fromChannel minBound
   {-# INLINE minBound #-}
+
+
+instance (ColorSpace cs, NFData e) => NFData (Pixel cs e) where
+
+  rnf = foldr' deepseq ()
+  {-# INLINE rnf #-}
 
 
 instance (Array arr cs e, Eq (Pixel cs e)) => Eq (Image arr cs e) where

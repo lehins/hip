@@ -32,6 +32,8 @@ Library
                , Chart           >= 1.5
                , Chart-diagrams  >= 1.5
                , colour          >= 2.3.3
+               , containers
+               , unordered-containers
                , deepseq         >= 1.1
                , directory       >= 1.2.2.0
                , filepath        >= 1.0
@@ -59,6 +61,7 @@ Library
                  , Graphics.Image.IO.Formats
                  , Graphics.Image.IO.Histogram
                  , Graphics.Image.Interface
+                 , Graphics.Image.Interface.Map
                  , Graphics.Image.Interface.Repa
                  , Graphics.Image.Interface.Vector
                  , Graphics.Image.Processing
@@ -76,7 +79,11 @@ Library
                  , Graphics.Image.IO.Base
                  , Graphics.Image.IO.Formats.JuicyPixels
                  , Graphics.Image.IO.Formats.Netpbm
+                 , Graphics.Image.Interface.Map.Sparse
+                 , Graphics.Image.Interface.Map.HashSparse
                  , Graphics.Image.Interface.Repa.Internal
+                 , Graphics.Image.Interface.Repa.Helpers
+                 , Graphics.Image.Interface.Vector.Sparse
                  , Graphics.Image.Interface.Vector.Unboxed
                  , Graphics.Image.Interface.Vector.Unboxing
                  , Graphics.Image.Processing.Convolution
@@ -126,7 +133,7 @@ benchmark convolution-benchmarks
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmarks
   main-is:             Canny.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N4 -O2 -ddump-rule-firings
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
   --ghc-options:         -Odph -rtsopts -with-rtsopts=-N -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
   build-depends:       base
                      , criterion

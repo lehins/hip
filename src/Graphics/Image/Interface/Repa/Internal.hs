@@ -32,6 +32,10 @@ import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))
 import Graphics.Image.Interface.Vector.Unboxed
        (VU(..), fromUnboxedVector, toUnboxedVector, checkDims)
+import Graphics.Image.Interface.Vector.Sparse (VS(..))
+import Graphics.Image.Interface.Repa.Helpers
+
+
 import Data.Array.Repa.Repr.Unboxed (Unbox)
 import qualified Data.Vector.Unboxed as V (singleton)
 
@@ -97,29 +101,25 @@ instance (BaseArray RS cs e) => Array RS cs e where
   imap !f (SDImage arr) = SDImage (imapR f arr)
   {-# INLINE imap #-}
 
-  zipWith f (SScalar px1)  (SScalar px2)  = SScalar (f px1 px2)
-  zipWith f (SScalar px1)  img2           = map (f px1) img2
-  zipWith f img1           (SScalar px2)  = map (`f` px2) img1
-  zipWith f img1           img2           =
+  zipWith f (SScalar px1) (SScalar px2) = SScalar (f px1 px2)
+  zipWith f (SScalar px1) !img2         = map (f px1) img2
+  zipWith f !img1         (SScalar px2) = map (`f` px2) img1
+  zipWith f !img1         !img2         =
     SDImage (R.zipWith f (getDelayedS img1) (getDelayedS img2))
   {-# INLINE zipWith #-}
 
-  izipWith f (SScalar px1)  (SScalar px2)  = SScalar (f (0, 0) px1 px2)
-  izipWith f (SScalar px1)  img2           = imap (`f` px1) img2
-  izipWith f img1           (SScalar px2)  = imap (\ !ix !px -> f ix px px2) img1
-  izipWith f img1           img2           =
+  izipWith f (SScalar px1) (SScalar px2) = SScalar (f (0, 0) px1 px2)
+  izipWith f (SScalar px1) !img2         = imap (`f` px1) img2
+  izipWith f !img1         (SScalar px2) = imap (\ !ix !px -> f ix px px2) img1
+  izipWith f !img1         !img2         =
     SDImage (izipWithR f (getDelayedS img1) (getDelayedS img2))
   {-# INLINE izipWith #-}
   
-  -- traverse (SScalar px) getNewDims getNewPx =
-  --   makeImage (getNewDims (1, 1)) (getNewPx (const px))
-  traverse img          getNewDims getNewPx =
+  traverse !img getNewDims getNewPx =
     SDImage (traverseR (getDelayedS img) getNewDims getNewPx)
   {-# INLINE traverse #-}
 
-  -- traverse2 (SScalar px1) (SScalar px2) getNewDims getNewPx =
-  --   makeImage (getNewDims (1, 1) (1, 1)) (getNewPx (const px1) (const px2))
-  traverse2 img1 img2 getNewDims getNewPx =
+  traverse2 !img1 !img2 getNewDims getNewPx =
     SDImage (traverse2R (getDelayedS img1) (getDelayedS img2) getNewDims getNewPx)
   {-# INLINE traverse2 #-}
 
@@ -128,8 +128,6 @@ instance (BaseArray RS cs e) => Array RS cs e where
   transpose !img          = img
   {-# INLINE transpose #-}
 
-  -- backpermute !newDims _ (SScalar px) =
-  --   SDImage $ R.fromFunction (dims2sh $ checkDims "RS.backpermute" newDims) (const px)
   backpermute !newDims g !img = SDImage (backpermuteR (getDelayedS img) newDims g)
   {-# INLINE backpermute #-}
 
@@ -138,28 +136,34 @@ instance (BaseArray RS cs e) => Array RS cs e where
 
   fold f !px0 (SDImage arr) = R.foldAllS f px0 arr
   fold f !px0 (SUImage arr) = R.foldAllS f px0 arr
-  fold f !px0 (SScalar px)  = f px0 px
+  fold f !px0 (SScalar px)  = f px px0
   {-# INLINE fold #-}
 
+  foldIx f !px0 (SDImage arr) = foldIxS f px0 arr
+  foldIx f !px0 (SUImage arr) = foldIxS f px0 arr
+  foldIx f !px0 (SScalar px)  = f px0 (0, 0) px
+  {-# INLINE foldIx #-}
+
+
   eq (SScalar px1) (SScalar px2) = px1 == px2
-  eq img1 img2 = R.equalsS (getDelayedS img1) (getDelayedS img2)
+  eq !img1 !img2 = R.equalsS (getDelayedS img1) (getDelayedS img2)
   {-# INLINE eq #-}
 
-  compute img@(SScalar _) = img
-  compute img@(SUImage _) = img
+  compute !img@(SScalar _) = img
+  compute !img@(SUImage _) = img
   compute (SDImage arr)   = SUImage $ R.computeS arr
   {-# INLINE compute #-}
 
-  (SUImage arr1)   |*| (SUImage arr2)   = SDImage (multR arr1 arr2)
-  img1@(SDImage _) |*| img2             = compute img1 |*| img2
-  img1             |*| img2@(SDImage _) = img1 |*| compute img2
-  (SScalar px1)    |*| img2             = SUImage (singletonR px1) |*| img2
-  img1             |*| (SScalar px2)    = img1 |*| SUImage (singletonR px2)
+  (|*|) (SUImage arr1)   (SUImage arr2)   = SDImage (multR arr1 arr2)
+  (|*|) img1@(SDImage _) !img2            = compute img1 |*| img2
+  (|*|) !img1            img2@(SDImage _) = img1 |*| compute img2
+  (|*|) (SScalar px1)    !img2            = SUImage (singletonR px1) |*| img2
+  (|*|) !img1            (SScalar px2)    = img1 |*| SUImage (singletonR px2)
   {-# INLINE (|*|) #-}
 
   toManifest img@(SUImage arr) = fromUnboxedVector (dims img) (R.toUnboxed arr)
   toManifest (SScalar px)      = singleton px
-  toManifest img               = toManifest (compute img)
+  toManifest !img              = toManifest (compute img)
   {-# INLINE toManifest #-}
 
 ---------------------
@@ -189,6 +193,14 @@ instance (BaseArray RP cs e) => Array RP cs e where
   makeImage !(checkDims "RP.makeImage" -> (m, n)) !f =
     PDImage $ R.fromFunction (Z :. m :. n) (f . sh2dims)
   {-# INLINE makeImage #-}
+
+  makeImageWindowed !(checkDims "RP.makeImage" -> (m, n)) !window getWindowPx getBorderPx  =
+    PDImage $ R.delay $ makeWindowed (Z :. m :. n) window
+    (R.fromFunction (Z :. m :. n) (getWindowPx . sh2dims))
+    --(hintSmall
+     (R.fromFunction (Z :. m :. n) (getBorderPx . sh2dims))
+    
+  {-# INLINE makeImageWindowed #-}
   
   singleton = PScalar
   {-# INLINE singleton #-}
@@ -198,39 +210,35 @@ instance (BaseArray RP cs e) => Array RP cs e where
   index00 (PDImage arr) = R.index arr (Z :. 0 :. 0)
   {-# INLINE index00 #-}
 
-  map !f (PScalar px)  = PScalar (f px)
-  map !f (PUImage arr) = PDImage (R.map f arr)
-  map !f (PDImage arr) = PDImage (R.map f arr)
+  map f (PScalar px)  = PScalar (f px)
+  map f (PUImage arr) = PDImage (R.map f arr)
+  map f (PDImage arr) = PDImage (R.map f arr)
   {-# INLINE map #-}
 
-  imap !f (PScalar px)  = PScalar (f (0, 0) px)
-  imap !f (PUImage arr) = PDImage (imapR f arr)
-  imap !f (PDImage arr) = PDImage (imapR f arr)
+  imap f (PScalar px)  = PScalar (f (0, 0) px)
+  imap f (PUImage arr) = PDImage (imapR f arr)
+  imap f (PDImage arr) = PDImage (imapR f arr)
   {-# INLINE imap #-}
 
-  zipWith f (PScalar px1)  (PScalar px2)  = PScalar (f px1 px2)
-  zipWith f (PScalar px1)  img2           = map (f px1) img2
-  zipWith f img1           (PScalar px2)  = map (`f` px2) img1
-  zipWith f img1           img2           =
+  zipWith f (PScalar px1)  (PScalar px2) = PScalar (f px1 px2)
+  zipWith f (PScalar px1)  !img2         = map (f px1) img2
+  zipWith f !img1          (PScalar px2) = map (`f` px2) img1
+  zipWith f !img1          !img2         =
     PDImage (R.zipWith f (getDelayedP img1) (getDelayedP img2))
   {-# INLINE zipWith #-}
 
-  izipWith f (PScalar px1)  (PScalar px2)  = PScalar (f (0, 0) px1 px2)
-  izipWith f (PScalar px1)  img2           = imap (`f` px1) img2
-  izipWith f img1           (PScalar px2)  = imap (\ !ix !px -> f ix px px2) img1
-  izipWith f img1           img2           =
+  izipWith f (PScalar px1)  (PScalar px2) = PScalar (f (0, 0) px1 px2)
+  izipWith f (PScalar px1)  !img2         = imap (`f` px1) img2
+  izipWith f !img1          (PScalar px2) = imap (\ !ix !px -> f ix px px2) img1
+  izipWith f !img1          !img2         =
     PDImage (izipWithR f (getDelayedP img1) (getDelayedP img2))
   {-# INLINE izipWith #-}
   
-  -- traverse (PScalar px) getNewDims getNewPx =
-  --   makeImage (getNewDims (1, 1)) (getNewPx (const px))
-  traverse img          getNewDims getNewPx =
+  traverse !img          getNewDims getNewPx =
     PDImage (traverseR (getDelayedP img) getNewDims getNewPx)
   {-# INLINE traverse #-}
 
-  -- traverse2 (PScalar px1) (PScalar px2) getNewDims getNewPx =
-  --   makeImage (getNewDims (1, 1) (1, 1)) (getNewPx (const px1) (const px2))
-  traverse2 img1 img2 getNewDims getNewPx =
+  traverse2 !img1 !img2 getNewDims getNewPx =
     PDImage (traverse2R (getDelayedP img1) (getDelayedP img2) getNewDims getNewPx)
   {-# INLINE traverse2 #-}
 
@@ -239,8 +247,6 @@ instance (BaseArray RP cs e) => Array RP cs e where
   transpose !img          = img
   {-# INLINE transpose #-}
 
-  -- backpermute !newDims _ (PScalar px) =
-  --   PDImage $ R.fromFunction (dims2sh $ checkDims "RS.backpermute" newDims) (const px)
   backpermute !newDims g !img = PDImage (backpermuteR (getDelayedP img) newDims g)
   {-# INLINE backpermute #-}
 
@@ -249,11 +255,16 @@ instance (BaseArray RP cs e) => Array RP cs e where
 
   fold f !px0 (PDImage arr) = head $ R.foldAllP f px0 arr
   fold f !px0 (PUImage arr) = head $ R.foldAllP f px0 arr
-  fold f !px0 (PScalar px)  = f px0 px
+  fold f !px0 (PScalar px)  = f px px0
   {-# INLINE fold #-}
 
+  foldIx f !px0 (PDImage arr) = head $ foldIxP f px0 arr
+  foldIx f !px0 (PUImage arr) = head $ foldIxP f px0 arr
+  foldIx f !px0 (PScalar px)  = f px0 (0, 0) px
+  {-# INLINE foldIx #-}
+  
   eq (PScalar px1) (PScalar px2) = px1 == px2
-  eq img1 img2 = R.equalsS (getDelayedP img1) (getDelayedP img2)
+  eq !img1 !img2 = R.equalsS (getDelayedP img1) (getDelayedP img2)
   {-# INLINE eq #-}
 
   compute img@(PScalar _) = img
@@ -262,16 +273,16 @@ instance (BaseArray RP cs e) => Array RP cs e where
     where arrU = R.suspendedComputeP arr
   {-# INLINE compute #-}
 
-  (PUImage arr1)   |*| (PUImage arr2)   = PDImage (multR arr1 arr2)
-  img1@(PDImage _) |*| img2             = compute img1 |*| img2
-  img1             |*| img2@(PDImage _) = img1 |*| compute img2
-  (PScalar px1)    |*| img2             = PUImage (singletonR px1) |*| img2
-  img1             |*| (PScalar px2)    = img1 |*| PUImage (singletonR px2)
+  (|*|) (PUImage arr1)   (PUImage arr2)   = PDImage (multR arr1 arr2)
+  (|*|) img1@(PDImage _) !img2            = compute img1 |*| img2
+  (|*|) !img1            img2@(PDImage _) = img1 |*| compute img2
+  (|*|) (PScalar px1)    !img2            = PUImage (singletonR px1) |*| img2
+  (|*|) !img1            !(PScalar px2)   = img1 |*| PUImage (singletonR px2)
   {-# INLINE (|*|) #-}
 
   toManifest img@(PUImage arr) = fromUnboxedVector (dims img) (R.toUnboxed arr)
   toManifest (PScalar px)      = singleton px
-  toManifest img               = toManifest (compute img)
+  toManifest !img              = toManifest (compute img)
   {-# INLINE toManifest #-}
 
 
@@ -291,7 +302,7 @@ dims2sh !(i, j) = Z :. i :. j
 imapR
   :: R.Source r2 b =>
      ((Int, Int) -> b -> c) -> R.Array r2 DIM2 b -> R.Array R.D DIM2 c
-imapR f arr = R.zipWith f (R.fromFunction (R.extent arr) sh2dims) arr
+imapR f !arr = R.zipWith f (R.fromFunction (R.extent arr) sh2dims) arr
 
 
 -- | Combine two arrays, element-wise, with index aware operator. If the extent of
@@ -303,7 +314,7 @@ izipWithR
   -> R.Array r1 DIM2 t
   -> R.Array r2 DIM2 t1
   -> R.Array R.D DIM2 c
-izipWithR f arr1 arr2 =
+izipWithR f !arr1 !arr2 =
   (R.traverse2 arr1 arr2 getNewDims getNewPx) where
     getNewPx !getPx1 !getPx2 !sh = f (sh2dims sh) (getPx1 sh) (getPx2 sh)
     getNewDims (Z :. m1 :. n1) (Z :. m2 :. n2) = Z :. min m1 m2 :. min n1 n2
@@ -317,7 +328,7 @@ traverseR
   -> ((Int, Int) -> (Int, Int))
   -> (((Int, Int) -> c) -> (Int, Int) -> b)
   -> R.Array R.D DIM2 b
-traverseR arr getNewDims getNewPx =
+traverseR !arr getNewDims getNewPx =
   R.traverse arr (dims2sh . checkDims "traverseR" . getNewDims . sh2dims) getNewE
   where
     getNewE getPx = getNewPx (getPx . dims2sh) . sh2dims
@@ -331,7 +342,7 @@ traverse2R
   -> ((Int, Int) -> (Int, Int) -> (Int, Int))
   -> (((Int, Int) -> c) -> ((Int, Int) -> c1) -> (Int, Int) -> c2)
   -> R.Array R.D DIM2 c2
-traverse2R arr1 arr2 getNewDims getNewPx =
+traverse2R !arr1 !arr2 getNewDims getNewPx =
   R.traverse2 arr1 arr2 getNewSh getNewE
   where getNewE getPx1 getPx2 = getNewPx (getPx1 . dims2sh) (getPx2 . dims2sh) . sh2dims
         {-# INLINE getNewE #-}
@@ -346,7 +357,7 @@ backpermuteR
   -> (Int, Int)
   -> ((Int, Int) -> (Int, Int))
   -> R.Array R.D DIM2 e
-backpermuteR arr newDims g =
+backpermuteR !arr newDims g =
   R.backpermute
     (dims2sh (checkDims "backpermuteR" newDims))
     (dims2sh . g . sh2dims)
@@ -368,7 +379,7 @@ fromListsR ls =
 multR
   :: (Num a, Unbox a, R.Elt a)
   => R.Array R.U DIM2 a -> R.Array R.U DIM2 a -> R.Array R.D DIM2 a
-multR arr1 arr2 =
+multR !arr1 !arr2 =
   if n1 /= m2
     then error $
          "Inner dimensions of multiplied images must be the same, but received: " ++ ""
@@ -386,7 +397,7 @@ multR arr1 arr2 =
 
 
 singletonR :: Unbox e => e -> R.Array R.U DIM2 e
-singletonR px = R.fromUnboxed (Z :. 1 :. 1) $ V.singleton px
+singletonR !px = R.fromUnboxed (Z :. 1 :. 1) $ V.singleton px
 
 
 getDelayedS :: Array RS cs e => Image RS cs e -> R.Array R.D DIM2 (Pixel cs e)
@@ -434,15 +445,39 @@ instance Exchangable VU RP where
   {-# INLINE exchange #-}
 
 
--- | O(1) - Changes to Vector representation.
+-- | Changes to Vector representation.
 instance Exchangable RS VU where
   exchange _ = toManifest
   {-# INLINE exchange #-}
 
 
--- | O(1) - Changes to Vector representation.
+-- | Changes to Vector representation.
 instance Exchangable RP VU where
   exchange _ = toManifest
+  {-# INLINE exchange #-}
+
+
+-- | Changes to Sparse Vector representation.
+instance Exchangable RS VS where
+  exchange arr = exchange arr . toManifest
+  {-# INLINE exchange #-}
+
+
+-- | Changes to Sparse Vector representation.
+instance Exchangable RP VS where
+  exchange arr = exchange arr . toManifest
+  {-# INLINE exchange #-}
+
+
+-- | Changes from Sparse Vector representation.
+instance Exchangable VS RS where
+  exchange arr = exchange arr . toManifest
+  {-# INLINE exchange #-}
+
+
+-- | Changes from Sparse Vector representation.
+instance Exchangable VS RP where
+  exchange arr = exchange arr . toManifest
   {-# INLINE exchange #-}
 
 
@@ -488,3 +523,33 @@ instance (ColorSpace cs, R.Elt e, Num e) => R.Elt (Pixel cs e) where
   {-# INLINE one #-}
 
 
+addIxArr
+  :: R.Source r2 b =>
+     R.Array r2 DIM2 b -> R.Array R.D DIM2 ((Int, Int), b)
+addIxArr !arr = R.zipWith (,) arrIx arr
+  where
+    !arrIx = R.fromFunction (R.extent arr) sh2dims
+
+
+foldIxS
+  :: R.Source r2 b =>
+     (b -> (Int, Int) -> b -> b) -> b -> R.Array r2 DIM2 b -> b
+foldIxS f acc arr = snd $ R.foldAllS g ((-1, 0), acc) arr'
+  where
+    !arr' = addIxArr arr
+    g (accIx@(-1, _), acc') (ix, px) = (accIx, f acc' ix px)
+    g (ix, px) (accIx@(-1, _), acc') = (accIx, f acc' ix px)
+    g (acc1Ix, _) (acc2Ix, _) =
+      error $ "Impossible happened. Received: " ++ show acc1Ix ++ " " ++ show acc2Ix
+
+
+foldIxP
+  :: (R.Source r2 b, Unbox b, Monad f) =>
+     (b -> (Int, Int) -> b -> b) -> b -> R.Array r2 DIM2 b -> f b
+foldIxP f acc arr = snd <$> R.foldAllP g ((-1, 0), acc) arr'
+  where
+    !arr' = addIxArr arr
+    g (accIx@(-1, _), acc') (ix, px) = (accIx, f acc' ix px)
+    g (ix, px) (accIx@(-1, _), acc') = (accIx, f acc' ix px)
+    g (acc1Ix, _) (acc2Ix, _) =
+      error $ "Impossible happened. Received: " ++ show acc1Ix ++ " " ++ show acc2Ix

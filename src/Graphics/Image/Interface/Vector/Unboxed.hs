@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -24,6 +25,8 @@ import Prelude hiding (map, zipWith)
 import qualified Prelude as P (map)
 import Control.DeepSeq (deepseq)
 import Control.Monad (void)
+import Control.Monad.ST
+import Data.Foldable (forM_)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Functor
 #endif
@@ -63,6 +66,26 @@ instance BaseArray VU cs e => Array VU cs e where
     VUImage m n $ V.generate (m * n) (f . toIx n)
   {-# INLINE makeImage #-}
 
+  makeImageWindowed sz !((it, jt), (ib, jb)) getWindowPx getBorderPx =
+    VUImage m n $ V.create generate where
+      !(m , n) = checkDims "VU.makeImageWindowed" sz
+      nestedLoop !mv !getPx !fi !fj !ti !tj = do
+        forM_ [fi .. ti-1] $ \i ->
+          forM_ [fj .. tj-1] $ \j ->
+            MV.write mv (fromIx n (i,j)) (getPx (i, j))
+      {-# INLINE nestedLoop #-}
+      generate :: ST s (MV.MVector s (Pixel cs e))
+      generate = do
+        mv <- MV.unsafeNew (m*n)
+        nestedLoop mv getBorderPx 0 0 ib n
+        nestedLoop mv getBorderPx it 0 ib jt
+        nestedLoop mv getWindowPx it jt ib jb
+        nestedLoop mv getBorderPx it jb ib n
+        nestedLoop mv getBorderPx ib 0 m n
+        return mv
+      {-# INLINE generate #-}
+  {-# INLINE makeImageWindowed #-}
+  
   singleton = VScalar
   {-# INLINE singleton #-}
 
@@ -117,17 +140,21 @@ instance BaseArray VU cs e => Array VU cs e where
   backpermute !sz _ (VScalar px) = makeImage sz (const px)
   {-# INLINE backpermute #-}
   
-  fromLists !ls = if isSquare
+  fromLists !ls = if all (== n) (P.map length ls)
                   then VUImage m n . V.fromList . concat $ ls
                   else error "fromLists: Inner lists are of different lengths."
     where
-      !(m, n) = (length ls, length $ head ls)
-      !isSquare = (n > 0) && all (==n) (P.map length ls)
+      !(m, n) = checkDims "VU.fromLists" (length ls, length $ head ls)
   {-# INLINE fromLists #-}
 
   fold !f !px0 (VUImage _ _ v) = V.foldl' f px0 v
   fold !f !px0 (VScalar px)    = f px0 px
   {-# INLINE fold #-}
+
+  foldIx !f !px0 (VUImage _ n v) = V.ifoldl' f' px0 v where
+    f' !acc !k !px = f acc (toIx n k) px
+  foldIx !f !px0 (VScalar px)    = f px0 (0,0) px
+  {-# INLINE foldIx #-}
 
   (|*|) img1@(VUImage m1 n1 v1) !img2@VUImage {} =
     if n1 /= m2 
@@ -158,7 +185,7 @@ instance BaseArray VU cs e => Array VU cs e where
   {-# INLINE toManifest #-}
 
 
-instance Array VU cs e => MArray VU cs e where
+instance BaseArray VU cs e => MArray VU cs e where
   
   data MImage st VU cs e = MVImage !Int !Int (MV.MVector st (Pixel cs e))
                          | MVScalar (MV.MVector st (Pixel cs e))

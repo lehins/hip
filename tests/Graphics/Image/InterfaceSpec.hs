@@ -282,14 +282,19 @@ spec = do
     it "borderIndex" $ property prop_borderIndex
     it "toFormLists" $ property $ prop_toFormLists VU
   describe "Representation Properties" $ do
+    it "sameDims VS" $ property $ prop_sameDims VS
     it "sameDims RS" $ property $ prop_sameDims RS
     it "sameDims RP" $ property $ prop_sameDims RP
+    it "sameImage VS" $ property $ prop_sameImage VS
     it "sameImage RS" $ property $ prop_sameImage RS
     it "sameImage RP" $ property $ prop_sameImage RP
+    it "sameMap VS" $ property $ prop_sameMap VS
     it "sameMap RS" $ property $ prop_sameMap RS
     it "sameMap RP" $ property $ prop_sameMap RP
+    it "sameImap VS" $ property $ prop_sameImap VS
     it "sameImap RS" $ property $ prop_sameImap RS
     it "sameImap RP" $ property $ prop_sameImap RP
+    it "sameZipWith VS" $ property $ prop_sameZipWith VS
     it "sameZipWith RS" $ property $ prop_sameZipWith RS
     it "sameZipWith RP" $ property $ prop_sameZipWith RP
     it "sameIZipWith RS" $ property $ prop_sameIZipWith RS

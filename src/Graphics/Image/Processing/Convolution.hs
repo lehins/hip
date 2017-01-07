@@ -8,12 +8,11 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Processing.Convolution (
-  convolve, convolveRows, convolveCols,
+  convolve, convolveRows, convolveCols, convolveSparse
   ) where
 
-import Prelude hiding (map)
-import qualified Prelude as P (map)
-import Graphics.Image.Interface
+import Prelude as P
+import Graphics.Image.Interface as I
 import Graphics.Image.Processing.Geometric
 
 
@@ -41,6 +40,54 @@ convolve' !border !kernel !img =
     {-# INLINE stencil #-}
 {-# INLINE convolve' #-}
 
+--I.traverse (compute img) (const sz) stencil
+
+convolveSparse' :: (Array arr' cs e, Array arr cs e)  =>
+                  Border (Pixel cs e) -> Image arr' cs e -> Image arr cs e -> Image arr cs e
+convolveSparse' !border !kernel !img =
+  makeImageWindowed
+    sz
+    ((krnM2, krnN2), (m - krnM2, n - krnN2))
+    (stencil (unsafeIndex imgM))
+    (stencil (borderIndex border imgM))
+  where
+    !imgM = toManifest img
+    !kernel' = compute kernel
+    !(krnM, krnN) = dims kernel'
+    !krnM2 = krnM `div` 2
+    !krnN2 = krnN `div` 2
+    !sz@(m, n) = dims img
+    stencil getPx !(i, j) = foldIx integral 0 kernel'
+      where
+        integral !acc !(ki, kj) !px = px * (getPx (ki + ikrnM, kj + jkrnN)) + acc
+        {-# INLINE integral #-}
+        !ikrnM = i - krnM2
+        !jkrnN = j - krnN2
+    {-# INLINE stencil #-}
+{-# INLINE convolveSparse' #-}
+
+-- convolveSparse' :: (Array arr' cs e, Array arr cs e)  =>
+--                   Border (Pixel cs e) -> Image arr' cs e -> Image arr cs e -> Image arr cs e
+-- convolveSparse' !border !kernel !img =
+--   --I.traverse (compute img) (const sz) stencil
+--   makeImage sz stencil
+--   where
+--     !img' = toManifest img
+--     !kernel' = compute kernel
+--     !(krnM, krnN) = dims kernel'
+--     !krnM2 = krnM `div` 2
+--     !krnN2 = krnN `div` 2
+--     !sz = dims img
+--     getPxB = borderIndex border img'
+--     {-# INLINE getPxB #-}
+--     stencil !(i, j) = foldIx integral 0 kernel' where
+--       integral acc (ki, kj) px = px * (getPxB (ki + ikrnM, kj + jkrnN)) + acc
+--       !ikrnM = i - krnM2
+--       !jkrnN = j - krnN2
+--     {-# INLINE stencil #-}
+-- {-# INLINE convolveSparse' #-}
+
+
 -- | Convolution of an image using a kernel. Border resolution technique is required.
 --
 -- Example using <https://en.wikipedia.org/wiki/Sobel_operator Sobel operator>:
@@ -52,13 +99,21 @@ convolve' !border !kernel !img =
 --
 -- <<images/frogY.jpg>> <<images/frog_sobel.jpg>>
 --
-convolve  :: Array arr cs e =>
+convolve :: Array arr cs e =>
              Border (Pixel cs e) -- ^ Approach to be used near the borders.
           -> Image arr cs e -- ^ Kernel image.
           -> Image arr cs e -- ^ Source image.
           -> Image arr cs e
 convolve !out = convolve' out . rotate180
 {-# INLINE convolve #-}
+
+convolveSparse :: (Array arr' cs e,  Array arr cs e) =>
+             Border (Pixel cs e) -- ^ Approach to be used near the borders.
+          -> Image arr' cs e -- ^ Kernel image.
+          -> Image arr cs e -- ^ Source image.
+          -> Image arr cs e
+convolveSparse !out = convolveSparse' out
+{-# INLINE convolveSparse #-}
 
 
 -- | Convolve image's rows with a vector kernel represented by a list of pixels.

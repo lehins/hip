@@ -68,7 +68,7 @@ module Graphics.Image (
   --
   -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
   --
-  makeImageR, makeImage, fromLists, toLists,
+  makeImageR, makeImage, fromListsR, fromLists, toLists,
   -- * IO
   -- ** Reading
   -- | Read supported files into an 'Image' with pixels in 'Double'
@@ -241,6 +241,11 @@ normalize !img = if l == s
     {-# INLINE normalizer #-}
 {-# INLINE normalize #-}
 
+
+-- | Type restricted version of `fromLists` that constructs an image using
+-- supplied representation.
+fromListsR :: Array arr cs e => arr -> [[Pixel cs e]] -> Image arr cs e
+fromListsR _ = fromLists
 
 -- | Generates a nested list of pixels from an image.
 --

@@ -10,11 +10,11 @@
 --
 module Graphics.Image.Processing.Complex (
   -- * Rectangular form
-  (!+!), realPart', imagPart',
+  (!+!), realPartI, imagPartI,
   -- * Polar form
-  mkPolar', cis', polar', magnitude', phase',
+  mkPolarI, cisI, polarI, magnitudeI, phaseI,
   -- * Conjugate
-  conjugate',
+  conjugateI,
   -- * Processing
   makeFilter, applyFilter,
   -- ** Fourier Transform
@@ -43,55 +43,55 @@ infix 6 !+!
 {-# INLINE (!+!) #-}
 
 -- | Extracts the real part of a complex image.
-realPart' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+realPartI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
              Image arr cs (Complex e) -> Image arr cs e
-realPart' = map realPart
-{-# INLINE realPart' #-}
+realPartI = map realPart
+{-# INLINE realPartI #-}
 
 -- | Extracts the imaginary part of a complex image.
-imagPart' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+imagPartI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
              Image arr cs (Complex e) -> Image arr cs e
-imagPart' = map imagPart
-{-# INLINE imagPart' #-}
+imagPartI = map imagPart
+{-# INLINE imagPartI #-}
 
 -- | Form a complex image from polar components of magnitude and phase.
-mkPolar' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+mkPolarI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
             Image arr cs e -> Image arr cs e -> Image arr cs (Complex e)
-mkPolar' = zipWith mkPolar
-{-# INLINE mkPolar' #-}
+mkPolarI = zipWith mkPolar
+{-# INLINE mkPolarI #-}
 
--- | @'cis'' t@ is a complex image with magnitude 1 and phase t (modulo @2*'pi'@).
-cis' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+-- | @'cisI' t@ is a complex image with magnitude 1 and phase t (modulo @2*'pi'@).
+cisI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
         Image arr cs e -> Image arr cs (Complex e)
-cis' = map cis
-{-# INLINE cis' #-}
+cisI = map cis
+{-# INLINE cisI #-}
 
 -- | The function @'polar''@ takes a complex image and returns a (magnitude, phase)
 -- pair of images in canonical form: the magnitude is nonnegative, and the phase
 -- in the range @(-'pi', 'pi']@; if the magnitude is zero, then so is the phase.
-polar' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+polarI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
           Image arr cs (Complex e) -> (Image arr cs e, Image arr cs e)
-polar' !zImg = (magnitude' zImg, phase' zImg)
-{-# INLINE polar' #-}
+polarI !zImg = (magnitudeI zImg, phaseI zImg)
+{-# INLINE polarI #-}
 
 -- | The nonnegative magnitude of a complex image.
-magnitude' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+magnitudeI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
               Image arr cs (Complex e) -> Image arr cs e
-magnitude' = map magnitude
-{-# INLINE magnitude' #-}
+magnitudeI = map magnitude
+{-# INLINE magnitudeI #-}
 
 -- | The phase of a complex image, in the range @(-'pi', 'pi']@. If the
 -- magnitude is zero, then so is the phase.
-phase' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+phaseI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
           Image arr cs (Complex e) -> Image arr cs e
-phase' = map phase
-{-# INLINE phase' #-}
+phaseI = map phase
+{-# INLINE phaseI #-}
 
 -- | The conjugate of a complex image.
-conjugate' :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+conjugateI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
               Image arr cs (Complex e) -> Image arr cs (Complex e)
-conjugate' = map conjugate
-{-# INLINE conjugate' #-}
+conjugateI = map conjugate
+{-# INLINE conjugateI #-}
 
 
 -- | Make a filter by using a function that works around a regular @(x, y)@
@@ -115,6 +115,6 @@ applyFilter :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
                Image arr cs e -- ^ Source image.
             -> Image arr cs e -- ^ Filter.
             -> Image arr cs e
-applyFilter img filt = realPart' . ifft $ (fft (img !+! 0) * (filt !+! filt))
+applyFilter img filt = realPartI . ifft $ (fft (img !+! 0) * (filt !+! filt))
 {-# INLINE applyFilter #-}
 
