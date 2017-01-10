@@ -693,14 +693,3 @@ instance MArray arr cs e =>
     showsTypeRep (typeOf (undefined :: cs)) " (" ++
     showsTypeRep (typeOf (undefined :: e)) "): " ++
      show m ++ "x" ++ show n ++ ">"
-
-
-double :: Array arr cs e => Image arr cs e -> Image arr cs e
-double x = x * x
-{-# NOINLINE double #-}
-
-{-# RULES
-"Test/Double Image arr cs e" forall img. double img = map (^ (2 :: Int)) img
- #-}
-
-

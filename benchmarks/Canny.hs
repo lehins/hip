@@ -7,8 +7,7 @@ import Criterion.Main
 import Graphics.Image as I
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Repa
-import Graphics.Image.Interface.Map
-import Graphics.Image.Interface.Vector
+
 
 import Data.Array.Repa as R
 import Data.Array.Repa.Eval
@@ -34,30 +33,30 @@ sobelSGy =
   convolveSparse Edge (fromListsR VS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
 
 
-sobelMSGx :: (I.Array arr cs e, I.Array MS cs e) => Image arr cs e -> Image arr cs e
-sobelMSGx =
-  convolveSparse Edge (fromListsR MS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+-- sobelMSGx :: (I.Array arr cs e, I.Array MS cs e) => Image arr cs e -> Image arr cs e
+-- sobelMSGx =
+--   convolveSparse Edge (fromListsR MS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
-sobelMSGy :: (I.Array arr cs e, I.Array MS cs e) => Image arr cs e -> Image arr cs e
-sobelMSGy =
-  convolveSparse Edge (fromListsR MS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
+-- sobelMSGy :: (I.Array arr cs e, I.Array MS cs e) => Image arr cs e -> Image arr cs e
+-- sobelMSGy =
+--   convolveSparse Edge (fromListsR MS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
 
-sobelIMSGx :: (I.Array arr cs e, I.Array IMS cs e) => Image arr cs e -> Image arr cs e
-sobelIMSGx =
-  convolveSparse Edge (fromListsR IMS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+-- sobelIMSGx :: (I.Array arr cs e, I.Array IMS cs e) => Image arr cs e -> Image arr cs e
+-- sobelIMSGx =
+--   convolveSparse Edge (fromListsR IMS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
-sobelIMSGy :: (I.Array arr cs e, I.Array IMS cs e) => Image arr cs e -> Image arr cs e
-sobelIMSGy =
-  convolveSparse Edge (fromListsR IMS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
+-- sobelIMSGy :: (I.Array arr cs e, I.Array IMS cs e) => Image arr cs e -> Image arr cs e
+-- sobelIMSGy =
+--   convolveSparse Edge (fromListsR IMS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
 
 
-sobelHMSGx :: (I.Array arr cs e, I.Array HMS cs e) => Image arr cs e -> Image arr cs e
-sobelHMSGx =
-  convolveSparse Edge (fromListsR HMS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+-- sobelHMSGx :: (I.Array arr cs e, I.Array HMS cs e) => Image arr cs e -> Image arr cs e
+-- sobelHMSGx =
+--   convolveSparse Edge (fromListsR HMS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
-sobelHMSGy :: (I.Array arr cs e, I.Array HMS cs e) => Image arr cs e -> Image arr cs e
-sobelHMSGy =
-  convolveSparse Edge (fromListsR HMS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
+-- sobelHMSGy :: (I.Array arr cs e, I.Array HMS cs e) => Image arr cs e -> Image arr cs e
+-- sobelHMSGy =
+--   convolveSparse Edge (fromListsR HMS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
 
 
 
@@ -71,8 +70,8 @@ sobelGy' =
 
 
 sobelGxR
-  :: R.Array U DIM2 (Pixel Y Double)
-     -> R.Array PC5 DIM2 (Pixel Y Double)
+  :: (Source r e, Num e) => R.Array r DIM2 e
+     -> R.Array PC5 DIM2 e
 sobelGxR = mapStencil2 BoundClamp stencil 
   where stencil = makeStencil2 3 3
                   (\ix -> case ix of
@@ -85,8 +84,8 @@ sobelGxR = mapStencil2 BoundClamp stencil
                       _              -> Nothing)
 
 sobelGyR
-  :: R.Array U DIM2 (Pixel Y Double)
-     -> R.Array PC5 DIM2 (Pixel Y Double)
+  :: (Source r e, Num e) => R.Array r DIM2 e
+     -> R.Array PC5 DIM2 e
 sobelGyR = mapStencil2 BoundClamp stencil 
   where stencil = makeStencil2 3 3
                   (\ix -> case ix of
@@ -116,7 +115,9 @@ main = do
   -- let sobelIMS = sobelIMSGx img
   -- let sobelHMS = sobelHMSGx img
   let imgR = toRepaArray img
+  imgRDouble <- force $ R.map (`getPxCh` Y) imgR
   let sobelR = sobelGxR imgR
+  let sobelRDouble = sobelGxR imgRDouble
   defaultMain
     [ bgroup
         "Sobel"
@@ -127,7 +128,8 @@ main = do
         -- , bench "sparse IMS" $ whnf compute sobelIMS
         -- , bench "sparse HMS" $ whnf compute sobelHMS
         --, bench "repa" $ whnf (compute . fromRepaArrayP) sobelR
-        , bench "repa" $ whnfIO (force sobelR)
+        , bench "repa Y" $ whnfIO (force sobelR)
+        , bench "repa Double" $ whnfIO (force sobelRDouble)
         ]
     ]
   -- img' <- readImageY RS "images/downloaded/frog-1280x824.jpg"

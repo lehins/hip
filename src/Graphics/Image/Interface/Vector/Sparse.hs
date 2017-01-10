@@ -29,6 +29,7 @@ import Control.DeepSeq (deepseq)
 import Data.Functor
 #endif
 import Data.Typeable (Typeable)
+import Data.Vector.Algorithms.Intro (sortBy)
 import Data.Vector.Unboxed (Vector, Unbox)
 import qualified Data.Vector.Unboxed as V
 --import qualified Data.Vector.Unboxed.Mutable as MV
@@ -64,10 +65,10 @@ joinWith
   -> Vector (a, px)
   -> Vector (a, px)
   -> Vector (a, px)
-joinWith f v1 v2 = V.unfoldr join (0, 0)
+joinWith f !v1 !v2 = V.unfoldr join (0, 0)
   where
-    v1Len = V.length v1
-    v2Len = V.length v2
+    !v1Len = V.length v1
+    !v2Len = V.length v2
     join (v1Ix, v2Ix)
       | v1Ix == v1Len && v2Ix == v2Len = Nothing
       | v1Ix == v1Len = Just $ (vunsafeIndex v2 v2Ix, (v1Ix, v2Ix + 1))
@@ -82,15 +83,15 @@ joinWith f v1 v2 = V.unfoldr join (0, 0)
 
 
 joinWith2
-  :: (Num px1, Unbox px1, Num px2, Unbox px2, Num px, Unbox px, Unbox a, Ord a)
+  :: (Num px1, Unbox px1, Num px2, Unbox px2, Unbox px, Unbox a, Ord a)
   => (px1 -> px2 -> px)
   -> Vector (a, px1)
   -> Vector (a, px2)
   -> Vector (a, px)
-joinWith2 f v1 v2 = V.unfoldr join (0, 0)
+joinWith2 f !v1 !v2 = V.unfoldr join (0, 0)
   where
-    v1Len = V.length v1
-    v2Len = V.length v2
+    !v1Len = V.length v1
+    !v2Len = V.length v2
     join (v1Ix, v2Ix)
       | v1Ix == v1Len && v2Ix == v2Len = Nothing
       | v1Ix == v1Len = let (ix, px) = vunsafeIndex v2 v2Ix in
@@ -106,6 +107,7 @@ joinWith2 f v1 v2 = V.unfoldr join (0, 0)
              GT -> Just $ ((ix2, f 0 px2), (v1Ix, v2Ix + 1))
 
 
+-- TODO: remove and replace all places with V.unsafeIndex
 vunsafeIndex :: Unbox a => Vector a -> Int -> a
 vunsafeIndex = (V.!)
 
@@ -113,7 +115,40 @@ vunsafeIndex = (V.!)
 reconstructWith
   :: (Unbox b, Unbox a, Ord a)
   => Int -> Int -> Vector (a, b) -> ((Int, Int) -> (a, b)) -> Vector (a, b)
-reconstructWith m n v f = joinWith const v $ V.generate (m*n) (f . toIx n) where
+reconstructWith !m !n !v f = joinWith const v $ V.generate (m*n) (f . toIx n) where
+
+ixCmp (ix1, _) (ix2, _) = compare ix1 ix2
+
+binarySearchBy :: Unbox a => (a -> Ordering) -> Vector a -> Maybe a
+binarySearchBy getOrd v = go 0 (V.length v - 1)
+  where
+    go !l !r
+      | l > r = Nothing
+      | otherwise =
+        let !k = (l + r) `div` 2
+            px = vunsafeIndex v k
+        in case getOrd px of
+             EQ -> Just px
+             LT -> go (k + 1) r
+             GT -> go l (k - 1)
+
+
+checkIndex
+  :: String -- ^ Error prefix
+  -> (Int, Int) -- ^ Image dimensions
+  -> (Int, Int) -- ^ Index
+  -> (Int, Int) -- ^ Same index if it's within bounds, error otherwise.
+checkIndex errPrefix ds ix = handleBorderIndex (error errMsg) ds id ix
+  where
+    errMsg = errPrefix ++ " - Index out of bounds: " ++ show ix
+
+indexSparse
+  :: (ColorSpace cs, Unbox (PixelElt cs e), Unbox e, Typeable e,
+      Num e, Eq (Pixel cs e)) =>
+     Image VS cs e -> (Int, Int) -> Pixel cs e
+indexSparse img@(VSImage m n v) !ix =
+  maybe 0 snd $ binarySearchBy ((`compare` (checkIndex (show img) (m, n) ix)) . fst) v
+indexSparse img@(SScalar px) ix = checkIndex (show img) (1,1) ix `seq` px
 
 
 instance BaseArray VS cs e => Array VS cs e where
@@ -127,8 +162,7 @@ instance BaseArray VS cs e => Array VS cs e where
   singleton = SScalar
   {-# INLINE singleton #-}
 
-  index00 (SScalar px) = px
-  index00 (VSImage _ _ v) = maybe 0 snd $ V.find ((== (0,0)) . fst) v
+  index00 = (`indexSparse` (0,0)) 
   {-# INLINE index00 #-}
 
   map f (SScalar px)    = SScalar (f px)
@@ -150,40 +184,47 @@ instance BaseArray VS cs e => Array VS cs e where
   zipWith f img1@(VSImage m1 n1 v1) img2@(VSImage m2 n2 v2) =
     if m1 /= m2 || n1 /= n2
     then error ("zipWith: Images must be of the same dimensions, received: "++
-                show img1++" and "++show img2++".")
+                show img1 ++ " and " ++ show img2 ++ ".")
     else VSImage m1 n1 $ filterZeros $
          case f 0 0 of
            0 -> joinWith2 f v1 v2
            px -> reconstructWith m1 n1 (joinWith2 f v1 v2) (,px)
   {-# INLINE zipWith #-}
 
-  -- izipWith !f (VScalar px1) (VScalar px2)    = VScalar (f (0, 0) px1 px2)
-  -- izipWith !f (VScalar px1) (VUImage m n v2) =
-  --   VUImage m n (V.imap (\ !k !px2 -> f (toIx n k) px1 px2) v2)
-  -- izipWith !f (VUImage m n v1) (VScalar px2) =
-  --   VUImage m n (V.imap (\ !k !px1 -> f (toIx n k) px1 px2) v1)
-  -- izipWith !f img1@(VUImage m1 n1 v1) img2@(VUImage m2 n2 v2) =
-  --   if m1 /= m2 || n1 /= n2
-  --   then error ("izipWith: Images must be of the same dimensions, received: "++
-  --               show img1++" and "++show img2++".")
-  --   else VUImage m1 n1 (V.izipWith (\ !k !px1 !px2 -> f (toIx n1 k) px1 px2) v1 v2)
-  -- {-# INLINE izipWith #-}
+  izipWith f (SScalar px1) (SScalar px2)    = SScalar (f (0, 0) px1 px2)
+  izipWith f (SScalar px1) img2 = I.imap (\ix px2 -> f ix px1 px2) img2
+  izipWith f img1 (SScalar px2) = I.imap (\ix px1 -> f ix px1 px2) img1
+  izipWith f img1@(VSImage m1 n1 v1) img2@(VSImage m2 n2 v2) =
+    if m1 /= m2 || n1 /= n2
+    then error ("izipWith: Images must be of the same dimensions, received: "++
+                show img1++" and "++show img2++".")
+    else VSImage m1 n1 $ filterZeros $ V.zipWith g v1Full v2Full where
+      g !(ix, px1) (_, px2) = (ix, f ix px1 px2)
+      !v1Full = reconstructWith m1 n1 v1 (,0)
+      !v2Full = reconstructWith m2 n2 v2 (,0)
+  {-# INLINE izipWith #-}
 
-  -- traverse !img !getNewDims !getNewPx = makeImage (getNewDims (dims img)) (getNewPx (index img))
-  -- {-# INLINE traverse #-}
+  -- traverse !img !getNewDims !getNewPx =
+  --   makeImage (getNewDims (dims img)) (getNewPx (indexSparse img))
+  traverse !img getNewDims getNewPx =
+    exchange VS $ I.traverse (toManifest img) getNewDims getNewPx
+  {-# INLINE traverse #-}
 
-  -- traverse2 !img1 !img2 !getNewDims !getNewPx =
-  --   makeImage (getNewDims (dims img1) (dims img2)) (getNewPx (index img1) (index img2))
-  -- {-# INLINE traverse2 #-}
+  traverse2 !img1 !img2 getNewDims getNewPx =
+    exchange VS $ I.traverse2 (toManifest img1) (toManifest img2) getNewDims getNewPx
+  {-# INLINE traverse2 #-}
 
-  -- transpose !img@(dims -> (m, n)) = makeImage (n, m) getPx where
-  --   getPx !(i, j) = index img (j, i)
-  --   {-# INLINE getPx #-}
-  -- {-# INLINE transpose #-}
+  transpose img@(SScalar _) = img
+  transpose (VSImage m n v) = VSImage n m $ V.modify (sortBy ixCmp) $ V.map movePx v where
+    movePx !((i, j), px) = ((j, i), px)
+    {-# INLINE movePx #-}
+  {-# INLINE transpose #-}
 
-  -- backpermute !(checkDims "VU.backpermute" -> (m, n)) !f (VUImage _ n' v) =
-  --   VUImage m n $ V.backpermute v $ V.generate (m*n) (fromIx n' . f . toIx n)
-  -- backpermute !sz _ (VScalar px) = makeImage sz (const px)
+  -- backpermute !newDims f (VSImage _ _ v) = VSImage m n $ V.modify (sortBy ixCmp) $ V.map g v
+  --   where
+  --     !(m, n) = checkDims "VS.backpermute" newDims
+  --     g !(ix, px) = (checkIndex "VS.backpermute" newDims $ f ix, px)
+  -- backpermute !sz _ (SScalar px) = makeImage sz (const px)
   -- {-# INLINE backpermute #-}
   
   fromLists !ls = if all (== n) (P.map length ls)
@@ -196,9 +237,17 @@ instance BaseArray VS cs e => Array VS cs e where
       !(m, n) = checkDims "VU.fromLists" (length ls, length $ head ls)
   {-# INLINE fromLists #-}
 
-  foldIx f !px0 (SScalar px) = f px0 (0,0) px
-  foldIx f !px0 (VSImage _ _ v) = V.foldl' g px0 v where
+  fold f 0 (VSImage _ _ v) = V.foldl' f 0 $ V.map snd v
+  fold f !px0 (VSImage m n v) =
+    V.foldl' f (V.foldl' f px0 $ V.map snd v) (V.replicate (m*n - V.length v) 0)
+  fold f !px0 (SScalar px) = f px0 px
+  {-# INLINE fold #-}
+
+  foldIx f 0 (VSImage _ _ v) = V.foldl' g 0 v where
     g !acc !(ix, px) = f acc ix px
+  foldIx f !px0 (VSImage m n v) = V.foldl' g px0 (reconstructWith m n v (,0)) where
+    g !acc !(ix, px) = f acc ix px
+  foldIx f !px0 (SScalar px) = f px0 (0,0) px
   {-# INLINE foldIx #-}
 
   -- (|*|) img1@(VUImage m1 n1 v1) !img2@VUImage {} =
@@ -214,13 +263,13 @@ instance BaseArray VS cs e => Array VS cs e where
   -- (|*|) _ _ = error "Scalar Images cannot be multiplied."
   -- {-# INLINE (|*|) #-}
 
-  -- eq (VUImage m1 n1 v1) (VUImage m2 n2 v2) =
-  --   m1 == m2 && n1 == n2 && V.all id (V.zipWith (==) v1 v2)
-  -- eq (VScalar px1)           (VScalar px2) = px1 == px2
-  -- eq (VUImage 1 1 v1) (VScalar px2) = v1 V.! 0 == px2
-  -- eq (VScalar px1) (VUImage 1 1 v2) = v2 V.! 0 == px1
-  -- eq _ _ = False
-  -- {-# INLINE eq #-}
+  eq (VSImage m1 n1 v1) (VSImage m2 n2 v2) =
+    m1 == m2 && n1 == n2 && V.all id (V.zipWith (==) v1 v2)
+  eq (SScalar px1)           (SScalar px2) = px1 == px2
+  eq img1@(VSImage 1 1 _) (SScalar px2) = index00 img1 == px2
+  eq (SScalar px1) img2@(VSImage 1 1 _) = px1 == index00 img2
+  eq _ _ = False
+  {-# INLINE eq #-}
 
   compute (VSImage m n v) = m `seq` n `seq` v `deepseq` (VSImage m n v)
   compute (SScalar px)    = px `seq` SScalar px
@@ -229,40 +278,6 @@ instance BaseArray VS cs e => Array VS cs e where
   toManifest (SScalar px) = VScalar px
   toManifest (VSImage m n v) = VUImage m n $ V.map snd $ reconstructWith m n v (,0)
   {-# INLINE toManifest #-}
-
--- data W arr = W arr
-
--- instance Show arr => Show (W arr) where
---   show (W arr) = "W (" ++ show arr ++ ")"
-
-
-
-
--- instance BaseArray arr cs e => BaseArray (W arr) cs e where
---   type Elt (W arr) cs e = Elt arr cs e
-
---   data Image (W arr) cs e = WImage { wRows   :: !Int
---                                    , wCols   :: !Int
---                                    , wWindow :: !(Int, Int, Int, Int)
---                                    , wImg    :: !(Image arr cs e) }
-
---   dims (WImage m n _ _) = (m, n)
---   {-# INLINE dims #-}
-
-
--- instance MArray arr cs e => MArray (W arr) cs e where
-  
---    data MImage st (W arr) cs e = MWImage { mwRows   :: !Int
---                                          , mwCols   :: !Int
---                                          , mwWindow :: !(Int, Int, Int, Int)
---                                          , mwImg    :: !(MImage st arr cs e) }
-
-
---    --index :: Image arr cs e -> (Int, Int) -> Pixel cs e
---    --index (WImage (m, n) (it, jt, ib, jb) img) (i, j) =
-
---    unsafeIndex (WImage _ _ _ img) = unsafeIndex img
---    {-# INLINE unsafeIndex #-}
 
 
 filterZeros :: (Num px, Eq px, Unbox px, Unbox a) => Vector (a, px) -> Vector (a, px)

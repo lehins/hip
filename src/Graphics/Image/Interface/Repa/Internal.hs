@@ -79,10 +79,15 @@ instance (BaseArray RS cs e) => Array RS cs e where
 
   type Manifest RS = VU
   
-  makeImage !(checkDims "RS.makeImage" -> (m, n)) !f =
+  makeImage !(checkDims "RS.makeImage" -> (m, n)) f =
     SDImage $ R.fromFunction (Z :. m :. n) (f . sh2dims)
   {-# INLINE makeImage #-}
   
+  makeImageWindowed !(checkDims "RS.makeImage" -> (m, n)) !window getWindowPx getBorderPx  =
+    SDImage $ R.delay $ makeWindowed (Z :. m :. n) window
+    (R.fromFunction (Z :. m :. n) (getWindowPx . sh2dims))
+     (R.fromFunction (Z :. m :. n) (getBorderPx . sh2dims))
+    
   singleton = SScalar
   {-# INLINE singleton #-}
 
@@ -91,14 +96,14 @@ instance (BaseArray RS cs e) => Array RS cs e where
   index00 (SDImage arr) = R.index arr (Z :. 0 :. 0)
   {-# INLINE index00 #-}
 
-  map !f (SScalar px)  = SScalar (f px)
-  map !f (SUImage arr) = SDImage (R.map f arr)
-  map !f (SDImage arr) = SDImage (R.map f arr)
+  map f (SScalar px)  = SScalar (f px)
+  map f (SUImage arr) = SDImage (R.map f arr)
+  map f (SDImage arr) = SDImage (R.map f arr)
   {-# INLINE map #-}
 
-  imap !f (SScalar px)  = SScalar (f (0, 0) px)
-  imap !f (SUImage arr) = SDImage (imapR f arr)
-  imap !f (SDImage arr) = SDImage (imapR f arr)
+  imap f (SScalar px)  = SScalar (f (0, 0) px)
+  imap f (SUImage arr) = SDImage (imapR f arr)
+  imap f (SDImage arr) = SDImage (imapR f arr)
   {-# INLINE imap #-}
 
   zipWith f (SScalar px1) (SScalar px2) = SScalar (f px1 px2)
@@ -151,10 +156,11 @@ instance (BaseArray RS cs e) => Array RS cs e where
 
   compute !img@(SScalar _) = img
   compute !img@(SUImage _) = img
-  compute (SDImage arr)   = SUImage $ R.computeS arr
+  compute (SDImage arr)    = SUImage $ R.computeS arr
   {-# INLINE compute #-}
 
-  (|*|) (SUImage arr1)   (SUImage arr2)   = SDImage (multR arr1 arr2)
+  (|*|) img1@(SUImage arr1) img2@(SUImage arr2) =
+     SDImage (multR (show img1 ++ " X " ++ show img2) arr1 arr2)
   (|*|) img1@(SDImage _) !img2            = compute img1 |*| img2
   (|*|) !img1            img2@(SDImage _) = img1 |*| compute img2
   (|*|) (SScalar px1)    !img2            = SUImage (singletonR px1) |*| img2
@@ -190,14 +196,13 @@ instance (BaseArray RP cs e) => Array RP cs e where
 
   type Manifest RP = VU
   
-  makeImage !(checkDims "RP.makeImage" -> (m, n)) !f =
+  makeImage !(checkDims "RP.makeImage" -> (m, n)) f =
     PDImage $ R.fromFunction (Z :. m :. n) (f . sh2dims)
   {-# INLINE makeImage #-}
 
   makeImageWindowed !(checkDims "RP.makeImage" -> (m, n)) !window getWindowPx getBorderPx  =
     PDImage $ R.delay $ makeWindowed (Z :. m :. n) window
     (R.fromFunction (Z :. m :. n) (getWindowPx . sh2dims))
-    --(hintSmall
      (R.fromFunction (Z :. m :. n) (getBorderPx . sh2dims))
     
   {-# INLINE makeImageWindowed #-}
@@ -273,7 +278,8 @@ instance (BaseArray RP cs e) => Array RP cs e where
     where arrU = R.suspendedComputeP arr
   {-# INLINE compute #-}
 
-  (|*|) (PUImage arr1)   (PUImage arr2)   = PDImage (multR arr1 arr2)
+  (|*|) img1@(PUImage arr1) img2@(PUImage arr2) =
+     PDImage (multR (show img1 ++ " X " ++ show img2) arr1 arr2)
   (|*|) img1@(PDImage _) !img2            = compute img1 |*| img2
   (|*|) !img1            img2@(PDImage _) = img1 |*| compute img2
   (|*|) (PScalar px1)    !img2            = PUImage (singletonR px1) |*| img2
@@ -378,12 +384,11 @@ fromListsR ls =
 
 multR
   :: (Num a, Unbox a, R.Elt a)
-  => R.Array R.U DIM2 a -> R.Array R.U DIM2 a -> R.Array R.D DIM2 a
-multR !arr1 !arr2 =
+  => String -> R.Array R.U DIM2 a -> R.Array R.U DIM2 a -> R.Array R.D DIM2 a
+multR errMsg !arr1 !arr2 =
   if n1 /= m2
     then error $
-         "Inner dimensions of multiplied images must be the same, but received: " ++ ""
-         --show img1 ++ " X " ++ show img2
+         "Inner dimensions of multiplied images must be the same, but received: " ++ errMsg
     else R.fromFunction (Z :. m1 :. n2) $ getPx
   where
     (Z :. m1 :. n1) = R.extent arr1

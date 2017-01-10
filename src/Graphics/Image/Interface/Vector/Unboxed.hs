@@ -123,18 +123,21 @@ instance BaseArray VU cs e => Array VU cs e where
     else VUImage m1 n1 (V.izipWith (\ !k !px1 !px2 -> f (toIx n1 k) px1 px2) v1 v2)
   {-# INLINE izipWith #-}
 
-  traverse !img !getNewDims !getNewPx = makeImage (getNewDims (dims img)) (getNewPx (index img))
+  traverse !img getNewDims getNewPx = makeImage (getNewDims (dims img)) (getNewPx (index img))
   {-# INLINE traverse #-}
 
-  traverse2 !img1 !img2 !getNewDims !getNewPx =
+  traverse2 !img1 !img2 getNewDims getNewPx =
     makeImage (getNewDims (dims img1) (dims img2)) (getNewPx (index img1) (index img2))
   {-# INLINE traverse2 #-}
 
-  transpose !img@(dims -> (m, n)) = makeImage (n, m) getPx where
-    getPx !(i, j) = index img (j, i)
-    {-# INLINE getPx #-}
+  -- TODO: switch directly to V.unsafeBackpermute (no need to check ixs)
+  transpose !img = backpermute (n, m) movePx img where
+    !(m, n) = dims img
+    movePx !(i, j) = (j, i)
+    {-# INLINE movePx #-}
   {-# INLINE transpose #-}
 
+  -- TODO: add index verification and switch to V.unsafeBackpermute
   backpermute !(checkDims "VU.backpermute" -> (m, n)) !f (VUImage _ n' v) =
     VUImage m n $ V.backpermute v $ V.generate (m*n) (fromIx n' . f . toIx n)
   backpermute !sz _ (VScalar px) = makeImage sz (const px)

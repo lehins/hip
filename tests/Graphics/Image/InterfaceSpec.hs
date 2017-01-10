@@ -70,16 +70,15 @@ instance (Array arr1 cs e, Array arr2 cs e, Arbitrary (Pixel cs e)) =>
 
 
 instance Arbitrary px => Arbitrary (Border px) where
-  arbitrary = do
-    methodIx <- arbitrary
-    case methodIx `mod` 5 :: Int of
-      0 -> Fill <$> arbitrary
-      1 -> return Wrap
-      2 -> return Edge
-      3 -> return Reflect
-      4 -> return Continue
-      _ -> error "Unknown method"
-
+  arbitrary =
+    oneof
+      [ Fill <$> arbitrary
+      , return Wrap
+      , return Edge
+      , return Reflect
+      , return Continue
+      ]
+      
 
 #if MIN_VERSION_base(4,8,0)
 instance (Typeable a, Typeable b) => Show (a -> b) where
@@ -297,13 +296,18 @@ spec = do
     it "sameZipWith VS" $ property $ prop_sameZipWith VS
     it "sameZipWith RS" $ property $ prop_sameZipWith RS
     it "sameZipWith RP" $ property $ prop_sameZipWith RP
+    it "sameIZipWith VS" $ property $ prop_sameIZipWith VS
     it "sameIZipWith RS" $ property $ prop_sameIZipWith RS
     it "sameIZipWith RP" $ property $ prop_sameIZipWith RP
+    it "sameTraverse VS" $ property $ prop_sameTraverse VS
     it "sameTraverse RS" $ property $ prop_sameTraverse RS
     it "sameTraverse RP" $ property $ prop_sameTraverse RP
+    it "sameTraverse2 VS" $ property $ prop_sameTraverse2 VS
     it "sameTraverse2 RS" $ property $ prop_sameTraverse2 RS
     it "sameTraverse2 RP" $ property $ prop_sameTraverse2 RP
+    it "sameTranspose VS" $ property $ prop_sameTranspose VS
     it "sameTranspose RS" $ property $ prop_sameTranspose RS
     it "sameTranspose RP" $ property $ prop_sameTranspose RP
+    --it "sameBackpermute VS" $ property $ prop_sameBackpermute VS
     it "sameBackpermute RS" $ property $ prop_sameBackpermute RS
     it "sameBackpermute RP" $ property $ prop_sameBackpermute RP
