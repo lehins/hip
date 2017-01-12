@@ -24,41 +24,18 @@ sobelGy :: I.Array arr cs e => Image arr cs e -> Image arr cs e
 sobelGy =
   convolve Edge (fromLists [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
 
-sobelSGx :: (I.Array arr cs e, I.Array VS cs e) => Image arr cs e -> Image arr cs e
+sobelSGx :: (Exchangable arr VS, I.Array arr cs e, I.Array VS cs e) => Image arr cs e -> Image arr cs e
 sobelSGx =
-  convolveSparse Edge (fromListsR VS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+  convolveSparse Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
-sobelSGy :: (I.Array arr cs e, I.Array VS cs e) => Image arr cs e -> Image arr cs e
+sobelSGy :: (Exchangable arr VS, I.Array arr cs e, I.Array VS cs e) => Image arr cs e -> Image arr cs e
 sobelSGy =
-  convolveSparse Edge (fromListsR VS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
+  convolveSparse Edge (fromLists [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
 
 
--- sobelMSGx :: (I.Array arr cs e, I.Array MS cs e) => Image arr cs e -> Image arr cs e
--- sobelMSGx =
---   convolveSparse Edge (fromListsR MS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-
--- sobelMSGy :: (I.Array arr cs e, I.Array MS cs e) => Image arr cs e -> Image arr cs e
--- sobelMSGy =
---   convolveSparse Edge (fromListsR MS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
-
--- sobelIMSGx :: (I.Array arr cs e, I.Array IMS cs e) => Image arr cs e -> Image arr cs e
--- sobelIMSGx =
---   convolveSparse Edge (fromListsR IMS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-
--- sobelIMSGy :: (I.Array arr cs e, I.Array IMS cs e) => Image arr cs e -> Image arr cs e
--- sobelIMSGy =
---   convolveSparse Edge (fromListsR IMS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
-
-
--- sobelHMSGx :: (I.Array arr cs e, I.Array HMS cs e) => Image arr cs e -> Image arr cs e
--- sobelHMSGx =
---   convolveSparse Edge (fromListsR HMS [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-
--- sobelHMSGy :: (I.Array arr cs e, I.Array HMS cs e) => Image arr cs e -> Image arr cs e
--- sobelHMSGy =
---   convolveSparse Edge (fromListsR HMS [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]])
-
-
+sobelSGx' :: (Exchangable arr VS, I.Array arr cs e, I.Array VS cs e) => Image arr cs e -> Image arr cs e
+sobelSGx' =
+  convolveSparse Edge (fromLists [[1], [2], [1]]) . convolveSparse Edge (fromLists [[1, 0, -1]])
 
 sobelGx' :: I.Array arr cs e => Image arr cs e -> Image arr cs e
 sobelGx' =
@@ -110,6 +87,7 @@ main = do
   let !img = compute img'
   let sobel = sobelGx img
   let sobelSep = sobelGx' img
+  let sobelSepVS = sobelSGx' img
   let sobelVS = sobelSGx img
   -- let sobelMS = sobelMSGx img
   -- let sobelIMS = sobelIMSGx img
@@ -123,6 +101,7 @@ main = do
         "Sobel"
         [ bench "naive" $ whnf compute sobel
         , bench "separated" $ whnf compute sobelSep
+        , bench "separated VS" $ whnf compute sobelSepVS
         , bench "sparse VS" $ whnf compute sobelVS
         -- , bench "sparse MS" $ whnf compute sobelMS
         -- , bench "sparse IMS" $ whnf compute sobelIMS

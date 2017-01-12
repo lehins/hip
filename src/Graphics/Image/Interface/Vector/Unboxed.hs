@@ -68,7 +68,7 @@ instance BaseArray VU cs e => Array VU cs e where
 
   makeImageWindowed sz !((it, jt), (ib, jb)) getWindowPx getBorderPx =
     VUImage m n $ V.create generate where
-      !(m , n) = checkDims "VU.makeImageWindowed" sz
+      !(m, n) = checkDims "VU.makeImageWindowed" sz
       nestedLoop !mv !getPx !fi !fj !ti !tj = do
         forM_ [fi .. ti-1] $ \i ->
           forM_ [fj .. tj-1] $ \j ->

@@ -135,7 +135,7 @@ class Elevator e where
 
 
 -- | Base array like representation for an image.
-class (Show arr, ColorSpace cs, Num (Pixel cs e),
+class (Show arr, ColorSpace cs, Num (Pixel cs e), 
        Functor (Pixel cs), Applicative (Pixel cs), Foldable (Pixel cs),
        Num e, Typeable e, Elt arr cs e) =>
       BaseArray arr cs e where

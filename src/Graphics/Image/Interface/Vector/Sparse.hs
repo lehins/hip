@@ -117,6 +117,7 @@ reconstructWith
   => Int -> Int -> Vector (a, b) -> ((Int, Int) -> (a, b)) -> Vector (a, b)
 reconstructWith !m !n !v f = joinWith const v $ V.generate (m*n) (f . toIx n) where
 
+ixCmp :: Ord a => (a, t) -> (a, t1) -> Ordering
 ixCmp (ix1, _) (ix2, _) = compare ix1 ix2
 
 binarySearchBy :: Unbox a => (a -> Ordering) -> Vector a -> Maybe a

@@ -311,3 +311,8 @@ spec = do
     --it "sameBackpermute VS" $ property $ prop_sameBackpermute VS
     it "sameBackpermute RS" $ property $ prop_sameBackpermute RS
     it "sameBackpermute RP" $ property $ prop_sameBackpermute RP
+    it "test prop poly list" $ property $ prop_Index
+
+
+prop_Index :: Eq a => [a] -> NonNegative Int -> Property
+prop_Index xs (NonNegative n) = length xs > n ==> (xs !! n) `elem` xs
