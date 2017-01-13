@@ -25,6 +25,7 @@ module Graphics.Image.Interface (
   BaseArray(..), Array(..), MArray(..),
   Exchangable(..), exchangeFrom,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
+  fromIx, toIx, checkDims
   ) where
 
 import Prelude hiding (and, map, zipWith, sum, product)
@@ -291,7 +292,7 @@ class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
 -- | Array representation that is actually has real data stored in memory, hence
 -- allowing for image indexing, forcing pixels into computed state etc.
 class BaseArray arr cs e => MArray arr cs e  where
-  data MImage st arr cs e
+  data MImage s arr cs e
 
   unsafeIndex :: Image arr cs e -> (Int, Int) -> Pixel cs e
   
@@ -337,7 +338,7 @@ class BaseArray arr cs e => MArray arr cs e  where
   foldM_ :: (Functor m, Monad m) => (a -> Pixel cs e -> m a) -> a -> Image arr cs e -> m ()
 
   -- | Get dimensions of a mutable image.
-  mdims :: MImage st arr cs e -> (Int, Int)
+  mdims :: MImage s arr cs e -> (Int, Int)
 
   -- | Yield a mutable copy of an image.
   thaw :: (Functor m, PrimMonad m) =>
@@ -482,6 +483,33 @@ maybeIndex :: MArray arr cs e =>
 maybeIndex !img@(dims -> (m, n)) !(i, j) =
   if i >= 0 && j >= 0 && i < m && j < n then Just $ index img (i, j) else Nothing
 {-# INLINE maybeIndex #-}
+
+
+-- | 2D to a flat vector index conversion.
+--
+-- __Note__: There is an implicit assumption that @j < n@
+fromIx :: Int -- ^ @n@ columns
+       -> (Int, Int) -- ^ @(i, j)@ row, column index
+       -> Int -- ^ Flat vector index
+fromIx !n !(i, j) = n * i + j
+{-# INLINE fromIx #-}
+
+
+-- | Flat vector to 2D index conversion.
+toIx :: Int -- ^ @n@ columns
+     -> Int -- ^ Flat vector index
+     -> (Int, Int) -- ^ @(i, j)@ row, column index
+toIx !n !k = divMod k n
+{-# INLINE toIx #-}
+
+
+checkDims :: String -> (Int, Int) -> (Int, Int)
+checkDims err !ds@(m, n)
+  | m <= 0 || n <= 0 = 
+    error $
+    show err ++ ": Image dimensions are expected to be non-negative: " ++ show ds
+  | otherwise = ds
+{-# INLINE checkDims #-}
 
 
 

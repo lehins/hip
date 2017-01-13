@@ -113,4 +113,3 @@ spec = do
             shouldThrow
               (return $! topToBottom dummyImage10x20 $ I.transpose dummyImage10x20)
               anyException
---  binarySpec

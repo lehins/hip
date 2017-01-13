@@ -9,12 +9,12 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Processing.Convolution (
-  convolve, convolveRows, convolveCols, convolveSparse
+  convolve, convolveRows, convolveCols
   ) where
 
 import Prelude as P
 import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Vector.Sparse
+--import Graphics.Image.Interface.Vector.Sparse
 import Graphics.Image.Processing.Geometric
 
 
@@ -42,30 +42,30 @@ convolve' !border !kernel !img =
     {-# INLINE stencil #-}
 {-# INLINE convolve' #-}
 
-convolveSparse :: (Exchangable arr VS, Array arr cs e, Array VS cs e)  =>
-                   Border (Pixel cs e) -> Image arr cs e -> Image arr cs e -> Image arr cs e
-convolveSparse !border !kernel !img =
-  makeImageWindowed
-    sz
-    ((krnM2, krnN2), (m - krnM2, n - krnN2))
-    (stencil (unsafeIndex imgM))
-    (stencil (borderIndex border imgM))
-  where
-    !imgM = toManifest img
-    !kernel' = exchange VS $ compute kernel
-    -- !kernel' = exchange VS kernel -- deadlock?!?!?
-    !(krnM, krnN) = dims kernel'
-    !krnM2 = krnM `div` 2
-    !krnN2 = krnN `div` 2
-    !sz@(m, n) = dims img
-    stencil getPx !(i, j) = foldIx integral 0 kernel'
-      where
-        integral !acc !(ki, kj) !px = px * (getPx (ki + ikrnM, kj + jkrnN)) + acc
-        {-# INLINE integral #-}
-        !ikrnM = i - krnM2
-        !jkrnN = j - krnN2
-    {-# INLINE stencil #-}
-{-# INLINE convolveSparse #-}
+-- convolveSparse :: (Exchangable arr VS, Array arr cs e, Array VS cs e)  =>
+--                    Border (Pixel cs e) -> Image arr cs e -> Image arr cs e -> Image arr cs e
+-- convolveSparse !border !kernel !img =
+--   makeImageWindowed
+--     sz
+--     ((krnM2, krnN2), (m - krnM2, n - krnN2))
+--     (stencil (unsafeIndex imgM))
+--     (stencil (borderIndex border imgM))
+--   where
+--     !imgM = toManifest img
+--     !kernel' = exchange VS $ compute kernel
+--     -- !kernel' = exchange VS kernel -- deadlock?!?!?
+--     !(krnM, krnN) = dims kernel'
+--     !krnM2 = krnM `div` 2
+--     !krnN2 = krnN `div` 2
+--     !sz@(m, n) = dims img
+--     stencil getPx !(i, j) = foldIx integral 0 kernel'
+--       where
+--         integral !acc !(ki, kj) !px = px * (getPx (ki + ikrnM, kj + jkrnN)) + acc
+--         {-# INLINE integral #-}
+--         !ikrnM = i - krnM2
+--         !jkrnN = j - krnN2
+--     {-# INLINE stencil #-}
+-- {-# INLINE convolveSparse #-}
 
 
 -- | Convolution of an image using a kernel. Border resolution technique is required.

@@ -32,7 +32,6 @@ import Graphics.Image.Interface
 import Graphics.Image.ColorSpace.Binary (Bit(..))
 import Graphics.Image.Interface.Vector.Unboxed
        (VU(..), fromUnboxedVector, toUnboxedVector, checkDims)
-import Graphics.Image.Interface.Vector.Sparse (VS(..))
 import Graphics.Image.Interface.Repa.Helpers
 
 
@@ -462,28 +461,28 @@ instance Exchangable RP VU where
   {-# INLINE exchange #-}
 
 
--- | Changes to Sparse Vector representation.
-instance Exchangable RS VS where
-  exchange arr = exchange arr . toManifest
-  {-# INLINE exchange #-}
+-- -- | Changes to Sparse Vector representation.
+-- instance Exchangable RS VS where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
 
 
--- | Changes to Sparse Vector representation.
-instance Exchangable RP VS where
-  exchange arr = exchange arr . toManifest
-  {-# INLINE exchange #-}
+-- -- | Changes to Sparse Vector representation.
+-- instance Exchangable RP VS where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
 
 
--- | Changes from Sparse Vector representation.
-instance Exchangable VS RS where
-  exchange arr = exchange arr . toManifest
-  {-# INLINE exchange #-}
+-- -- | Changes from Sparse Vector representation.
+-- instance Exchangable VS RS where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
 
 
--- | Changes from Sparse Vector representation.
-instance Exchangable VS RP where
-  exchange arr = exchange arr . toManifest
-  {-# INLINE exchange #-}
+-- -- | Changes from Sparse Vector representation.
+-- instance Exchangable VS RP where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
 
 
 -- | Create a sequential image from a 2D Repa delayed array.

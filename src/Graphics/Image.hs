@@ -30,10 +30,10 @@
 -- <http://hackage.haskell.org/package/repa Repa> packages:
 --
 -- * `VU` - Unboxed Vector representation. (Default)
--- * `RS` - Unboxed Repa array representation (computation is done sequentially).
--- * `RP` - Unboxed Repa array representation (computation is done in parallel).
+-- * `RSU` - Unboxed Repa array representation (computation is done sequentially).
+-- * `RPU` - Unboxed Repa array representation (computation is done in parallel).
 --
--- Images with `RS` and `RP` types, most of the time hold functions rather then
+-- Images with `RSU` and `RPU` types, most of the time hold functions rather then
 -- actual data, this way computation can be fused together, and later changed to
 -- `VU` using `toManifest`, which in turn performs the fused computation. If at
 -- any time computation needs to be forced, `compute` can be used for that
@@ -66,7 +66,7 @@ module Graphics.Image (
   -- representation, `makeImage` function can be used with a manual type
   -- specification of result image, eg:
   --
-  -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
+  -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RPU Y Word8 @
   --
   makeImageR, makeImage, fromListsR, fromLists, toLists,
   -- * IO
@@ -76,15 +76,15 @@ module Graphics.Image (
   -- space or precision, use 'readImage' or 'readImageExact' from
   -- <Graphics-Image-IO.html Graphics.Image.IO> instead. While reading an
   -- image, it's underlying representation can be specified by passing one of
-  -- `VU`, `RS` or `RP` as the first argument to @readImage*@ functions. Here is
+  -- `VU`, `RSU` or `RPU` as the first argument to @readImage*@ functions. Here is
   -- a quick demonstration of how two images can be read as different
   -- representations and later easily combined as their average.
   --
-  -- >>> cluster <- readImageRGB RP "images/cluster.jpg"
+  -- >>> cluster <- readImageRGB RPU "images/cluster.jpg"
   -- >>> displayImage cluster
   -- >>> centaurus <- readImageRGB VU "images/centaurus.jpg"
   -- >>> displayImage centaurus
-  -- >>> displayImage ((cluster + exchange RP centaurus) / 2)
+  -- >>> displayImage ((cluster + exchange RPU centaurus) / 2)
   --
   -- <<images/cluster.jpg>> <<images/centaurus.jpg>> <<images/centaurus_and_cluster.jpg>>
   --
@@ -107,7 +107,7 @@ module Graphics.Image (
   fold, sum, product, maximum, minimum, normalize,
   -- * Representations
   exchange,
-  VU(..), RS(..), RP(..),
+  VU(..), RSU(..), RPU(..),
   module IP
   ) where
 
@@ -134,7 +134,7 @@ import Graphics.Image.IO.Histogram as IP
 --
 -- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
 --
--- >>> let grad_gray = makeImageR RP (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+-- >>> let grad_gray = makeImageR RPU (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
 -- >>> writeImage "images/grad_gray.png" grad_gray
 --
 -- Creating color images is just as easy.

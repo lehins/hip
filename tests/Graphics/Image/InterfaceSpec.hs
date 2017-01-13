@@ -165,61 +165,61 @@ prop_sameDims :: Array arr Y Word8 => arr -> Identical VU arr Y Word8 -> Bool
 prop_sameDims _ (Identical img1 img2) = I.dims img1 == I.dims img2
 
 prop_sameImage
-  :: (Exchangable arr RS, Array arr Y Word8)
+  :: (Exchangable arr RSU, Array arr Y Word8)
   => arr -> Identical VU arr Y Word8 -> Bool
-prop_sameImage _ (Identical img1 img2) = I.exchange RS img1 == I.exchange RS img2
+prop_sameImage _ (Identical img1 img2) = I.exchange RSU img1 == I.exchange RSU img2
 
 prop_sameMap
-  :: (Exchangable arr RS, Array arr Y Word8)
+  :: (Exchangable arr RSU, Array arr Y Word8)
   => arr -> (Pixel Y Word8 -> Pixel Y Word8) -> Identical VU arr Y Word8 -> Bool
 prop_sameMap _ f (Identical img1 img2) =
-  I.exchange RS (I.map f img1) == I.exchange RS (I.map f img2)
+  I.exchange RSU (I.map f img1) == I.exchange RSU (I.map f img2)
 
 prop_sameImap
-  :: (Exchangable arr RP, Array arr Y Word8)
+  :: (Exchangable arr RPU, Array arr Y Word8)
   => arr -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8) -> Identical VU arr Y Word8 -> Bool
 prop_sameImap _ f (Identical img1 img2) =
-  I.exchange RP (I.imap f img1) == I.exchange RP (I.imap f img2)
+  I.exchange RPU (I.imap f img1) == I.exchange RPU (I.imap f img2)
 
 
 prop_sameZipWith
-  :: (Exchangable arr RP, Array arr Y Word8)
+  :: (Exchangable arr RPU, Array arr Y Word8)
   => arr
   -> (Pixel Y Word8 -> Pixel Y Word8)
   -> (Pixel Y Word8 -> Pixel Y Word8 -> Pixel Y Word8)
   -> Identical VU arr Y Word8
   -> Bool
 prop_sameZipWith _ g f (Identical img1 img2) =
-  I.exchange RP (I.zipWith f img1 img1') ==
-  I.exchange RP (I.zipWith f img2 img2')
+  I.exchange RPU (I.zipWith f img1 img1') ==
+  I.exchange RPU (I.zipWith f img2 img2')
   where
     img1' = I.map g img1
     img2' = I.map g img2
 
 prop_sameIZipWith
-  :: (Exchangable arr RP, Array arr Y Word8)
+  :: (Exchangable arr RPU, Array arr Y Word8)
   => arr
   -> (Pixel Y Word8 -> Pixel Y Word8)
   -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8 -> Pixel Y Word8)
   -> Identical VU arr Y Word8
   -> Bool
 prop_sameIZipWith _ g f (Identical img1 img2) =
-  I.exchange RP (I.izipWith f img1 img1') ==
-  I.exchange RP (I.izipWith f img2 img2')
+  I.exchange RPU (I.izipWith f img1 img1') ==
+  I.exchange RPU (I.izipWith f img2 img2')
   where
     img1' = I.map g img1
     img2' = I.map g img2
 
 prop_sameTraverse
-  :: (Exchangable arr RS, Array arr Y Word8)
+  :: (Exchangable arr RSU, Array arr Y Word8)
   => arr
   -> ((Int, Int) -> (Positive (Small Int), Positive (Small Int)))
   -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8)
   -> Identical VU arr Y Word8
   -> Bool
 prop_sameTraverse _ g f (Identical img1 img2) =
-  I.exchange RS (I.traverse img1 (g' . g) f') ==
-  I.exchange RS (I.traverse img2 (g' . g) f')
+  I.exchange RSU (I.traverse img1 (g' . g) f') ==
+  I.exchange RSU (I.traverse img2 (g' . g) f')
   where
     g' (Positive (Small i), Positive (Small j)) = (i, j)
     f' getPx ix@(i, j) = f ix (getPx (i `mod` m, j `mod` n))
@@ -227,7 +227,7 @@ prop_sameTraverse _ g f (Identical img1 img2) =
 
 
 prop_sameTraverse2
-  :: (Exchangable arr RS, Array arr Y Word8)
+  :: (Exchangable arr RSU, Array arr Y Word8)
   => arr
   -> ((Int, Int) -> (Int, Int) -> (Positive (Small Int), Positive (Small Int)))
   -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8 -> Pixel Y Word8)
@@ -235,8 +235,8 @@ prop_sameTraverse2
   -> Identical VU arr Y Word8
   -> Bool
 prop_sameTraverse2 _ g f (Identical img1a img2a) (Identical img1b img2b) =
-  I.exchange RS (I.traverse2 img1a img1b g' f') ==
-  I.exchange RS (I.traverse2 img2a img2b g' f')
+  I.exchange RSU (I.traverse2 img1a img1b g' f') ==
+  I.exchange RSU (I.traverse2 img2a img2b g' f')
   where
     g' dimsA dimsB =
       case g dimsA dimsB of
@@ -248,24 +248,24 @@ prop_sameTraverse2 _ g f (Identical img1a img2a) (Identical img1b img2b) =
 
 
 prop_sameTranspose
-  :: (Exchangable arr RS, Array arr Y Word8)
+  :: (Exchangable arr RSU, Array arr Y Word8)
   => arr
   -> Identical VU arr Y Word8
   -> Bool
 prop_sameTranspose _ (Identical img1 img2) =
-  I.exchange RS (I.transpose img1) == I.exchange RS (I.transpose img2)
+  I.exchange RSU (I.transpose img1) == I.exchange RSU (I.transpose img2)
 
 
 prop_sameBackpermute
-  :: (Exchangable arr RP, Array arr Y Word8)
+  :: (Exchangable arr RPU, Array arr Y Word8)
   => arr
   -> (Positive (Small Int), Positive (Small Int))
   -> ((Int, Int) -> (Int, Int))
   -> Identical VU arr Y Word8
   -> Bool
 prop_sameBackpermute _ (Positive (Small m), Positive (Small n)) f (Identical img1 img2) =
-  I.exchange RP (I.backpermute (m, n) (f' . f) img1) ==
-  I.exchange RP (I.backpermute (m, n) (f' . f) img2)
+  I.exchange RPU (I.backpermute (m, n) (f' . f) img1) ==
+  I.exchange RPU (I.backpermute (m, n) (f' . f) img2)
   where
     (m', n') = I.dims img1
     f' (i, j) = (i `mod` m', j `mod` n')
@@ -281,38 +281,33 @@ spec = do
     it "borderIndex" $ property prop_borderIndex
     it "toFormLists" $ property $ prop_toFormLists VU
   describe "Representation Properties" $ do
-    it "sameDims VS" $ property $ prop_sameDims VS
-    it "sameDims RS" $ property $ prop_sameDims RS
-    it "sameDims RP" $ property $ prop_sameDims RP
-    it "sameImage VS" $ property $ prop_sameImage VS
-    it "sameImage RS" $ property $ prop_sameImage RS
-    it "sameImage RP" $ property $ prop_sameImage RP
-    it "sameMap VS" $ property $ prop_sameMap VS
-    it "sameMap RS" $ property $ prop_sameMap RS
-    it "sameMap RP" $ property $ prop_sameMap RP
-    it "sameImap VS" $ property $ prop_sameImap VS
-    it "sameImap RS" $ property $ prop_sameImap RS
-    it "sameImap RP" $ property $ prop_sameImap RP
-    it "sameZipWith VS" $ property $ prop_sameZipWith VS
-    it "sameZipWith RS" $ property $ prop_sameZipWith RS
-    it "sameZipWith RP" $ property $ prop_sameZipWith RP
-    it "sameIZipWith VS" $ property $ prop_sameIZipWith VS
-    it "sameIZipWith RS" $ property $ prop_sameIZipWith RS
-    it "sameIZipWith RP" $ property $ prop_sameIZipWith RP
-    it "sameTraverse VS" $ property $ prop_sameTraverse VS
-    it "sameTraverse RS" $ property $ prop_sameTraverse RS
-    it "sameTraverse RP" $ property $ prop_sameTraverse RP
-    it "sameTraverse2 VS" $ property $ prop_sameTraverse2 VS
-    it "sameTraverse2 RS" $ property $ prop_sameTraverse2 RS
-    it "sameTraverse2 RP" $ property $ prop_sameTraverse2 RP
-    it "sameTranspose VS" $ property $ prop_sameTranspose VS
-    it "sameTranspose RS" $ property $ prop_sameTranspose RS
-    it "sameTranspose RP" $ property $ prop_sameTranspose RP
+    --it "sameDims VS" $ property $ prop_sameDims VS
+    it "sameDims RSU" $ property $ prop_sameDims RSU
+    it "sameDims RPU" $ property $ prop_sameDims RPU
+    --it "sameImage VS" $ property $ prop_sameImage VS
+    it "sameImage RSU" $ property $ prop_sameImage RSU
+    it "sameImage RPU" $ property $ prop_sameImage RPU
+    --it "sameMap VS" $ property $ prop_sameMap VS
+    it "sameMap RSU" $ property $ prop_sameMap RSU
+    it "sameMap RPU" $ property $ prop_sameMap RPU
+    --it "sameImap VS" $ property $ prop_sameImap VS
+    it "sameImap RSU" $ property $ prop_sameImap RSU
+    it "sameImap RPU" $ property $ prop_sameImap RPU
+    --it "sameZipWith VS" $ property $ prop_sameZipWith VS
+    it "sameZipWith RSU" $ property $ prop_sameZipWith RSU
+    it "sameZipWith RPU" $ property $ prop_sameZipWith RPU
+    --it "sameIZipWith VS" $ property $ prop_sameIZipWith VS
+    it "sameIZipWith RSU" $ property $ prop_sameIZipWith RSU
+    it "sameIZipWith RPU" $ property $ prop_sameIZipWith RPU
+    --it "sameTraverse VS" $ property $ prop_sameTraverse VS
+    it "sameTraverse RSU" $ property $ prop_sameTraverse RSU
+    it "sameTraverse RPU" $ property $ prop_sameTraverse RPU
+    --it "sameTraverse2 VS" $ property $ prop_sameTraverse2 VS
+    it "sameTraverse2 RSU" $ property $ prop_sameTraverse2 RSU
+    it "sameTraverse2 RPU" $ property $ prop_sameTraverse2 RPU
+    --it "sameTranspose VS" $ property $ prop_sameTranspose VS
+    it "sameTranspose RSU" $ property $ prop_sameTranspose RSU
+    it "sameTranspose RPU" $ property $ prop_sameTranspose RPU
     --it "sameBackpermute VS" $ property $ prop_sameBackpermute VS
-    it "sameBackpermute RS" $ property $ prop_sameBackpermute RS
-    it "sameBackpermute RP" $ property $ prop_sameBackpermute RP
-    it "test prop poly list" $ property $ prop_Index
-
-
-prop_Index :: Eq a => [a] -> NonNegative Int -> Property
-prop_Index xs (NonNegative n) = length xs > n ==> (xs !! n) `elem` xs
+    it "sameBackpermute RSU" $ property $ prop_sameBackpermute RSU
+    it "sameBackpermute RPU" $ property $ prop_sameBackpermute RPU

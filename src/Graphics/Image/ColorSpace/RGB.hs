@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.RGB
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -23,6 +24,25 @@ import qualified Data.Monoid as M (mappend)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
 
+import Foreign.Ptr
+import Foreign.Storable
+
+
+instance Storable e => Storable (Pixel RGB e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    r <- peek q
+    g <- peekElemOff q 1
+    b <- peekElemOff q 2
+    return (PixelRGB r g b)
+  poke p (PixelRGB r g b) = do
+    q <- return $ castPtr p
+    poke q r
+    pokeElemOff q 1 g
+    pokeElemOff q 2 b
 
 -- | Red, Green and Blue color space.
 data RGB = RedRGB
@@ -84,10 +104,10 @@ instance ColorSpace RGB where
   getPxCh (PixelRGB _ _ b) BlueRGB  = b
   {-# INLINE getPxCh #-}
   
-  chOp !f (PixelRGB r g b) = PixelRGB (f RedRGB r) (f GreenRGB g) (f BlueRGB b)
+  chOp f (PixelRGB r g b) = PixelRGB (f RedRGB r) (f GreenRGB g) (f BlueRGB b)
   {-# INLINE chOp #-}
 
-  pxOp !f (PixelRGB r g b) = PixelRGB (f r) (f g) (f b)
+  pxOp f (PixelRGB r g b) = PixelRGB (f r) (f g) (f b)
   {-# INLINE pxOp #-}
 
   chApp (PixelRGB fr fg fb) (PixelRGB r g b) = PixelRGB (fr r) (fg g) (fb b)

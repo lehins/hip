@@ -9,11 +9,46 @@
 --
 module Graphics.Image.Interface.Repa (
   -- * Conversion
-  fromRepaArrayS, fromRepaArrayP, toRepaArray,
+  --fromRepaArrayS, fromRepaArrayP, toRepaArray,
   -- * Representation
-  RS(..), RP(..),
+  RSU(..), RPU(..),
   ) where
 
-import Graphics.Image.Interface.Repa.Internal
+import Graphics.Image.Interface.Repa.Unboxed
 
+
+
+
+-- -- | Changes to Sparse Vector representation.
+-- instance Exchangable RS VS where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
+
+
+-- -- | Changes to Sparse Vector representation.
+-- instance Exchangable RP VS where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
+
+
+-- -- | Changes from Sparse Vector representation.
+-- instance Exchangable VS RS where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
+
+
+-- -- | Changes from Sparse Vector representation.
+-- instance Exchangable VS RP where
+--   exchange arr = exchange arr . toManifest
+--   {-# INLINE exchange #-}
+
+
+-- -- | Create a sequential image from a 2D Repa delayed array.
+-- fromRepaArrayS :: R.Array R.D DIM2 (Pixel cs e) -> Image RS cs e
+-- fromRepaArrayS = SDImage
+
+
+-- -- | Create a parallel image from a 2D Repa delayed array.
+-- fromRepaArrayP :: R.Array R.D DIM2 (Pixel cs e) -> Image RP cs e
+-- fromRepaArrayP = PDImage
 

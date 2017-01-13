@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -9,11 +11,25 @@
 module Graphics.Image.Interface.Vector (
   -- * Conversion
   fromUnboxedVector, toUnboxedVector,
+  fromStorableVector, toStorableVector,
   -- * Representation
   VU(..), VS(..),
   -- * Linear index conversion
   toIx, fromIx
   ) where
 
+import Data.Vector as V (convert)
+import Graphics.Image.Interface
+import Graphics.Image.Interface.Vector.Generic
 import Graphics.Image.Interface.Vector.Unboxed
-import Graphics.Image.Interface.Vector.Sparse
+import Graphics.Image.Interface.Vector.Storable
+
+
+instance Exchangable VU VS where
+  exchange _ (VUImage (VScalar px))   = VSImage (VScalar px)
+  exchange _ (VUImage (VImage m n v)) = VSImage (VImage m n (V.convert v))
+
+
+instance Exchangable VS VU where
+  exchange _ (VSImage (VScalar px))   = VUImage (VScalar px)
+  exchange _ (VSImage (VImage m n v)) = VUImage (VImage m n (V.convert v))

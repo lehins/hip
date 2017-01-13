@@ -209,7 +209,7 @@ superimpose :: Array arr cs e =>
            -> Image arr cs e -- ^ Source image.
            -> Image arr cs e              
 superimpose !(i0, j0) !imgA !imgB = traverse2 imgB imgA const newPx where
-  (m, n) = dims imgA
+  !(m, n) = dims imgA
   newPx getPxB getPxA (i, j) = let !(i', j') = (i - i0, j - j0) in
     if i' >= 0 && j' >= 0 && i' < m && j' < n then getPxA (i', j') else getPxB (i, j)
 {-# INLINE superimpose #-}
@@ -218,7 +218,7 @@ superimpose !(i0, j0) !imgA !imgB = traverse2 imgB imgA const newPx where
 
 flipUsing :: Array arr cs e =>
              ((Int, Int) -> (Int, Int) -> (Int, Int)) -> Image arr cs e -> Image arr cs e
-flipUsing getNewIndex !img@(dims -> d) = backpermute d (getNewIndex d) img
+flipUsing getNewIndex !img@(dims -> sz) = backpermute sz (getNewIndex sz) img
 {-# INLINE flipUsing #-}
 
 

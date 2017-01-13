@@ -77,9 +77,12 @@ Library
                  , Graphics.Image.IO.Base
                  , Graphics.Image.IO.Formats.JuicyPixels
                  , Graphics.Image.IO.Formats.Netpbm
-                 , Graphics.Image.Interface.Repa.Internal
+                 --, Graphics.Image.Interface.Repa.Internal
+                 , Graphics.Image.Interface.Repa.Generic
+                 , Graphics.Image.Interface.Repa.Unboxed
                  , Graphics.Image.Interface.Repa.Helpers
-                 , Graphics.Image.Interface.Vector.Sparse
+                 , Graphics.Image.Interface.Vector.Generic
+                 -- , Graphics.Image.Interface.Vector.Sparse
                  , Graphics.Image.Interface.Vector.Unboxed
                  , Graphics.Image.Interface.Vector.Unboxing
                  , Graphics.Image.Processing.Convolution
