@@ -45,9 +45,9 @@ instance Show S where
 instance Show VS where
   show _ = "VectorStorable"
 
-instance Elt VS cs e => BaseArray VS cs e where
-  type Elt VS cs e = (ColorSpace cs, Num e, Typeable e, VS.Storable e,
-                      VS.Storable (Pixel cs e))
+instance SuperClass VS cs e => BaseArray VS cs e where
+  type SuperClass VS cs e =
+    (ColorSpace cs, Num e, Typeable e, VS.Storable e, VS.Storable (Pixel cs e))
 
   data Image VS cs e = VSImage !(Image (V S) cs e)
 

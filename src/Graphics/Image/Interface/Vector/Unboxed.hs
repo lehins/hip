@@ -46,8 +46,9 @@ instance Show U where
 instance Show VU where
   show _ = "VectorUnboxed"
 
-instance Elt VU cs e => BaseArray VU cs e where
-  type Elt VU cs e = (ColorSpace cs, Num e, Typeable e, VU.Unbox e, VU.Unbox (PixelElt cs e))
+instance SuperClass VU cs e => BaseArray VU cs e where
+  type SuperClass VU cs e =
+    (ColorSpace cs, Num e, Typeable e, VU.Unbox e, VU.Unbox (PixelElt cs e))
 
   data Image VU cs e = VUImage !(Image (V U) cs e)
 

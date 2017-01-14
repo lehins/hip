@@ -13,25 +13,47 @@ main :: IO ()
 main = do
   defaultMain
     [ bgroup
-        "RP fusion"
+        "RPU fusion"
         [ bench "native" $
           whnf
-            (compute  . (noFusion :: (Int, Int) -> Image RP Y Double))
+            (compute . (noFusion :: (Int, Int) -> Image RPU Y Double))
             (1000, 1000)
-        , bench "RP fusion" $
+        , bench "RPU fusion" $
           whnf
-            (compute  . (fusion :: (Int, Int) -> Image RP Y Double))
+            (compute . (fusion :: (Int, Int) -> Image RPU Y Double))
             (1000, 1000)
         ]
     , bgroup
-        "RS fusion"
+        "RSU fusion"
         [ bench "native" $
           whnf
-            (compute . (noFusion :: (Int, Int) -> Image RS Y Double))
+            (compute . (noFusion :: (Int, Int) -> Image RSU Y Double))
             (1000, 1000)
-        , bench "RS fusion" $
+        , bench "RSU fusion" $
           whnf
-            (compute . (fusion :: (Int, Int) -> Image RS Y Double))
+            (compute . (fusion :: (Int, Int) -> Image RSU Y Double))
+            (1000, 1000)
+        ]
+    , bgroup
+        "RPS fusion"
+        [ bench "native" $
+          whnf
+            (compute . (noFusion :: (Int, Int) -> Image RPS Y Double))
+            (1000, 1000)
+        , bench "RPS fusion" $
+          whnf
+            (compute . (fusion :: (Int, Int) -> Image RPS Y Double))
+            (1000, 1000)
+        ]
+    , bgroup
+        "RSS fusion"
+        [ bench "native" $
+          whnf
+            (compute . (noFusion :: (Int, Int) -> Image RSS Y Double))
+            (1000, 1000)
+        , bench "RSS fusion" $
+          whnf
+            (compute . (fusion :: (Int, Int) -> Image RSS Y Double))
             (1000, 1000)
         ]
     , bgroup
@@ -40,6 +62,13 @@ main = do
           nf (noFusion :: (Int, Int) -> Image VU Y Double) (1000, 1000)
         , bench "VU fusion" $
           nf (fusion :: (Int, Int) -> Image VU Y Double) (1000, 1000)
+        ]
+    , bgroup
+        "VS fusion"
+        [ bench "no fusion" $
+          nf (noFusion :: (Int, Int) -> Image VS Y Double) (1000, 1000)
+        , bench "VS fusion" $
+          nf (fusion :: (Int, Int) -> Image VS Y Double) (1000, 1000)
         ]
     ]
 --frog <- V.readImageY "images/frog.jpg"
@@ -68,8 +97,3 @@ main = do
       fusion ds = imap (\ (i, _) px -> (px - fromIntegral i) * 21) $ (makeImage ds getPxY / 5)
 
 
--- sobel :: ManifestArray arr cs Double => Image arr cs Double -> Image arr cs Double
--- sobel img = sqrt (imgX ^ (2 :: Int) + imgY ^ (2 :: Int))
---   where
---     imgX = convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) img
---     imgY = convolve Edge (fromLists [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]]) img

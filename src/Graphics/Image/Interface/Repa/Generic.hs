@@ -51,13 +51,11 @@ instance Show r => Show (RS r) where
 -- Sequential Arrays --
 -----------------------
 
-instance Elt (RS r) cs e => BaseArray (RS r) cs e where
-  type Elt (RS r) cs e = (Show r, ColorSpace cs, Num e, Typeable e,
-                          R.Target (Repr (RS r)) (Pixel cs e),
-                          R.Source (Repr (RS r)) (Pixel cs e),
-                          BaseArray (IVG.V r) cs e,
-                          Repr (RP r) ~ Repr (RS r),
-                          R.Elt e, R.Elt (Pixel cs e))
+instance SuperClass (RS r) cs e => BaseArray (RS r) cs e where
+  type SuperClass (RS r) cs e =
+    (Show r, ColorSpace cs, Num e, Typeable e, R.Elt e, R.Elt (Pixel cs e),
+     R.Target (Repr (RS r)) (Pixel cs e), R.Source (Repr (RS r)) (Pixel cs e),
+     BaseArray (IVG.V r) cs e, Repr (RP r) ~ Repr (RS r))
   
   data Image (RS r) cs e = SScalar !(Pixel cs e)
                          | STImage !(R.Array (Repr (RS r)) R.DIM2 (Pixel cs e))
@@ -171,14 +169,12 @@ instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
 
 
 
-instance Elt (RP r) cs e => BaseArray (RP r) cs e where
-  type Elt (RP r) cs e = (Show r, ColorSpace cs, Num e, Typeable e,
-                          R.Target (Repr (RP r)) (Pixel cs e),
-                          R.Source (Repr (RP r)) (Pixel cs e),
-                          BaseArray (IVG.V r) cs e,
-                          Repr (RP r) ~ Repr (RS r),
-                          IVU.Unbox e, IVU.Unbox (PixelElt cs e),
-                          R.Elt e, R.Elt (Pixel cs e))
+instance SuperClass (RP r) cs e => BaseArray (RP r) cs e where
+  type SuperClass (RP r) cs e = (
+    Show r, ColorSpace cs, Num e, Typeable e,
+    R.Target (Repr (RP r)) (Pixel cs e), R.Source (Repr (RP r)) (Pixel cs e),
+    BaseArray (IVG.V r) cs e, Repr (RP r) ~ Repr (RS r),
+    IVU.Unbox e, IVU.Unbox (PixelElt cs e), R.Elt e, R.Elt (Pixel cs e))
   
   data Image (RP r) cs e = PScalar !(Pixel cs e)
                          | PTImage !(R.Array (Repr (RP r)) R.DIM2 (Pixel cs e))

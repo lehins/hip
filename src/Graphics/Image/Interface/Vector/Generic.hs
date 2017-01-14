@@ -44,10 +44,10 @@ type family Repr arr :: * -> *
 instance Show r => Show (V r) where
   show r = "Vector " ++ show r
 
-instance Elt (V r) cs e => BaseArray (V r) cs e where
-  type Elt (V r) cs e = (Show r, ColorSpace cs, Num e, Typeable e,
-                         VG.Vector (Repr (V r)) (Pixel cs e), VG.Vector (Repr (V r)) Int,
-                         VG.Vector (Repr (V r)) Bool, NFData ((Repr (V r)) (Pixel cs e)))
+instance SuperClass (V r) cs e => BaseArray (V r) cs e where
+  type SuperClass (V r) cs e = (Show r, ColorSpace cs, Num e, Typeable e,
+                                VG.Vector (Repr (V r)) (Pixel cs e), VG.Vector (Repr (V r)) Int,
+                                VG.Vector (Repr (V r)) Bool, NFData ((Repr (V r)) (Pixel cs e)))
 
   data Image (V r) cs e = VScalar !(Pixel cs e)
                         | VImage {-# UNPACK #-} !Int

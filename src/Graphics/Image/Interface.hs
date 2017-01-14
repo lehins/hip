@@ -52,7 +52,8 @@ data family Pixel cs e :: *
 -- instance of this class automatically installs an associated 'Pixel' into
 -- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'Foldable',
 -- which in turn make it possible to be used by the rest of the library.
-class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
+class (Eq cs, Enum cs, Show cs, Typeable cs,
+       Functor (Pixel cs), Applicative (Pixel cs), Foldable (Pixel cs)) => ColorSpace cs where
   
   -- | Representation of a pixel, such that it can be an element of any
   -- Array. Which is usally a tuple of channels or a channel itself for single
@@ -137,14 +138,13 @@ class Elevator e where
 
 
 -- | Base array like representation for an image.
-class (Show arr, ColorSpace cs, Num (Pixel cs e), 
-       Functor (Pixel cs), Applicative (Pixel cs), Foldable (Pixel cs),
-       Num e, Typeable e, Elt arr cs e) =>
+class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e,
+       SuperClass arr cs e) =>
       BaseArray arr cs e where
 
   -- | Required array specific constraints for an array element.
-  type Elt arr cs e :: Constraint
-  type Elt arr cs e = ()
+  type SuperClass arr cs e :: Constraint
+  type SuperClass arr cs e = ()
 
   -- | Underlying image representation.
   data Image arr cs e

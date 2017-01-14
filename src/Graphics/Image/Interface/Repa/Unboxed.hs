@@ -52,10 +52,11 @@ type instance Repr (RS IVU.U) = R.U
 type instance Repr (RP IVU.U) = R.U
 
 
-instance Elt RSU cs e => BaseArray RSU cs e where
-  type Elt RSU cs e = (ColorSpace cs, Num e, Typeable e,
-                       IVU.Unbox e, IVU.Unbox (PixelElt cs e),
-                       R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
+instance SuperClass RSU cs e => BaseArray RSU cs e where
+  type SuperClass RSU cs e =
+    (ColorSpace cs, Num e, Typeable e,
+     IVU.Unbox e, IVU.Unbox (PixelElt cs e),
+     R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
   
   data Image RSU cs e = SUImage !(Image (RS IVU.U) cs e)
                        
@@ -129,10 +130,11 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
 
 
 
-instance Elt RPU cs e => BaseArray RPU cs e where
-  type Elt RPU cs e = (ColorSpace cs, Num e, Typeable e,
-                       IVU.Unbox e, IVU.Unbox (PixelElt cs e),
-                       R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
+instance SuperClass RPU cs e => BaseArray RPU cs e where
+  type SuperClass RPU cs e =
+    (ColorSpace cs, Num e, Typeable e,
+     IVU.Unbox e, IVU.Unbox (PixelElt cs e),
+     R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
   
   data Image RPU cs e = PUImage !(Image (RP IVU.U) cs e)
                        
