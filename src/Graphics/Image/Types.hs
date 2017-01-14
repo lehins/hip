@@ -12,13 +12,13 @@ module Graphics.Image.Types (
   module Graphics.Image.IO.Formats,
   Array, Image, MArray, MImage,
   Exchangable, Border(..),
-  VU(..), RSU(..), RPU(..),
+  VU(..), VS(..), RSU(..), RPU(..),
   ) where
 
 
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Vector (VU(..))
+import Graphics.Image.Interface.Vector (VU(..), VS(..))
 import Graphics.Image.Interface.Repa (RSU(..), RPU(..))
 import Graphics.Image.IO.Formats
 
@@ -80,3 +80,9 @@ import Graphics.Image.IO.Formats
 "Image RSU RGB Double ^ 5/Integer" forall (img :: Image RSU RGB Double). img ^ (5 :: Integer) = I.map (^ (5 :: Integer)) img
 "Image RSU RGB Double ^ n" forall (img :: Image RSU RGB Double) n. img ^ n = I.map (^n) img
  #-}
+
+
+
+--{-# RULES
+--"I.map/id" forall img. I.map id img = img
+-- #-}

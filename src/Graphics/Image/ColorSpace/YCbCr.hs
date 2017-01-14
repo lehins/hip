@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.YCbCr
@@ -22,6 +23,8 @@ import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
+import Foreign.Ptr
+import Foreign.Storable
 
 
 -- | Color space is used to encode RGB information and is used in JPEG compression.
@@ -37,6 +40,10 @@ data YCbCrA = LumaYCbCrA  -- ^ Luma component (commonly denoted as __Y'__)
             | CRedYCbCrA  -- ^ Red difference chroma component
             | AlphaYCbCrA -- ^ Alpha component.
             deriving (Eq, Enum, Typeable)
+
+data instance Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
+
+data instance Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
 
 
 -- | Conversion to `YCbCr` color space.
@@ -71,7 +78,6 @@ class (ToYCbCr (Opaque cs), Alpha cs) => ToYCbCrA cs where
   
 instance ColorSpace YCbCr where
   type PixelElt YCbCr e = (e, e, e)
-  data Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
 
   fromChannel !e = PixelYCbCr e e e
   {-# INLINE fromChannel #-}
@@ -106,7 +112,6 @@ instance ColorSpace YCbCr where
 
 instance ColorSpace YCbCrA where
   type PixelElt YCbCrA e = (e, e, e, e)
-  data Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
 
   fromChannel !e = PixelYCbCrA e e e e
   {-# INLINE fromChannel #-}
@@ -177,4 +182,40 @@ instance Show e => Show (Pixel YCbCrA e) where
   show (PixelYCbCrA y b r a) = "<YCbCrA:("++show y++"|"++show b++"|"++show r++"|"++show a++")>"
 
 
+
+
+instance Storable e => Storable (Pixel YCbCr e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    y <- peek q
+    b <- peekElemOff q 1
+    r <- peekElemOff q 2
+    return (PixelYCbCr y b r)
+  poke p (PixelYCbCr y b r) = do
+    q <- return $ castPtr p
+    pokeElemOff q 0 y
+    pokeElemOff q 1 b
+    pokeElemOff q 2 r
+
+
+instance Storable e => Storable (Pixel YCbCrA e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    y <- peekElemOff q 0
+    b <- peekElemOff q 1
+    r <- peekElemOff q 2
+    a <- peekElemOff q 3
+    return (PixelYCbCrA y b r a)
+  poke p (PixelYCbCrA y b r a) = do
+    q <- return $ castPtr p
+    poke q y
+    pokeElemOff q 1 b
+    pokeElemOff q 2 r
+    pokeElemOff q 3 a
 

@@ -2,8 +2,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.RGB
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -23,26 +23,9 @@ import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
-
 import Foreign.Ptr
 import Foreign.Storable
 
-
-instance Storable e => Storable (Pixel RGB e) where
-
-  sizeOf _ = 3 * sizeOf (undefined :: e)
-  alignment _ = alignment (undefined :: e)
-  peek p = do
-    q <- return $ castPtr p
-    r <- peek q
-    g <- peekElemOff q 1
-    b <- peekElemOff q 2
-    return (PixelRGB r g b)
-  poke p (PixelRGB r g b) = do
-    q <- return $ castPtr p
-    poke q r
-    pokeElemOff q 1 g
-    pokeElemOff q 2 b
 
 -- | Red, Green and Blue color space.
 data RGB = RedRGB
@@ -54,6 +37,11 @@ data RGBA = RedRGBA
           | GreenRGBA
           | BlueRGBA
           | AlphaRGBA deriving (Eq, Enum, Typeable)
+
+
+data instance Pixel RGB e = PixelRGB !e !e !e deriving Eq
+
+data instance Pixel RGBA e = PixelRGBA !e !e !e !e deriving Eq
 
 
 -- | Conversion to `RGB` color space.
@@ -88,7 +76,6 @@ class (ToRGB (Opaque cs), Alpha cs) => ToRGBA cs where
   
 instance ColorSpace RGB where
   type PixelElt RGB e = (e, e, e)
-  data Pixel RGB e = PixelRGB !e !e !e deriving Eq
 
   fromChannel !e = PixelRGB e e e
   {-# INLINE fromChannel #-}
@@ -123,7 +110,6 @@ instance ColorSpace RGB where
 
 instance ColorSpace RGBA where
   type PixelElt RGBA e = (e, e, e, e)
-  data Pixel RGBA e = PixelRGBA !e !e !e !e deriving Eq
 
   fromChannel !e = PixelRGBA e e e e
   {-# INLINE fromChannel #-}
@@ -194,4 +180,39 @@ instance Show e => Show (Pixel RGBA e) where
   show (PixelRGBA r g b a) = "<RGBA:("++show r++"|"++show g++"|"++show b++"|"++show a++")>"
 
 
+
+instance Storable e => Storable (Pixel RGB e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    r <- peek q
+    g <- peekElemOff q 1
+    b <- peekElemOff q 2
+    return (PixelRGB r g b)
+  poke p (PixelRGB r g b) = do
+    q <- return $ castPtr p
+    poke q r
+    pokeElemOff q 1 g
+    pokeElemOff q 2 b
+
+
+instance Storable e => Storable (Pixel RGBA e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    r <- peek q
+    g <- peekElemOff q 1
+    b <- peekElemOff q 2
+    a <- peekElemOff q 3
+    return (PixelRGBA r g b a)
+  poke p (PixelRGBA r g b a) = do
+    q <- return $ castPtr p
+    poke q r
+    pokeElemOff q 1 g
+    pokeElemOff q 2 b
+    pokeElemOff q 3 a
 

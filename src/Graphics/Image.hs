@@ -17,11 +17,11 @@
 -- * @__`Array` arr cs e__@ - this is a base class for every
 -- __@`Image`@ @arr@ @cs@ @e@__, where @__arr__@ stands for an underlying array
 -- representation, @__cs__@ is the `ColorSpace` of an image and @__e__@ is the
--- type denoting precision of an image.
+-- type denoting precision of an image (@Int@, @Word@, @Double@, etc.) .
 --
 -- * @__`MArray` arr cs e__@ - is a kind of array, that can be indexed in
--- constant time and allows monadic operations and mutation on __@`MImage`@ @st@
--- @arr@ @cs@ @e@__, which is `Image`'s mutable cousin.
+-- constant time and allows monadic operations and mutation on
+-- __@`MImage`@ @st@ @arr@ @cs@ @e@__, which is `Image`'s mutable cousin.
 --
 -- Array representation type and the above classes it is installed in determine
 -- operations that can be done on the image with that representation.
@@ -29,7 +29,8 @@
 -- Representations using <http://hackage.haskell.org/package/vector Vector> and
 -- <http://hackage.haskell.org/package/repa Repa> packages:
 --
--- * `VU` - Unboxed Vector representation. (Default)
+-- * `VS` - Storable Vector representation. (Default)
+-- * `VU` - Unboxed Vector representation.
 -- * `RSU` - Unboxed Repa array representation (computation is done sequentially).
 -- * `RPU` - Unboxed Repa array representation (computation is done in parallel).
 --
@@ -39,9 +40,9 @@
 -- any time computation needs to be forced, `compute` can be used for that
 -- purpose.
 --
--- Just as it is mentioned above, Vector representation is a default one, so in
--- order to create images with Repa representation
--- "Graphics.Image.Interface.Repa" module should be used.
+-- Storable is a default one, because it is cheaper to read\/write images to\/from
+-- file with that representation, but it is very easy to change underlying image
+-- representation by using `exchange` function.
 --
 -- Many of the function names exported by this module will clash with the ones
 -- from "Prelude", hence it can be more convenient to import it qualified and
@@ -107,7 +108,6 @@ module Graphics.Image (
   fold, sum, product, maximum, minimum, normalize,
   -- * Representations
   exchange,
-  VU(..), RSU(..), RPU(..),
   module IP
   ) where
 

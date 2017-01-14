@@ -18,11 +18,12 @@ module Graphics.Image.IO.Formats.Netpbm (
 
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface hiding (map)
+import Graphics.Image.Interface.Vector
 import Graphics.Image.IO.Base
 import Foreign.Storable (Storable)
 import qualified Data.ByteString as B (ByteString)
 import qualified Graphics.Netpbm as PNM
-import qualified Data.Vector.Storable as VS ((!), Vector)
+import qualified Data.Vector.Storable as V
 
 
 -- | Netpbm: portable bitmap image with @.pbm@ extension.
@@ -190,35 +191,35 @@ instance Array arr RGBA Double => Readable (Image arr RGBA Double) PPM where
 
 -- BMP Format Reading (exact)
 
-instance Array arr Binary Bit => Readable (Image arr Binary Bit) PBM where
+instance Readable (Image VS Binary Bit) PBM where
   decode _ = either Left (ppmToImageUsing pnmDataPBMToImage . head) . decodePnm
 
-instance Array arr Y Word8 => Readable (Image arr Y Word8) PGM where
+instance Readable (Image VS Y Word8) PGM where
   decode _ = either Left (ppmToImageUsing pnmDataPGM8ToImage . head) . decodePnm
 
-instance Array arr Y Word16 => Readable (Image arr Y Word16) PGM where
+instance Readable (Image VS Y Word16) PGM where
   decode _ = either Left (ppmToImageUsing pnmDataPGM16ToImage . head) . decodePnm
 
-instance Array arr RGB Word8 => Readable (Image arr RGB Word8) PPM where
+instance Readable (Image VS RGB Word8) PPM where
   decode _ = either Left (ppmToImageUsing pnmDataPPM8ToImage . head) . decodePnm
 
-instance Array arr RGB Word16 => Readable (Image arr RGB Word16) PPM where
+instance Readable (Image VS RGB Word16) PPM where
   decode _ = either Left (ppmToImageUsing pnmDataPPM16ToImage . head) . decodePnm
 
 
-instance Array arr Binary Bit => Readable [Image arr Binary Bit] [PBM] where
+instance Readable [Image VS Binary Bit] [PBM] where
   decode _ = pnmToImagesUsing pnmDataPBMToImage
 
-instance Array arr Y Word8 => Readable [Image arr Y Word8] [PGM] where
+instance Readable [Image VS Y Word8] [PGM] where
   decode _ = pnmToImagesUsing pnmDataPGM8ToImage
 
-instance Array arr Y Word16 => Readable [Image arr Y Word16] [PGM] where
+instance Readable [Image VS Y Word16] [PGM] where
   decode _ = pnmToImagesUsing pnmDataPGM16ToImage
 
-instance Array arr RGB Word8 => Readable [Image arr RGB Word8] [PPM] where
+instance Readable [Image VS RGB Word8] [PPM] where
   decode _ = pnmToImagesUsing pnmDataPPM8ToImage
 
-instance Array arr RGB Word16 => Readable [Image arr RGB Word16] [PPM] where
+instance Readable [Image VS RGB Word16] [PPM] where
   decode _ = pnmToImagesUsing pnmDataPPM16ToImage
 
 
@@ -228,8 +229,8 @@ pnmToImagesUsing conv =
   fmap (map (either error id . ppmToImageUsing conv)) . decodePnm
 
 
-getPx :: (Storable a, Convertible a b) => VS.Vector a -> Int -> (Int, Int) -> b
-getPx v w (i, j) = convert (v VS.! (i * w + j))
+getPx :: (Storable a, Convertible a b) => V.Vector a -> Int -> (Int, Int) -> b
+getPx v w (i, j) = convert (v V.! (i * w + j))
 
 
 pnmDataToImage :: (Array arr cs e, Convertible PNM.PbmPixel px,
@@ -243,29 +244,30 @@ pnmDataToImage conv w h (PNM.PpmPixelDataRGB8 v)  = makeImage (h, w) (conv . get
 pnmDataToImage conv w h (PNM.PpmPixelDataRGB16 v) = makeImage (h, w) (conv . getPx v w)
 
 
-pnmDataPBMToImage :: (Array arr cs e, Convertible PNM.PbmPixel (Pixel cs e)) =>
-                     Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPBMToImage w h (PNM.PbmPixelData v) = Right $ makeImage (h, w) (getPx v w)
+makeImageUnsafe
+  :: (Storable a, Array VS cs e)
+  => (Int, Int) -> V.Vector a -> Image VS cs e
+makeImageUnsafe sz = fromStorableVector sz . V.unsafeCast
+
+
+pnmDataPBMToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS Binary Bit)
+pnmDataPBMToImage w h (PNM.PbmPixelData v) = Right $ makeImageUnsafe (h, w) v
 pnmDataPBMToImage _ _ d                    = pnmCSError "Binary (Pixel Binary Bit)" d
 
-pnmDataPGM8ToImage :: (Array arr cs e, Convertible PNM.PgmPixel8 (Pixel cs e)) =>
-                      Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPGM8ToImage w h (PNM.PgmPixelData8 v) = Right $ makeImage (h, w) (getPx v w)
+pnmDataPGM8ToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS Y Word8)
+pnmDataPGM8ToImage w h (PNM.PgmPixelData8 v) = Right $ makeImageUnsafe (h, w) v
 pnmDataPGM8ToImage _ _ d                     = pnmCSError "Y8 (Pixel Y Word8)" d
 
-pnmDataPGM16ToImage :: (Array arr cs e, Convertible PNM.PgmPixel16 (Pixel cs e)) =>
-                       Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPGM16ToImage w h (PNM.PgmPixelData16 v) = Right $ makeImage (h, w) (getPx v w)
+pnmDataPGM16ToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS Y Word16)
+pnmDataPGM16ToImage w h (PNM.PgmPixelData16 v) = Right $ makeImageUnsafe (h, w) v
 pnmDataPGM16ToImage _ _ d                      = pnmCSError "Y16 (Pixel Y Word16)" d
 
-pnmDataPPM8ToImage :: (Array arr cs e, Convertible PNM.PpmPixelRGB8 (Pixel cs e)) =>
-                      Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPPM8ToImage w h (PNM.PpmPixelDataRGB8 v) = Right $ makeImage (h, w) (getPx v w)
+pnmDataPPM8ToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS RGB Word8)
+pnmDataPPM8ToImage w h (PNM.PpmPixelDataRGB8 v) = Right $ makeImageUnsafe (h, w) v
 pnmDataPPM8ToImage _ _ d                        = pnmCSError "RGB8 (Pixel RGB Word8)" d
 
-pnmDataPPM16ToImage :: (Array arr cs e, Convertible PNM.PpmPixelRGB16 (Pixel cs e)) =>
-                       Int -> Int -> PNM.PpmPixelData -> Either String (Image arr cs e)
-pnmDataPPM16ToImage w h (PNM.PpmPixelDataRGB16 v) = Right $ makeImage (h, w) (getPx v w)
+pnmDataPPM16ToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS RGB Word16)
+pnmDataPPM16ToImage w h (PNM.PpmPixelDataRGB16 v) = Right $ makeImageUnsafe (h, w) v
 pnmDataPPM16ToImage _ _ d                         = pnmCSError "RGB16 (Pixel RGB Word16)" d
 
 

@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.Binary
@@ -21,6 +22,8 @@ import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend, mempty)
 import qualified Data.Colour as C
+import Foreign.Ptr
+import Foreign.Storable
 
 -- | This is a Binary colorspace, pixel's of which can be created using
 -- these __/constructors/__:
@@ -50,6 +53,8 @@ data Binary = Binary deriving (Eq, Enum, Show, Typeable)
 -- | Under the hood, Binary pixels are represented as 'Word8' that can only take
 -- values of @0@ or @1@.
 newtype Bit = Bit Word8 deriving (Ord, Eq, Typeable)
+
+data instance Pixel Binary e = PixelBinary !e deriving (Ord, Eq)
 
 
 -- | Represents value 'True' or @1@ in binary. Often also called a foreground
@@ -96,10 +101,8 @@ complement = fromBool . isOff
 {-# INLINE complement #-}
 
 
-
 instance ColorSpace Binary where
   type PixelElt Binary e = e
-  data Pixel Binary e = PixelBinary !e deriving (Ord, Eq)
 
   fromChannel = PixelBinary
   {-# INLINE fromChannel #-}
@@ -156,3 +159,30 @@ instance Num Bit where
   fromInteger 0 = Bit 0
   fromInteger _ = Bit 1
   {-# INLINE fromInteger #-}
+
+
+
+instance Storable Bit where
+
+  sizeOf _ = sizeOf (undefined :: Word8)
+  alignment _ = alignment (undefined :: Word8)
+  peek p = do
+    q <- return $ castPtr p
+    b <- peek q
+    return (Bit b)
+  poke p (Bit b) = do
+    q <- return $ castPtr p
+    poke q b
+
+
+instance Storable (Pixel Binary Bit) where
+
+  sizeOf _ = sizeOf (undefined :: Bit)
+  alignment _ = alignment (undefined :: Bit)
+  peek p = do
+    q <- return $ castPtr p
+    b <- peek q
+    return (PixelBinary b)
+  poke p (PixelBinary b) = do
+    q <- return $ castPtr p
+    poke q b

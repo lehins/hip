@@ -20,7 +20,7 @@ module Graphics.Image.ColorSpace.Complex (
   conjugate
   ) where
 
-import Graphics.Image.Interface (ColorSpace(..))
+import Graphics.Image.Interface (ColorSpace(..), Pixel)
 import Control.Applicative
 import Data.Complex (Complex(..))
 import qualified Data.Complex as C hiding (Complex(..))

@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.HSI
@@ -22,6 +23,9 @@ import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
+import Foreign.Ptr
+import Foreign.Storable
+
 
 -- | Hue, Saturation and Intensity color space.
 data HSI = HueHSI -- ^ Hue
@@ -35,6 +39,12 @@ data HSIA = HueHSIA   -- ^ Hue
           | IntHSIA   -- ^ Intensity
           | AlphaHSIA -- ^ Alpha
           deriving (Eq, Enum, Typeable)
+
+
+data instance Pixel HSI e = PixelHSI !e !e !e deriving Eq
+
+data instance Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
+
 
 
 -- | Conversion to `HSI` color space.
@@ -66,10 +76,9 @@ class (ToHSI (Opaque cs), Alpha cs) => ToHSIA cs where
   toImageHSIA = map toPixelHSIA
   {-# INLINE toImageHSIA #-}
 
-  
+                                                       
 instance ColorSpace HSI where
   type PixelElt HSI e = (e, e, e)
-  data Pixel HSI e = PixelHSI !e !e !e deriving Eq
 
   fromChannel !e = PixelHSI e e e
   {-# INLINE fromChannel #-}
@@ -105,7 +114,6 @@ instance ColorSpace HSI where
 
 instance ColorSpace HSIA where
   type PixelElt HSIA e = (e, e, e, e)
-  data Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
 
   fromChannel !e = PixelHSIA e e e e
   {-# INLINE fromChannel #-}
@@ -176,4 +184,39 @@ instance Show e => Show (Pixel HSIA e) where
   show (PixelHSIA h s i a) = "<HSIA:("++show h++"|"++show s++"|"++show i++"|"++show a++")>"
 
 
+
+instance Storable e => Storable (Pixel HSI e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    r <- peek q
+    g <- peekElemOff q 1
+    b <- peekElemOff q 2
+    return (PixelHSI r g b)
+  poke p (PixelHSI r g b) = do
+    q <- return $ castPtr p
+    poke q r
+    pokeElemOff q 1 g
+    pokeElemOff q 2 b
+
+
+instance Storable e => Storable (Pixel HSIA e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    h <- peek q
+    s <- peekElemOff q 1
+    i <- peekElemOff q 2
+    a <- peekElemOff q 3
+    return (PixelHSIA h s i a)
+  poke p (PixelHSIA h s i a) = do
+    q <- return $ castPtr p
+    poke q h
+    pokeElemOff q 1 s
+    pokeElemOff q 2 i
+    pokeElemOff q 3 a
 

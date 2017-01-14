@@ -21,7 +21,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface (
-  ColorSpace(..), Alpha(..), Elevator(..),
+  ColorSpace(..), Pixel, Alpha(..), Elevator(..),
   BaseArray(..), Array(..), MArray(..),
   Exchangable(..), exchangeFrom,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
@@ -43,6 +43,10 @@ import Control.Monad.Primitive (PrimMonad (..))
 import qualified Data.Colour as C
 
 
+-- | A Pixel family with a color space and a precision of elements.
+data family Pixel cs e :: *
+
+
 -- | This class has all included color spaces installed into it and is also
 -- intended for implementing any other possible custom color spaces. Every
 -- instance of this class automatically installs an associated 'Pixel' into
@@ -54,9 +58,6 @@ class (Eq cs, Enum cs, Show cs, Typeable cs) => ColorSpace cs where
   -- Array. Which is usally a tuple of channels or a channel itself for single
   -- channel color spaces.
   type PixelElt cs e
-
-  -- | A concrete Pixel representation for a particular color space.
-  data Pixel cs e
 
   -- | Construt a pixel by replicating a same value among all of the channels.
   fromChannel :: e -> Pixel cs e

@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.CMYK
@@ -22,6 +23,8 @@ import Data.Typeable (Typeable)
 import qualified Data.Monoid as M (mappend)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
+import Foreign.Ptr
+import Foreign.Storable
 
 -- | Cyan, Magenta, Yellow and Black color space.
 data CMYK = CyanCMYK -- ^ Cyan
@@ -68,10 +71,13 @@ class (ToCMYK (Opaque cs), Alpha cs) => ToCMYKA cs where
   toImageCMYKA = map toPixelCMYKA
   {-# INLINE toImageCMYKA #-}
 
+data instance Pixel CMYK e = PixelCMYK !e !e !e !e deriving Eq
+
+data instance Pixel CMYKA e = PixelCMYKA !e !e !e !e !e deriving Eq
+
   
 instance ColorSpace CMYK where
   type PixelElt CMYK e = (e, e, e, e)
-  data Pixel CMYK e = PixelCMYK !e !e !e !e deriving Eq
 
   fromChannel !e = PixelCMYK e e e e
   {-# INLINE fromChannel #-}
@@ -109,7 +115,6 @@ instance ColorSpace CMYK where
 
 instance ColorSpace CMYKA where
   type PixelElt CMYKA e = (e, e, e, e, e)
-  data Pixel CMYKA e = PixelCMYKA !e !e !e !e !e deriving Eq
 
   fromChannel !e = PixelCMYKA e e e e e
   {-# INLINE fromChannel #-}
@@ -187,3 +192,42 @@ instance Show e => Show (Pixel CMYKA e) where
 
 
 
+
+instance Storable e => Storable (Pixel CMYK e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    c <- peek q
+    m <- peekElemOff q 1
+    y <- peekElemOff q 2
+    k <- peekElemOff q 3
+    return (PixelCMYK c m y k)
+  poke p (PixelCMYK c m y k) = do
+    q <- return $ castPtr p
+    poke q c
+    pokeElemOff q 1 m
+    pokeElemOff q 2 y
+    pokeElemOff q 3 k
+
+
+instance Storable e => Storable (Pixel CMYKA e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    c <- peek q
+    m <- peekElemOff q 1
+    y <- peekElemOff q 2
+    k <- peekElemOff q 3
+    a <- peekElemOff q 4
+    return (PixelCMYKA c m y k a)
+  poke p (PixelCMYKA c m y k a) = do
+    q <- return $ castPtr p
+    poke q c
+    pokeElemOff q 1 m
+    pokeElemOff q 2 y
+    pokeElemOff q 3 k
+    pokeElemOff q 4 a

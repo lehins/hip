@@ -47,7 +47,7 @@ instance Show VS where
 
 instance Elt VS cs e => BaseArray VS cs e where
   type Elt VS cs e = (ColorSpace cs, Num e, Typeable e, VS.Storable e,
-                      VS.Storable (PixelElt cs e), VS.Storable (Pixel cs e))
+                      VS.Storable (Pixel cs e))
 
   data Image VS cs e = VSImage !(Image (V S) cs e)
 

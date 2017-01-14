@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.Luma
@@ -23,7 +24,11 @@ import qualified Data.Monoid as M (mappend, mempty)
 import qualified Data.Colour as C
 import qualified Data.Colour.Names as C
 
--- | Luma or brightness, that is usually denoted as @Y'@.
+import Foreign.Ptr
+import Foreign.Storable
+
+
+-- | Luma or brightness, which is usually denoted as @Y'@.
 data Y = Y deriving (Eq, Enum, Typeable)
 
 
@@ -31,6 +36,10 @@ data Y = Y deriving (Eq, Enum, Typeable)
 data YA = YA      -- ^ Luma
         | AlphaYA -- ^ Alpha channel
         deriving (Eq, Enum, Typeable)
+
+data instance Pixel Y e = PixelY !e deriving (Ord, Eq)
+
+data instance Pixel YA e = PixelYA !e !e deriving Eq
 
 
 -- | Conversion to Luma color space.
@@ -65,7 +74,6 @@ class (ToY (Opaque cs), Alpha cs) => ToYA cs where
 
 instance ColorSpace Y where
   type PixelElt Y e = e
-  data Pixel Y e = PixelY !e deriving (Ord, Eq)
 
   fromChannel = PixelY
   {-# INLINE fromChannel #-}
@@ -96,7 +104,6 @@ instance ColorSpace Y where
 
 instance ColorSpace YA where
   type PixelElt YA e = (e, e)
-  data Pixel YA e = PixelYA !e !e deriving Eq
 
   fromChannel !e = PixelYA e e 
   {-# INLINE fromChannel #-}
@@ -167,3 +174,32 @@ instance Monad (Pixel Y) where
 
   (>>=) (PixelY y) f = f y
   {-# INLINE (>>=) #-}
+
+
+instance Storable e => Storable (Pixel Y e) where
+
+  sizeOf _ = sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    y <- peek q
+    return (PixelY y)
+  poke p (PixelY y) = do
+    q <- return $ castPtr p
+    poke q y
+
+
+instance Storable e => Storable (Pixel YA e) where
+
+  sizeOf _ = 2 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    y <- peek q
+    a <- peekElemOff q 1
+    return (PixelYA y a)
+  poke p (PixelYA y a) = do
+    q <- return $ castPtr p
+    poke q y
+    pokeElemOff q 1 a
+

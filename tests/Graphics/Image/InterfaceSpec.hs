@@ -165,9 +165,9 @@ prop_sameDims :: Array arr Y Word8 => arr -> Identical VU arr Y Word8 -> Bool
 prop_sameDims _ (Identical img1 img2) = I.dims img1 == I.dims img2
 
 prop_sameImage
-  :: (Exchangable arr RSU, Array arr Y Word8)
-  => arr -> Identical VU arr Y Word8 -> Bool
-prop_sameImage _ (Identical img1 img2) = I.exchange RSU img1 == I.exchange RSU img2
+  :: (Exchangable arr VU, Array arr RGB Word8)
+  => arr -> Identical VU arr RGB Word8 -> Bool
+prop_sameImage _ (Identical img1 img2) = img1 == I.exchange VU img2
 
 prop_sameMap
   :: (Exchangable arr RSU, Array arr Y Word8)
@@ -281,10 +281,10 @@ spec = do
     it "borderIndex" $ property prop_borderIndex
     it "toFormLists" $ property $ prop_toFormLists VU
   describe "Representation Properties" $ do
-    --it "sameDims VS" $ property $ prop_sameDims VS
+    it "sameDims VS" $ property $ prop_sameDims VS
     it "sameDims RSU" $ property $ prop_sameDims RSU
     it "sameDims RPU" $ property $ prop_sameDims RPU
-    --it "sameImage VS" $ property $ prop_sameImage VS
+    it "sameImage VS" $ property $ prop_sameImage VS
     it "sameImage RSU" $ property $ prop_sameImage RSU
     it "sameImage RPU" $ property $ prop_sameImage RPU
     --it "sameMap VS" $ property $ prop_sameMap VS

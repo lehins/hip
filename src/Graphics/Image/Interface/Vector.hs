@@ -9,11 +9,11 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Vector (
+  -- * Representation
+  VU(..), VS(..),
   -- * Conversion
   fromUnboxedVector, toUnboxedVector,
   fromStorableVector, toStorableVector,
-  -- * Representation
-  VU(..), VS(..),
   -- * Linear index conversion
   toIx, fromIx
   ) where
