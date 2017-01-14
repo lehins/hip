@@ -56,6 +56,7 @@ instance Elt (RS r) cs e => BaseArray (RS r) cs e where
                           R.Target (Repr (RS r)) (Pixel cs e),
                           R.Source (Repr (RS r)) (Pixel cs e),
                           BaseArray (IVG.V r) cs e,
+                          Repr (RP r) ~ Repr (RS r),
                           R.Elt e, R.Elt (Pixel cs e))
   
   data Image (RS r) cs e = SScalar !(Pixel cs e)
@@ -176,6 +177,7 @@ instance Elt (RP r) cs e => BaseArray (RP r) cs e where
                           R.Source (Repr (RP r)) (Pixel cs e),
                           BaseArray (IVG.V r) cs e,
                           Repr (RP r) ~ Repr (RS r),
+                          IVU.Unbox e, IVU.Unbox (PixelElt cs e),
                           R.Elt e, R.Elt (Pixel cs e))
   
   data Image (RP r) cs e = PScalar !(Pixel cs e)
@@ -252,12 +254,18 @@ instance (BaseArray (RP r) cs e) => Array (RP r) cs e where
   fromLists = PTImage . fromListsR
   {-# INLINE fromLists #-}
 
-  -- Repa only supports parallel folding for Unboxed Arrays, have to fallback to
-  -- sequential processing for fold and foldIx
-  fold !f !px0 !img = fold f px0 (toRS img)
+  fold f !px0 (PScalar px) = f px0 px
+  fold f !px0 img =
+    case R.foldAllP f px0 (getDelayedP img) of
+      Just e  -> e
+      Nothing -> error $ "RP.fold: impossible happened."
   {-# INLINE fold #-}
 
-  foldIx !f !px0 !img = foldIx f px0 (toRS img)
+  foldIx f !px0 (PScalar px) = f px0 (0, 0) px
+  foldIx f !px0 img =
+    case foldIxPUnboxed f px0 (getDelayedP img) of
+      Just e  -> e
+      Nothing -> error $ "RP.foldIx: impossible happened."
   {-# INLINE foldIx #-}
 
 
@@ -424,17 +432,6 @@ getDelayedP (PDImage arr) = arr
 getDelayedP (PScalar px)  = R.fromFunction (Z :. 1 :. 1) (const px)
 {-# INLINE getDelayedP #-}
 
-
-
--- -- | Retrieve an underlying Repa array from an image.
--- toRepaArray
---   :: (Array arr cs e, Array RS cs e, Exchangable arr RS)
---   => Image arr cs e -> R.Array R.U DIM2 (Pixel cs e)
--- toRepaArray img =
---   case compute (exchange RS img) of
---     STImage arr -> arr
---     SDImage arr -> R.computeS arr -- shouldn't occur, but for completeness
---     SScalar px -> R.computeS $ R.fromFunction (Z :. 1 :. 1) $ const px
 
 instance R.Elt Bit where
   touch (Bit w) = R.touch w

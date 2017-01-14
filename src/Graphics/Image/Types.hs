@@ -12,14 +12,14 @@ module Graphics.Image.Types (
   module Graphics.Image.IO.Formats,
   Array, Image, MArray, MImage,
   Exchangable, Border(..),
-  VU(..), VS(..), RSU(..), RPU(..),
+  VU(..), VS(..), RSU(..), RPU(..), RSS(..), RPS(..)
   ) where
 
 
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector (VU(..), VS(..))
-import Graphics.Image.Interface.Repa (RSU(..), RPU(..))
+import Graphics.Image.Interface.Repa (RSU(..), RPU(..), RSS(..), RPS(..))
 import Graphics.Image.IO.Formats
 
 

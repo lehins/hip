@@ -29,10 +29,12 @@
 -- Representations using <http://hackage.haskell.org/package/vector Vector> and
 -- <http://hackage.haskell.org/package/repa Repa> packages:
 --
--- * `VS` - Storable Vector representation. (Default)
--- * `VU` - Unboxed Vector representation.
--- * `RSU` - Unboxed Repa array representation (computation is done sequentially).
--- * `RPU` - Unboxed Repa array representation (computation is done in parallel).
+-- * `VS` - Vector Storable representation. (Default)
+-- * `VU` - Vector Unboxed representation.
+-- * `RSU` - Repa Sequential Unboxed array representation (computation is done sequentially).
+-- * `RPU` - Repa Parallel Unboxed array representation (computation is done in parallel).
+-- * `RSS` - Repa Sequential Storable array representation (computation is done sequentially).
+-- * `RPS` - Repa Parallel Storable array representation (computation is done in parallel).
 --
 -- Images with `RSU` and `RPU` types, most of the time hold functions rather then
 -- actual data, this way computation can be fused together, and later changed to

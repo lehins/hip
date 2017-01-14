@@ -18,7 +18,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Vector.Storable (
-  VS(..), Image(..), fromStorableVector, toStorableVector, fromIx, toIx, checkDims
+  VS(..), S, Image(..), fromStorableVector, toStorableVector, fromIx, toIx, checkDims
   ) where
 
 import Prelude hiding (map, zipWith)

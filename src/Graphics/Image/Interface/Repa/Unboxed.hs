@@ -16,7 +16,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Repa.Unboxed (
-  RSU(..), RPU(..),
+  RSU(..), RPU(..), Image(..)
   ) where
 
 import Prelude as P
@@ -34,10 +34,10 @@ import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
 
 
 
--- | Repa Array representation, which is computed sequentially. 
+-- | Repa Array representation backed by Unboxed Vector, which is computed sequentially. 
 data RSU = RSU
 
--- | Repa Array representation, which is computed in parallel.
+-- | Repa Array representation backed by Unboxed Vector, which is computed in parallel.
 data RPU = RPU
 
 instance Show RSU where
@@ -183,18 +183,10 @@ instance (BaseArray RPU cs e) => Array RPU cs e where
   fromLists = PUImage . fromLists
   {-# INLINE fromLists #-}
 
-  fold f !px0 (PUImage (PScalar px)) = f px0 px
-  fold f !px0 (PUImage img) =
-    case R.foldAllP f px0 (getDelayedP img) of
-      Just e  -> e
-      Nothing -> error $ "RPU.fold: impossible happened."
+  fold f !px0 (PUImage img) = I.fold f px0 img
   {-# INLINE fold #-}
 
-  foldIx f !px0 (PUImage (PScalar px)) = f px0 (0, 0) px
-  foldIx f !px0 (PUImage img) =
-    case foldIxPUnboxed f px0 (getDelayedP img) of
-      Just e  -> e
-      Nothing -> error $ "RPU.foldIx: impossible happened."
+  foldIx f !px0 (PUImage img) = I.foldIx f px0 img
   {-# INLINE foldIx #-}
 
   eq (PUImage img1) (PUImage img2) = img1 == img2

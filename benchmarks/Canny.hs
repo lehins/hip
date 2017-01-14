@@ -83,32 +83,37 @@ force arr = do
 
 main :: IO ()
 main = do
-  img' <- readImageY RP "images/downloaded/frog-1280x824.jpg"
-  let !img = compute img'
-  let sobel = sobelGx img
-  let sobelSep = sobelGx' img
+  img' <- readImageRGB RPU "images/downloaded/frog-1280x824.jpg"
+  let !imgU = compute img'
+  let !imgS = exchange RPS imgU
+  let sobelU = sobelGx imgU
+  let sobelSepU = sobelGx' imgU
+  let sobelS = sobelGx imgS
+  let sobelSepS = sobelGx' imgS
   -- let sobelSepVS = sobelSGx' img
   -- let sobelVS = sobelSGx img
   -- let sobelMS = sobelMSGx img
   -- let sobelIMS = sobelIMSGx img
   -- let sobelHMS = sobelHMSGx img
-  let imgR = toRepaArray img
-  imgRDouble <- force $ R.map (`getPxCh` Y) imgR
+  let imgR = toRepaArray imgU
+  --imgRDouble <- force $ R.map (`getPxCh` Y) imgR
   let sobelR = sobelGxR imgR
-  let sobelRDouble = sobelGxR imgRDouble
+  --let sobelRDouble = sobelGxR imgRDouble
   defaultMain
     [ bgroup
         "Sobel"
-        [ bench "naive" $ whnf compute sobel
-        , bench "separated" $ whnf compute sobelSep
+        [ bench "naive U" $ whnf compute sobelU
+        , bench "separated U" $ whnf compute sobelSepU
+        , bench "naive S" $ whnf compute sobelS
+        , bench "separated S" $ whnf compute sobelSepS
         -- , bench "separated VS" $ whnf compute sobelSepVS
         -- , bench "sparse VS" $ whnf compute sobelVS
         -- , bench "sparse MS" $ whnf compute sobelMS
         -- , bench "sparse IMS" $ whnf compute sobelIMS
         -- , bench "sparse HMS" $ whnf compute sobelHMS
         --, bench "repa" $ whnf (compute . fromRepaArrayP) sobelR
-        , bench "repa Y" $ whnfIO (force sobelR)
-        , bench "repa Double" $ whnfIO (force sobelRDouble)
+        , bench "repa RGB" $ whnfIO (force sobelR)
+        --, bench "repa Double" $ whnfIO (force sobelRDouble)
         ]
     ]
   -- img' <- readImageY RS "images/downloaded/frog-1280x824.jpg"

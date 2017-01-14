@@ -216,3 +216,76 @@ instance Storable e => Storable (Pixel RGBA e) where
     pokeElemOff q 2 b
     pokeElemOff q 3 a
 
+------------------------------------------------
+
+-- -- | Red, Green and Blue color space.
+-- data RGBd = RedRGBd
+--           | GreenRGBd
+--           | BlueRGBd deriving (Eq, Enum, Typeable)
+
+
+-- data instance Pixel RGBd Double = PixelRGBd
+--                                   {-# UNPACK #-} !Double
+--                                   {-# UNPACK #-} !Double
+--                                   {-# UNPACK #-} !Double deriving Eq
+
+
+-- instance ColorSpace RGBd where
+--   type PixelElt RGBd Double = (Double, Double, Double)
+
+--   fromChannel !e = PixelRGBd e e e
+--   {-# INLINE fromChannel #-}
+
+--   fromElt !(r, g, b) = PixelRGBd r g b
+--   {-# INLINE fromElt #-}
+
+--   toElt (PixelRGBd r g b) = (r, g, b)
+--   {-# INLINE toElt #-}
+
+--   getPxCh (PixelRGBd r _ _) RedRGBd   = r
+--   getPxCh (PixelRGBd _ g _) GreenRGBd = g
+--   getPxCh (PixelRGBd _ _ b) BlueRGBd  = b
+--   {-# INLINE getPxCh #-}
+  
+--   chOp f (PixelRGBd r g b) = PixelRGBd (f RedRGBd r) (f GreenRGBd g) (f BlueRGBd b)
+--   {-# INLINE chOp #-}
+
+--   pxOp f (PixelRGBd r g b) = PixelRGBd (f r) (f g) (f b)
+--   {-# INLINE pxOp #-}
+
+--   chApp (PixelRGBd fr fg fb) (PixelRGBd r g b) = PixelRGBd (fr r) (fg g) (fb b)
+--   {-# INLINE chApp #-}
+
+--   pxFoldMap f (PixelRGBd r g b) = f r `M.mappend` f g `M.mappend` f b
+--   {-# INLINE pxFoldMap #-}
+
+--   csColour RedRGBd   = C.opaque C.red
+--   csColour GreenRGBd = C.opaque C.green
+--   csColour BlueRGBd  = C.opaque C.blue
+  
+
+
+-- instance Show RGBd where
+--   show RedRGBd   = "Red"
+--   show GreenRGBd = "Green"
+--   show BlueRGBd  = "Blue"
+
+-- instance Show (Pixel RGBd Double) where
+--   show (PixelRGBd r g b) = "<RGB:("++show r++"|"++show g++"|"++show b++")>"
+
+
+-- instance Storable (Pixel RGBd Double) where
+
+--   sizeOf _ = 3 * sizeOf (undefined :: Double)
+--   alignment _ = alignment (undefined :: Double)
+--   peek p = do
+--     q <- return $ castPtr p
+--     r <- peek q
+--     g <- peekElemOff q 1
+--     b <- peekElemOff q 2
+--     return (PixelRGBd r g b)
+--   poke p (PixelRGBd r g b) = do
+--     q <- return $ castPtr p
+--     poke q r
+--     pokeElemOff q 1 g
+--     pokeElemOff q 2 b
