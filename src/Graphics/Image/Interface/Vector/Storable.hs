@@ -25,7 +25,6 @@ import Prelude hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Functor
 #endif
-import Data.Typeable (Typeable)
 import qualified Data.Vector.Storable as VS
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector.Generic
@@ -47,7 +46,7 @@ instance Show VS where
 
 instance SuperClass VS cs e => BaseArray VS cs e where
   type SuperClass VS cs e =
-    (ColorSpace cs, Num e, Typeable e, VS.Storable e, VS.Storable (Pixel cs e))
+    (ColorSpace cs e, Num (Pixel cs e), VS.Storable (Pixel cs e))
 
   data Image VS cs e = VSImage !(Image (V S) cs e)
 

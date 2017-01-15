@@ -31,7 +31,6 @@ import Data.Foldable (forM_)
 import Data.Functor
 #endif
 import Data.Primitive.MutVar
-import Data.Typeable (Typeable)
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Generic.Mutable as MVG
 import Graphics.Image.Interface as I
@@ -45,7 +44,7 @@ instance Show r => Show (V r) where
   show r = "Vector " ++ show r
 
 instance SuperClass (V r) cs e => BaseArray (V r) cs e where
-  type SuperClass (V r) cs e = (Show r, ColorSpace cs, Num e, Typeable e,
+  type SuperClass (V r) cs e = (Show r, ColorSpace cs e, Num (Pixel cs e),
                                 VG.Vector (Repr (V r)) (Pixel cs e), VG.Vector (Repr (V r)) Int,
                                 VG.Vector (Repr (V r)) Bool, NFData ((Repr (V r)) (Pixel cs e)))
 
@@ -70,6 +69,10 @@ instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
   makeImageWindowed sz !((it, jt), (ib, jb)) getWindowPx getBorderPx =
     VImage m n $ VG.create generate where
       !(m, n) = checkDims "(V r).makeImageWindowed" sz
+      nestedLoop :: (VG.Mutable (Repr (V r))) s (Pixel cs e)
+                 -> ((Int, Int) -> Pixel cs e)
+                 -> Int -> Int -> Int -> Int
+                 -> ST s ()
       nestedLoop !mv !getPx !fi !fj !ti !tj = do
         forM_ [fi .. ti-1] $ \i ->
           forM_ [fj .. tj-1] $ \j ->
@@ -94,11 +97,11 @@ instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
   index00 (VImage _ _ v) = v VG.! 0
   {-# INLINE index00 #-}
   
-  map f (VScalar px)    = VScalar (f px)
+  map f (VScalar px)   = VScalar (f px)
   map f (VImage m n v) = VImage m n (VG.map f v)
   {-# INLINE map #-}
 
-  imap f (VScalar px)    = VScalar (f (0, 0) px)
+  imap f (VScalar px)   = VScalar (f (0, 0) px)
   imap f (VImage m n v) = VImage m n (VG.imap (\ !k !px -> f (toIx n k) px) v)
   {-# INLINE imap #-}
   
@@ -205,7 +208,6 @@ instance BaseArray (V r) cs e => MArray (V r) cs e where
 
   foldl f !a (VImage _ _ v) = VG.foldl' f a v
   foldl f !a (VScalar px)   = f a px
-  {-# INLINE foldl #-}
 
   foldr f !a (VImage _ _ v) = VG.foldr' f a v
   foldr f !a (VScalar px)   = f px a

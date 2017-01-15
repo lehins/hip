@@ -231,15 +231,16 @@ minimum !img = fold min (index00 img) img
 
 
 -- | Scales all of the pixels to be in the range @[0, 1]@.
-normalize :: (Array arr cs e, Array arr Gray e, Fractional e, Ord e) =>
+normalize :: (Array arr cs e, Array arr Gray e, Fractional e,
+              Fractional (Pixel cs e), Ord e) =>
              Image arr cs e -> Image arr cs e
 normalize !img = if l == s
                  then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
                  else I.map normalizer img
   where
-    !(PixelGray l, PixelGray s) = (maximum $ I.map (PixelGray . F.maximum) img,
-                                   minimum $ I.map (PixelGray . F.minimum) img)
-    normalizer !px = (px - fromChannel s) / fromChannel (l - s)
+    !(PixelGray l, PixelGray s) = (maximum (I.map (PixelGray . foldl1Px max) img),
+                                   minimum (I.map (PixelGray . foldl1Px min) img))
+    normalizer !px = (px - broadcastC s) / broadcastC (l - s)
     {-# INLINE normalizer #-}
 {-# INLINE normalize #-}
 

@@ -51,7 +51,7 @@ upsampleF !(fm, fn) !img =
     (\ !getPx !(i, j) ->
         if i `mod` fm == 0 && j `mod` fn == 0
           then getPx (i `div` fm, j `div` fn)
-          else fromChannel 0)
+          else 0)
 {-# INLINE upsampleF #-}
 
 
@@ -290,7 +290,7 @@ rotate270 = transpose . flipH
 --
 -- <<images/frog.jpg>> <<images/frog_rotate330.png>>
 --
-rotate :: (Array arr cs e, Elevator e, Interpolation method) =>
+rotate :: (Array arr cs e, Interpolation method) =>
           method -- ^ Interpolation method to be used
        -> Border (Pixel cs e) -- ^ Border handling strategy
        -> Double -- ^ Angle in radians
@@ -323,7 +323,7 @@ rotate !method border !theta' !img = traverse img getNewDims getNewPx where
 --
 -- <<images/frog_resize.jpg>>
 --
-resize :: (Interpolation method, Array arr cs e, Elevator e) =>
+resize :: (Interpolation method, Array arr cs e) =>
           method -- ^ Interpolation method to be used during scaling.
        -> Border (Pixel cs e) -- ^ Border handling strategy
        -> (Int, Int)     -- ^ Dimensions of a result image.
@@ -343,7 +343,7 @@ resize !method border !sz'@(m', n') !img = traverse img (const sz') getNewPx whe
 --
 -- @ scale 'Bilinear' 'Edge' (0.5, 2) frog == resize 'Bilinear' 'Edge' (100, 640) frog @
 --
-scale :: (Interpolation method, Array arr cs e, Elevator e) =>
+scale :: (Interpolation method, Array arr cs e) =>
          method -- ^ Interpolation method to be used during scaling.
       -> Border (Pixel cs e) -- ^ Border handling strategy
       -> (Double, Double) -- ^ Positive scaling factors.

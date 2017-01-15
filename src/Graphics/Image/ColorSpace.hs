@@ -3,9 +3,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -13,7 +14,7 @@
 --
 module Graphics.Image.ColorSpace (
   -- * ColorSpace
-  ColorSpace, Pixel(..), Alpha, Opaque, Elevator(..),
+  ColorSpace, Pixel(..), AlphaSpace(..), Elevator(..),
   -- * Luma
   module Graphics.Image.ColorSpace.Luma,
   -- * RGB
@@ -36,6 +37,7 @@ module Graphics.Image.ColorSpace (
   ) where
 
 import Data.Word
+import Data.Int
 import GHC.Float
 import Graphics.Image.Interface hiding (map)
 import Graphics.Image.ColorSpace.Binary
@@ -49,11 +51,11 @@ import Graphics.Image.ColorSpace.Complex
 import qualified Graphics.Image.Interface as I (map)
 
 
-
 -- Binary:
 
 -- | Convert any pixel to binary pixel.
-toPixelBinary :: (ColorSpace cs, Eq (Pixel cs e), Num e) => Pixel cs e -> Pixel Binary Bit
+toPixelBinary :: (Eq (Pixel cs e), Num (Pixel cs e))
+                 => Pixel cs e -> Pixel Binary Bit
 toPixelBinary px = if px == 0 then on else off
 {-# INLINE toPixelBinary #-}
 
@@ -111,7 +113,7 @@ instance ToY YCbCr where
 instance ToYA YCbCrA where
   
 instance ToRGB Y where
-  toPixelRGB (PixelY g) = fromChannel g
+  toPixelRGB (PixelY g) = broadcastC g
   {-# INLINE toPixelRGB #-}
 
 instance ToRGBA YA where
@@ -125,6 +127,7 @@ instance ToRGB HSI where
     getThird !v1 !v2 = i + 2*is + v1 - v2
     {-# INLINE getThird #-}
     getRGB h
+      | h < 0      = error ("HSI pixel is not properly scaled, Hue: "++show h')
       | h < 2*pi/3 = let !r = getFirst h (pi/3 - h)
                          !b = second
                          !g = getThird b r
@@ -205,216 +208,244 @@ instance ToCMYK RGB where
 
 instance ToCMYKA RGBA where
 
-  
--- | Values are scaled to @[0, 255]@ range.
+
+dropDown :: forall a b. (Integral a, Bounded a, Integral b, Bounded b) => a -> b
+dropDown !e = fromIntegral $ fromIntegral e `div` ((maxBound :: a) `div`
+                                                   fromIntegral (maxBound :: b)) 
+{-# INLINE dropDown #-}
+
+raiseUp :: forall a b. (Integral a, Bounded a, Integral b, Bounded b) => a -> b
+raiseUp !e = fromIntegral e * ((maxBound :: b) `div` fromIntegral (maxBound :: a))
+{-# INLINE raiseUp #-}
+
+
+squashTo1 :: forall a b. (Fractional b, Integral a, Bounded a) => a -> b
+squashTo1 !e = fromIntegral e / fromIntegral (maxBound :: a)
+{-# INLINE squashTo1 #-}
+
+stretch :: forall a b. (RealFrac a, Floating a, Integral b, Bounded b) => a -> b
+stretch !e = round (fromIntegral (maxBound :: b) * clamp01 e)
+
+
+-- | Clamp a value to @[0, 1]@ range.
+clamp01 :: (Ord a, Floating a) => a -> a
+clamp01 !x = min (max 0 x) 1
+{-# INLINE clamp01 #-}
+
+
 instance Elevator Word8 where
 
   toWord8 = id
   {-# INLINE toWord8 #-}
-
-  toWord16 = fmap toWord16' where
-    toWord16' !e = fromIntegral e * ((maxBound :: Word16) `div` fromIntegral (maxBound :: Word8)) 
-    {-# INLINE toWord16' #-}
+  toWord16 = raiseUp
   {-# INLINE toWord16 #-}
-
-  toWord32 = fmap toWord32' where
-    toWord32' !e = fromIntegral e * ((maxBound :: Word32) `div` fromIntegral (maxBound :: Word8)) 
-    {-# INLINE toWord32' #-}
+  toWord32 = raiseUp
   {-# INLINE toWord32 #-}
-
-  toWord64 = fmap toWord64' where
-    toWord64' !e = fromIntegral e * ((maxBound :: Word64) `div` fromIntegral (maxBound :: Word8))
-    {-# INLINE toWord64' #-}
+  toWord64 = raiseUp
   {-# INLINE toWord64 #-}
-
-  toFloat = fmap toFloat' where
-    toFloat' !e = fromIntegral e / fromIntegral (maxBound :: Word8)
-    {-# INLINE toFloat' #-}
+  toFloat = squashTo1
   {-# INLINE toFloat #-}
-
-  toDouble = fmap toDouble' where
-    toDouble' !e = fromIntegral e / fromIntegral (maxBound :: Word8)
-    {-# INLINE toDouble' #-}
+  toDouble = squashTo1
   {-# INLINE toDouble #-}
-
   fromDouble = toWord8
   {-# INLINE fromDouble #-}
 
 
--- | Values are scaled to @[0, 65535]@ range.
 instance Elevator Word16 where
 
-  toWord8 = fmap toWord8' where
-    toWord8' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word16) `div`
-                                                      fromIntegral (maxBound :: Word8)) 
-    {-# INLINE toWord8' #-}
+  toWord8 = dropDown
   {-# INLINE toWord8 #-}
-
   toWord16 = id
   {-# INLINE toWord16 #-}
-  
-  toWord32 = fmap toWord32' where
-    toWord32' !e = fromIntegral e * ((maxBound :: Word32) `div` fromIntegral (maxBound :: Word16)) 
-    {-# INLINE toWord32' #-}
+  toWord32 = raiseUp
   {-# INLINE toWord32 #-}
-
-  toWord64 = fmap toWord64' where
-    toWord64' !e = fromIntegral e * ((maxBound :: Word64) `div` fromIntegral (maxBound :: Word16))
-    {-# INLINE toWord64' #-}
+  toWord64 = raiseUp
   {-# INLINE toWord64 #-}
-
-  toFloat = fmap toFloat' where
-    toFloat' !e = fromIntegral e / fromIntegral (maxBound :: Word16)
-    {-# INLINE toFloat' #-}
+  toFloat = squashTo1
   {-# INLINE toFloat #-}
-
-  toDouble = fmap toDouble' where
-    toDouble' !e = fromIntegral e / fromIntegral (maxBound :: Word16)
-    {-# INLINE toDouble' #-}
+  toDouble = squashTo1
   {-# INLINE toDouble #-}
-
   fromDouble = toWord16
   {-# INLINE fromDouble #-}
 
 
--- | Values are scaled to @[0, 4294967295]@ range.
 instance Elevator Word32 where
 
-  toWord8 = fmap toWord8' where
-    toWord8' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word32) `div`
-                                                       fromIntegral (maxBound :: Word8)) 
-    {-# INLINE toWord8' #-}
+  toWord8 = dropDown
   {-# INLINE toWord8 #-}
-
-  toWord16 = fmap toWord16' where
-    toWord16' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word32) `div`
-                                                        fromIntegral (maxBound :: Word16)) 
-    {-# INLINE toWord16' #-}
+  toWord16 = dropDown
   {-# INLINE toWord16 #-}
-
   toWord32 = id
   {-# INLINE toWord32 #-}
-
-  toWord64 = fmap toWord64' where
-    toWord64' !e = fromIntegral e * ((maxBound :: Word64) `div` fromIntegral (maxBound :: Word32))
-    {-# INLINE toWord64' #-}
+  toWord64 = raiseUp
   {-# INLINE toWord64 #-}
-
-  toFloat = fmap toFloat' where
-    toFloat' !e = fromIntegral e / fromIntegral (maxBound :: Word32)
-    {-# INLINE toFloat' #-}
+  toFloat = squashTo1
   {-# INLINE toFloat #-}
-
-  toDouble = fmap toDouble' where
-    toDouble' !e = fromIntegral e / fromIntegral (maxBound :: Word32)
-    {-# INLINE toDouble' #-}
+  toDouble = squashTo1
   {-# INLINE toDouble #-}
-
   fromDouble = toWord32
   {-# INLINE fromDouble #-}
 
 
--- | Values are scaled to @[0, 18446744073709551615]@ range.
 instance Elevator Word64 where
 
-  toWord8 = fmap toWord8' where
-    toWord8' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word64) `div`
-                                                       fromIntegral (maxBound :: Word8)) 
-    {-# INLINE toWord8' #-}
+  toWord8 = dropDown
   {-# INLINE toWord8 #-}
-
-  toWord16 = fmap toWord16' where
-    toWord16' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word64) `div`
-                                                        fromIntegral (maxBound :: Word16)) 
-    {-# INLINE toWord16' #-}
+  toWord16 = dropDown
   {-# INLINE toWord16 #-}
-
-  toWord32 = fmap toWord32' where
-    toWord32' !e = fromIntegral $ fromIntegral e `div` ((maxBound :: Word64) `div`
-                                                        fromIntegral (maxBound :: Word32)) 
-    {-# INLINE toWord32' #-}
+  toWord32 = dropDown
   {-# INLINE toWord32 #-}
-
   toWord64 = id
   {-# INLINE toWord64 #-}
-
-  toFloat = fmap toFloat' where
-    toFloat' !e = fromIntegral e / fromIntegral (maxBound :: Word64)
-    {-# INLINE toFloat' #-}
+  toFloat = squashTo1
   {-# INLINE toFloat #-}
-
-  toDouble = fmap toDouble' where
-    toDouble' !e = fromIntegral e / fromIntegral (maxBound :: Word64)
-    {-# INLINE toDouble' #-}
+  toDouble = squashTo1
   {-# INLINE toDouble #-}
-
   fromDouble = toWord64
   {-# INLINE fromDouble #-}
 
 
--- | Values are scaled to @[0.0, 1.0]@ range.
-instance Elevator Float where
+instance Elevator Word where
 
-  toWord8 = fmap toWord8' where
-    toWord8' !e = round (fromIntegral (maxBound :: Word8) * e)
-    {-# INLINE toWord8' #-}
+  toWord8 = dropDown
   {-# INLINE toWord8 #-}
-
-  toWord16 = fmap toWord16' where
-    toWord16' !e = round (fromIntegral (maxBound :: Word16) * e)
-    {-# INLINE toWord16' #-}
+  toWord16 = dropDown
   {-# INLINE toWord16 #-}
-
-  toWord32 = fmap toWord32' where
-    toWord32' !e = round (fromIntegral (maxBound :: Word32) * e)
-    {-# INLINE toWord32' #-}
+  toWord32 = dropDown
   {-# INLINE toWord32 #-}
-
-  toWord64 = fmap toWord64' where
-    toWord64' !e = round (fromIntegral (maxBound :: Word64) * e)
-    {-# INLINE toWord64' #-}
+  toWord64 = fromIntegral
   {-# INLINE toWord64 #-}
+  toFloat = squashTo1
+  {-# INLINE toFloat #-}
+  toDouble = squashTo1
+  {-# INLINE toDouble #-}
+  fromDouble = stretch . clamp01
+  {-# INLINE fromDouble #-}
 
+
+instance Elevator Int8 where
+
+  toWord8 = fromIntegral . (max 0)
+  {-# INLINE toWord8 #-}
+  toWord16 = raiseUp . (max 0)
+  {-# INLINE toWord16 #-}
+  toWord32 = raiseUp . (max 0)
+  {-# INLINE toWord32 #-}
+  toWord64 = raiseUp . (max 0)
+  {-# INLINE toWord64 #-}
+  toFloat = squashTo1 . (max 0)
+  {-# INLINE toFloat #-}
+  toDouble = squashTo1 . (max 0)
+  {-# INLINE toDouble #-}
+  fromDouble = stretch . clamp01
+  {-# INLINE fromDouble #-}
+
+
+instance Elevator Int16 where
+
+  toWord8 = dropDown . (max 0)
+  {-# INLINE toWord8 #-}
+  toWord16 = fromIntegral . (max 0)
+  {-# INLINE toWord16 #-}
+  toWord32 = raiseUp . (max 0)
+  {-# INLINE toWord32 #-}
+  toWord64 = raiseUp . (max 0)
+  {-# INLINE toWord64 #-}
+  toFloat = squashTo1 . (max 0)
+  {-# INLINE toFloat #-}
+  toDouble = squashTo1 . (max 0)
+  {-# INLINE toDouble #-}
+  fromDouble = stretch . clamp01
+  {-# INLINE fromDouble #-}
+
+
+instance Elevator Int32 where
+
+  toWord8 = dropDown . (max 0)
+  {-# INLINE toWord8 #-}
+  toWord16 = dropDown . (max 0)
+  {-# INLINE toWord16 #-}
+  toWord32 = fromIntegral . (max 0)
+  {-# INLINE toWord32 #-}
+  toWord64 = raiseUp . (max 0)
+  {-# INLINE toWord64 #-}
+  toFloat = squashTo1 . (max 0)
+  {-# INLINE toFloat #-}
+  toDouble = squashTo1 . (max 0)
+  {-# INLINE toDouble #-}
+  fromDouble = stretch . clamp01
+  {-# INLINE fromDouble #-}
+
+
+instance Elevator Int64 where
+
+  toWord8 = dropDown . (max 0)
+  {-# INLINE toWord8 #-}
+  toWord16 = dropDown . (max 0)
+  {-# INLINE toWord16 #-}
+  toWord32 = dropDown . (max 0)
+  {-# INLINE toWord32 #-}
+  toWord64 = fromIntegral . (max 0)
+  {-# INLINE toWord64 #-}
+  toFloat = squashTo1 . (max 0)
+  {-# INLINE toFloat #-}
+  toDouble = squashTo1 . (max 0)
+  {-# INLINE toDouble #-}
+  fromDouble = stretch . clamp01
+  {-# INLINE fromDouble #-}
+
+
+instance Elevator Int where
+
+  toWord8 = dropDown . (max 0)
+  {-# INLINE toWord8 #-}
+  toWord16 = dropDown . (max 0)
+  {-# INLINE toWord16 #-}
+  toWord32 = dropDown . (max 0)
+  {-# INLINE toWord32 #-}
+  toWord64 = fromIntegral . (max 0)
+  {-# INLINE toWord64 #-}
+  toFloat = squashTo1 . (max 0)
+  {-# INLINE toFloat #-}
+  toDouble = squashTo1 . (max 0)
+  {-# INLINE toDouble #-}
+  fromDouble = stretch . clamp01
+  {-# INLINE fromDouble #-}
+
+
+instance Elevator Float where
+  toWord8 = stretch . clamp01
+  {-# INLINE toWord8 #-}
+  toWord16 = stretch . clamp01
+  {-# INLINE toWord16 #-}
+  toWord32 = stretch . clamp01
+  {-# INLINE toWord32 #-}
+  toWord64 = stretch . clamp01
+  {-# INLINE toWord64 #-}
   toFloat = id
   {-# INLINE toFloat #-}
-
-  toDouble = fmap float2Double
+  toDouble = float2Double
   {-# INLINE toDouble #-}
-
   fromDouble = toFloat
   {-# INLINE fromDouble #-}
 
-
--- | Values are scaled to @[0.0, 1.0]@ range.
 instance Elevator Double where
-
-  toWord8 = fmap toWord8' where
-    toWord8' !e = round (fromIntegral (maxBound :: Word8) * e)
-    {-# INLINE toWord8' #-}
+  toWord8 = stretch . clamp01
   {-# INLINE toWord8 #-}
-
-  toWord16 = fmap toWord16' where
-    toWord16' !e = round (fromIntegral (maxBound :: Word16) * e)
-    {-# INLINE toWord16' #-}
+  toWord16 = stretch . clamp01
   {-# INLINE toWord16 #-}
-
-  toWord32 = fmap toWord32' where
-    toWord32' !e = round (fromIntegral (maxBound :: Word32) * e)
-    {-# INLINE toWord32' #-}
+  toWord32 = stretch . clamp01
   {-# INLINE toWord32 #-}
-
-  toWord64 = fmap toWord64' where
-    toWord64' !e = round (fromIntegral (maxBound :: Word64) * e)
-    {-# INLINE toWord64' #-}
+  toWord64 = stretch . clamp01
   {-# INLINE toWord64 #-}
-
-  toFloat = fmap double2Float
+  toFloat = double2Float
   {-# INLINE toFloat #-}
-
   toDouble = id
   {-# INLINE toDouble #-}
-
   fromDouble = id
   {-# INLINE fromDouble #-}
+
+
+
 
 

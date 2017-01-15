@@ -81,21 +81,23 @@ force arr = do
     forcedArr <- computeUnboxedP arr
     forcedArr `deepSeqArray` return forcedArr
 
+
+
 main :: IO ()
 main = do
   img' <- readImageRGB RPU "images/downloaded/frog-1280x824.jpg"
   let !imgU = compute img'
-  let !imgS = exchange RPS imgU
+  --let !imgS = exchange RPS imgU
   let sobelU = sobelGx imgU
   let sobelSepU = sobelGx' imgU
-  let sobelS = sobelGx imgS
-  let sobelSepS = sobelGx' imgS
+  -- let sobelS = sobelGx imgS
+  -- let sobelSepS = sobelGx' imgS
   -- let sobelSepVS = sobelSGx' img
   -- let sobelVS = sobelSGx img
   -- let sobelMS = sobelMSGx img
   -- let sobelIMS = sobelIMSGx img
   -- let sobelHMS = sobelHMSGx img
-  let imgR = toRepaArray imgU
+  let !imgR = toRepaArray imgU
   --imgRDouble <- force $ R.map (`getPxCh` Y) imgR
   let sobelR = sobelGxR imgR
   --let sobelRDouble = sobelGxR imgRDouble
@@ -104,8 +106,8 @@ main = do
         "Sobel"
         [ bench "naive U" $ whnf compute sobelU
         , bench "separated U" $ whnf compute sobelSepU
-        , bench "naive S" $ whnf compute sobelS
-        , bench "separated S" $ whnf compute sobelSepS
+        -- , bench "naive S" $ whnf compute sobelS
+        -- , bench "separated S" $ whnf compute sobelSepS
         -- , bench "separated VS" $ whnf compute sobelSepVS
         -- , bench "sparse VS" $ whnf compute sobelVS
         -- , bench "sparse MS" $ whnf compute sobelMS

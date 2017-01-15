@@ -39,7 +39,7 @@ import Graphics.Image.Processing.Interpolation
 --
 -- <<images/frog.jpg>> <<images/frog_eye_grid.png>>
 --
-pixelGrid :: (Array arr cs e, Elevator e) =>
+pixelGrid :: Array arr cs e =>
              Word8          -- ^ Magnification factor.
           -> Image arr cs e -- ^ Source image.
           -> Image arr cs e
@@ -47,7 +47,7 @@ pixelGrid !(succ . fromIntegral -> k) !img = traverse img getNewDims getNewPx wh
   getNewDims !(m, n) = (1 + m*k, 1 + n*k)
   {-# INLINE getNewDims #-}
   getNewPx !getPx !(i, j) = if i `mod` k == 0 || j `mod` k == 0
-                            then fromDouble $ fromChannel 0.5
+                            then broadcastC $ fromDouble 0.5
                             else getPx ((i - 1) `div` k, (j - 1) `div` k)
   {-# INLINE getNewPx #-}
 {-# INLINE pixelGrid #-}

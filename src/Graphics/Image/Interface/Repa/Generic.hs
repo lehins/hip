@@ -19,7 +19,6 @@
 module Graphics.Image.Interface.Repa.Generic where
 
 import Prelude as P
-import Data.Typeable (Typeable)
 import Data.Array.Repa.Index
 import qualified Data.Array.Repa as R
 import qualified Data.Array.Repa.Eval as R
@@ -53,7 +52,7 @@ instance Show r => Show (RS r) where
 
 instance SuperClass (RS r) cs e => BaseArray (RS r) cs e where
   type SuperClass (RS r) cs e =
-    (Show r, ColorSpace cs, Num e, Typeable e, R.Elt e, R.Elt (Pixel cs e),
+    (Show r, ColorSpace cs e, Num (Pixel cs e), R.Elt (Pixel cs e), R.Elt e, 
      R.Target (Repr (RS r)) (Pixel cs e), R.Source (Repr (RS r)) (Pixel cs e),
      BaseArray (IVG.V r) cs e, Repr (RP r) ~ Repr (RS r))
   
@@ -171,10 +170,10 @@ instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
 
 instance SuperClass (RP r) cs e => BaseArray (RP r) cs e where
   type SuperClass (RP r) cs e = (
-    Show r, ColorSpace cs, Num e, Typeable e,
+    Show r, ColorSpace cs e, Num (Pixel cs e),
     R.Target (Repr (RP r)) (Pixel cs e), R.Source (Repr (RP r)) (Pixel cs e),
     BaseArray (IVG.V r) cs e, Repr (RP r) ~ Repr (RS r),
-    IVU.Unbox e, IVU.Unbox (PixelElt cs e), R.Elt e, R.Elt (Pixel cs e))
+    IVU.Unbox e, IVU.Unbox (Components cs e), R.Elt e, R.Elt (Pixel cs e))
   
   data Image (RP r) cs e = PScalar !(Pixel cs e)
                          | PTImage !(R.Array (Repr (RP r)) R.DIM2 (Pixel cs e))
@@ -394,8 +393,8 @@ fromListsR ls =
 
 
 multR
-  :: (Num a, R.Elt a, R.Target r a, R.Source r a)
-  => String -> R.Array r DIM2 a -> R.Array r DIM2 a -> R.Array R.D DIM2 a
+  :: (Num (Pixel cs e), R.Elt (Pixel cs e), R.Target r (Pixel cs e), R.Source r (Pixel cs e))
+  => String -> R.Array r DIM2 (Pixel cs e) -> R.Array r DIM2 (Pixel cs e) -> R.Array R.D DIM2 (Pixel cs e)
 multR errMsg !arr1 !arr2 =
   if n1 /= m2
     then error $
@@ -440,8 +439,8 @@ instance R.Elt Bit where
   {-# INLINE one #-}
 
 
-instance (ColorSpace cs, R.Elt e, Num e) => R.Elt (Pixel cs e) where
-  touch !px = P.mapM_ (R.touch . getPxCh px) (enumFrom (toEnum 0)) 
+instance (ColorSpace cs e, R.Elt e, Num (Pixel cs e)) => R.Elt (Pixel cs e) where
+  touch !px = P.mapM_ (R.touch . getPxC px) (enumFrom (toEnum 0)) 
   {-# INLINE touch #-}
   
   zero     = 0

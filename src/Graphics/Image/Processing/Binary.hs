@@ -43,6 +43,7 @@ infixr 3  .&&.
 infixr 2  .||.
 
 
+
 -- | 'Thresholding' contains a convenient set of functions for binary image
 -- construction, which is done by comparing either a single pixel with every
 -- pixel in an image or two same size images pointwise. For example:
@@ -166,7 +167,8 @@ toImageBinaryUsing2 !f =  zipWith (((.).(.)) fromBool f)
 --
 -- <<images/yield.jpg>> <<images/yield_bin.png>>
 --
-thresholdWith :: (Array arr cs e, Array arr Binary Bit) =>
+thresholdWith :: (Applicative (Pixel cs), Foldable (Pixel cs),
+                  Array arr cs e, Array arr Binary Bit) =>
                  Pixel cs (e -> Bool)
                  -- ^ Pixel containing a thresholding function per channel.
               -> Image arr cs e -- ^ Source image.
@@ -177,7 +179,8 @@ thresholdWith !f = map (fromBool . F.and . (f <*>))
 
 -- | Compare two images with an applicative pixel. Works just like
 -- 'thresholdWith', but on two images.
-compareWith :: (Array arr cs e1, Array arr cs e2, Array arr Binary Bit) =>
+compareWith :: (Applicative (Pixel cs), Foldable (Pixel cs),
+                Array arr cs e1, Array arr cs e2, Array arr Binary Bit) =>
                Pixel cs (e1 -> e2 -> Bool)
                -- ^ Pixel containing a comparing function per channel.
             -> Image arr cs e1 -- ^ First image.

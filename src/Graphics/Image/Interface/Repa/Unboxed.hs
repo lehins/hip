@@ -22,16 +22,10 @@ module Graphics.Image.Interface.Repa.Unboxed (
 import Prelude as P
 import qualified Data.Array.Repa as R 
 import qualified Data.Array.Repa.Eval as R
-import Data.Typeable (Typeable)
-
-
 
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Repa.Generic
 import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
-
-
-
 
 
 -- | Repa Array representation backed by Unboxed Vector, which is computed sequentially. 
@@ -54,9 +48,9 @@ type instance Repr (RP IVU.U) = R.U
 
 instance SuperClass RSU cs e => BaseArray RSU cs e where
   type SuperClass RSU cs e =
-    (ColorSpace cs, Num e, Typeable e,
-     IVU.Unbox e, IVU.Unbox (PixelElt cs e),
-     R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
+    (ColorSpace cs e, Num (Pixel cs e),
+     IVU.Unbox e, IVU.Unbox (Components cs e),
+     R.Elt e, R.Elt (Pixel cs e))
   
   data Image RSU cs e = SUImage !(Image (RS IVU.U) cs e)
                        
@@ -132,9 +126,9 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
 
 instance SuperClass RPU cs e => BaseArray RPU cs e where
   type SuperClass RPU cs e =
-    (ColorSpace cs, Num e, Typeable e,
-     IVU.Unbox e, IVU.Unbox (PixelElt cs e),
-     R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
+    (ColorSpace cs e, Num (Pixel cs e),
+     IVU.Unbox e, IVU.Unbox (Components cs e),
+     R.Elt e, R.Elt (Pixel cs e))
   
   data Image RPU cs e = PUImage !(Image (RP IVU.U) cs e)
                        

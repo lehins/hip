@@ -79,11 +79,11 @@ instance V.Vector U.Vector Bit where
 
 
 -- | Unboxing of a `Pixel`.
-instance (ColorSpace cs, U.Unbox (PixelElt cs e)) => U.Unbox (Pixel cs e)
+instance (ColorSpace cs e, U.Unbox (Components cs e)) => U.Unbox (Pixel cs e)
 
-newtype instance U.MVector s (Pixel cs e) = MV_Pixel (U.MVector s (PixelElt cs e))
+newtype instance U.MVector s (Pixel cs e) = MV_Pixel (U.MVector s (Components cs e))
 
-instance (ColorSpace cs, U.Unbox (PixelElt cs e)) => M.MVector U.MVector (Pixel cs e) where
+instance (ColorSpace cs e, U.Unbox (Components cs e)) => M.MVector U.MVector (Pixel cs e) where
   basicLength (MV_Pixel mvec) = M.basicLength mvec
   {-# INLINE basicLength #-}
   basicUnsafeSlice idx len (MV_Pixel mvec) = MV_Pixel (M.basicUnsafeSlice idx len mvec)
@@ -92,15 +92,15 @@ instance (ColorSpace cs, U.Unbox (PixelElt cs e)) => M.MVector U.MVector (Pixel 
   {-# INLINE basicOverlaps #-}
   basicUnsafeNew len = MV_Pixel `liftM` M.basicUnsafeNew len
   {-# INLINE basicUnsafeNew #-}
-  basicUnsafeReplicate len val = MV_Pixel `liftM` M.basicUnsafeReplicate len (toElt val)
+  basicUnsafeReplicate len val = MV_Pixel `liftM` M.basicUnsafeReplicate len (toComponents val)
   {-# INLINE basicUnsafeReplicate #-}
-  basicUnsafeRead (MV_Pixel mvec) idx = fromElt `liftM` M.basicUnsafeRead mvec idx
+  basicUnsafeRead (MV_Pixel mvec) idx = fromComponents `liftM` M.basicUnsafeRead mvec idx
   {-# INLINE basicUnsafeRead #-}
-  basicUnsafeWrite (MV_Pixel mvec) idx val = M.basicUnsafeWrite mvec idx (toElt val)
+  basicUnsafeWrite (MV_Pixel mvec) idx val = M.basicUnsafeWrite mvec idx (toComponents val)
   {-# INLINE basicUnsafeWrite #-}
   basicClear (MV_Pixel mvec) = M.basicClear mvec
   {-# INLINE basicClear #-}
-  basicSet (MV_Pixel mvec) val = M.basicSet mvec (toElt val)
+  basicSet (MV_Pixel mvec) val = M.basicSet mvec (toComponents val)
   {-# INLINE basicSet #-}
   basicUnsafeCopy (MV_Pixel mvec) (MV_Pixel mvec') = M.basicUnsafeCopy mvec mvec'
   {-# INLINE basicUnsafeCopy #-}
@@ -114,9 +114,9 @@ instance (ColorSpace cs, U.Unbox (PixelElt cs e)) => M.MVector U.MVector (Pixel 
 #endif
 
 
-newtype instance U.Vector (Pixel cs e) = V_Pixel (U.Vector (PixelElt cs e))
+newtype instance U.Vector (Pixel cs e) = V_Pixel (U.Vector (Components cs e))
 
-instance (ColorSpace cs, U.Unbox (PixelElt cs e)) => V.Vector U.Vector (Pixel cs e) where
+instance (ColorSpace cs e, U.Unbox (Components cs e)) => V.Vector U.Vector (Pixel cs e) where
   basicUnsafeFreeze (MV_Pixel mvec) = V_Pixel `liftM` V.basicUnsafeFreeze mvec
   {-# INLINE basicUnsafeFreeze #-}
   basicUnsafeThaw (V_Pixel vec) = MV_Pixel `liftM` V.basicUnsafeThaw vec
@@ -125,9 +125,9 @@ instance (ColorSpace cs, U.Unbox (PixelElt cs e)) => V.Vector U.Vector (Pixel cs
   {-# INLINE basicLength #-}
   basicUnsafeSlice idx len (V_Pixel vec) = V_Pixel (V.basicUnsafeSlice idx len vec)
   {-# INLINE basicUnsafeSlice #-}
-  basicUnsafeIndexM (V_Pixel vec) idx = fromElt `liftM` V.basicUnsafeIndexM vec idx
+  basicUnsafeIndexM (V_Pixel vec) idx = fromComponents `liftM` V.basicUnsafeIndexM vec idx
   {-# INLINE basicUnsafeIndexM #-}
   basicUnsafeCopy (MV_Pixel mvec) (V_Pixel vec) = V.basicUnsafeCopy mvec vec
   {-# INLINE basicUnsafeCopy #-}
-  elemseq (V_Pixel vec) val = V.elemseq vec (toElt val)
+  elemseq (V_Pixel vec) val = V.elemseq vec (toComponents val)
   {-# INLINE elemseq #-}

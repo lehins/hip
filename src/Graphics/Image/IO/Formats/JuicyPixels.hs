@@ -121,13 +121,13 @@ instance ImageFormat TIF where
 -- Y -> Y (Double)
 
 instance Convertible JP.Pixel8 (Pixel Y Double) where
-  convert = toDouble . PixelY
+  convert = fmap toDouble . PixelY
 
 instance Convertible JP.Pixel16 (Pixel Y Double) where
-  convert = toDouble . PixelY
+  convert = fmap toDouble . PixelY
 
 instance Convertible JP.PixelF (Pixel Y Double) where
-  convert = toDouble . PixelY
+  convert = fmap toDouble . PixelY
 
 instance Convertible JP.PixelYA8 (Pixel Y Double) where
   convert = convert . JP.dropTransparency
@@ -145,10 +145,10 @@ instance Convertible JP.PixelF (Pixel YA Double) where
   convert = addAlpha 1 . convert
 
 instance Convertible JP.PixelYA8 (Pixel YA Double) where
-  convert (JP.PixelYA8 y a) = toDouble (PixelYA y a)
+  convert (JP.PixelYA8 y a) = fmap toDouble (PixelYA y a)
 
 instance Convertible JP.PixelYA16 (Pixel YA Double) where
-  convert (JP.PixelYA16 y a) = toDouble (PixelYA y a)
+  convert (JP.PixelYA16 y a) = fmap toDouble (PixelYA y a)
 
 
 -- Color -> Y (Double)
@@ -169,10 +169,10 @@ instance Convertible JP.PixelRGBF (Pixel Y Double) where
   convert = toPixelY . (convert :: JP.PixelRGBF -> Pixel RGB Double)
 
 instance Convertible JP.PixelCMYK8 (Pixel Y Double) where
-  convert = toPixelY . toDouble . (convert :: JP.PixelCMYK8 -> Pixel CMYK Word8)
+  convert = toPixelY . fmap toDouble . (convert :: JP.PixelCMYK8 -> Pixel CMYK Word8)
 
 instance Convertible JP.PixelCMYK16 (Pixel Y Double) where
-  convert = toPixelY . toDouble . (convert :: JP.PixelCMYK16 -> Pixel CMYK Word16)
+  convert = toPixelY . fmap toDouble . (convert :: JP.PixelCMYK16 -> Pixel CMYK Word16)
 
 instance Convertible JP.PixelYCbCr8 (Pixel Y Double) where
   convert = convert . JP.computeLuma
@@ -208,13 +208,13 @@ instance Convertible JP.PixelRGBA16 (Pixel YA Double) where
 -- Y -> RGB (Double)
 
 instance Convertible JP.Pixel8 (Pixel RGB Double) where
-  convert = toDouble . fromChannel
+  convert = broadcastC . toDouble
 
 instance Convertible JP.Pixel16 (Pixel RGB Double) where
-  convert = toDouble . fromChannel
+  convert = broadcastC . toDouble
 
 instance Convertible JP.PixelF (Pixel RGB Double) where
-  convert = toDouble . fromChannel
+  convert = broadcastC . toDouble
 
 instance Convertible JP.PixelYA8 (Pixel RGB Double) where
   convert = convert . JP.dropTransparency
@@ -225,10 +225,10 @@ instance Convertible JP.PixelYA16 (Pixel RGB Double) where
 -- Color -> RGB (Double)
 
 instance Convertible JP.PixelRGB8 (Pixel RGB Double) where
-  convert (JP.PixelRGB8 r g b) = toDouble $ PixelRGB r g b
+  convert (JP.PixelRGB8 r g b) = fmap toDouble $ PixelRGB r g b
 
 instance Convertible JP.PixelRGB16 (Pixel RGB Double) where
-  convert (JP.PixelRGB16 r g b) = toDouble $ PixelRGB r g b
+  convert (JP.PixelRGB16 r g b) = fmap toDouble $ PixelRGB r g b
 
 instance Convertible JP.PixelRGBA8 (Pixel RGB Double) where
   convert = convert . JP.dropTransparency
@@ -287,10 +287,10 @@ instance Convertible JP.PixelYCbCr8 (Pixel RGBA Double) where
   convert = addAlpha 1 . convert
   
 instance Convertible JP.PixelRGBA8 (Pixel RGBA Double) where
-  convert (JP.PixelRGBA8 r g b a) = toDouble $ PixelRGBA r g b a
+  convert (JP.PixelRGBA8 r g b a) = fmap toDouble $ PixelRGBA r g b a
   
 instance Convertible JP.PixelRGBA16 (Pixel RGBA Double) where
-  convert (JP.PixelRGBA16 r g b a) = toDouble $ PixelRGBA r g b a
+  convert (JP.PixelRGBA16 r g b a) = fmap toDouble $ PixelRGBA r g b a
 
 
 ---- to JuicyPixels -----
@@ -814,17 +814,17 @@ instance Writable (Image VS Binary Bit) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.Pixel8) fromPixelBinary
 
 instance Writable (Image VS Y Double) BMP where
-  encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.Pixel8) toWord8
+  encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.Pixel8) (fmap toWord8)
 
 instance Writable (Image VS YA Double) BMP where
   encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.Pixel8)
-                                                (toWord8 . dropAlpha)
+                                                ((fmap toWord8) . dropAlpha)
 
 instance Writable (Image VS RGB Double) BMP where
-  encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.PixelRGB8) toWord8
+  encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.PixelRGB8) (fmap toWord8)
 
 instance Writable (Image VS RGBA Double) BMP where
-  encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.PixelRGBA8) toWord8
+  encode _ _ = JP.encodeBitmap . imageToJPImage (undefined :: JP.PixelRGBA8) (fmap toWord8)
 
 -- Writable GIF
 
@@ -843,16 +843,16 @@ instance Writable (Image VS RGB Word8) GIF where
   encode _ opts = encodeGIF opts id
   
 instance Writable (Image VS Y Double) GIF where
-  encode _ opts = encodeGIF opts (toWord8 . toPixelRGB)
+  encode _ opts = encodeGIF opts ((fmap toWord8) . toPixelRGB)
     
 instance Writable (Image VS YA Double) GIF where
-  encode _ opts = encodeGIF opts (toWord8 . toPixelRGB . dropAlpha)
+  encode _ opts = encodeGIF opts ((fmap toWord8) . toPixelRGB . dropAlpha)
 
 instance Writable (Image VS RGB Double) GIF where
-  encode _ opts = encodeGIF opts toWord8
+  encode _ opts = encodeGIF opts (fmap toWord8)
 
 instance Writable (Image VS RGBA Double) GIF where
-  encode _ opts = encodeGIF opts (toWord8 . dropAlpha)
+  encode _ opts = encodeGIF opts ((fmap toWord8) . dropAlpha)
 
 
 encodeGIFs :: (Array VS cs' e, Array VS cs Word8) =>
@@ -875,25 +875,26 @@ instance Writable [(JP.GifDelay, Image VS RGB Word8)] [GIF] where
   encode _ opts = encodeGIFs opts id
 
 instance Writable [(JP.GifDelay, Image VS RGB Double)] [GIF] where
-  encode _ opts = encodeGIFs opts toWord8
+  encode _ opts = encodeGIFs opts (fmap toWord8)
 -- Writable HDR
 
 instance Writable (Image VS RGB Float) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage (undefined :: JP.PixelRGBF) id
 
 instance Writable (Image VS Y Double) HDR where
-  encode _ _ = JP.encodeHDR . imageToJPImage (undefined :: JP.PixelRGBF) (toFloat . toPixelRGB)
+  encode _ _ = JP.encodeHDR . imageToJPImage (undefined :: JP.PixelRGBF)
+                                             (fmap toFloat . toPixelRGB)
 
 instance Writable (Image VS YA Double) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage (undefined :: JP.PixelRGBF)
-                                             (toFloat . toPixelRGB . dropAlpha)
+                                             (fmap toFloat . toPixelRGB . dropAlpha)
 
 instance Writable (Image VS RGB Double) HDR where
-  encode _ _ = JP.encodeHDR . imageToJPImage (undefined :: JP.PixelRGBF) toFloat
+  encode _ _ = JP.encodeHDR . imageToJPImage (undefined :: JP.PixelRGBF) (fmap toFloat)
 
 instance Writable (Image VS RGBA Double) HDR where
   encode _ _ = JP.encodeHDR . imageToJPImage (undefined :: JP.PixelRGBF)
-                                              (toFloat . dropAlpha)
+                                             (fmap toFloat . dropAlpha)
  
 
 -- Writable JPG
@@ -925,16 +926,16 @@ instance Writable (Image VS YCbCr Word8) JPG where
   encode _ opts = encodeJPG opts (undefined :: JP.PixelYCbCr8) id
 
 instance Writable (Image VS Y Double) JPG where
-  encode _ opts = encodeJPG opts (undefined :: JP.Pixel8) toWord8
+  encode _ opts = encodeJPG opts (undefined :: JP.Pixel8) (fmap toWord8)
 
 instance Writable (Image VS YA Double) JPG where
-  encode _ opts = encodeJPG opts (undefined :: JP.Pixel8) (toWord8 . dropAlpha) 
+  encode _ opts = encodeJPG opts (undefined :: JP.Pixel8) ((fmap toWord8) . dropAlpha) 
 
 instance Writable (Image VS RGB Double) JPG where
-  encode _ opts = encodeJPG opts (undefined :: JP.PixelRGB8) toWord8
+  encode _ opts = encodeJPG opts (undefined :: JP.PixelRGB8) (fmap toWord8)
 
 instance Writable (Image VS RGBA Double) JPG where
-  encode _ opts = encodeJPG opts (undefined :: JP.PixelRGB8) (toWord8 . dropAlpha) 
+  encode _ opts = encodeJPG opts (undefined :: JP.PixelRGB8) ((fmap toWord8) . dropAlpha) 
 
 
 -- Writable PNG
@@ -968,16 +969,16 @@ instance Writable (Image VS RGBA Word16) PNG where
 
 
 instance Writable (Image VS Y Double) PNG where
-  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.Pixel16) toWord16
+  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.Pixel16) (fmap toWord16)
 
 instance Writable (Image VS YA Double) PNG where
-  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.PixelYA16) toWord16
+  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.PixelYA16) (fmap toWord16)
 
 instance Writable (Image VS RGB Double) PNG where
-  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.PixelRGB16) toWord16
+  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.PixelRGB16) (fmap toWord16)
 
 instance Writable (Image VS RGBA Double) PNG where
-  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.PixelRGBA16) toWord16
+  encode _ _ = JP.encodePng . imageToJPImage (undefined :: JP.PixelRGBA16) (fmap toWord16)
 
 -- Writable TGA
 
@@ -995,16 +996,16 @@ instance Writable (Image VS RGBA Word8) TGA where
 
 
 instance Writable (Image VS Y Double) TGA where
-  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.Pixel8) toWord8
+  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.Pixel8) (fmap toWord8)
 
 instance Writable (Image VS YA Double) TGA where
-  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.Pixel8) (toWord8 . dropAlpha)
+  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.Pixel8) ((fmap toWord8) . dropAlpha)
 
 instance Writable (Image VS RGB Double) TGA where
-  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.PixelRGB8) toWord8
+  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.PixelRGB8) (fmap toWord8)
 
 instance Writable (Image VS RGBA Double) TGA where
-  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.PixelRGBA8) toWord8
+  encode _ _ = JP.encodeTga . imageToJPImage (undefined :: JP.PixelRGBA8) (fmap toWord8)
 
 -- Writable TIF
 
@@ -1046,22 +1047,22 @@ instance Writable (Image VS Binary Bit) TIF where
   encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.Pixel8) fromPixelBinary
   
 instance Writable (Image VS Y Double) TIF where
-  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.Pixel16) toWord16
+  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.Pixel16) (fmap toWord16)
 
 instance Writable (Image VS YA Double) TIF where
-  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelYA16) toWord16
+  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelYA16) (fmap toWord16)
 
 instance Writable (Image VS RGB Double) TIF where
-  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelRGB16) toWord16
+  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelRGB16) (fmap toWord16)
 
 instance Writable (Image VS RGBA Double) TIF where
-  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelRGBA16) toWord16
+  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelRGBA16) (fmap toWord16)
 
 instance Writable (Image VS YCbCr Double) TIF where
-  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelYCbCr8) toWord8
+  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelYCbCr8) (fmap toWord8)
 
 instance Writable (Image VS CMYK Double) TIF where
-  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelCMYK16) toWord16
+  encode _ _ = JP.encodeTiff . imageToJPImage (undefined :: JP.PixelCMYK16) (fmap toWord16)
 
 
 

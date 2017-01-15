@@ -2,11 +2,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.YCbCr
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -18,13 +19,18 @@ module Graphics.Image.ColorSpace.YCbCr (
   ) where
 
 import Prelude hiding (map)
-import Graphics.Image.Interface
+import Control.Applicative
+import Data.Foldable
 import Data.Typeable (Typeable)
-import qualified Data.Monoid as M (mappend)
-import qualified Data.Colour as C
-import qualified Data.Colour.Names as C
 import Foreign.Ptr
 import Foreign.Storable
+
+import Graphics.Image.Interface
+
+
+-------------
+--- YCbCr ---
+-------------
 
 
 -- | Color space is used to encode RGB information and is used in JPEG compression.
@@ -33,134 +39,7 @@ data YCbCr = LumaYCbCr  -- ^ Luma component (commonly denoted as __Y'__)
            | CRedYCbCr  -- ^ Red difference chroma component
            deriving (Eq, Enum, Typeable)
 
-
--- | YCbCr color space with Alpha channel.
-data YCbCrA = LumaYCbCrA  -- ^ Luma component (commonly denoted as __Y'__)
-            | CBlueYCbCrA -- ^ Blue difference chroma component
-            | CRedYCbCrA  -- ^ Red difference chroma component
-            | AlphaYCbCrA -- ^ Alpha component.
-            deriving (Eq, Enum, Typeable)
-
 data instance Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
-
-data instance Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
-
-
--- | Conversion to `YCbCr` color space.
-class ColorSpace cs => ToYCbCr cs where
-
-  -- | Convert to an `YCbCr` pixel.
-  toPixelYCbCr :: Pixel cs Double -> Pixel YCbCr Double
-
-  -- | Convert to an `YCbCr` image.
-  toImageYCbCr :: (Array arr cs Double, Array arr YCbCr Double) =>
-                  Image arr cs Double
-               -> Image arr YCbCr Double
-  toImageYCbCr = map toPixelYCbCr
-  {-# INLINE toImageYCbCr #-}
-
-
--- | Conversion to `YCbCrA` from another color space with Alpha channel.
-class (ToYCbCr (Opaque cs), Alpha cs) => ToYCbCrA cs where
-
-  -- | Convert to an `YCbCrA` pixel.
-  toPixelYCbCrA :: Pixel cs Double -> Pixel YCbCrA Double
-  toPixelYCbCrA px = addAlpha (getAlpha px) (toPixelYCbCr (dropAlpha px))
-  {-# INLINE toPixelYCbCrA #-}
-
-  -- | Convert to an `YCbCrA` image.
-  toImageYCbCrA :: (Array arr cs Double, Array arr YCbCrA Double) =>
-                   Image arr cs Double
-                -> Image arr YCbCrA Double
-  toImageYCbCrA = map toPixelYCbCrA
-  {-# INLINE toImageYCbCrA #-}
-
-  
-instance ColorSpace YCbCr where
-  type PixelElt YCbCr e = (e, e, e)
-
-  fromChannel !e = PixelYCbCr e e e
-  {-# INLINE fromChannel #-}
-
-  fromElt !(y, b, r) = PixelYCbCr y b r
-  {-# INLINE fromElt #-}
-
-  toElt (PixelYCbCr y b r) = (y, b, r)
-  {-# INLINE toElt #-}
-
-  getPxCh (PixelYCbCr y _ _) LumaYCbCr  = y
-  getPxCh (PixelYCbCr _ b _) CBlueYCbCr = b
-  getPxCh (PixelYCbCr _ _ r) CRedYCbCr  = r
-  {-# INLINE getPxCh #-}
-  
-  chOp !f (PixelYCbCr y b r) = PixelYCbCr (f LumaYCbCr y) (f CBlueYCbCr b) (f CRedYCbCr r)
-  {-# INLINE chOp #-}
-
-  pxOp !f (PixelYCbCr y b r) = PixelYCbCr (f y) (f b) (f r)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelYCbCr fy fb fr) (PixelYCbCr y b r) = PixelYCbCr (fy y) (fb b) (fr r)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelYCbCr y b r) = f y `M.mappend` f b `M.mappend` f r
-  {-# INLINE pxFoldMap #-}
-
-  csColour LumaYCbCr  = C.opaque C.darkgray
-  csColour CBlueYCbCr = C.opaque C.darkblue
-  csColour CRedYCbCr  = C.opaque C.darkred
-  
-
-instance ColorSpace YCbCrA where
-  type PixelElt YCbCrA e = (e, e, e, e)
-
-  fromChannel !e = PixelYCbCrA e e e e
-  {-# INLINE fromChannel #-}
-
-  fromElt (y, b, r, a) = PixelYCbCrA y b r a
-  {-# INLINE fromElt #-}
-
-  toElt (PixelYCbCrA y b r a) = (y, b, r, a)
-  {-# INLINE toElt #-}
-
-  getPxCh (PixelYCbCrA y _ _ _) LumaYCbCrA  = y
-  getPxCh (PixelYCbCrA _ b _ _) CBlueYCbCrA = b
-  getPxCh (PixelYCbCrA _ _ r _) CRedYCbCrA  = r
-  getPxCh (PixelYCbCrA _ _ _ a) AlphaYCbCrA = a
-  {-# INLINE getPxCh #-}
-  
-  chOp !f (PixelYCbCrA y b r a) =
-    PixelYCbCrA (f LumaYCbCrA y) (f CBlueYCbCrA b) (f CRedYCbCrA r) (f AlphaYCbCrA a)
-  {-# INLINE chOp #-}
-
-  pxOp !f (PixelYCbCrA y b r a) = PixelYCbCrA (f y) (f b) (f r) (f a)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelYCbCrA fy fb fr fa) (PixelYCbCrA y b r a) = PixelYCbCrA (fy y) (fb b) (fr r) (fa a)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelYCbCrA y b r a) = f y `M.mappend` f b `M.mappend` f r `M.mappend` f a
-  {-# INLINE pxFoldMap #-}
-
-  csColour AlphaYCbCrA = C.opaque C.gray
-  csColour ch          = csColour $ opaque ch
-
-
-instance Alpha YCbCrA where
-  type Opaque YCbCrA = YCbCr
-
-  getAlpha (PixelYCbCrA _ _ _ a) = a
-  {-# INLINE getAlpha #-}
-  
-  addAlpha !a (PixelYCbCr y b r) = PixelYCbCrA y b r a
-  {-# INLINE addAlpha #-}
-
-  dropAlpha (PixelYCbCrA y b r _) = PixelYCbCr y b r
-  {-# INLINE dropAlpha #-}
-
-  opaque LumaYCbCrA  = LumaYCbCr
-  opaque CBlueYCbCrA = CBlueYCbCr
-  opaque CRedYCbCrA  = CRedYCbCr
-  opaque AlphaYCbCrA = error "Data.Image.ColorSpace.YCbCr (Alpha.opaque)"
 
 
 instance Show YCbCr where
@@ -169,18 +48,105 @@ instance Show YCbCr where
   show CRedYCbCr  = "Red Chroma"
 
 
-instance Show YCbCrA where
-  show AlphaYCbCrA = "Alpha"
-  show ch          = show $ opaque ch
-
- 
 instance Show e => Show (Pixel YCbCr e) where
   show (PixelYCbCr y b r) = "<YCbCr:("++show y++"|"++show b++"|"++show r++")>"
 
 
-instance Show e => Show (Pixel YCbCrA e) where
-  show (PixelYCbCrA y b r a) = "<YCbCrA:("++show y++"|"++show b++"|"++show r++"|"++show a++")>"
+instance (Elevator e, Typeable e) => ColorSpace YCbCr e where
+  type Components YCbCr e = (e, e, e)
 
+  broadcastC !e = PixelYCbCr e e e
+  {-# INLINE broadcastC #-}
+  fromComponents !(y, b, r) = PixelYCbCr y b r
+  {-# INLINE fromComponents #-}
+  toComponents (PixelYCbCr y b r) = (y, b, r)
+  {-# INLINE toComponents #-}
+  getPxC (PixelYCbCr y _ _) LumaYCbCr  = y
+  getPxC (PixelYCbCr _ b _) CBlueYCbCr = b
+  getPxC (PixelYCbCr _ _ r) CRedYCbCr  = r
+  {-# INLINE getPxC #-}
+  setPxC (PixelYCbCr _ b r) LumaYCbCr  y = PixelYCbCr y b r
+  setPxC (PixelYCbCr y _ r) CBlueYCbCr b = PixelYCbCr y b r
+  setPxC (PixelYCbCr y b _) CRedYCbCr  r = PixelYCbCr y b r
+  {-# INLINE setPxC #-}
+  mapPxC f (PixelYCbCr y b r) = PixelYCbCr (f LumaYCbCr y) (f CBlueYCbCr b) (f CRedYCbCr r)
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
+
+
+instance Functor (Pixel YCbCr) where
+  fmap f (PixelYCbCr y b r) = PixelYCbCr (f y) (f b) (f r)
+  {-# INLINE fmap #-}
+
+
+instance Applicative (Pixel YCbCr) where
+  pure !e = PixelYCbCr e e e
+  {-# INLINE pure #-}
+  (PixelYCbCr fy fb fr) <*> (PixelYCbCr y b r) = PixelYCbCr (fy y) (fb b) (fr r)
+  {-# INLINE (<*>) #-}
+
+
+instance Foldable (Pixel YCbCr) where
+  foldr f !z (PixelYCbCr y b r) = f y (f b (f r z))
+  {-# INLINE foldr #-}
+
+
+instance Num e => Num (Pixel YCbCr e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+
+
+instance Fractional e => Fractional (Pixel YCbCr e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance Floating e => Floating (Pixel YCbCr e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
 
 
 
@@ -201,6 +167,174 @@ instance Storable e => Storable (Pixel YCbCr e) where
     pokeElemOff q 2 r
 
 
+--------------
+--- YCbCrA ---
+--------------
+
+
+-- | YCbCr color space with Alpha channel.
+data YCbCrA = LumaYCbCrA  -- ^ Luma component (commonly denoted as __Y'__)
+            | CBlueYCbCrA -- ^ Blue difference chroma component
+            | CRedYCbCrA  -- ^ Red difference chroma component
+            | AlphaYCbCrA -- ^ Alpha component.
+            deriving (Eq, Enum, Typeable)
+
+data instance Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
+
+
+instance Show YCbCrA where
+  show LumaYCbCrA  = "Luma"
+  show CBlueYCbCrA = "Blue Chroma"
+  show CRedYCbCrA  = "Red Chroma"
+  show AlphaYCbCrA = "Alpha"
+
+ 
+instance Show e => Show (Pixel YCbCrA e) where
+  show (PixelYCbCrA y b r a) = "<YCbCrA:("++show y++"|"++show b++"|"++show r++"|"++show a++")>"
+
+
+instance (Elevator e, Typeable e) => ColorSpace YCbCrA e where
+  type Components YCbCrA e = (e, e, e, e)
+
+  broadcastC !e = PixelYCbCrA e e e e
+  {-# INLINE broadcastC #-}
+  fromComponents !(y, b, r, a) = PixelYCbCrA y b r a
+  {-# INLINE fromComponents #-}
+  toComponents (PixelYCbCrA y b r a) = (y, b, r, a)
+  {-# INLINE toComponents #-}
+  getPxC (PixelYCbCrA y _ _ _) LumaYCbCrA  = y
+  getPxC (PixelYCbCrA _ b _ _) CBlueYCbCrA = b
+  getPxC (PixelYCbCrA _ _ r _) CRedYCbCrA  = r
+  getPxC (PixelYCbCrA _ _ _ a) AlphaYCbCrA = a
+  {-# INLINE getPxC #-}
+  setPxC (PixelYCbCrA _ b r a) LumaYCbCrA  y = PixelYCbCrA y b r a
+  setPxC (PixelYCbCrA y _ r a) CBlueYCbCrA b = PixelYCbCrA y b r a
+  setPxC (PixelYCbCrA y b _ a) CRedYCbCrA  r = PixelYCbCrA y b r a
+  setPxC (PixelYCbCrA y b r _) AlphaYCbCrA a = PixelYCbCrA y b r a
+  {-# INLINE setPxC #-}
+  mapPxC f (PixelYCbCrA y b r a) =
+    PixelYCbCrA (f LumaYCbCrA y) (f CBlueYCbCrA b) (f CRedYCbCrA r) (f AlphaYCbCrA a)
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
+
+  
+-- | Conversion to `YCbCr` color space.
+class ColorSpace cs Double => ToYCbCr cs where
+
+  -- | Convert to an `YCbCr` pixel.
+  toPixelYCbCr :: Pixel cs Double -> Pixel YCbCr Double
+
+  -- | Convert to an `YCbCr` image.
+  toImageYCbCr :: (Array arr cs Double, Array arr YCbCr Double) =>
+                  Image arr cs Double
+               -> Image arr YCbCr Double
+  toImageYCbCr = map toPixelYCbCr
+  {-# INLINE toImageYCbCr #-}
+
+
+-- | Conversion to `YCbCrA` from another color space with Alpha channel.
+class (ToYCbCr (Opaque cs), AlphaSpace cs Double) => ToYCbCrA cs where
+
+  -- | Convert to an `YCbCrA` pixel.
+  toPixelYCbCrA :: Pixel cs Double -> Pixel YCbCrA Double
+  toPixelYCbCrA px = addAlpha (getAlpha px) (toPixelYCbCr (dropAlpha px))
+  {-# INLINE toPixelYCbCrA #-}
+
+  -- | Convert to an `YCbCrA` image.
+  toImageYCbCrA :: (Array arr cs Double, Array arr YCbCrA Double) =>
+                   Image arr cs Double
+                -> Image arr YCbCrA Double
+  toImageYCbCrA = map toPixelYCbCrA
+  {-# INLINE toImageYCbCrA #-}
+
+  
+
+instance (Elevator e, Typeable e) => AlphaSpace YCbCrA e where
+  type Opaque YCbCrA = YCbCr
+
+  getAlpha (PixelYCbCrA _ _ _ a) = a
+  {-# INLINE getAlpha #-}
+  addAlpha !a (PixelYCbCr y b r) = PixelYCbCrA y b r a
+  {-# INLINE addAlpha #-}
+  dropAlpha (PixelYCbCrA y b r _) = PixelYCbCr y b r
+  {-# INLINE dropAlpha #-}
+
+
+instance Functor (Pixel YCbCrA) where
+  fmap f (PixelYCbCrA y b r a) = PixelYCbCrA (f y) (f b) (f r) (f a)
+  {-# INLINE fmap #-}
+
+
+instance Applicative (Pixel YCbCrA) where
+  pure !e = PixelYCbCrA e e e e
+  {-# INLINE pure #-}
+  (PixelYCbCrA fy fb fr fa) <*> (PixelYCbCrA y b r a) = PixelYCbCrA (fy y) (fb b) (fr r) (fa a)
+  {-# INLINE (<*>) #-}
+
+
+instance Foldable (Pixel YCbCrA) where
+  foldr f !z (PixelYCbCrA y b r a) = f y (f b (f r (f a z)))
+  {-# INLINE foldr #-}
+
+
+instance Num e => Num (Pixel YCbCrA e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+
+
+instance Fractional e => Fractional (Pixel YCbCrA e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance Floating e => Floating (Pixel YCbCrA e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
+
+
 instance Storable e => Storable (Pixel YCbCrA e) where
 
   sizeOf _ = 3 * sizeOf (undefined :: e)
@@ -218,4 +352,5 @@ instance Storable e => Storable (Pixel YCbCrA e) where
     pokeElemOff q 1 b
     pokeElemOff q 2 r
     pokeElemOff q 3 a
+
 

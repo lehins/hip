@@ -81,16 +81,16 @@ instance Convertible PNM.PbmPixel (Pixel Y Double) where
   convert (PNM.PbmPixel bool) = PixelY $ if bool then 0 else 1
   
 instance Convertible PNM.PgmPixel8 (Pixel Y Double) where
-  convert (PNM.PgmPixel8 w8) = toDouble . PixelY $ w8
+  convert (PNM.PgmPixel8 w8) = PixelY $ toDouble w8
 
 instance Convertible PNM.PgmPixel16 (Pixel Y Double) where
-  convert (PNM.PgmPixel16 w16) = toDouble . PixelY $ w16
+  convert (PNM.PgmPixel16 w16) = PixelY $ toDouble w16
 
 instance Convertible PNM.PpmPixelRGB8 (Pixel Y Double) where
-  convert (PNM.PpmPixelRGB8 r g b) = toPixelY . toDouble $ PixelRGB r g b
+  convert (PNM.PpmPixelRGB8 r g b) = toPixelY . fmap toDouble $ PixelRGB r g b
 
 instance Convertible PNM.PpmPixelRGB16 (Pixel Y Double) where
-  convert (PNM.PpmPixelRGB16 r g b) = toPixelY . toDouble $ PixelRGB r g b
+  convert (PNM.PpmPixelRGB16 r g b) = toPixelY . fmap toDouble $ PixelRGB r g b
 
 -- -> YA (Double)
 
@@ -121,10 +121,10 @@ instance Convertible PNM.PgmPixel16 (Pixel RGB Double) where
   convert = toPixelRGB . (convert :: PNM.PgmPixel16 -> Pixel Y Double)
 
 instance Convertible PNM.PpmPixelRGB8 (Pixel RGB Double) where
-  convert (PNM.PpmPixelRGB8 r g b) = toDouble $ PixelRGB r g b
+  convert (PNM.PpmPixelRGB8 r g b) = fmap toDouble $ PixelRGB r g b
 
 instance Convertible PNM.PpmPixelRGB16 (Pixel RGB Double) where
-  convert (PNM.PpmPixelRGB16 r g b) = toDouble $ PixelRGB r g b
+  convert (PNM.PpmPixelRGB16 r g b) = fmap toDouble $ PixelRGB r g b
 
 
 -- -> RGBA (Double)

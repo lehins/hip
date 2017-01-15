@@ -2,11 +2,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.HSI
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -18,14 +19,17 @@ module Graphics.Image.ColorSpace.HSI (
   ) where
 
 import Prelude hiding (map)
-import Graphics.Image.Interface
+import Control.Applicative
+import Data.Foldable
 import Data.Typeable (Typeable)
-import qualified Data.Monoid as M (mappend)
-import qualified Data.Colour as C
-import qualified Data.Colour.Names as C
 import Foreign.Ptr
 import Foreign.Storable
 
+import Graphics.Image.Interface
+
+-----------
+--- HSI ---
+-----------
 
 -- | Hue, Saturation and Intensity color space.
 data HSI = HueHSI -- ^ Hue
@@ -33,136 +37,7 @@ data HSI = HueHSI -- ^ Hue
          | IntHSI -- ^ Intensity
          deriving (Eq, Enum, Typeable)
 
--- | Hue, Saturation and Intensity color space with Alpha channel.
-data HSIA = HueHSIA   -- ^ Hue
-          | SatHSIA   -- ^ Saturation
-          | IntHSIA   -- ^ Intensity
-          | AlphaHSIA -- ^ Alpha
-          deriving (Eq, Enum, Typeable)
-
-
 data instance Pixel HSI e = PixelHSI !e !e !e deriving Eq
-
-data instance Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
-
-
-
--- | Conversion to `HSI` color space.
-class ColorSpace cs => ToHSI cs where
-
-  -- | Convert to an `HSI` pixel.
-  toPixelHSI :: Pixel cs Double -> Pixel HSI Double
-
-  -- | Convert to an `HSI` image.
-  toImageHSI :: (Array arr cs Double, Array arr HSI Double) =>
-                Image arr cs Double
-             -> Image arr HSI Double
-  toImageHSI = map toPixelHSI
-  {-# INLINE toImageHSI #-}
-  
-
--- | Conversion to `HSIA` from another color space with Alpha channel.
-class (ToHSI (Opaque cs), Alpha cs) => ToHSIA cs where
-
-  -- | Convert to an `HSIA` pixel.
-  toPixelHSIA :: Pixel cs Double -> Pixel HSIA Double
-  toPixelHSIA px = addAlpha (getAlpha px) (toPixelHSI (dropAlpha px))
-  {-# INLINE toPixelHSIA #-}
-
-  -- | Convert to an `HSIA` image.
-  toImageHSIA :: (Array arr cs Double, Array arr HSIA Double) =>
-                 Image arr cs Double
-              -> Image arr HSIA Double
-  toImageHSIA = map toPixelHSIA
-  {-# INLINE toImageHSIA #-}
-
-                                                       
-instance ColorSpace HSI where
-  type PixelElt HSI e = (e, e, e)
-
-  fromChannel !e = PixelHSI e e e
-  {-# INLINE fromChannel #-}
-
-  fromElt !(h, s, i) = PixelHSI h s i
-  {-# INLINE fromElt #-}
-
-  toElt (PixelHSI h s i) = (h, s, i)
-  {-# INLINE toElt #-}
-
-  getPxCh (PixelHSI h _ _) HueHSI   = h
-  getPxCh (PixelHSI _ s _) SatHSI = s
-  getPxCh (PixelHSI _ _ i) IntHSI  = i
-  {-# INLINE getPxCh #-}
-  
-  chOp !f (PixelHSI h s i) = PixelHSI (f HueHSI h) (f SatHSI s) (f IntHSI i)
-  {-# INLINE chOp #-}
-
-  pxOp !f (PixelHSI h s i) = PixelHSI (f h) (f s) (f i)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelHSI fh fs fi) (PixelHSI h s i) = PixelHSI (fh h) (fs s) (fi i)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelHSI h s i) = f h `M.mappend` f s `M.mappend` f i 
-  {-# INLINE pxFoldMap #-}
-
-  csColour HueHSI = C.opaque C.purple
-  csColour SatHSI = C.opaque C.orange
-  csColour IntHSI = C.opaque C.darkblue
-
-
-
-instance ColorSpace HSIA where
-  type PixelElt HSIA e = (e, e, e, e)
-
-  fromChannel !e = PixelHSIA e e e e
-  {-# INLINE fromChannel #-}
-
-  fromElt (h, s, i, a) = PixelHSIA h s i a
-  {-# INLINE fromElt #-}
-
-  toElt (PixelHSIA h s i a) = (h, s, i, a)
-  {-# INLINE toElt #-}
-
-  getPxCh (PixelHSIA r _ _ _) HueHSIA   = r
-  getPxCh (PixelHSIA _ g _ _) SatHSIA = g
-  getPxCh (PixelHSIA _ _ b _) IntHSIA  = b
-  getPxCh (PixelHSIA _ _ _ a) AlphaHSIA = a
-  {-# INLINE getPxCh #-}
-  
-  chOp !f (PixelHSIA h s i a) =
-    PixelHSIA (f HueHSIA h) (f SatHSIA s) (f IntHSIA i) (f AlphaHSIA a)
-  {-# INLINE chOp #-}
-
-  pxOp !f (PixelHSIA h s i a) = PixelHSIA (f h) (f s) (f i) (f a)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelHSIA fh fs fi fa) (PixelHSIA h s i a) = PixelHSIA (fh h) (fs s) (fi i) (fa a)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelHSIA h s i a) = f h `M.mappend` f s `M.mappend` f i `M.mappend` f a
-  {-# INLINE pxFoldMap #-}
-
-  csColour AlphaHSIA = C.opaque C.gray
-  csColour ch        = csColour $ opaque ch
-  
-
-instance Alpha HSIA where
-  type Opaque HSIA = HSI
-
-  getAlpha (PixelHSIA _ _ _ a) = a
-  {-# INLINE getAlpha #-}
-  
-  addAlpha !a (PixelHSI h s i) = PixelHSIA h s i a
-  {-# INLINE addAlpha #-}
-
-  dropAlpha (PixelHSIA h s i _) = PixelHSI h s i
-  {-# INLINE dropAlpha #-}
-
-  opaque HueHSIA = HueHSI
-  opaque SatHSIA = SatHSI
-  opaque IntHSIA = IntHSI
-  opaque _       = error "Data.Image.ColorSpace.HSI (Alpha.opaque)"
 
 
 instance Show HSI where
@@ -170,19 +45,104 @@ instance Show HSI where
   show SatHSI = "Saturation"
   show IntHSI = "Intensity"
   
-
-instance Show HSIA where
-  show AlphaHSIA = "Alpha"
-  show ch        = show $ opaque ch
-
-  
 instance Show e => Show (Pixel HSI e) where
   show (PixelHSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"
 
 
-instance Show e => Show (Pixel HSIA e) where
-  show (PixelHSIA h s i a) = "<HSIA:("++show h++"|"++show s++"|"++show i++"|"++show a++")>"
+instance (Elevator e, Typeable e) => ColorSpace HSI e where
+  type Components HSI e = (e, e, e)
 
+  toComponents (PixelHSI h s i) = (h, s, i)
+  {-# INLINE toComponents #-}
+  fromComponents !(h, s, i) = PixelHSI h s i
+  {-# INLINE fromComponents #-}
+  broadcastC = pure
+  {-# INLINE broadcastC #-}
+  getPxC (PixelHSI h _ _) HueHSI = h
+  getPxC (PixelHSI _ s _) SatHSI = s
+  getPxC (PixelHSI _ _ i) IntHSI = i
+  {-# INLINE getPxC #-}
+  setPxC (PixelHSI _ s i) HueHSI h = PixelHSI h s i
+  setPxC (PixelHSI h _ i) SatHSI s = PixelHSI h s i
+  setPxC (PixelHSI h s _) IntHSI i = PixelHSI h s i
+  {-# INLINE setPxC #-}
+  mapPxC f (PixelHSI h s i) = PixelHSI (f HueHSI h) (f SatHSI s) (f IntHSI i)
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
+
+
+instance Functor (Pixel HSI) where
+  fmap f (PixelHSI h s i) = PixelHSI (f h) (f s) (f i)
+  {-# INLINE fmap #-}
+
+
+instance Applicative (Pixel HSI) where
+  pure !e = PixelHSI e e e
+  {-# INLINE pure #-}
+  (PixelHSI fh fs fi) <*> (PixelHSI h s i) = PixelHSI (fh h) (fs s) (fi i)
+  {-# INLINE (<*>) #-}
+
+
+instance Foldable (Pixel HSI) where
+  foldr f !z (PixelHSI h s i) = f h (f s (f i z))
+  {-# INLINE foldr #-}
+
+instance Num e => Num (Pixel HSI e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+  
+
+instance Fractional e => Fractional (Pixel HSI e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance Floating e => Floating (Pixel HSI e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
 
 
 instance Storable e => Storable (Pixel HSI e) where
@@ -200,6 +160,173 @@ instance Storable e => Storable (Pixel HSI e) where
     poke q r
     pokeElemOff q 1 g
     pokeElemOff q 2 b
+
+------------
+--- HSIA ---
+------------
+
+-- | Hue, Saturation and Intensity color space with Alpha channel.
+data HSIA = HueHSIA   -- ^ Hue
+          | SatHSIA   -- ^ Saturation
+          | IntHSIA   -- ^ Intensity
+          | AlphaHSIA -- ^ Alpha
+          deriving (Eq, Enum, Typeable)
+
+
+data instance Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
+
+
+-- | Conversion to `HSI` color space.
+class ColorSpace cs Double => ToHSI cs where
+
+  -- | Convert to an `HSI` pixel.
+  toPixelHSI :: Pixel cs Double -> Pixel HSI Double
+
+  -- | Convert to an `HSI` image.
+  toImageHSI :: (Array arr cs Double, Array arr HSI Double) =>
+                Image arr cs Double
+             -> Image arr HSI Double
+  toImageHSI = map toPixelHSI
+  {-# INLINE toImageHSI #-}
+
+
+
+instance Show HSIA where
+  show HueHSIA   = "Hue"
+  show SatHSIA   = "Saturation"
+  show IntHSIA   = "Intensity"
+  show AlphaHSIA = "Alpha"
+
+  
+instance Show e => Show (Pixel HSIA e) where
+  show (PixelHSIA h s i a) = "<HSIA:("++show h++"|"++show s++"|"++show i++"|"++show a++")>"
+
+
+instance (Elevator e, Typeable e) => ColorSpace HSIA e where
+  type Components HSIA e = (e, e, e, e)
+
+  toComponents (PixelHSIA h s i a) = (h, s, i, a)
+  {-# INLINE toComponents #-}
+  fromComponents !(h, s, i, a) = PixelHSIA h s i a
+  {-# INLINE fromComponents #-}
+  broadcastC = pure
+  {-# INLINE broadcastC #-}
+  getPxC (PixelHSIA h _ _ _) HueHSIA   = h
+  getPxC (PixelHSIA _ s _ _) SatHSIA   = s
+  getPxC (PixelHSIA _ _ i _) IntHSIA   = i
+  getPxC (PixelHSIA _ _ _ a) AlphaHSIA = a
+  {-# INLINE getPxC #-}
+  setPxC (PixelHSIA _ s i a) HueHSIA h   = PixelHSIA h s i a
+  setPxC (PixelHSIA h _ i a) SatHSIA s   = PixelHSIA h s i a
+  setPxC (PixelHSIA h s _ a) IntHSIA i   = PixelHSIA h s i a
+  setPxC (PixelHSIA h s i _) AlphaHSIA a = PixelHSIA h s i a
+  {-# INLINE setPxC #-}
+  mapPxC f (PixelHSIA h s i a) =
+    PixelHSIA (f HueHSIA h) (f SatHSIA s) (f IntHSIA i) (f AlphaHSIA a)
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
+
+
+instance (Elevator e, Typeable e) => AlphaSpace HSIA e where
+  type Opaque HSIA = HSI
+
+  getAlpha (PixelHSIA _ _ _ a) = a
+  {-# INLINE getAlpha #-}
+  addAlpha !a (PixelHSI h s i) = PixelHSIA h s i a
+  {-# INLINE addAlpha #-}
+  dropAlpha (PixelHSIA h s i _) = PixelHSI h s i
+  {-# INLINE dropAlpha #-}
+
+
+-- | Conversion to `HSIA` from another color space with Alpha channel.
+class (ToHSI (Opaque cs), AlphaSpace cs Double) => ToHSIA cs where
+
+  -- | Convert to an `HSIA` pixel.
+  toPixelHSIA :: Pixel cs Double -> Pixel HSIA Double
+  toPixelHSIA px = addAlpha (getAlpha px) (toPixelHSI (dropAlpha px))
+  {-# INLINE toPixelHSIA #-}
+
+  -- | Convert to an `HSIA` image.
+  toImageHSIA :: (Array arr cs Double, Array arr HSIA Double) =>
+                 Image arr cs Double
+              -> Image arr HSIA Double
+  toImageHSIA = map toPixelHSIA
+  {-# INLINE toImageHSIA #-}
+
+
+instance Functor (Pixel HSIA) where
+  fmap f (PixelHSIA h s i a) = PixelHSIA (f h) (f s) (f i) (f a)
+  {-# INLINE fmap #-}
+
+
+instance Applicative (Pixel HSIA) where
+  pure !e = PixelHSIA e e e e
+  {-# INLINE pure #-}
+  (PixelHSIA fh fs fi fa) <*> (PixelHSIA h s i a) = PixelHSIA (fh h) (fs s) (fi i) (fa a)
+  {-# INLINE (<*>) #-}
+
+
+instance Foldable (Pixel HSIA) where
+  foldr f !z (PixelHSIA h s i a) = f h (f s (f i (f a z)))
+  {-# INLINE foldr #-}
+
+
+instance Num e => Num (Pixel HSIA e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+
+
+instance Fractional e => Fractional (Pixel HSIA e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance Floating e => Floating (Pixel HSIA e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
 
 
 instance Storable e => Storable (Pixel HSIA e) where
@@ -219,4 +346,3 @@ instance Storable e => Storable (Pixel HSIA e) where
     pokeElemOff q 1 s
     pokeElemOff q 2 i
     pokeElemOff q 3 a
-

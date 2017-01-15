@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
@@ -20,8 +21,6 @@ import Prelude hiding (map)
 import Data.Word (Word8)
 import Graphics.Image.Interface
 import Data.Typeable (Typeable)
-import qualified Data.Monoid as M (mappend, mempty)
-import qualified Data.Colour as C
 import Foreign.Ptr
 import Foreign.Storable
 
@@ -55,6 +54,10 @@ data Binary = Binary deriving (Eq, Enum, Show, Typeable)
 newtype Bit = Bit Word8 deriving (Ord, Eq, Typeable)
 
 data instance Pixel Binary e = PixelBinary !e deriving (Ord, Eq)
+
+instance Show (Pixel Binary Bit) where
+  show (PixelBinary (Bit 0)) = "<Binary:(0)>"
+  show _                     = "<Binary:(1)>"
 
 
 -- | Represents value 'True' or @1@ in binary. Often also called a foreground
@@ -101,65 +104,87 @@ complement = fromBool . isOff
 {-# INLINE complement #-}
 
 
-instance ColorSpace Binary where
-  type PixelElt Binary e = e
+instance ColorSpace Binary Bit where
+  type Components Binary Bit = Bit
 
-  fromChannel = PixelBinary
-  {-# INLINE fromChannel #-}
+  broadcastC = PixelBinary
+  {-# INLINE broadcastC #-}
+  fromComponents = PixelBinary
+  {-# INLINE fromComponents #-}
+  toComponents (PixelBinary b) = b
+  {-# INLINE toComponents #-}
+  getPxC (PixelBinary b) _ = b
+  {-# INLINE getPxC #-}
+  setPxC (PixelBinary _) _ b = PixelBinary b
+  {-# INLINE setPxC #-}  
+  mapPxC f (PixelBinary b) = PixelBinary (f Binary b)
+  {-# INLINE mapPxC #-}
+  mapPx f (PixelBinary b) = PixelBinary (f b)
+  {-# INLINE mapPx #-}
+  zipWithPx f (PixelBinary b1) (PixelBinary b2) = PixelBinary (f b1 b2)
+  {-# INLINE zipWithPx #-}
+  foldrPx f z (PixelBinary b) = f b z
+  {-# INLINE foldrPx #-}
 
-  fromElt = PixelBinary
-  {-# INLINE fromElt #-}
 
-  toElt (PixelBinary b) = b
-  {-# INLINE toElt #-}
+instance Elevator Bit where
+  toWord8 (Bit 0) = 0
+  toWord8 _       = maxBound
+  {-# INLINE toWord8 #-}
+  toWord16 (Bit 0) = 0
+  toWord16 _       = maxBound
+  {-# INLINE toWord16 #-}
+  toWord32 (Bit 0) = 0
+  toWord32 _       = maxBound
+  {-# INLINE toWord32 #-}
+  toWord64 (Bit 0) = 0
+  toWord64 _       = maxBound
+  {-# INLINE toWord64 #-}
+  toFloat (Bit 0) = 0
+  toFloat _       = 1
+  {-# INLINE toFloat #-}
+  toDouble (Bit 0) = 0
+  toDouble _       = 1
+  {-# INLINE toDouble #-}
+  fromDouble 0 = Bit 0
+  fromDouble _ = Bit 1
+  {-# INLINE fromDouble #-}
 
-  getPxCh (PixelBinary b) _ = b
-  {-# INLINE getPxCh #-}
   
-  chOp !f (PixelBinary b) = PixelBinary (f Binary b)
-  {-# INLINE chOp #-}
-
-  pxOp !f (PixelBinary b) = PixelBinary (f b)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelBinary f) (PixelBinary b) = PixelBinary (f b)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelBinary b) = f b `M.mappend` M.mempty
-  {-# INLINE pxFoldMap #-}
-
-  csColour _ = C.opaque C.black
-
-
-instance Show (Pixel Binary Bit) where
-  show (PixelBinary (Bit 0)) = "<Binary:(0)>"
-  show _                     = "<Binary:(1)>"
-
 
 instance Num Bit where
   (Bit 0) + (Bit 0) = Bit 0
   _       + _       = Bit 1
   {-# INLINE (+) #-}
-  
   _ - (Bit 1) = Bit 0
   _ - _       = Bit 1
   {-# INLINE (-) #-}
-  
   _       * (Bit 0) = Bit 0
   (Bit 0) * _       = Bit 0
   _       * _       = Bit 1
   {-# INLINE (*) #-}
-  
   abs         = id
   {-# INLINE abs #-}
-  
   signum      = id
   {-# INLINE signum #-}
-  
   fromInteger 0 = Bit 0
   fromInteger _ = Bit 1
   {-# INLINE fromInteger #-}
 
+
+instance Num (Pixel Binary Bit) where
+  (+)         = zipWithPx (+)
+  {-# INLINE (+) #-}
+  (-)         = zipWithPx (-)
+  {-# INLINE (-) #-}
+  (*)         = zipWithPx (*)
+  {-# INLINE (*) #-}
+  abs         = mapPx abs
+  {-# INLINE abs #-}
+  signum      = mapPx signum
+  {-# INLINE signum #-}
+  fromInteger = broadcastC . fromInteger
+  {-# INLINE fromInteger #-}
 
 
 instance Storable Bit where

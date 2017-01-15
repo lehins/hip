@@ -21,7 +21,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface (
-  ColorSpace(..), Pixel, Alpha(..), Elevator(..),
+  Pixel, ColorSpace(..), AlphaSpace(..), Elevator(..),
   BaseArray(..), Array(..), MArray(..),
   Exchangable(..), exchangeFrom,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
@@ -33,65 +33,115 @@ import Prelude hiding (and, map, zipWith, sum, product)
 import Data.Monoid (Monoid)
 import Data.Foldable (Foldable(foldMap))
 #endif
+import Data.Maybe (fromMaybe)
 import Data.Foldable (foldr')
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
 import Control.DeepSeq (NFData(rnf), deepseq)
 import Data.Word
-import Control.Applicative
+
 import Control.Monad.Primitive (PrimMonad (..))
-import qualified Data.Colour as C
 
 
 -- | A Pixel family with a color space and a precision of elements.
 data family Pixel cs e :: *
 
 
--- | This class has all included color spaces installed into it and is also
--- intended for implementing any other possible custom color spaces. Every
--- instance of this class automatically installs an associated 'Pixel' into
--- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'Foldable',
--- which in turn make it possible to be used by the rest of the library.
-class (Eq cs, Enum cs, Show cs, Typeable cs,
-       Functor (Pixel cs), Applicative (Pixel cs), Foldable (Pixel cs)) => ColorSpace cs where
+class (Eq cs, Enum cs, Show cs, Typeable cs, Elevator e, Typeable e) => ColorSpace cs e where
   
-  -- | Representation of a pixel, such that it can be an element of any
-  -- Array. Which is usally a tuple of channels or a channel itself for single
-  -- channel color spaces.
-  type PixelElt cs e
-
-  -- | Construt a pixel by replicating a same value among all of the channels.
-  fromChannel :: e -> Pixel cs e
+  type Components cs e
 
   -- | Convert a Pixel to a representation suitable for storage as an unboxed
   -- element, usually a tuple of channels.
-  toElt :: Pixel cs e -> PixelElt cs e
+  toComponents :: Pixel cs e -> Components cs e
 
   -- | Convert from an elemnt representation back to a Pixel.
-  fromElt :: PixelElt cs e -> Pixel cs e
+  fromComponents :: Components cs e -> Pixel cs e
 
-  -- | Retrieve Pixel's channel value
-  getPxCh :: Pixel cs e -> cs -> e
+  -- | Construt a pixel by replicating a same value among all of the components.
+  broadcastC :: e -> Pixel cs e
+
+  -- | Retrieve Pixel's component value
+  getPxC :: Pixel cs e -> cs -> e
   
-  -- | Map a channel aware function over all Pixel's channels.
-  chOp :: (cs -> e' -> e) -> Pixel cs e' -> Pixel cs e 
+  -- | Set Pixel's component value
+  setPxC :: Pixel cs e -> cs -> e -> Pixel cs e
+  
+  -- | Map a channel aware function over all Pixel's components.
+  mapPxC :: (cs -> e -> e) -> Pixel cs e -> Pixel cs e 
 
-  -- | Map a function over all Pixel's channels.
-  pxOp :: (e' -> e) -> Pixel cs e' -> Pixel cs e
+  -- | Map a function over all Pixel's componenets.
+  mapPx :: (e -> e) -> Pixel cs e -> Pixel cs e
 
-  -- | Function application to a Pixel.
-  chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
+  -- | Zip two Pixels with a function.
+  zipWithPx :: (e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
 
-  -- | A pixel eqiuvalent of 'foldMap'.
-  pxFoldMap :: Monoid m => (e -> m) -> Pixel cs e -> m
+  -- | Right fold over all Pixel's components.
+  foldrPx :: (e -> b -> b) -> b -> Pixel cs e -> b
+  foldrPx f !z0 !xs = foldlPx f' id xs z0
+      where f' k x !z = k $! f x z
 
-  -- | Get a pure colour representation of a channel.
-  csColour :: cs -> C.AlphaColour Double
+  -- | Left strict fold over all Pixel's components.
+  foldlPx :: (b -> e -> b) -> b -> Pixel cs e -> b
+  foldlPx f !z0 !xs = foldrPx f' id xs z0
+      where f' x k !z = k $! f z x
+
+  foldl1Px :: (e -> e -> e) -> Pixel cs e -> e
+  foldl1Px f !xs = fromMaybe (error "foldl1: empty Pixel")
+                  (foldlPx mf Nothing xs)
+      where
+        mf m !y = Just (case m of
+                           Nothing -> y
+                           Just x  -> f x y)
+  toListPx :: Pixel cs e -> [e]
+  toListPx !px = foldr' f [] (enumFrom (toEnum 0))
+    where f !cs !ls = getPxC px cs:ls
+
+-- -- | This class has all included color spaces installed into it and is also
+-- -- intended for implementing any other possible custom color spaces. Every
+-- -- instance of this class automatically installs an associated 'Pixel' into
+-- -- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'Foldable',
+-- -- which in turn make it possible to be used by the rest of the library.
+-- class (Eq cs, Enum cs, Show cs, Typeable cs)
+--       => ColorSpace cs where
+  
+--   -- | Representation of a pixel, such that it can be an element of any
+--   -- Array. Which is usally a tuple of channels or a channel itself for single
+--   -- channel color spaces.
+--   type PixelElt cs e
+
+--   -- | Construt a pixel by replicating a same value among all of the channels.
+--   fromChannel :: e -> Pixel cs e
+
+--   -- | Convert a Pixel to a representation suitable for storage as an unboxed
+--   -- element, usually a tuple of channels.
+--   toElt :: Pixel cs e -> PixelElt cs e
+
+--   -- | Convert from an elemnt representation back to a Pixel.
+--   fromElt :: PixelElt cs e -> Pixel cs e
+
+--   -- | Retrieve Pixel's channel value
+--   getPxCh :: Pixel cs e -> cs -> e
+  
+--   -- | Map a channel aware function over all Pixel's channels.
+--   chOp :: (cs -> e' -> e) -> Pixel cs e' -> Pixel cs e 
+
+--   -- | Map a function over all Pixel's channels.
+--   pxOp :: (e' -> e) -> Pixel cs e' -> Pixel cs e
+
+--   -- | Function application to a Pixel.
+--   chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
+
+--   -- | A pixel eqiuvalent of 'foldMap'.
+--   pxFoldMap :: Monoid m => (e -> m) -> Pixel cs e -> m
+
+--   -- | Get a pure colour representation of a channel.
+--   csColour :: cs -> C.AlphaColour Double
   
 
 -- | A color space that supports transparency.
-class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
-  -- | An corresponding opaque version of this color space.
+class (ColorSpace (Opaque cs) e, ColorSpace cs e) => AlphaSpace cs e where
+  -- | A corresponding opaque version of this color space.
   type Opaque cs
 
   -- | Get an alpha channel of a transparant pixel. 
@@ -109,9 +159,6 @@ class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
   --
   dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
 
-  -- | Get a corresponding opaque channel type.
-  opaque :: cs -> Opaque cs
-
 
 -- | A class with a set of convenient functions that allow for changing precision of
 -- channels within pixels, while scaling the values to keep them in an appropriate range.
@@ -122,23 +169,30 @@ class (ColorSpace (Opaque cs), ColorSpace cs) => Alpha cs where
 --
 class Elevator e where
 
-  toWord8 :: ColorSpace cs => Pixel cs e -> Pixel cs Word8
+  -- | Values are scaled to @[0, 255]@ range.
+  toWord8 :: e -> Word8
 
-  toWord16 :: ColorSpace cs => Pixel cs e -> Pixel cs Word16
+  -- | Values are scaled to @[0, 65535]@ range.
+  toWord16 :: e -> Word16
 
-  toWord32 :: ColorSpace cs => Pixel cs e -> Pixel cs Word32
+  -- | Values are scaled to @[0, 4294967295]@ range.
+  toWord32 :: e -> Word32
 
-  toWord64 :: ColorSpace cs => Pixel cs e -> Pixel cs Word64
+  -- | Values are scaled to @[0, 18446744073709551615]@ range.
+  toWord64 :: e -> Word64
 
-  toFloat :: ColorSpace cs => Pixel cs e -> Pixel cs Float
+  -- | Values are scaled to @[0.0, 1.0]@ range.
+  toFloat :: e -> Float
 
-  toDouble :: ColorSpace cs => Pixel cs e -> Pixel cs Double
+  -- | Values are scaled to @[0.0, 1.0]@ range.
+  toDouble :: e -> Double
 
-  fromDouble :: ColorSpace cs => Pixel cs Double -> Pixel cs e
+  -- | Values are scaled from @[0.0, 1.0]@ range.
+  fromDouble :: Double -> e
 
 
 -- | Base array like representation for an image.
-class (Show arr, ColorSpace cs, Num (Pixel cs e), Num e, Typeable e,
+class (Show arr, ColorSpace cs e, Num (Pixel cs e),
        SuperClass arr cs e) =>
       BaseArray arr cs e where
 
@@ -514,107 +568,88 @@ checkDims err !ds@(m, n)
 
 
 
-instance ColorSpace cs => Functor (Pixel cs) where
+-- instance ColorSpace cs => Functor (Pixel cs) where
 
-  fmap = pxOp
-  {-# INLINE fmap #-}
+--   fmap = pxOp
+--   {-# INLINE fmap #-}
   
-instance ColorSpace cs => Applicative (Pixel cs) where
+-- instance ColorSpace cs => Applicative (Pixel cs) where
 
-  pure = fromChannel
-  {-# INLINE pure #-}
+--   pure = fromChannel
+--   {-# INLINE pure #-}
 
-  (<*>) = chApp
-  {-# INLINE (<*>) #-}
-
-
-instance ColorSpace cs => Foldable (Pixel cs) where
-
-  foldMap = pxFoldMap
-  {-# INLINE foldMap #-}
+--   (<*>) = chApp
+--   {-# INLINE (<*>) #-}
 
 
-instance (ColorSpace cs, Num e) => Num (Pixel cs e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-  
+-- instance ColorSpace cs => Foldable (Pixel cs) where
 
-instance (ColorSpace cs, Fractional e) => Fractional (Pixel cs e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  
-  recip        = liftA recip
-  {-# INLINE recip #-}
-
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
+--   foldMap = pxFoldMap
+--   {-# INLINE foldMap #-}
 
 
-instance (ColorSpace cs, Floating e) => Floating (Pixel cs e) where
-  pi      = fromChannel pi
-  {-# INLINE pi #-}
 
-  exp     = liftA exp
-  {-# INLINE exp #-}
+-- instance (ColorSpace cs, Fractional e) => Fractional (Pixel cs e) where
+--   (/)          = liftA2 (/)
+--   {-# INLINE (/) #-}
+  
+--   recip        = liftA recip
+--   {-# INLINE recip #-}
 
-  log     = liftA log
-  {-# INLINE log #-}
-  
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
+--   fromRational = pure . fromRational
+--   {-# INLINE fromRational #-}
 
 
-instance (ColorSpace cs, Bounded e) => Bounded (Pixel cs e) where
-  maxBound = fromChannel maxBound
+-- instance (ColorSpace cs, Floating e) => Floating (Pixel cs e) where
+--   pi      = fromChannel pi
+--   {-# INLINE pi #-}
+
+--   exp     = liftA exp
+--   {-# INLINE exp #-}
+
+--   log     = liftA log
+--   {-# INLINE log #-}
+  
+--   sin     = liftA sin
+--   {-# INLINE sin #-}
+  
+--   cos     = liftA cos
+--   {-# INLINE cos #-}
+  
+--   asin    = liftA asin
+--   {-# INLINE asin #-}
+  
+--   atan    = liftA atan
+--   {-# INLINE atan #-}
+  
+--   acos    = liftA acos
+--   {-# INLINE acos #-}
+  
+--   sinh    = liftA sinh
+--   {-# INLINE sinh #-}
+  
+--   cosh    = liftA cosh
+--   {-# INLINE cosh #-}
+  
+--   asinh   = liftA asinh
+--   {-# INLINE asinh #-}
+  
+--   atanh   = liftA atanh
+--   {-# INLINE atanh #-}
+  
+--   acosh   = liftA acosh
+--   {-# INLINE acosh #-}
+
+
+instance (Applicative (Pixel cs), Bounded e) => Bounded (Pixel cs e) where
+  maxBound = pure maxBound
   {-# INLINE maxBound #-}
   
-  minBound = fromChannel minBound
+  minBound = pure minBound
   {-# INLINE minBound #-}
 
 
-instance (ColorSpace cs, NFData e) => NFData (Pixel cs e) where
+instance (Foldable (Pixel cs), NFData e) => NFData (Pixel cs e) where
 
   rnf = foldr' deepseq ()
   {-# INLINE rnf #-}

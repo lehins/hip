@@ -25,7 +25,6 @@ import Prelude hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Functor
 #endif
-import Data.Typeable (Typeable)
 import qualified Data.Vector.Unboxed as VU
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector.Generic
@@ -48,7 +47,7 @@ instance Show VU where
 
 instance SuperClass VU cs e => BaseArray VU cs e where
   type SuperClass VU cs e =
-    (ColorSpace cs, Num e, Typeable e, VU.Unbox e, VU.Unbox (PixelElt cs e))
+    (ColorSpace cs e, Num (Pixel cs e), VU.Unbox (Components cs e))
 
   data Image VU cs e = VUImage !(Image (V U) cs e)
 

@@ -41,10 +41,6 @@ import Data.Char (toLower)
 import Data.Maybe (fromMaybe)
 
 import qualified Data.ByteString as B (readFile)
-import Graphics.Image.ColorSpace
-import Graphics.Image.Interface
-import Graphics.Image.IO.Base
-import Graphics.Image.IO.Formats
 import qualified Data.ByteString.Lazy as BL (writeFile, hPut)
 import System.Directory (createDirectoryIfMissing, getTemporaryDirectory)
 import System.FilePath (takeExtension, (</>))
@@ -52,6 +48,10 @@ import System.IO (hClose, openBinaryTempFile)
 import System.Process (readProcess)
 import Control.Exception (bracket)
 
+import Graphics.Image.ColorSpace
+import Graphics.Image.Interface
+import Graphics.Image.IO.Base
+import Graphics.Image.IO.Formats
 
 -- | External viewing application to use for displaying images.
 data ExternalViewer =

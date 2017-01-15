@@ -24,7 +24,6 @@ import Data.Array.Repa.Index
 import qualified Data.Array.Repa as R 
 import qualified Data.Array.Repa.Eval as R
 import qualified Data.Array.Repa.Repr.ForeignPtr as R
-import Data.Typeable (Typeable)
 import qualified Data.Vector.Storable as VS
 import Foreign.Storable
 
@@ -55,9 +54,9 @@ type instance Repr (RP IVS.S) = R.F
 
 instance SuperClass RSS cs e => BaseArray RSS cs e where
   type SuperClass RSS cs e =
-    (ColorSpace cs, Num e, Typeable e,
+    (ColorSpace cs e, Num (Pixel cs e),
      Storable e, Storable (Pixel cs e),
-     R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
+     R.Elt e, R.Elt (Pixel cs e))
   
   data Image RSS cs e = SSImage !(Image (RS IVS.S) cs e)
                        
@@ -132,9 +131,10 @@ instance (BaseArray RSS cs e) => Array RSS cs e where
 
 instance SuperClass RPS cs e => BaseArray RPS cs e where
   type SuperClass RPS cs e =
-    (ColorSpace cs, Num e, Typeable e, Storable e, Storable (Pixel cs e),
-     IVU.Unbox e, IVU.Unbox (PixelElt cs e),
-     R.Elt e, R.Elt (PixelElt cs e), R.Elt (Pixel cs e))
+    (ColorSpace cs e, Num (Pixel cs e),
+     Storable e, Storable (Pixel cs e),
+     IVU.Unbox e, IVU.Unbox (Components cs e),
+     R.Elt e, R.Elt (Pixel cs e))
   
   data Image RPS cs e = PSImage !(Image (RP IVS.S) cs e)
                        

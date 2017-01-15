@@ -37,31 +37,31 @@ infix 6 !+!
 -- >>> frog !+! frog
 -- <Image VectorUnboxed RGB (Complex Double): 200x320>
 --
-(!+!) :: (Array arr cs e, Array arr cs (Complex e)) =>
+(!+!) :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e)) =>
          Image arr cs e -> Image arr cs e -> Image arr cs (Complex e)
 (!+!) = zipWith (+:)
 {-# INLINE (!+!) #-}
 
 -- | Extracts the real part of a complex image.
-realPartI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+realPartI :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
              Image arr cs (Complex e) -> Image arr cs e
 realPartI = map realPart
 {-# INLINE realPartI #-}
 
 -- | Extracts the imaginary part of a complex image.
-imagPartI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+imagPartI :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
              Image arr cs (Complex e) -> Image arr cs e
 imagPartI = map imagPart
 {-# INLINE imagPartI #-}
 
 -- | Form a complex image from polar components of magnitude and phase.
-mkPolarI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+mkPolarI :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
             Image arr cs e -> Image arr cs e -> Image arr cs (Complex e)
 mkPolarI = zipWith mkPolar
 {-# INLINE mkPolarI #-}
 
 -- | @'cisI' t@ is a complex image with magnitude 1 and phase t (modulo @2*'pi'@).
-cisI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+cisI :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
         Image arr cs e -> Image arr cs (Complex e)
 cisI = map cis
 {-# INLINE cisI #-}
@@ -69,26 +69,26 @@ cisI = map cis
 -- | The function @'polar''@ takes a complex image and returns a (magnitude, phase)
 -- pair of images in canonical form: the magnitude is nonnegative, and the phase
 -- in the range @(-'pi', 'pi']@; if the magnitude is zero, then so is the phase.
-polarI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+polarI :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
           Image arr cs (Complex e) -> (Image arr cs e, Image arr cs e)
 polarI !zImg = (magnitudeI zImg, phaseI zImg)
 {-# INLINE polarI #-}
 
 -- | The nonnegative magnitude of a complex image.
-magnitudeI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+magnitudeI :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
               Image arr cs (Complex e) -> Image arr cs e
 magnitudeI = map magnitude
 {-# INLINE magnitudeI #-}
 
 -- | The phase of a complex image, in the range @(-'pi', 'pi']@. If the
 -- magnitude is zero, then so is the phase.
-phaseI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+phaseI :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
           Image arr cs (Complex e) -> Image arr cs e
 phaseI = map phase
 {-# INLINE phaseI #-}
 
 -- | The conjugate of a complex image.
-conjugateI :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+conjugateI :: (Applicative (Pixel cs), Array arr cs (Complex e), RealFloat e) =>
               Image arr cs (Complex e) -> Image arr cs (Complex e)
 conjugateI = map conjugate
 {-# INLINE conjugateI #-}
@@ -111,7 +111,8 @@ makeFilter !(m, n) !getPx
 
 
 -- | Apply a filter to an image created by 'makeFilter'.
-applyFilter :: (Array arr cs e, Array arr cs (Complex e), RealFloat e) =>
+applyFilter :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e),
+                Fractional (Pixel cs (Complex e)), Floating (Pixel cs e), RealFloat e) =>
                Image arr cs e -- ^ Source image.
             -> Image arr cs e -- ^ Filter.
             -> Image arr cs e
