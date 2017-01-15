@@ -26,11 +26,11 @@ import qualified Prelude as P (map)
 import Control.DeepSeq (NFData, deepseq)
 import Control.Monad
 import Control.Monad.ST
-import Data.Foldable (forM_)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Functor
 #endif
 import Data.Primitive.MutVar
+import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Generic.Mutable as MVG
 import Graphics.Image.Interface as I
@@ -74,8 +74,8 @@ instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
                  -> Int -> Int -> Int -> Int
                  -> ST s ()
       nestedLoop !mv !getPx !fi !fj !ti !tj = do
-        forM_ [fi .. ti-1] $ \i ->
-          forM_ [fj .. tj-1] $ \j ->
+        VU.forM_ (VU.enumFromN fi (ti-1)) $ \i ->
+          VU.forM_ (VU.enumFromN fj (tj-1)) $ \j ->
             MVG.write mv (fromIx n (i,j)) (getPx (i, j))
       {-# INLINE nestedLoop #-}
       generate :: ST s ((VG.Mutable (Repr (V r))) s (Pixel cs e))

@@ -56,6 +56,7 @@ instance SuperClass RSS cs e => BaseArray RSS cs e where
   type SuperClass RSS cs e =
     (ColorSpace cs e, Num (Pixel cs e),
      Storable e, Storable (Pixel cs e),
+     IVU.Unbox e, IVU.Unbox (Components cs e), 
      R.Elt e, R.Elt (Pixel cs e))
   
   data Image RSS cs e = SSImage !(Image (RS IVS.S) cs e)

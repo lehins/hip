@@ -8,8 +8,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 #if __GLASGOW_HASKELL__ >= 800
-  {-# OPTIONS_GHC -Wno-redundant-constraints #-}
-  {-# LANGUAGE UndecidableSuperClasses #-}
+    {-# OPTIONS_GHC -Wno-redundant-constraints #-}
+    {-# LANGUAGE UndecidableSuperClasses #-}
 #endif
 {-# LANGUAGE ViewPatterns #-}
 -- |
@@ -26,15 +26,18 @@ module Graphics.Image.Interface (
   Exchangable(..), exchangeFrom,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   fromIx, toIx, checkDims
+#if !MIN_VERSION_base(4,8,0)
+  , module Control.Applicative
+  , Foldable
+#endif
   ) where
 
 import Prelude hiding (and, map, zipWith, sum, product)
 #if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (Monoid)
-import Data.Foldable (Foldable(foldMap))
+import Control.Applicative
 #endif
 import Data.Maybe (fromMaybe)
-import Data.Foldable (foldr')
+import Data.Foldable
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
 import Control.DeepSeq (NFData(rnf), deepseq)
@@ -97,46 +100,6 @@ class (Eq cs, Enum cs, Show cs, Typeable cs, Elevator e, Typeable e) => ColorSpa
   toListPx !px = foldr' f [] (enumFrom (toEnum 0))
     where f !cs !ls = getPxC px cs:ls
 
--- -- | This class has all included color spaces installed into it and is also
--- -- intended for implementing any other possible custom color spaces. Every
--- -- instance of this class automatically installs an associated 'Pixel' into
--- -- 'Num', 'Fractional', 'Floating', 'Functor', 'Applicative' and 'Foldable',
--- -- which in turn make it possible to be used by the rest of the library.
--- class (Eq cs, Enum cs, Show cs, Typeable cs)
---       => ColorSpace cs where
-  
---   -- | Representation of a pixel, such that it can be an element of any
---   -- Array. Which is usally a tuple of channels or a channel itself for single
---   -- channel color spaces.
---   type PixelElt cs e
-
---   -- | Construt a pixel by replicating a same value among all of the channels.
---   fromChannel :: e -> Pixel cs e
-
---   -- | Convert a Pixel to a representation suitable for storage as an unboxed
---   -- element, usually a tuple of channels.
---   toElt :: Pixel cs e -> PixelElt cs e
-
---   -- | Convert from an elemnt representation back to a Pixel.
---   fromElt :: PixelElt cs e -> Pixel cs e
-
---   -- | Retrieve Pixel's channel value
---   getPxCh :: Pixel cs e -> cs -> e
-  
---   -- | Map a channel aware function over all Pixel's channels.
---   chOp :: (cs -> e' -> e) -> Pixel cs e' -> Pixel cs e 
-
---   -- | Map a function over all Pixel's channels.
---   pxOp :: (e' -> e) -> Pixel cs e' -> Pixel cs e
-
---   -- | Function application to a Pixel.
---   chApp :: Pixel cs (e' -> e) -> Pixel cs e' -> Pixel cs e
-
---   -- | A pixel eqiuvalent of 'foldMap'.
---   pxFoldMap :: Monoid m => (e -> m) -> Pixel cs e -> m
-
---   -- | Get a pure colour representation of a channel.
---   csColour :: cs -> C.AlphaColour Double
   
 
 -- | A color space that supports transparency.
@@ -565,80 +528,6 @@ checkDims err !ds@(m, n)
     show err ++ ": Image dimensions are expected to be non-negative: " ++ show ds
   | otherwise = ds
 {-# INLINE checkDims #-}
-
-
-
--- instance ColorSpace cs => Functor (Pixel cs) where
-
---   fmap = pxOp
---   {-# INLINE fmap #-}
-  
--- instance ColorSpace cs => Applicative (Pixel cs) where
-
---   pure = fromChannel
---   {-# INLINE pure #-}
-
---   (<*>) = chApp
---   {-# INLINE (<*>) #-}
-
-
--- instance ColorSpace cs => Foldable (Pixel cs) where
-
---   foldMap = pxFoldMap
---   {-# INLINE foldMap #-}
-
-
-
--- instance (ColorSpace cs, Fractional e) => Fractional (Pixel cs e) where
---   (/)          = liftA2 (/)
---   {-# INLINE (/) #-}
-  
---   recip        = liftA recip
---   {-# INLINE recip #-}
-
---   fromRational = pure . fromRational
---   {-# INLINE fromRational #-}
-
-
--- instance (ColorSpace cs, Floating e) => Floating (Pixel cs e) where
---   pi      = fromChannel pi
---   {-# INLINE pi #-}
-
---   exp     = liftA exp
---   {-# INLINE exp #-}
-
---   log     = liftA log
---   {-# INLINE log #-}
-  
---   sin     = liftA sin
---   {-# INLINE sin #-}
-  
---   cos     = liftA cos
---   {-# INLINE cos #-}
-  
---   asin    = liftA asin
---   {-# INLINE asin #-}
-  
---   atan    = liftA atan
---   {-# INLINE atan #-}
-  
---   acos    = liftA acos
---   {-# INLINE acos #-}
-  
---   sinh    = liftA sinh
---   {-# INLINE sinh #-}
-  
---   cosh    = liftA cosh
---   {-# INLINE cosh #-}
-  
---   asinh   = liftA asinh
---   {-# INLINE asinh #-}
-  
---   atanh   = liftA atanh
---   {-# INLINE atanh #-}
-  
---   acosh   = liftA acosh
---   {-# INLINE acosh #-}
 
 
 instance (Applicative (Pixel cs), Bounded e) => Bounded (Pixel cs e) where

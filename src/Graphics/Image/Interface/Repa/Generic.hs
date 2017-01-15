@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -8,6 +8,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 800
+    {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
+#endif
 -- |
 -- Module      : Graphics.Image.Interface.Repa.Generic
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -54,6 +58,7 @@ instance SuperClass (RS r) cs e => BaseArray (RS r) cs e where
   type SuperClass (RS r) cs e =
     (Show r, ColorSpace cs e, Num (Pixel cs e), R.Elt (Pixel cs e), R.Elt e, 
      R.Target (Repr (RS r)) (Pixel cs e), R.Source (Repr (RS r)) (Pixel cs e),
+     IVU.Unbox e, IVU.Unbox (Components cs e), 
      BaseArray (IVG.V r) cs e, Repr (RP r) ~ Repr (RS r))
   
   data Image (RS r) cs e = SScalar !(Pixel cs e)
@@ -393,7 +398,8 @@ fromListsR ls =
 
 
 multR
-  :: (Num (Pixel cs e), R.Elt (Pixel cs e), R.Target r (Pixel cs e), R.Source r (Pixel cs e))
+  :: (ColorSpace cs e, IVU.Unbox (Components cs e), Num (Pixel cs e), R.Elt (Pixel cs e),
+      R.Target r (Pixel cs e), R.Source r (Pixel cs e))
   => String -> R.Array r DIM2 (Pixel cs e) -> R.Array r DIM2 (Pixel cs e) -> R.Array R.D DIM2 (Pixel cs e)
 multR errMsg !arr1 !arr2 =
   if n1 /= m2
@@ -411,7 +417,7 @@ multR errMsg !arr1 !arr2 =
 {-# INLINE multR #-}
 
 
-singletonR :: R.Target r a => a -> R.Array r DIM2 a
+singletonR :: (IVU.Unbox a, R.Target r a) => a -> R.Array r DIM2 a
 singletonR !px = R.computeS $ R.fromFunction (Z :. 1 :. 1) $ const px
 
 
@@ -460,7 +466,7 @@ addIxArr !arr = R.zipWith (,) arrIx arr
 
 
 foldIxS
-  :: R.Source r2 b =>
+  :: (R.Elt b, R.Source r2 b, IVU.Unbox b) =>
      (b -> (Int, Int) -> b -> b) -> b -> R.Array r2 DIM2 b -> b
 foldIxS f !acc !arr = snd $ R.foldAllS g ((-1, 0), acc) arr'
   where
@@ -474,7 +480,7 @@ foldIxS f !acc !arr = snd $ R.foldAllS g ((-1, 0), acc) arr'
 
 
 foldIxPUnboxed
-  :: (R.Source r2 b, IVU.Unbox b, Monad m)
+  :: (R.Source r2 b, IVU.Unbox b, R.Elt b, Functor m, Monad m)
   => (b -> (Int, Int) -> b -> b) -> b -> R.Array r2 DIM2 b -> m b
 foldIxPUnboxed f !acc !arr = snd <$> R.foldAllP g ((-1, 0), acc) arr'
   where

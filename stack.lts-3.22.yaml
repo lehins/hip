@@ -6,3 +6,5 @@ extra-deps:
 - storable-record-0.0.3.1
 - utility-ht-0.0.12
 resolver: lts-3.22
+ghc-options:
+  "*": -fsimpl-tick-factor=135
