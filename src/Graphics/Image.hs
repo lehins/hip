@@ -17,11 +17,11 @@
 -- * @__`Array` arr cs e__@ - this is a base class for every
 -- __@`Image`@ @arr@ @cs@ @e@__, where @__arr__@ stands for an underlying array
 -- representation, @__cs__@ is the `ColorSpace` of an image and @__e__@ is the
--- type denoting precision of an image.
+-- type denoting precision of an image (@Int@, @Word@, @Double@, etc.) .
 --
 -- * @__`MArray` arr cs e__@ - is a kind of array, that can be indexed in
--- constant time and allows monadic operations and mutation on __@`MImage`@ @st@
--- @arr@ @cs@ @e@__, which is `Image`'s mutable cousin.
+-- constant time and allows monadic operations and mutation on
+-- __@`MImage`@ @st@ @arr@ @cs@ @e@__, which is `Image`'s mutable cousin.
 --
 -- Array representation type and the above classes it is installed in determine
 -- operations that can be done on the image with that representation.
@@ -29,19 +29,22 @@
 -- Representations using <http://hackage.haskell.org/package/vector Vector> and
 -- <http://hackage.haskell.org/package/repa Repa> packages:
 --
--- * `VU` - Unboxed Vector representation. (Default)
--- * `RS` - Unboxed Repa array representation (computation is done sequentially).
--- * `RP` - Unboxed Repa array representation (computation is done in parallel).
+-- * `VS` - Vector Storable representation. (Default)
+-- * `VU` - Vector Unboxed representation.
+-- * `RSU` - Repa Sequential Unboxed array representation (computation is done sequentially).
+-- * `RPU` - Repa Parallel Unboxed array representation (computation is done in parallel).
+-- * `RSS` - Repa Sequential Storable array representation (computation is done sequentially).
+-- * `RPS` - Repa Parallel Storable array representation (computation is done in parallel).
 --
--- Images with `RS` and `RP` types, most of the time hold functions rather then
+-- Images with `RSU` and `RPU` types, most of the time hold functions rather then
 -- actual data, this way computation can be fused together, and later changed to
 -- `VU` using `toManifest`, which in turn performs the fused computation. If at
 -- any time computation needs to be forced, `compute` can be used for that
 -- purpose.
 --
--- Just as it is mentioned above, Vector representation is a default one, so in
--- order to create images with Repa representation
--- "Graphics.Image.Interface.Repa" module should be used.
+-- Storable is a default one, because it is cheaper to read\/write images to\/from
+-- file with that representation, but it is very easy to change underlying image
+-- representation by using `exchange` function.
 --
 -- Many of the function names exported by this module will clash with the ones
 -- from "Prelude", hence it can be more convenient to import it qualified and
@@ -66,9 +69,9 @@ module Graphics.Image (
   -- representation, `makeImage` function can be used with a manual type
   -- specification of result image, eg:
   --
-  -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RP Y Word8 @
+  -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RPU Y Word8 @
   --
-  makeImageR, makeImage, fromLists, toLists,
+  makeImageR, makeImage, fromListsR, fromLists, toLists,
   -- * IO
   -- ** Reading
   -- | Read supported files into an 'Image' with pixels in 'Double'
@@ -76,15 +79,15 @@ module Graphics.Image (
   -- space or precision, use 'readImage' or 'readImageExact' from
   -- <Graphics-Image-IO.html Graphics.Image.IO> instead. While reading an
   -- image, it's underlying representation can be specified by passing one of
-  -- `VU`, `RS` or `RP` as the first argument to @readImage*@ functions. Here is
+  -- `VU`, `RSU` or `RPU` as the first argument to @readImage*@ functions. Here is
   -- a quick demonstration of how two images can be read as different
   -- representations and later easily combined as their average.
   --
-  -- >>> cluster <- readImageRGB RP "images/cluster.jpg"
+  -- >>> cluster <- readImageRGB RPU "images/cluster.jpg"
   -- >>> displayImage cluster
   -- >>> centaurus <- readImageRGB VU "images/centaurus.jpg"
   -- >>> displayImage centaurus
-  -- >>> displayImage ((cluster + exchange RP centaurus) / 2)
+  -- >>> displayImage ((cluster + exchange RPU centaurus) / 2)
   --
   -- <<images/cluster.jpg>> <<images/centaurus.jpg>> <<images/centaurus_and_cluster.jpg>>
   --
@@ -107,7 +110,6 @@ module Graphics.Image (
   fold, sum, product, maximum, minimum, normalize,
   -- * Representations
   exchange,
-  VU(..), RS(..), RP(..),
   module IP
   ) where
 
@@ -134,7 +136,7 @@ import Graphics.Image.IO.Histogram as IP
 --
 -- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
 --
--- >>> let grad_gray = makeImageR RP (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+-- >>> let grad_gray = makeImageR RPU (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
 -- >>> writeImage "images/grad_gray.png" grad_gray
 --
 -- Creating color images is just as easy.
@@ -229,18 +231,24 @@ minimum !img = fold min (index00 img) img
 
 
 -- | Scales all of the pixels to be in the range @[0, 1]@.
-normalize :: (Array arr cs e, Array arr Gray e, Fractional e, Ord e) =>
+normalize :: (Array arr cs e, Array arr Gray e, Fractional e,
+              Fractional (Pixel cs e), Ord e) =>
              Image arr cs e -> Image arr cs e
 normalize !img = if l == s
                  then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
                  else I.map normalizer img
   where
-    !(PixelGray l, PixelGray s) = (maximum $ I.map (PixelGray . F.maximum) img,
-                                   minimum $ I.map (PixelGray . F.minimum) img)
-    normalizer !px = (px - fromChannel s) / fromChannel (l - s)
+    !(PixelGray l, PixelGray s) = (maximum (I.map (PixelGray . foldl1Px max) img),
+                                   minimum (I.map (PixelGray . foldl1Px min) img))
+    normalizer !px = (px - broadcastC s) / broadcastC (l - s)
     {-# INLINE normalizer #-}
 {-# INLINE normalize #-}
 
+
+-- | Type restricted version of `fromLists` that constructs an image using
+-- supplied representation.
+fromListsR :: Array arr cs e => arr -> [[Pixel cs e]] -> Image arr cs e
+fromListsR _ = fromLists
 
 -- | Generates a nested list of pixels from an image.
 --

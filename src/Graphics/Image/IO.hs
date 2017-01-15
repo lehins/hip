@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image.IO
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -41,10 +41,6 @@ import Data.Char (toLower)
 import Data.Maybe (fromMaybe)
 
 import qualified Data.ByteString as B (readFile)
-import Graphics.Image.ColorSpace
-import Graphics.Image.Interface
-import Graphics.Image.IO.Base
-import Graphics.Image.IO.Formats
 import qualified Data.ByteString.Lazy as BL (writeFile, hPut)
 import System.Directory (createDirectoryIfMissing, getTemporaryDirectory)
 import System.FilePath (takeExtension, (</>))
@@ -52,6 +48,10 @@ import System.IO (hClose, openBinaryTempFile)
 import System.Process (readProcess)
 import Control.Exception (bracket)
 
+import Graphics.Image.ColorSpace
+import Graphics.Image.Interface
+import Graphics.Image.IO.Base
+import Graphics.Image.IO.Formats
 
 -- | External viewing application to use for displaying images.
 data ExternalViewer =
@@ -111,12 +111,12 @@ readImage path = do
 -- Attempt to read an image in a particular color space that is not supported by
 -- the format, will result in a compile error. Refer to 'Readable' class for all
 -- images that can be decoded.
-readImageExact :: Readable img format =>
+readImageExact :: Readable (Image arr cs e) format =>
                   format
                   -- ^ A file format that an image should be read as. See
                    -- <#g:4 Supported Image Formats>
                -> FilePath -- ^ Location of an image.
-               -> IO (Either String img)
+               -> IO (Either String (Image arr cs e))
 readImageExact format path = fmap (decode format) (B.readFile path)
 
 
@@ -144,20 +144,20 @@ writeImage path = BL.writeFile path . encode format [] where
 -- options. Precision and color space, that an image will be written as, is decided
 -- from image's type. Attempt to write image file in a format that does not
 -- support color space and precision combination will result in a compile error.
-writeImageExact :: Writable img format =>
+writeImageExact :: Writable (Image arr cs e) format =>
                    format
                    -- ^ A file format that an image should be saved in. See
                    -- <#g:4 Supported Image Formats>
                 -> [SaveOption format] -- ^ A list of format specific options.
                 -> FilePath -- ^ Location where an image should be written.
-                -> img -- ^ An image to write. Can be a list of images in case
+                -> (Image arr cs e) -- ^ An image to write. Can be a list of images in case
                        -- of formats supporting animation.
                 -> IO ()
 writeImageExact format opts path = BL.writeFile path . encode format opts
   
 
-{- | An image is written as a @.tiff@ file into an operating system's temporary
-directory and passed as an argument to the external viewer program. -}
+-- | An image is written as a @.tiff@ file into an operating system's temporary
+-- directory and passed as an argument to the external viewer program.
 displayImageUsing :: Writable (Image arr cs e) TIF =>
                      ExternalViewer -- ^ External viewer to use
                   -> Bool -- ^ Should the call be blocking

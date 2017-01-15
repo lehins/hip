@@ -2,10 +2,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.CMYK
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -17,11 +19,17 @@ module Graphics.Image.ColorSpace.CMYK (
   ) where
 
 import Prelude hiding (map)
-import Graphics.Image.Interface
+import Control.Applicative
+import Data.Foldable
 import Data.Typeable (Typeable)
-import qualified Data.Monoid as M (mappend)
-import qualified Data.Colour as C
-import qualified Data.Colour.Names as C
+import Foreign.Ptr
+import Foreign.Storable
+
+import Graphics.Image.Interface
+
+------------
+--- CMYK ---
+------------
 
 -- | Cyan, Magenta, Yellow and Black color space.
 data CMYK = CyanCMYK -- ^ Cyan
@@ -29,6 +37,141 @@ data CMYK = CyanCMYK -- ^ Cyan
           | YelCMYK  -- ^ Yellow
           | KeyCMYK  -- ^ Key (Black)
           deriving (Eq, Enum, Typeable)
+
+instance Show CMYK where
+  show CyanCMYK = "Cyan"
+  show MagCMYK  = "Magenta"
+  show YelCMYK  = "Yellow"
+  show KeyCMYK  = "Black"
+
+
+instance Show e => Show (Pixel CMYK e) where
+  show (PixelCMYK c m y k) = "<CMYK:("++show c++"|"++show m++"|"++show y++"|"++show k++")>"
+
+
+data instance Pixel CMYK e = PixelCMYK !e !e !e !e deriving Eq
+
+instance (Elevator e, Typeable e) => ColorSpace CMYK e where
+  type Components CMYK e = (e, e, e, e)
+  
+  fromComponents !(c, m, y, k) = PixelCMYK c m y k
+  {-# INLINE fromComponents #-}
+  toComponents (PixelCMYK c m y k) = (c, m, y, k)
+  {-# INLINE toComponents #-}
+  broadcastC !e = PixelCMYK e e e e
+  {-# INLINE broadcastC #-}
+  getPxC (PixelCMYK c _ _ _) CyanCMYK = c
+  getPxC (PixelCMYK _ m _ _) MagCMYK  = m
+  getPxC (PixelCMYK _ _ y _) YelCMYK  = y
+  getPxC (PixelCMYK _ _ _ k) KeyCMYK  = k
+  {-# INLINE setPxC #-}
+  setPxC (PixelCMYK _ m y k) CyanCMYK c = PixelCMYK c m y k
+  setPxC (PixelCMYK c _ y k) MagCMYK  m = PixelCMYK c m y k
+  setPxC (PixelCMYK c m _ k) YelCMYK  y = PixelCMYK c m y k
+  setPxC (PixelCMYK c m y _) KeyCMYK  k = PixelCMYK c m y k
+  {-# INLINE getPxC #-}
+  mapPxC f (PixelCMYK c m y k) =
+    PixelCMYK (f CyanCMYK c) (f MagCMYK m) (f YelCMYK y) (f KeyCMYK k)
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
+
+
+instance Functor (Pixel CMYK) where
+  fmap f (PixelCMYK c m y k) = PixelCMYK (f c) (f m) (f y) (f k)
+  {-# INLINE fmap #-}
+
+
+instance Applicative (Pixel CMYK) where
+  pure !e = PixelCMYK e e e e
+  {-# INLINE pure #-}
+  (PixelCMYK fc fm fy fk) <*> (PixelCMYK c m y k) = PixelCMYK (fc c) (fm m) (fy y) (fk k)
+  {-# INLINE (<*>) #-}
+
+
+instance Foldable (Pixel CMYK) where
+  foldr f !z (PixelCMYK c m y k) = f c (f m (f y (f k z)))
+  {-# INLINE foldr #-}
+
+
+instance Num e => Num (Pixel CMYK e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+
+
+instance Fractional e => Fractional (Pixel CMYK e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance Floating e => Floating (Pixel CMYK e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
+
+
+instance Storable e => Storable (Pixel CMYK e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    c <- peek q
+    m <- peekElemOff q 1
+    y <- peekElemOff q 2
+    k <- peekElemOff q 3
+    return (PixelCMYK c m y k)
+  poke p (PixelCMYK c m y k) = do
+    q <- return $ castPtr p
+    poke q c
+    pokeElemOff q 1 m
+    pokeElemOff q 2 y
+    pokeElemOff q 3 k
+
+-------------
+--- CMYKA ---
+-------------
 
 -- | Cyan, Magenta, Yellow and Black color space with Alpha channel.
 data CMYKA = CyanCMYKA  -- ^ Cyan
@@ -40,7 +183,7 @@ data CMYKA = CyanCMYKA  -- ^ Cyan
 
 
 -- | Conversion to `CMYK` color space.
-class ColorSpace cs => ToCMYK cs where
+class ColorSpace cs Double => ToCMYK cs where
 
   -- | Convert to a `CMYK` pixel.
   toPixelCMYK :: Pixel cs Double -> Pixel CMYK Double
@@ -53,8 +196,9 @@ class ColorSpace cs => ToCMYK cs where
   {-# INLINE toImageCMYK #-}
 
 
+
 -- | Conversion to `CMYKA` from another color space with Alpha channel.
-class (ToCMYK (Opaque cs), Alpha cs) => ToCMYKA cs where
+class (ToCMYK (Opaque cs), AlphaSpace cs Double) => ToCMYKA cs where
 
   -- | Convert to a `CMYKA` pixel.
   toPixelCMYKA :: Pixel cs Double -> Pixel CMYKA Double
@@ -68,85 +212,55 @@ class (ToCMYK (Opaque cs), Alpha cs) => ToCMYKA cs where
   toImageCMYKA = map toPixelCMYKA
   {-# INLINE toImageCMYKA #-}
 
+data instance Pixel CMYKA e = PixelCMYKA !e !e !e !e !e deriving Eq
+
+
+instance Show CMYKA where
+  show CyanCMYKA  = "Cyan"
+  show MagCMYKA   = "Magenta"
+  show YelCMYKA   = "Yellow"
+  show KeyCMYKA   = "Black"
+  show AlphaCMYKA = "Alpha"
+ 
+
+instance Show e => Show (Pixel CMYKA e) where
+  show (PixelCMYKA c m y k a) =
+    "<CMYKA:("++show c++"|"++show m++"|"++show y++"|"++show k++"|"++show a++")>"
+
+
+instance (Elevator e, Typeable e) => ColorSpace CMYKA e where
+  type Components CMYKA e = (e, e, e, e, e)
   
-instance ColorSpace CMYK where
-  type PixelElt CMYK e = (e, e, e, e)
-  data Pixel CMYK e = PixelCMYK !e !e !e !e deriving Eq
-
-  fromChannel !e = PixelCMYK e e e e
-  {-# INLINE fromChannel #-}
-
-  fromElt !(c, m, y, k) = PixelCMYK c m y k
-  {-# INLINE fromElt #-}
-
-  toElt (PixelCMYK c m y k) = (c, m, y, k)
-  {-# INLINE toElt #-}
-
-  getPxCh (PixelCMYK c _ _ _) CyanCMYK = c
-  getPxCh (PixelCMYK _ m _ _) MagCMYK  = m
-  getPxCh (PixelCMYK _ _ y _) YelCMYK  = y
-  getPxCh (PixelCMYK _ _ _ k) KeyCMYK  = k
-  {-# INLINE getPxCh #-}
-  
-  chOp !f (PixelCMYK c m y k) =
-    PixelCMYK (f CyanCMYK c) (f MagCMYK m) (f YelCMYK y) (f KeyCMYK k)
-  {-# INLINE chOp #-}
-
-  pxOp !f (PixelCMYK c m y k) = PixelCMYK (f c) (f m) (f y) (f k)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelCMYK fc fm fy fk) (PixelCMYK c m y k) = PixelCMYK (fc c) (fm m) (fy y) (fk k)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelCMYK c m y k) = f c `M.mappend` f m `M.mappend` f y `M.mappend` f k
-  {-# INLINE pxFoldMap #-}
-
-  csColour CyanCMYK = C.opaque C.cyan
-  csColour MagCMYK  = C.opaque C.magenta
-  csColour YelCMYK  = C.opaque C.yellow
-  csColour KeyCMYK  = C.opaque C.black
-
-
-instance ColorSpace CMYKA where
-  type PixelElt CMYKA e = (e, e, e, e, e)
-  data Pixel CMYKA e = PixelCMYKA !e !e !e !e !e deriving Eq
-
-  fromChannel !e = PixelCMYKA e e e e e
-  {-# INLINE fromChannel #-}
-
-  fromElt (c, m, y, k, a) = PixelCMYKA c m y k a
-  {-# INLINE fromElt #-}
-
-  toElt (PixelCMYKA c m y k a) = (c, m, y, k, a)
-  {-# INLINE toElt #-}
-
-  getPxCh (PixelCMYKA c _ _ _ _) CyanCMYKA  = c
-  getPxCh (PixelCMYKA _ m _ _ _) MagCMYKA   = m
-  getPxCh (PixelCMYKA _ _ y _ _) YelCMYKA   = y
-  getPxCh (PixelCMYKA _ _ _ k _) KeyCMYKA   = k
-  getPxCh (PixelCMYKA _ _ _ _ a) AlphaCMYKA = a
-  {-# INLINE getPxCh #-}
-  
-  chOp !f (PixelCMYKA c m y k a) =
+  fromComponents !(c, m, y, k, a) = PixelCMYKA c m y k a
+  {-# INLINE fromComponents #-}
+  toComponents (PixelCMYKA c m y k a) = (c, m, y, k, a)
+  {-# INLINE toComponents #-}
+  broadcastC !e = PixelCMYKA e e e e e
+  {-# INLINE broadcastC #-}
+  getPxC (PixelCMYKA c _ _ _ _) CyanCMYKA  = c
+  getPxC (PixelCMYKA _ m _ _ _) MagCMYKA   = m
+  getPxC (PixelCMYKA _ _ y _ _) YelCMYKA   = y
+  getPxC (PixelCMYKA _ _ _ k _) KeyCMYKA   = k
+  getPxC (PixelCMYKA _ _ _ _ a) AlphaCMYKA = a
+  {-# INLINE getPxC #-}
+  setPxC (PixelCMYKA _ m y k a) CyanCMYKA  c = PixelCMYKA c m y k a
+  setPxC (PixelCMYKA c _ y k a) MagCMYKA   m = PixelCMYKA c m y k a
+  setPxC (PixelCMYKA c m _ k a) YelCMYKA   y = PixelCMYKA c m y k a
+  setPxC (PixelCMYKA c m y _ a) KeyCMYKA   k = PixelCMYKA c m y k a
+  setPxC (PixelCMYKA c m y k _) AlphaCMYKA a = PixelCMYKA c m y k a
+  {-# INLINE setPxC #-}
+  mapPxC f (PixelCMYKA c m y k a) =
     PixelCMYKA (f CyanCMYKA c) (f MagCMYKA m) (f YelCMYKA y) (f KeyCMYKA k) (f AlphaCMYKA a)
-  {-# INLINE chOp #-}
-
-  pxOp !f (PixelCMYKA c m y k a) = PixelCMYKA (f c) (f m) (f y) (f k) (f a)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelCMYKA fc fm fy fk fa) (PixelCMYKA c m y k a) =
-    PixelCMYKA (fc c) (fm m) (fy y) (fk k) (fa a)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelCMYKA c m y k a) =
-    f c `M.mappend` f m `M.mappend` f y `M.mappend` f k `M.mappend` f a
-  {-# INLINE pxFoldMap #-}
-
-  csColour AlphaCMYKA = C.opaque C.grey
-  csColour ch         = csColour $ opaque ch
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
 
 
-instance Alpha CMYKA where
+instance (Elevator e, Typeable e) => AlphaSpace CMYKA e where
   type Opaque CMYKA = CMYK
 
   getAlpha (PixelCMYKA _ _ _ _ a) = a
@@ -158,32 +272,94 @@ instance Alpha CMYKA where
   dropAlpha (PixelCMYKA c m y k _) = PixelCMYK c m y k
   {-# INLINE dropAlpha #-}
 
-  opaque CyanCMYKA  = CyanCMYK
-  opaque MagCMYKA   = MagCMYK
-  opaque YelCMYKA   = YelCMYK
-  opaque KeyCMYKA   = KeyCMYK
-  opaque AlphaCMYKA = error "Data.Image.ColorSpace.CMYK (Alpha.opaque)"
-  
 
-instance Show CMYK where
-  show CyanCMYK = "Cyan"
-  show MagCMYK  = "Magenta"
-  show YelCMYK  = "Yellow"
-  show KeyCMYK  = "Black"
+instance Functor (Pixel CMYKA) where
+  fmap f (PixelCMYKA c m y k a) = PixelCMYKA (f c) (f m) (f y) (f k) (f a)
+  {-# INLINE fmap #-}
 
 
-instance Show CMYKA where
-  show AlphaCMYKA = "Alpha"
-  show ch         = show $ opaque ch
-
-  
-instance Show e => Show (Pixel CMYK e) where
-  show (PixelCMYK c m y k) = "<CMYK:("++show c++"|"++show m++"|"++show y++"|"++show k++")>"
-
-
-instance Show e => Show (Pixel CMYKA e) where
-  show (PixelCMYKA c m y k a) =
-    "<CMYKA:("++show c++"|"++show m++"|"++show y++"|"++show k++"|"++show a++")>"
+instance Applicative (Pixel CMYKA) where
+  pure !e = PixelCMYKA e e e e e
+  {-# INLINE pure #-}
+  (PixelCMYKA fc fm fy fk fa) <*> (PixelCMYKA c m y k a) =
+    PixelCMYKA (fc c) (fm m) (fy y) (fk k) (fa a)
+  {-# INLINE (<*>) #-}
 
 
+instance Foldable (Pixel CMYKA) where
+  foldr f !z (PixelCMYKA c m y k a) = f c (f m (f y (f k (f a z))))
+  {-# INLINE foldr #-}
 
+
+instance Num e => Num (Pixel CMYKA e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+
+
+instance Fractional e => Fractional (Pixel CMYKA e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance Floating e => Floating (Pixel CMYKA e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
+
+
+instance Storable e => Storable (Pixel CMYKA e) where
+
+  sizeOf _ = 3 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    c <- peek q
+    m <- peekElemOff q 1
+    y <- peekElemOff q 2
+    k <- peekElemOff q 3
+    a <- peekElemOff q 4
+    return (PixelCMYKA c m y k a)
+  poke p (PixelCMYKA c m y k a) = do
+    q <- return $ castPtr p
+    poke q c
+    pokeElemOff q 1 m
+    pokeElemOff q 2 y
+    pokeElemOff q 3 k
+    pokeElemOff q 4 a

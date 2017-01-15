@@ -18,16 +18,18 @@ module Graphics.Image.IO.Histogram (
 import Prelude as P 
 import Control.Concurrent (forkIO)
 import Control.Monad (void)
+import qualified Data.Colour as C
+import qualified Data.Colour.Names as C
+import qualified Data.Vector.Unboxed as V
+import System.Directory (getTemporaryDirectory)
+import System.FilePath ((</>))
+import System.IO.Temp (createTempDirectory)
+
 import Graphics.Image.Interface as I
 import Graphics.Image.IO
 import Graphics.Image.ColorSpace
 import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Diagrams
-import qualified Data.Colour as C
-import qualified Data.Vector.Unboxed as V
-import System.Directory (getTemporaryDirectory)
-import System.FilePath ((</>))
-import System.IO.Temp (createTempDirectory)
 
 #if MIN_VERSION_vector(0,11,0)
 import Data.Vector.Unboxed.Mutable (modify)
@@ -40,6 +42,12 @@ modify v f idx = do
   e <- MV.read v idx
   MV.write v idx $ f e
 #endif
+
+
+class ChannelColour cs where
+ 
+  -- | Get a pure colour representation of a channel.
+  csColour :: cs -> C.AlphaColour Double
 
 
 -- | A single channel histogram of an image.
@@ -57,8 +65,8 @@ data Histogram = Histogram { hBins :: V.Vector Int
 type Histograms = [Histogram]
 
 -- | Create a histogram per channel with 256 bins each.
-getHistograms :: forall arr cs e . (MArray arr Gray e, Array arr Gray e, 
-                                    MArray arr cs e, Array arr cs e, Elevator e) =>
+getHistograms :: forall arr cs e . (ChannelColour cs, MArray arr Gray e, Array arr Gray e, 
+                                    MArray arr cs e, Array arr cs e) =>
                  Image arr cs e
               -> Histograms
 getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogram . toGrayImages
@@ -66,7 +74,7 @@ getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogr
                        , hColour = csColour cs }
 
 -- | Generate a histogram with 256 bins for a single channel Gray image.
-getHistogram :: (MArray arr Gray e, Elevator e) =>
+getHistogram :: MArray arr Gray e =>
                 Image arr Gray e
              -> Histogram
 getHistogram img = Histogram { hBins = V.modify countBins $
@@ -74,7 +82,7 @@ getHistogram img = Histogram { hBins = V.modify countBins $
                                        (1 + fromIntegral (maxBound :: Word8)) (0 :: Int)
                              , hName = show Gray
                              , hColour = csColour Gray } where
-  incBin v (toWord8 -> PixelGray g) = modify v (+1) $ fromIntegral g
+  incBin v (PixelGray g) = modify v (+1) $ fromIntegral (toWord8 g)
   countBins v = I.mapM_ (incBin v) img
   
 
@@ -119,3 +127,64 @@ displayHistogramsUsing viewer block hists = do
   if block
     then display
     else void $ forkIO display
+
+instance ChannelColour Gray where
+  csColour _ = C.opaque C.darkgray
+
+instance ChannelColour Y where
+  csColour _ = C.opaque C.darkgray
+
+instance ChannelColour YA where
+  csColour LumaYA  = csColour LumaY
+  csColour AlphaYA = C.opaque C.gray
+
+
+instance ChannelColour RGB where
+  csColour RedRGB   = C.opaque C.red
+  csColour GreenRGB = C.opaque C.green
+  csColour BlueRGB  = C.opaque C.blue
+
+instance ChannelColour RGBA where
+  csColour RedRGBA   = C.opaque C.red
+  csColour GreenRGBA = C.opaque C.green
+  csColour BlueRGBA  = C.opaque C.blue
+  csColour AlphaRGBA = C.opaque C.gray
+
+
+instance ChannelColour HSI where
+  csColour HueHSI = C.opaque C.purple
+  csColour SatHSI = C.opaque C.orange
+  csColour IntHSI = C.opaque C.darkblue
+
+instance ChannelColour HSIA where
+  csColour HueHSIA = C.opaque C.purple
+  csColour SatHSIA = C.opaque C.orange
+  csColour IntHSIA = C.opaque C.darkblue
+  csColour AlphaHSIA = C.opaque C.gray
+
+
+instance ChannelColour CMYK where
+  csColour CyanCMYK = C.opaque C.cyan
+  csColour MagCMYK  = C.opaque C.magenta
+  csColour YelCMYK  = C.opaque C.yellow
+  csColour KeyCMYK  = C.opaque C.black
+
+instance ChannelColour CMYKA where
+  csColour CyanCMYKA  = csColour CyanCMYK
+  csColour MagCMYKA   = csColour MagCMYK
+  csColour YelCMYKA   = csColour YelCMYK
+  csColour KeyCMYKA   = csColour KeyCMYK
+  csColour AlphaCMYKA = C.opaque C.grey
+
+
+instance ChannelColour YCbCr where
+  csColour LumaYCbCr  = C.opaque C.darkgray
+  csColour CBlueYCbCr = C.opaque C.darkblue
+  csColour CRedYCbCr  = C.opaque C.darkred
+
+
+instance ChannelColour YCbCrA where
+  csColour LumaYCbCrA  = csColour LumaYCbCr
+  csColour CBlueYCbCrA = csColour CBlueYCbCr
+  csColour CRedYCbCrA  = csColour CRedYCbCr
+  csColour AlphaYCbCrA = C.opaque C.gray

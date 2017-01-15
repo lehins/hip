@@ -30,11 +30,11 @@ instance (MArray VU RGB e, Arbitrary e) => Arbitrary (Image VU RGB e) where
     II.mapM (const arbitrary) $ I.makeImage (m, n) (const $ PixelGray (0 :: Double))
   
 
-prop_ToFromElt :: (ColorSpace cs, Eq (Pixel cs e)) =>
-                  Pixel cs e -> Bool
-prop_ToFromElt px = px == fromElt (toElt px)
+prop_ToFromComponents :: (ColorSpace cs e, Eq (Pixel cs e)) =>
+                         Pixel cs e -> Bool
+prop_ToFromComponents px = px == fromComponents (toComponents px)
 
 
 spec :: Spec
 spec = describe "ColorSpace" $ do
-  it "RGBElt" $ property (prop_ToFromElt :: Pixel RGB Int -> Bool)
+  it "RGBComponents" $ property (prop_ToFromComponents :: Pixel RGB Double -> Bool)

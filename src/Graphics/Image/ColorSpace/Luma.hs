@@ -2,6 +2,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.Luma
@@ -17,24 +19,26 @@ module Graphics.Image.ColorSpace.Luma (
   ) where
 
 import Prelude hiding (map)
-import Graphics.Image.Interface
+import Control.Applicative
+import Data.Foldable
 import Data.Typeable (Typeable)
-import qualified Data.Monoid as M (mappend, mempty)
-import qualified Data.Colour as C
-import qualified Data.Colour.Names as C
+import Foreign.Ptr
+import Foreign.Storable
 
--- | Luma or brightness, that is usually denoted as @Y'@.
-data Y = Y deriving (Eq, Enum, Typeable)
+import Graphics.Image.Interface
+
+---------
+--- Y ---
+---------
+
+-- | Luma or brightness, which is usually denoted as @Y'@.
+data Y = LumaY deriving (Eq, Enum, Typeable)
 
 
--- | Luma with Alpha channel.
-data YA = YA      -- ^ Luma
-        | AlphaYA -- ^ Alpha channel
-        deriving (Eq, Enum, Typeable)
-
+data instance Pixel Y e = PixelY !e deriving (Ord, Eq)
 
 -- | Conversion to Luma color space.
-class ColorSpace cs => ToY cs where
+class ColorSpace cs Double => ToY cs where
 
   -- | Convert a pixel to Luma pixel.
   toPixelY :: Pixel cs Double -> Pixel Y Double
@@ -46,9 +50,141 @@ class ColorSpace cs => ToY cs where
   toImageY = map toPixelY
   {-# INLINE toImageY #-}
 
+instance Show Y where
+  show LumaY = "Luma"
+
+instance Show e => Show (Pixel Y e) where
+  show (PixelY g) = "<Luma:("++show g++")>"
+
+instance (Elevator e, Typeable e) => ColorSpace Y e where
+  type Components Y e = e
+  broadcastC = PixelY
+  {-# INLINE broadcastC #-}
+  fromComponents = PixelY
+  {-# INLINE fromComponents #-}
+  toComponents (PixelY y) = y
+  {-# INLINE toComponents #-}
+  getPxC (PixelY y) LumaY = y
+  {-# INLINE getPxC #-}
+  setPxC _ LumaY y = PixelY y
+  {-# INLINE setPxC #-}
+  mapPxC f (PixelY y) = PixelY (f LumaY y)
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
+
+
+instance Functor (Pixel Y) where
+  fmap f (PixelY y) = PixelY (f y)
+  {-# INLINE fmap #-}
+
+
+instance Applicative (Pixel Y) where
+  pure = PixelY
+  {-# INLINE pure #-}
+  (PixelY fy) <*> (PixelY y) = PixelY (fy y)
+  {-# INLINE (<*>) #-}
+
+
+instance Foldable (Pixel Y) where
+  foldr f !z (PixelY y) = f y z
+  {-# INLINE foldr #-}
+
+
+instance Monad (Pixel Y) where
+
+  return = PixelY
+  {-# INLINE return #-}
+
+  (>>=) (PixelY y) f = f y
+  {-# INLINE (>>=) #-}
+
+
+instance Num e => Num (Pixel Y e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
   
+
+instance Fractional e => Fractional (Pixel Y e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance Floating e => Floating (Pixel Y e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
+
+
+instance Storable e => Storable (Pixel Y e) where
+
+  sizeOf _ = sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    y <- peek q
+    return (PixelY y)
+  poke p (PixelY y) = do
+    q <- return $ castPtr p
+    poke q y
+
+
+
+
+----------
+--- YA ---
+----------
+
+-- | Luma with Alpha channel.
+data YA = LumaYA  -- ^ Luma
+        | AlphaYA -- ^ Alpha channel
+        deriving (Eq, Enum, Typeable)
+
+data instance Pixel YA e = PixelYA !e !e deriving Eq
+
 -- | Conversion to Luma from another color space with Alpha channel.
-class (ToY (Opaque cs), Alpha cs) => ToYA cs where
+class (ToY (Opaque cs), AlphaSpace cs Double) => ToYA cs where
 
   -- | Convert a pixel to Luma pixel with Alpha.
   toPixelYA :: Pixel cs Double -> Pixel YA Double
@@ -63,107 +199,130 @@ class (ToY (Opaque cs), Alpha cs) => ToYA cs where
   {-# INLINE toImageYA #-}
 
 
-instance ColorSpace Y where
-  type PixelElt Y e = e
-  data Pixel Y e = PixelY !e deriving (Ord, Eq)
+instance Show YA where
+  show LumaYA  = "Luma"
+  show AlphaYA = "Alpha"
 
-  fromChannel = PixelY
-  {-# INLINE fromChannel #-}
-
-  fromElt = PixelY
-  {-# INLINE fromElt #-}
-
-  toElt (PixelY y) = y
-  {-# INLINE toElt #-}
-
-  getPxCh (PixelY y) _ = y
-  {-# INLINE getPxCh #-}
-  
-  chOp !f (PixelY y) = PixelY (f Y y)
-  {-# INLINE chOp #-}
- 
-  pxOp !f (PixelY y) = PixelY (f y)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelY fy) (PixelY y) = PixelY (fy y)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelY y) = f y `M.mappend` M.mempty
-  {-# INLINE pxFoldMap #-}
-
-  csColour _ = C.opaque C.darkgray
-  
-
-instance ColorSpace YA where
-  type PixelElt YA e = (e, e)
-  data Pixel YA e = PixelYA !e !e deriving Eq
-
-  fromChannel !e = PixelYA e e 
-  {-# INLINE fromChannel #-}
-
-  fromElt !(g, a) = PixelYA g a
-  {-# INLINE fromElt #-}
-
-  toElt (PixelYA g a) = (g, a)
-  {-# INLINE toElt  #-}
-
-  getPxCh (PixelYA g _) YA      = g
-  getPxCh (PixelYA _ a) AlphaYA = a
-  {-# INLINE getPxCh  #-}
-  
-  chOp !f (PixelYA g a) = PixelYA (f YA g) (f AlphaYA a)
-  {-# INLINE chOp #-}
-  
-  pxOp !f (PixelYA g a) = PixelYA (f g) (f a)
-  {-# INLINE pxOp #-}
-
-  chApp (PixelYA fy fa) (PixelYA y a) = PixelYA (fy y) (fa a)
-  {-# INLINE chApp #-}
-
-  pxFoldMap f (PixelYA y a) = f y `M.mappend` f a
-  {-# INLINE pxFoldMap #-}
-
-  csColour AlphaYA = C.opaque C.gray
-  csColour ch      = csColour $ opaque ch
+instance (Elevator e, Typeable e) => ColorSpace YA e where
+  type Components YA e = (e, e)
+  broadcastC e = PixelYA e e
+  {-# INLINE broadcastC #-}
+  fromComponents (y, a) = PixelYA y a
+  {-# INLINE fromComponents #-}
+  toComponents (PixelYA y a) = (y, a)
+  {-# INLINE toComponents #-}
+  getPxC (PixelYA y _)  LumaYA = y
+  getPxC (PixelYA _ a) AlphaYA = a
+  {-# INLINE getPxC #-}
+  setPxC (PixelYA _ a) LumaYA  y = PixelYA y a
+  setPxC (PixelYA y _) AlphaYA a = PixelYA y a
+  {-# INLINE setPxC #-}
+  mapPxC f (PixelYA y a) = PixelYA (f LumaYA y) (f AlphaYA a)
+  {-# INLINE mapPxC #-}
+  mapPx = fmap
+  {-# INLINE mapPx #-}
+  zipWithPx = liftA2
+  {-# INLINE zipWithPx #-}
+  foldlPx = foldl'
+  {-# INLINE foldlPx #-}
   
   
-instance Alpha YA where
+instance (Elevator e, Typeable e) => AlphaSpace YA e where
   type Opaque YA = Y
 
   getAlpha (PixelYA _ a) = a
   {-# INLINE getAlpha  #-}
-  
-  addAlpha !a (PixelY g) = PixelYA g a
+  addAlpha !a (PixelY y) = PixelYA y a
   {-# INLINE addAlpha #-}
-
-  dropAlpha (PixelYA g _) = PixelY g
+  dropAlpha (PixelYA y _) = PixelY y
   {-# INLINE dropAlpha #-}
 
-  opaque YA = Y
-  opaque _  = error "Data.Image.ColorSpace.Luma (Alpha.opaque)"
-
-
-instance Show Y where
-  show Y = "Luma"
   
+instance Functor (Pixel YA) where
+  fmap f (PixelYA y a) = PixelYA (f y) (f a)
+  {-# INLINE fmap #-}
 
-instance Show YA where
-  show AlphaYA = "Alpha"
-  show ch      = show $ opaque ch
+
+instance Applicative (Pixel YA) where
+  pure !e = PixelYA e e
+  {-# INLINE pure #-}
+  (PixelYA fy fa) <*> (PixelYA y a) = PixelYA (fy y) (fa a)
+  {-# INLINE (<*>) #-}
+
+
+instance Foldable (Pixel YA) where
+  foldr f !z (PixelYA y a) = f y (f a z)
+  {-# INLINE foldr #-}
+
+
+instance Num e => Num (Pixel YA e) where
+  (+)         = liftA2 (+)
+  {-# INLINE (+) #-}
   
+  (-)         = liftA2 (-)
+  {-# INLINE (-) #-}
+  
+  (*)         = liftA2 (*)
+  {-# INLINE (*) #-}
+  
+  abs         = liftA abs
+  {-# INLINE abs #-}
+  
+  signum      = liftA signum
+  {-# INLINE signum #-}
+  
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
 
-instance Show e => Show (Pixel Y e) where
-  show (PixelY g) = "<Luma:("++show g++")>"
+instance Fractional e => Fractional (Pixel YA e) where
+  (/)          = liftA2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftA recip
+  {-# INLINE recip #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
 
 
-instance Show e => Show (Pixel YA e) where
-  show (PixelYA g a) = "<LumaA:("++show g++"|"++show a++")>"
+instance Floating e => Floating (Pixel YA e) where
+  pi      = pure pi
+  {-# INLINE pi #-}
+  exp     = liftA exp
+  {-# INLINE exp #-}
+  log     = liftA log
+  {-# INLINE log #-}
+  sin     = liftA sin
+  {-# INLINE sin #-}
+  cos     = liftA cos
+  {-# INLINE cos #-}
+  asin    = liftA asin
+  {-# INLINE asin #-}
+  atan    = liftA atan
+  {-# INLINE atan #-}
+  acos    = liftA acos
+  {-# INLINE acos #-}
+  sinh    = liftA sinh
+  {-# INLINE sinh #-}
+  cosh    = liftA cosh
+  {-# INLINE cosh #-}
+  asinh   = liftA asinh
+  {-# INLINE asinh #-}
+  atanh   = liftA atanh
+  {-# INLINE atanh #-}
+  acosh   = liftA acosh
+  {-# INLINE acosh #-}
 
 
-instance Monad (Pixel Y) where
+instance Storable e => Storable (Pixel YA e) where
 
-  return = PixelY
-  {-# INLINE return #-}
+  sizeOf _ = 2 * sizeOf (undefined :: e)
+  alignment _ = alignment (undefined :: e)
+  peek p = do
+    q <- return $ castPtr p
+    y <- peekElemOff q 0
+    a <- peekElemOff q 1
+    return (PixelYA y a)
+  poke p (PixelYA y a) = do
+    q <- return $ castPtr p
+    pokeElemOff q 0 y
+    pokeElemOff q 1 a
 
-  (>>=) (PixelY y) f = f y
-  {-# INLINE (>>=) #-}

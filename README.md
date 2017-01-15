@@ -19,7 +19,7 @@ and using `stack`:
 
 * `$ stack install hip`
 
-In order to be able to view images in GHCi and external image viewer is used. On
-Linux I recommend `GPicView`, but you can use any viewer that accepts a filename
-as an argument, so by default OS specific image viewer is used.
+In order to be able to view images in GHCi an external image viewer is used. You
+can use any viewer that accepts a filename as an argument, and by default, image
+viewer specified by the OS is used.
 
