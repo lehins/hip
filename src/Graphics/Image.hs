@@ -56,9 +56,9 @@ module Graphics.Image (
 
   -- * Creation
   --
-  -- `makeImageR` is a type restricted `makeImage` function, that simplifies
-  -- creation of images with `Double` precision and a particular representation
-  -- through an extra argument.
+  -- `makeImageR` is a type restricted version of `makeImage` function, which
+  -- simplifies creation of images with `Double` precision and a particular
+  -- representation through an extra argument.
   --
   -- If it is necessary to create an image with an arbitrary precision and
   -- representation, `makeImage` function can be used with a manual type
