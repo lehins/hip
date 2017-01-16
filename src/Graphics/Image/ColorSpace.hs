@@ -1,9 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 800
+  {-# OPTIONS_GHC -Wno-redundant-constraints #-}
+#endif
 -- |
 -- Module      : Graphics.Image.ColorSpace
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -447,7 +451,7 @@ instance Elevator Double where
   {-# INLINE fromDouble #-}
 
 
-instance (Num e, Elevator e) => Elevator (C.Complex e) where
+instance (Num e, Elevator e, RealFloat e) => Elevator (C.Complex e) where
   toWord8 = toWord8 . C.realPart
   {-# INLINE toWord8 #-}
   toWord16 = toWord16 . C.realPart
