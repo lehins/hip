@@ -1,3 +1,21 @@
+1.4.0.0
+=======
+
+Major rewrite, with most of functionality is still backwards compatible, but
+with a some extra features.
+
+* Storable Repa and Vector representations through generic implementations
+* `ColorSpace` is more general allowing for non polymorphic Pixel types
+* `Elevator` works on base types rather than on pixels
+* Conversions from JuicyPixels and NetPbm is done through casting a Vector
+  rather than through an explicit conversion.
+
+Major API changes:
+
+  * Renaming `RS` and `RP` Repa representations into `RSU` and `RPU`.
+  * Addition `VS` Storable Vector representationas well as `RSS` and `RPS`
+    Storable Repa representations.
+    
 1.3.0.0
 =======
 

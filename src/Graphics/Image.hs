@@ -29,8 +29,8 @@
 -- Representations using <http://hackage.haskell.org/package/vector Vector> and
 -- <http://hackage.haskell.org/package/repa Repa> packages:
 --
--- * `VS` - Vector Storable representation. (Default)
 -- * `VU` - Vector Unboxed representation.
+-- * `VS` - Vector Storable representation.
 -- * `RSU` - Repa Sequential Unboxed array representation (computation is done sequentially).
 -- * `RPU` - Repa Parallel Unboxed array representation (computation is done in parallel).
 -- * `RSS` - Repa Sequential Storable array representation (computation is done sequentially).
@@ -42,17 +42,12 @@
 -- any time computation needs to be forced, `compute` can be used for that
 -- purpose.
 --
--- Storable is a default one, because it is cheaper to read\/write images to\/from
--- file with that representation, but it is very easy to change underlying image
--- representation by using `exchange` function.
---
 -- Many of the function names exported by this module will clash with the ones
--- from "Prelude", hence it can be more convenient to import it qualified and
--- all relevenat types import using "Graphics.Image.Types" module:
+-- from "Prelude", hence it can be more convenient to import like this:
 --
 -- @
--- import qualified Graphics.Image as I
--- import Graphics.Image.Types
+-- import Prelude as P
+-- import Graphics.Image as I
 -- @
 --
 module Graphics.Image (

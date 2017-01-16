@@ -11,7 +11,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Histogram (
-  Histogram(..), Histograms, getHistograms, getHistogram,
+  Histogram(..), Histograms, ChannelColour(..), getHistograms, getHistogram,
   displayHistograms, writeHistograms
   ) where
 
