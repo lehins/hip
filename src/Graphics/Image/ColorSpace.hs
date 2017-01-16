@@ -36,6 +36,7 @@ module Graphics.Image.ColorSpace (
   Word8, Word16, Word32, Word64
   ) where
 
+import qualified Data.Complex as C
 import Data.Word
 import Data.Int
 import GHC.Float
@@ -446,6 +447,18 @@ instance Elevator Double where
   {-# INLINE fromDouble #-}
 
 
-
-
-
+instance (Num e, Elevator e) => Elevator (C.Complex e) where
+  toWord8 = toWord8 . C.realPart
+  {-# INLINE toWord8 #-}
+  toWord16 = toWord16 . C.realPart
+  {-# INLINE toWord16 #-}
+  toWord32 = toWord32 . C.realPart
+  {-# INLINE toWord32 #-}
+  toWord64 = toWord64 . C.realPart
+  {-# INLINE toWord64 #-}
+  toFloat = toFloat . C.realPart
+  {-# INLINE toFloat #-}
+  toDouble = toDouble . C.realPart
+  {-# INLINE toDouble #-}
+  fromDouble = (C.:+ 0) . fromDouble
+  {-# INLINE fromDouble #-}

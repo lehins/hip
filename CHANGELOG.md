@@ -1,3 +1,10 @@
+1.4.0.1
+=======
+
+* Fixed the ability to construct complex images by installing `Complex` into `Elevator`
+* Made it possible to write complex images by concatenating real and imaginary part together.
+* Fixed writing images in other representation than `VS`.
+
 1.4.0.0
 =======
 

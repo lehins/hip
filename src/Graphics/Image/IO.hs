@@ -50,6 +50,7 @@ import Control.Exception (bracket)
 
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface
+import Graphics.Image.Interface.Vector
 import Graphics.Image.IO.Base
 import Graphics.Image.IO.Formats
 
@@ -130,11 +131,12 @@ readImageExact format path = fmap (decode format) (B.readFile path)
 -- that image in 'GIF' format would save it in @RGB8@, since 'Word8' is the
 -- highest precision 'GIF' supports and it currently cannot be saved with
 -- transparency.
-writeImage :: Writable (Image arr cs e) OutputFormat =>
+writeImage :: (Array VS cs e, Array arr cs e,
+               Exchangable arr VS, Writable (Image VS cs e) OutputFormat) =>
               FilePath            -- ^ Location where an image should be written.
            -> Image arr cs e -- ^ An image to write. 
            -> IO ()
-writeImage path = BL.writeFile path . encode format [] where
+writeImage path = BL.writeFile path . encode format [] . exchange VS where
   format = fromMaybe (error ("Could not guess output format. Use 'writeImageExact' "++
                          "or supply a filename with supported format."))
            (guessFormat path :: Maybe OutputFormat)
@@ -194,10 +196,11 @@ an image will appear.
   >>> displayImage frog
 
 -}
-displayImage :: Writable (Image arr cs e) TIF =>
+displayImage :: (Array VS cs e, Array arr cs e,
+                 Exchangable arr VS, Writable (Image VS cs e) TIF) =>
                 Image arr cs e -- ^ Image to be displayed
              -> IO ()
-displayImage = displayImageUsing defaultViewer False
+displayImage = displayImageUsing defaultViewer False . exchange VS
 
 
 defaultViewer :: ExternalViewer

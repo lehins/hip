@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -18,7 +19,10 @@ module Graphics.Image.IO.Formats (
   Readable(..), Writable(..), ImageFormat(..),
   ) where
 
+import Graphics.Image.ColorSpace
 import Graphics.Image.Interface
+import Graphics.Image.Processing
+import Graphics.Image.Processing.Complex
 import Graphics.Image.IO.Base
 import Graphics.Image.IO.Formats.JuicyPixels
 import Graphics.Image.IO.Formats.Netpbm
@@ -115,3 +119,11 @@ instance (Writable (Image arr cs Double) BMP,
   encode OutputPNG _ = encode PNG []
   encode OutputTGA _ = encode TGA []
   encode OutputTIF _ = encode TIF []
+
+
+instance (Array arr cs e, Array arr cs (Complex e),
+          RealFloat e, Applicative (Pixel cs),
+          Writable (Image arr cs e) format) =>
+         Writable (Image arr cs (Complex e)) format where
+  encode format opts imgC =
+    encode format opts (leftToRight (realPartI imgC) (imagPartI imgC))
