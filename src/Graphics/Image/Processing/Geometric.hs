@@ -11,8 +11,8 @@
 --
 module Graphics.Image.Processing.Geometric (
   -- ** Sampling
-  downsampleRows, downsampleCols, downsample, downsampleF,
-  upsampleRows, upsampleCols, upsample, upsampleF,
+  downsampleRows, downsampleCols, downsample,
+  upsampleRows, upsampleCols, upsample,
   -- ** Concatenation
   leftToRight, topToBottom,
   -- ** Canvas
@@ -35,11 +35,15 @@ import qualified Data.Vector as V
 
 
 
--- | Generic downsampling function. Drop all rows and colums that satisfy the
--- predicates.
+-- | Downsample an image. Drop all rows and colums that satisfy the
+-- predicates. For example, in order to discard every 5th row and keep every
+-- even indexed column:
 --
--- >>> downsample odd even frog
---
+-- >>> frog <- readImageRGB RPU "images/frog.jpg"
+-- >>> displayImage $ downsample ((0 ==) . (`mod` 5)) odd frog
+-- 
+-- <<images/frog.jpg>> <<images/frog_downsampled.jpg>>
+-- 
 downsample :: Array arr cs e =>
               (Int -> Bool) -- ^ Rows predicate
            -> (Int -> Bool) -- ^ Columns predicate
@@ -57,7 +61,14 @@ downsample mPred nPred !img =
 -- | Upsample an image by inserting rows and columns with zero valued pixels
 -- into an image. Supplied functions specify how many rows/columns shoud be
 -- inserted @(before, after)@ a particular row/column. Returning a negative
--- value in a tuple will result in an error.
+-- value in a tuple will result in an error. E.g. insert 2 columns before and 4
+-- columns after every 10th column, while leaving rows count unchanged:
+--
+-- >>> frog <- readImageRGB RPU "images/frog.jpg"
+-- >>> displayImage $ upsample (const (0, 0)) (\ k -> if k `mod` 10 == 0 then (2, 4) else (0, 0)) frog
+--
+-- <<images/frog.jpg>> <<images/frog_upsampled.jpg>>
+--
 upsample :: Array arr cs e =>
              (Int -> (Int, Int))
           -> (Int -> (Int, Int))             
@@ -71,7 +82,9 @@ upsample mAdd nAdd !img = traverse img (const (newM, newN)) getNewPx where
     | otherwise = p
   !rowsIx = V.unfoldr (spread (V.map (validate . mAdd) $ V.enumFromN 0 m)) (0, Nothing, Nothing)
   !colsIx = V.unfoldr (spread (V.map (validate . nAdd) $ V.enumFromN 0 n)) (0, Nothing, Nothing)
-  spread v params =
+  !newM = V.length rowsIx
+  !newN = V.length colsIx
+  spread !v !params =
     case params of
       (k, Nothing, Nothing) | k == V.length v -> Nothing
       (k, Nothing, Nothing) ->
@@ -80,36 +93,13 @@ upsample mAdd nAdd !img = traverse img (const (newM, newN)) getNewPx where
       (k, Just x, my)      -> Just (Nothing, (k, Just (x-1), my))
       (k, Nothing, Just 0) -> spread v (k+1, Nothing, Nothing)
       (k, Nothing, Just y) -> Just (Nothing, (k, Nothing, Just (y-1)))
-  !newM = V.length rowsIx
-  !newN = V.length colsIx
-  getNewPx getPx (i, j) =
-    case (rowsIx V.! i, colsIx V.! j) of
+  {-# INLINE spread #-}
+  getNewPx getPx !(i, j) =
+    case (V.unsafeIndex rowsIx i, V.unsafeIndex colsIx j) of
       (Just i', Just j') -> getPx (i', j')
       _                  -> 0
+  {-# INLINE getNewPx #-}
 {-# INLINE upsample #-}
-
-
-
-downsampleF :: Array arr cs e => (Int, Int) -> Image arr cs e -> Image arr cs e
-downsampleF !(fm, fn) !img =
-  traverse
-    img
-    (\ !(m, n) -> (m `div` fm, n `div` fn))
-    (\ getPx !(i, j) -> getPx (i * fm, j * fn))
-{-# INLINE downsampleF #-}
-
-
--- | Upsample an image by a positive factor. Every 
-upsampleF :: Array arr cs e => (Int, Int) -> Image arr cs e -> Image arr cs e
-upsampleF !(fm, fn) !img =
-  traverse
-    img
-    (\ !(m, n) -> (m * fm, n * fn))
-    (\ !getPx !(i, j) ->
-        if i `mod` fm == 0 && j `mod` fn == 0
-          then getPx (i `div` fm, j `div` fn)
-          else 0)
-{-# INLINE upsampleF #-}
 
 
 -- | Downsample an image by discarding every odd row.
@@ -122,20 +112,6 @@ downsampleRows = downsample odd (const False)
 downsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
 downsampleCols = downsample (const False) odd
 {-# INLINE downsampleCols #-}
-
-
--- -- | Upsample an image by inserting a row of back pixels after each row of a
--- -- source image.
--- upsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
--- upsampleRows = upsampleF (2, 1)
--- {-# INLINE upsampleRows #-}
-
-
--- -- | Upsample an image by inserting a column of back pixels after each column of a
--- -- source image.
--- upsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
--- upsampleCols = upsampleF (1, 2)
--- {-# INLINE upsampleCols #-}
 
 
 -- | Upsample an image by inserting a row of back pixels after each row of a
@@ -209,7 +185,7 @@ translate atBorder !(dm, dn) !img = traverse img id newPx
 -- except the ones outside the border, which are handled according to supplied
 -- resolution strategy.
 --
--- <<images/haskell_40.png>>
+-- <<images/logo_40.png>>
 --
 -- For example, it can be used to make a tile from the image above, or simply
 -- scale the canvas and place it in a middle:

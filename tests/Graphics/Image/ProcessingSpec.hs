@@ -128,14 +128,6 @@ spec = do
             shouldThrow (return $! downsample even (const True) dummyImage10x20) anyException
             shouldThrow (return $! downsample (const True) (const True) dummyImage10x20)
                         anyException
-       it "upsampleF non-positive" $
-         do shouldThrow (return $! upsampleF (0, 1) dummyImage10x20) anyException
-            shouldThrow (return $! upsampleF (1, 0) dummyImage10x20) anyException
-            shouldThrow (return $! upsampleF (-1, -1) dummyImage10x20) anyException
-       it "downsampleF non-positive" $
-         do shouldThrow (return $! downsampleF (0, 1) dummyImage10x20) anyException
-            shouldThrow (return $! downsampleF (1, 0) dummyImage10x20) anyException
-            shouldThrow (return $! downsampleF (-1, -1) dummyImage10x20) anyException
        it "concat dimension mismatch" $
          do shouldThrow
               (return $! leftToRight dummyImage10x20 $ I.transpose dummyImage10x20)

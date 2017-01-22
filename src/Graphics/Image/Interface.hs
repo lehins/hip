@@ -23,7 +23,7 @@
 module Graphics.Image.Interface (
   Pixel, ColorSpace(..), AlphaSpace(..), Elevator(..),
   BaseArray(..), Array(..), MArray(..),
-  Exchangable(..), exchangeFrom,
+  Exchangable(..), exchangeFrom, exchangeThrough,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   fromIx, toIx, checkDims
 #if !MIN_VERSION_base(4,8,0)
@@ -412,6 +412,17 @@ exchangeFrom :: (Exchangable arr' arr, Array arr' cs e, Array arr cs e) =>
              -> Image arr cs e
 exchangeFrom _ to !img = exchange to img
 {-# INLINE exchangeFrom #-}
+
+
+-- | `exchange` an image representation through an intermediate one.
+exchangeThrough :: (Exchangable arr2 arr1, Exchangable arr1 arr,
+                    Array arr2 cs e, Array arr1 cs e, Array arr cs e) =>
+                arr1
+             -> arr -- ^ New representation of an image.
+             -> Image arr2 cs e -- ^ Source image.
+             -> Image arr cs e
+exchangeThrough through to = exchange to . exchange through
+{-# INLINE exchangeThrough #-}
 
 
 -- | Approach to be used near the borders during various transformations.

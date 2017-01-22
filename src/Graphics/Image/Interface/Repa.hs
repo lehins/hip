@@ -24,9 +24,57 @@ import Graphics.Image.Interface
 import Graphics.Image.Interface.Repa.Generic
 import Graphics.Image.Interface.Repa.Storable
 import Graphics.Image.Interface.Repa.Unboxed
+import Graphics.Image.Interface.Vector
+
+
+-- | Makes a copy of an image into a Storable Vector representation.
+instance Exchangable VU RSS where
+  exchange = exchangeThrough VS
+  {-# INLINE exchange #-}
+
+
+-- | Makes a copy of an image into a Storable Vector representation.
+instance Exchangable VU RPS where
+  exchange = exchangeThrough VS
+  {-# INLINE exchange #-}
 
 
 
+-- | Makes a copy of an image into a Storable Vector representation.
+instance Exchangable VS RSU where
+  exchange = exchangeThrough VU
+  {-# INLINE exchange #-}
+
+
+-- | Makes a copy of an image into a Storable Vector representation.
+instance Exchangable VS RPU where
+  exchange = exchangeThrough VU
+  {-# INLINE exchange #-}
+
+
+-- | Makes a copy of an image into a Storable Vector representation.
+instance Exchangable RSU VS where
+  exchange _ = exchange VS . toManifest
+  {-# INLINE exchange #-}
+
+
+-- | Makes a copy of an image into a Storable Vector representation.
+instance Exchangable RPU VS where
+  exchange _ = exchange VS . toManifest
+  {-# INLINE exchange #-}
+
+
+
+-- | Makes a copy of an image into a Unboxed Vector representation.
+instance Exchangable RSS VU where
+  exchange _ = exchange VU . toManifest
+  {-# INLINE exchange #-}
+
+
+-- | Makes a copy of an image into a Unboxed Vector representation.
+instance Exchangable RPS VU where
+  exchange _ = exchange VU . toManifest
+  {-# INLINE exchange #-}
 
 
 -- | Makes a copy of an image into a Storable representation sequentially.
