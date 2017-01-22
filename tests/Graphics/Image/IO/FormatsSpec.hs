@@ -20,9 +20,7 @@ data EncDec a b = EncDec a b deriving Show
 instance Arbitrary (EncDec InputFormat OutputFormat) where
   arbitrary = elements $ fmap (uncurry EncDec)
               [ (InputBMP, OutputBMP)
-              --, (InputGIF, OutputGIF)
               , (InputHDR, OutputHDR)
-              --, (InputJPG, OutputJPG)
               , (InputPNG, OutputPNG)
               , (InputTIF, OutputTIF)
               , (InputTGA, OutputTGA)
