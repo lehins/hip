@@ -19,8 +19,10 @@
 module Graphics.Image.ColorSpace (
   -- * ColorSpace
   ColorSpace, Pixel(..), AlphaSpace(..), Elevator(..),
+  -- * Operations on Pixels
+  eqTolPx,
   -- * Luma
-  module Graphics.Image.ColorSpace.Luma,
+  module Graphics.Image.ColorSpace.Y,
   -- * RGB
   module Graphics.Image.ColorSpace.RGB,
   -- * HSI
@@ -29,8 +31,8 @@ module Graphics.Image.ColorSpace (
   module Graphics.Image.ColorSpace.CMYK,
   -- * YCbCr
   module Graphics.Image.ColorSpace.YCbCr,
-  -- * Gray
-  module Graphics.Image.ColorSpace.Gray,
+  -- * Gray level
+  module Graphics.Image.ColorSpace.X,
   -- * Binary
   Binary, Bit, on, off, isOn, isOff, fromBool, complement,
   toPixelBinary, fromPixelBinary, toImageBinary, fromImageBinary,
@@ -46,11 +48,11 @@ import Data.Int
 import GHC.Float
 import Graphics.Image.Interface hiding (map)
 import Graphics.Image.ColorSpace.Binary
-import Graphics.Image.ColorSpace.Gray
-import Graphics.Image.ColorSpace.Luma
 import Graphics.Image.ColorSpace.RGB
 import Graphics.Image.ColorSpace.HSI
 import Graphics.Image.ColorSpace.CMYK
+import Graphics.Image.ColorSpace.X
+import Graphics.Image.ColorSpace.Y
 import Graphics.Image.ColorSpace.YCbCr
 import Graphics.Image.ColorSpace.Complex
 import qualified Graphics.Image.Interface as I (map)
@@ -86,11 +88,18 @@ fromImageBinary = I.map fromPixelBinary
 {-# INLINE fromImageBinary #-}
 
 
--- Conversion:
+-- | Check weather two Pixels are equal within a tolerance. Useful for comparing
+-- pixels with `Float` or `Double` precision.
+eqTolPx :: (ColorSpace cs e, Num e, Ord e) =>
+           e -> Pixel cs e -> Pixel cs e -> Bool
+eqTolPx !tol = foldlPx2 comp True 
+  where comp !acc !e1 !e2 = acc && max e1 e2 - min e1 e2 <= tol
+        {-# INLINE comp #-}
+{-# INLINE eqTolPx #-}
 
 
-instance ToY Gray where
-  toPixelY (PixelGray y) = PixelY y
+instance ToY X where
+  toPixelY (PixelX y) = PixelY y
   {-# INLINE toPixelY #-}
 
 -- | Computes Luma: @ Y' = 0.299 * R' + 0.587 * G' + 0.114 * B' @

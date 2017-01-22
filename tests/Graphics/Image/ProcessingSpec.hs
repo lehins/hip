@@ -1,15 +1,14 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.ProcessingSpec (spec) where
 
 import Test.Hspec
 import Test.QuickCheck
 
-import qualified Graphics.Image.Interface as I
-import Graphics.Image.Types
-import Graphics.Image.Processing
+import Graphics.Image as I
 
 import Graphics.Image.InterfaceSpec (translateWrap, dummyImage10x20)
---import Graphics.Image.Processing.BinarySpec
+import Graphics.Image.Processing.BinarySpec (struct)
 
 data Interpol
   = I1 Nearest
@@ -34,8 +33,24 @@ prop_sampleRows img = img == downsampleRows (upsampleRows img)
 prop_sampleCols :: Image VU Y Double -> Bool
 prop_sampleCols img = img == downsampleCols (upsampleCols img)
 
-prop_sample :: Image VU Y Double -> Bool
-prop_sample img = img == downsample (upsample img)
+prop_upsampleNegative :: NonNegative Int -> NonNegative Int
+                      -> NonNegative Int -> NonNegative Int
+                      -> Image VU Y Double -> Property
+prop_upsampleNegative (NonNegative p1) (NonNegative p2) (NonNegative p3) (NonNegative p4) img =
+  p1 /= 0 && p2 /= 0 && p3 /= 0 && p4 /= 0 ==>
+  expectFailure (upsample (const (-p1, -p2)) (const (-p3, -p4)) img `seq` True)
+
+prop_upsampleId :: Image VU Y Double -> Bool
+prop_upsampleId img = img == upsample (const (0,0)) (const (0,0)) img
+
+prop_downsampleId :: Image VU Y Double -> Bool
+prop_downsampleId img = img == downsample (const False) (const False) img
+
+prop_sampleEven :: Image VU Y Double -> Bool
+prop_sampleEven img = img == downsample even even (upsample (const (1,0)) (const (1,0)) img)
+
+prop_sampleOdd :: Image VU Y Double -> Bool
+prop_sampleOdd img = img == downsample odd odd (upsample (const (0,1)) (const (0,1)) img)
 
 prop_translateWrap :: (Int, Int) -> Image VU RGB Double -> Bool
 prop_translateWrap shift img = translateWrap shift img == translate Wrap shift img
@@ -76,9 +91,11 @@ prop_rotate360 (I2 i) border img = (rotate270 . rotate90) img == rotate i border
 spec :: Spec
 spec = do
   describe "Processing Properties" $
-    do it "sampleRows" $ property prop_sampleRows
-       it "sampleCols" $ property prop_sampleCols
-       it "sample" $ property prop_sample
+    do it "[up/down]sampleRows" $ property prop_sampleRows
+       it "[up/down]sampleCols" $ property prop_sampleCols
+       it "[up/down]sampleId" $ property $ conjoin [prop_upsampleId, prop_downsampleId]
+       it "[up/down]sampleEven" $ property prop_sampleEven
+       it "[up/down]sampleOdd" $ property prop_sampleOdd
        it "translateWrap" $ property prop_translateWrap
        it "cropSuperimpose" $ property prop_cropSuperimpose
        it "concatRotate" $ property prop_concatRotate
@@ -86,6 +103,13 @@ spec = do
        it "rotate180" $ property prop_rotate180
        it "rotate270" $ property prop_rotate270
        it "rotate360" $ property prop_rotate360
+  describe "Processing Unit Tests" $
+    do it "upsampleRows" $ upsampleRows struct `shouldBe`
+         I.fromLists [[0,1,0],[0,0,0],[1,1,0],[0,0,0],[0,1,0],[0,0,0]]
+       it "upsampleCols" $ upsampleCols struct `shouldBe`
+         I.fromLists [[0,0,1,0,0,0],[1,0,1,0,0,0],[0,0,1,0,0,0]]
+       it "downsampleRows" $ downsampleRows struct `shouldBe` I.fromLists [[0,1,0],[0,1,0]]
+       it "downsampleCols" $ downsampleCols struct `shouldBe` I.fromLists [[0,0],[1,0],[0,0]]
   describe "Processing Errors" $
     do it "crop start index outside" $
          do shouldThrow (return $! crop (-1, -1) (1, 1) dummyImage10x20) anyException
@@ -98,11 +122,17 @@ spec = do
        it "crop negative dimensions" $
          do shouldThrow (return $! crop (1, 1) (-5, 15) dummyImage10x20) anyException
             shouldThrow (return $! crop (1, 1) (5, -15) dummyImage10x20) anyException
-       it "upsample non-positive" $
+       it "upsampleNegative" $ property prop_upsampleNegative
+       it "downsample all" $
+         do shouldThrow (return $! downsample (const True) even dummyImage10x20) anyException
+            shouldThrow (return $! downsample even (const True) dummyImage10x20) anyException
+            shouldThrow (return $! downsample (const True) (const True) dummyImage10x20)
+                        anyException
+       it "upsampleF non-positive" $
          do shouldThrow (return $! upsampleF (0, 1) dummyImage10x20) anyException
             shouldThrow (return $! upsampleF (1, 0) dummyImage10x20) anyException
             shouldThrow (return $! upsampleF (-1, -1) dummyImage10x20) anyException
-       it "downsample non-positive" $
+       it "downsampleF non-positive" $
          do shouldThrow (return $! downsampleF (0, 1) dummyImage10x20) anyException
             shouldThrow (return $! downsampleF (1, 0) dummyImage10x20) anyException
             shouldThrow (return $! downsampleF (-1, -1) dummyImage10x20) anyException

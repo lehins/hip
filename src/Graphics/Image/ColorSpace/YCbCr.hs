@@ -37,15 +37,9 @@ import Graphics.Image.Interface
 data YCbCr = LumaYCbCr  -- ^ Luma component (commonly denoted as __Y'__)
            | CBlueYCbCr -- ^ Blue difference chroma component
            | CRedYCbCr  -- ^ Red difference chroma component
-           deriving (Eq, Enum, Typeable)
+           deriving (Eq, Enum, Show, Bounded, Typeable)
 
 data instance Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
-
-
-instance Show YCbCr where
-  show LumaYCbCr  = "Luma"
-  show CBlueYCbCr = "Blue Chroma"
-  show CRedYCbCr  = "Red Chroma"
 
 
 instance Show e => Show (Pixel YCbCr e) where
@@ -71,12 +65,15 @@ instance (Elevator e, Typeable e) => ColorSpace YCbCr e where
   {-# INLINE setPxC #-}
   mapPxC f (PixelYCbCr y b r) = PixelYCbCr (f LumaYCbCr y) (f CBlueYCbCr b) (f CRedYCbCr r)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelYCbCr y1 b1 r1) (PixelYCbCr y2 b2 r2) =
+    f (f (f z y1 y2) b1 b2) r1 r2
+  {-# INLINE foldlPx2 #-}
 
 
 instance Functor (Pixel YCbCr) where
@@ -177,16 +174,9 @@ data YCbCrA = LumaYCbCrA  -- ^ Luma component (commonly denoted as __Y'__)
             | CBlueYCbCrA -- ^ Blue difference chroma component
             | CRedYCbCrA  -- ^ Red difference chroma component
             | AlphaYCbCrA -- ^ Alpha component.
-            deriving (Eq, Enum, Typeable)
+            deriving (Eq, Enum, Show, Bounded, Typeable)
 
 data instance Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
-
-
-instance Show YCbCrA where
-  show LumaYCbCrA  = "Luma"
-  show CBlueYCbCrA = "Blue Chroma"
-  show CRedYCbCrA  = "Red Chroma"
-  show AlphaYCbCrA = "Alpha"
 
  
 instance Show e => Show (Pixel YCbCrA e) where
@@ -215,12 +205,15 @@ instance (Elevator e, Typeable e) => ColorSpace YCbCrA e where
   mapPxC f (PixelYCbCrA y b r a) =
     PixelYCbCrA (f LumaYCbCrA y) (f CBlueYCbCrA b) (f CRedYCbCrA r) (f AlphaYCbCrA a)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelYCbCrA y1 b1 r1 a1) (PixelYCbCrA y2 b2 r2 a2) =
+    f (f (f (f z y1 y2) b1 b2) r1 r2) a1 a2
+  {-# INLINE foldlPx2 #-}
 
   
 -- | Conversion to `YCbCr` color space.

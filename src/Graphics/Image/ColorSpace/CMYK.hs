@@ -36,13 +36,7 @@ data CMYK = CyanCMYK -- ^ Cyan
           | MagCMYK  -- ^ Magenta
           | YelCMYK  -- ^ Yellow
           | KeyCMYK  -- ^ Key (Black)
-          deriving (Eq, Enum, Typeable)
-
-instance Show CMYK where
-  show CyanCMYK = "Cyan"
-  show MagCMYK  = "Magenta"
-  show YelCMYK  = "Yellow"
-  show KeyCMYK  = "Black"
+          deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
 instance Show e => Show (Pixel CMYK e) where
@@ -73,12 +67,15 @@ instance (Elevator e, Typeable e) => ColorSpace CMYK e where
   mapPxC f (PixelCMYK c m y k) =
     PixelCMYK (f CyanCMYK c) (f MagCMYK m) (f YelCMYK y) (f KeyCMYK k)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelCMYK c1 m1 y1 k1) (PixelCMYK c2 m2 y2 k2) =
+    f (f (f (f z c1 c2) m1 m2) y1 y2) k1 k2
+  {-# INLINE foldlPx2 #-}
 
 
 instance Functor (Pixel CMYK) where
@@ -179,7 +176,7 @@ data CMYKA = CyanCMYKA  -- ^ Cyan
            | YelCMYKA   -- ^ Yellow
            | KeyCMYKA   -- ^ Key (Black)
            | AlphaCMYKA -- ^ Alpha 
-           deriving (Eq, Enum, Typeable)
+           deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
 -- | Conversion to `CMYK` color space.
@@ -215,14 +212,6 @@ class (ToCMYK (Opaque cs), AlphaSpace cs Double) => ToCMYKA cs where
 data instance Pixel CMYKA e = PixelCMYKA !e !e !e !e !e deriving Eq
 
 
-instance Show CMYKA where
-  show CyanCMYKA  = "Cyan"
-  show MagCMYKA   = "Magenta"
-  show YelCMYKA   = "Yellow"
-  show KeyCMYKA   = "Black"
-  show AlphaCMYKA = "Alpha"
- 
-
 instance Show e => Show (Pixel CMYKA e) where
   show (PixelCMYKA c m y k a) =
     "<CMYKA:("++show c++"|"++show m++"|"++show y++"|"++show k++"|"++show a++")>"
@@ -252,12 +241,15 @@ instance (Elevator e, Typeable e) => ColorSpace CMYKA e where
   mapPxC f (PixelCMYKA c m y k a) =
     PixelCMYKA (f CyanCMYKA c) (f MagCMYKA m) (f YelCMYKA y) (f KeyCMYKA k) (f AlphaCMYKA a)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelCMYKA c1 m1 y1 k1 a1) (PixelCMYKA c2 m2 y2 k2 a2) =
+    f (f (f (f (f z c1 c2) m1 m2) y1 y2) k1 k2) a1 a2
+  {-# INLINE foldlPx2 #-}
 
 
 instance (Elevator e, Typeable e) => AlphaSpace CMYKA e where

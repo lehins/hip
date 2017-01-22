@@ -15,7 +15,7 @@
 module Graphics.Image.IO.Formats (
   module Graphics.Image.IO.Formats.JuicyPixels,
   module Graphics.Image.IO.Formats.Netpbm,
-  InputFormat, OutputFormat,
+  InputFormat(..), OutputFormat(..),
   Readable(..), Writable(..), ImageFormat(..),
   ) where
 
@@ -37,7 +37,7 @@ data InputFormat = InputBMP
                  | InputPNG
                  | InputTIF
                  | InputPNM
-                 | InputTGA  deriving (Show, Enum, Eq)
+                 | InputTGA  deriving (Eq, Show, Enum, Bounded)
 
 
 instance ImageFormat InputFormat where
@@ -90,7 +90,7 @@ data OutputFormat = OutputBMP
                   | OutputJPG
                   | OutputPNG
                   | OutputTIF
-                  | OutputTGA  deriving (Show, Enum, Eq)
+                  | OutputTGA  deriving (Eq, Show, Enum, Bounded)
 
 
 instance ImageFormat OutputFormat where

@@ -16,7 +16,6 @@
 module Graphics.Image.ColorSpace.RGB (
   RGB(..), RGBA(..), Pixel(..),
   ToRGB(..), ToRGBA(..),
-  -- RGB16 -- Experimental  
   ) where
 
 import Prelude hiding (map)
@@ -35,12 +34,7 @@ import Graphics.Image.Interface
 -- | Red, Green and Blue color space.
 data RGB = RedRGB
          | GreenRGB
-         | BlueRGB deriving (Eq, Enum, Typeable)
-
-instance Show RGB where
-  show RedRGB   = "Red"
-  show GreenRGB = "Green"
-  show BlueRGB  = "Blue"
+         | BlueRGB deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
 data instance Pixel RGB e = PixelRGB !e !e !e deriving Eq
@@ -69,34 +63,29 @@ instance (Elevator e, Typeable e) => ColorSpace RGB e where
 
   toComponents (PixelRGB r g b) = (r, g, b)
   {-# INLINE toComponents #-}
-  
   fromComponents !(r, g, b) = PixelRGB r g b
   {-# INLINE fromComponents #-}
-
   broadcastC = pure
   {-# INLINE broadcastC #-}
-
   getPxC (PixelRGB r _ _) RedRGB   = r
   getPxC (PixelRGB _ g _) GreenRGB = g
   getPxC (PixelRGB _ _ b) BlueRGB  = b
   {-# INLINE getPxC #-}
-
   setPxC (PixelRGB _ g b) RedRGB   r = PixelRGB r g b
   setPxC (PixelRGB r _ b) GreenRGB g = PixelRGB r g b
   setPxC (PixelRGB r g _) BlueRGB  b = PixelRGB r g b
   {-# INLINE setPxC #-}
-
   mapPxC f (PixelRGB r g b) = PixelRGB (f RedRGB r) (f GreenRGB g) (f BlueRGB b)
   {-# INLINE mapPxC #-}
-
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
-
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelRGB r1 g1 b1) (PixelRGB r2 g2 b2) =
+    f (f (f z r1 r2) g1 g2) b1 b2
+  {-# INLINE foldlPx2 #-}
 
 
 
@@ -199,13 +188,7 @@ instance Storable e => Storable (Pixel RGB e) where
 data RGBA = RedRGBA
           | GreenRGBA
           | BlueRGBA
-          | AlphaRGBA deriving (Eq, Enum, Typeable)
-
-instance Show RGBA where
-  show RedRGBA   = "Red"
-  show GreenRGBA = "Green"
-  show BlueRGBA  = "Blue"
-  show AlphaRGBA = "Alpha"
+          | AlphaRGBA deriving (Eq, Enum, Show, Bounded, Typeable)
 
 data instance Pixel RGBA e = PixelRGBA !e !e !e !e deriving Eq
 
@@ -235,37 +218,32 @@ instance (Elevator e, Typeable e) => ColorSpace RGBA e where
 
   toComponents (PixelRGBA r g b a) = (r, g, b, a)
   {-# INLINE toComponents #-}
-  
   fromComponents !(r, g, b, a) = PixelRGBA r g b a
   {-# INLINE fromComponents #-}
-
   broadcastC = pure
   {-# INLINE broadcastC #-}
-
   getPxC (PixelRGBA r _ _ _) RedRGBA   = r
   getPxC (PixelRGBA _ g _ _) GreenRGBA = g
   getPxC (PixelRGBA _ _ b _) BlueRGBA  = b
   getPxC (PixelRGBA _ _ _ a) AlphaRGBA = a
   {-# INLINE getPxC #-}
-
   setPxC (PixelRGBA _ g b a) RedRGBA   r = PixelRGBA r g b a
   setPxC (PixelRGBA r _ b a) GreenRGBA g = PixelRGBA r g b a
   setPxC (PixelRGBA r g _ a) BlueRGBA  b = PixelRGBA r g b a
   setPxC (PixelRGBA r g b _) AlphaRGBA a = PixelRGBA r g b a
   {-# INLINE setPxC #-}
-
   mapPxC f (PixelRGBA r g b a) =
     PixelRGBA (f RedRGBA r) (f GreenRGBA g) (f BlueRGBA b) (f AlphaRGBA a)
   {-# INLINE mapPxC #-}
-
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
-
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelRGBA r1 g1 b1 a1) (PixelRGBA r2 g2 b2 a2) =
+    f (f (f (f z r1 r2) g1 g2) b1 b2) a1 a2
+  {-# INLINE foldlPx2 #-}
 
 
 instance (Elevator e, Typeable e) => AlphaSpace RGBA e where
@@ -412,29 +390,29 @@ instance Storable e => Storable (Pixel RGBA e) where
 --   mapPxC f (PixelRGB16 r g b) = PixelRGB16 (f RedRGB16 r) (f GreenRGB16 g) (f BlueRGB16 b)
 --   {-# INLINE mapPxC #-}
 
---   mapPx f (PixelRGB16 r g b) = PixelRGB16 (f r) (f g) (f b)
---   {-# INLINE mapPx #-}
+--   liftPx f (PixelRGB16 r g b) = PixelRGB16 (f r) (f g) (f b)
+--   {-# INLINE liftPx #-}
 
---   zipWithPx f (PixelRGB16 r1 g1 b1) (PixelRGB16 r2 g2 b2) =
+--   liftPx2 f (PixelRGB16 r1 g1 b1) (PixelRGB16 r2 g2 b2) =
 --     PixelRGB16 (f r1 r2) (f g1 g2) (f b1 b2)
---   {-# INLINE zipWithPx #-}
+--   {-# INLINE liftPx2 #-}
 
 --   foldlPx f !acc (PixelRGB16 r g b) = f (f (f acc r) g) b
 
 
 -- instance Num (Pixel RGB16 Word16) where
---   (+)         = zipWithPx (+)
+--   (+)         = liftPx2 (+)
   
---   (-)         = zipWithPx (-)
+--   (-)         = liftPx2 (-)
 --   {-# INLINE (-) #-}
   
---   (*)         = zipWithPx (*)
+--   (*)         = liftPx2 (*)
 --   {-# INLINE (*) #-}
   
---   abs         = mapPx abs
+--   abs         = liftPx abs
 --   {-# INLINE abs #-}
   
---   signum      = mapPx signum
+--   signum      = liftPx signum
 --   {-# INLINE signum #-}
   
 --   fromInteger = broadcastC . fromInteger
@@ -442,10 +420,10 @@ instance Storable e => Storable (Pixel RGBA e) where
 
 
 -- -- instance Fractional (Pixel RGB16 Word16) where
--- --   (/)          = zipWithPx (/)
+-- --   (/)          = liftPx2 (/)
 -- --   {-# INLINE (/) #-}
   
--- --   recip        = mapPx recip
+-- --   recip        = liftPx recip
 -- --   {-# INLINE recip #-}
 
 -- --   fromRational = broadcastC . fromRational
@@ -456,40 +434,40 @@ instance Storable e => Storable (Pixel RGBA e) where
 -- --   pi      = broadcastC pi
 -- --   {-# INLINE pi #-}
 
--- --   exp     = mapPx exp
+-- --   exp     = liftPx exp
 -- --   {-# INLINE exp #-}
 
--- --   log     = mapPx log
+-- --   log     = liftPx log
 -- --   {-# INLINE log #-}
   
--- --   sin     = mapPx sin
+-- --   sin     = liftPx sin
 -- --   {-# INLINE sin #-}
   
--- --   cos     = mapPx cos
+-- --   cos     = liftPx cos
 -- --   {-# INLINE cos #-}
   
--- --   asin    = mapPx asin
+-- --   asin    = liftPx asin
 -- --   {-# INLINE asin #-}
   
--- --   atan    = mapPx atan
+-- --   atan    = liftPx atan
 -- --   {-# INLINE atan #-}
   
--- --   acos    = mapPx acos
+-- --   acos    = liftPx acos
 -- --   {-# INLINE acos #-}
   
--- --   sinh    = mapPx sinh
+-- --   sinh    = liftPx sinh
 -- --   {-# INLINE sinh #-}
   
--- --   cosh    = mapPx cosh
+-- --   cosh    = liftPx cosh
 -- --   {-# INLINE cosh #-}
   
--- --   asinh   = mapPx asinh
+-- --   asinh   = liftPx asinh
 -- --   {-# INLINE asinh #-}
   
--- --   atanh   = mapPx atanh
+-- --   atanh   = liftPx atanh
 -- --   {-# INLINE atanh #-}
   
--- --   acosh   = mapPx acosh
+-- --   acosh   = liftPx acosh
 -- --   {-# INLINE acosh #-}
 
 

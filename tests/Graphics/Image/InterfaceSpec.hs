@@ -30,12 +30,8 @@ data Identical arr1 arr2 cs e =
 
 -- | Generator for values in range @[0, 1]@
 arbitraryDouble :: Gen Double
-arbitraryDouble = do
-  Positive v <- arbitrary
-  let v' = v - fromInteger (floor v)
-  if v' == 0
-    then choose (0, 1)
-    else return v'
+arbitraryDouble = toDouble <$> (arbitrary :: Gen Word64)
+
 
 instance Arbitrary (Pixel Y Word8) where
   arbitrary = PixelY <$> arbitrary
@@ -49,11 +45,16 @@ instance Arbitrary (Pixel RGB Word8) where
 instance Arbitrary (Pixel RGB Double) where
   arbitrary = PixelRGB <$> arbitraryDouble <*> arbitraryDouble <*> arbitraryDouble
 
-instance (MArray arr cs e, Arbitrary (Pixel cs e)) => Arbitrary (Image arr cs e) where
+instance (Array arr cs e, MArray arr cs e, Arbitrary (Pixel cs e)) =>
+         Arbitrary (Image arr cs e) where
   arbitrary = do
     (Positive (Small m), Positive (Small n)) <- arbitrary
     I.makeImageM (m, n) (const arbitrary)
 
+  shrink img | dims img == (1,1) = []
+             | rows img == 1 = [downsampleCols img]
+             | cols img == 1 = [downsampleRows img]
+             | otherwise = [downsample even even img, downsample odd odd img]
 
 instance (Array arr1 cs e, Array arr2 cs e, Arbitrary (Pixel cs e)) =>
          Arbitrary (Identical arr1 arr2 cs e) where

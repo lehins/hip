@@ -68,10 +68,10 @@ Library
   Other-Modules:   Graphics.Image.ColorSpace.Binary
                  , Graphics.Image.ColorSpace.CMYK
                  , Graphics.Image.ColorSpace.Complex
-                 , Graphics.Image.ColorSpace.Gray
                  , Graphics.Image.ColorSpace.HSI
-                 , Graphics.Image.ColorSpace.Luma
                  , Graphics.Image.ColorSpace.RGB
+                 , Graphics.Image.ColorSpace.X
+                 , Graphics.Image.ColorSpace.Y
                  , Graphics.Image.ColorSpace.YCbCr
                  , Graphics.Image.IO.Base
                  , Graphics.Image.IO.Formats.JuicyPixels
@@ -107,7 +107,9 @@ Test-Suite hip-tests
                     , Graphics.Image.Processing.BinarySpec
                     , Graphics.Image.InterfaceSpec
                     , Graphics.Image.Interface.VectorSpec
+                    , Graphics.Image.IO.FormatsSpec
   Build-Depends:      base            >= 4.5 && < 5
+                    , bytestring
                     , hip
                     , hspec
                     , QuickCheck

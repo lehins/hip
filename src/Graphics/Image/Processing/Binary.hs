@@ -20,7 +20,7 @@ module Graphics.Image.Processing.Binary (
   toImageBinaryUsing, toImageBinaryUsing2,
   thresholdWith, compareWith,
   -- * Bitwise operations
-  (.&&.), (.||.), invert,
+  or, and, (.&&.), (.||.), invert,
   -- * Thresholding
   Thresholding(..),
   -- * Binary Morphology
@@ -28,10 +28,8 @@ module Graphics.Image.Processing.Binary (
   erode, dialate, open, close
   ) where
 
-import Prelude hiding (map, zipWith)
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<*>))
-#endif
+import Prelude hiding (map, zipWith, and, or)
+import Data.Bits
 import Graphics.Image.Interface
 import Graphics.Image.ColorSpace
 import Graphics.Image.Processing.Convolution
@@ -146,7 +144,7 @@ toImageBinaryUsing :: (Array arr cs e, Array arr Binary Bit) =>
                       (Pixel cs e -> Bool) -- ^ Predicate
                    -> Image arr cs e -- ^ Source image.
                    -> Image arr Binary Bit
-toImageBinaryUsing !f = map (fromBool . f)
+toImageBinaryUsing f = map (fromBool . f)
 {-# INLINE toImageBinaryUsing #-}
 
 
@@ -156,7 +154,7 @@ toImageBinaryUsing2 :: (Array arr cs e, Array arr Binary Bit) =>
                     -> Image arr cs e -- ^ First source image.
                     -> Image arr cs e -- ^ Second source image.
                     -> Image arr Binary Bit
-toImageBinaryUsing2 !f =  zipWith (((.).(.)) fromBool f)
+toImageBinaryUsing2 f =  zipWith (((.).(.)) fromBool f)
 {-# INLINE toImageBinaryUsing2 #-}
 
 
@@ -173,7 +171,7 @@ thresholdWith :: (Applicative (Pixel cs), Foldable (Pixel cs),
                  -- ^ Pixel containing a thresholding function per channel.
               -> Image arr cs e -- ^ Source image.
               -> Image arr Binary Bit
-thresholdWith !f = map (fromBool . F.and . (f <*>))
+thresholdWith f = map (fromBool . F.and . (f <*>))
 {-# INLINE thresholdWith #-}
 
 
@@ -188,6 +186,18 @@ compareWith :: (Applicative (Pixel cs), Foldable (Pixel cs),
             -> Image arr Binary Bit
 compareWith !f = zipWith (\ !px1 !px2 -> fromBool . F.and $ (f <*> px1 <*> px2))
 {-# INLINE compareWith #-}
+
+
+-- | Disjunction of all pixels in a Binary image
+or :: Array arr Binary Bit => Image arr Binary Bit -> Bool
+or = isOn . fold (.|.) off
+{-# INLINE or #-}
+
+
+-- | Conjunction of all pixels in a Binary image
+and :: Array arr Binary Bit => Image arr Binary Bit -> Bool
+and = isOn . fold (.&.) on
+{-# INLINE and #-}
 
 
 {- $morphology In order to demonstrate how morphological operations work, a

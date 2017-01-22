@@ -6,14 +6,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 -- |
--- Module      : Graphics.Image.ColorSpace.Luma
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Module      : Graphics.Image.ColorSpace.Y
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.ColorSpace.Luma (
+module Graphics.Image.ColorSpace.Y (
   Y(..), YA(..), Pixel(..), 
   ToY(..), ToYA(..)
   ) where
@@ -32,7 +32,7 @@ import Graphics.Image.Interface
 ---------
 
 -- | Luma or brightness, which is usually denoted as @Y'@.
-data Y = LumaY deriving (Eq, Enum, Typeable)
+data Y = LumaY deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
 data instance Pixel Y e = PixelY !e deriving (Ord, Eq)
@@ -49,9 +49,6 @@ class ColorSpace cs Double => ToY cs where
            -> Image arr Y Double
   toImageY = map toPixelY
   {-# INLINE toImageY #-}
-
-instance Show Y where
-  show LumaY = "Luma"
 
 instance Show e => Show (Pixel Y e) where
   show (PixelY g) = "<Luma:("++show g++")>"
@@ -70,12 +67,14 @@ instance (Elevator e, Typeable e) => ColorSpace Y e where
   {-# INLINE setPxC #-}
   mapPxC f (PixelY y) = PixelY (f LumaY y)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelY y1) (PixelY y2) = f z y1 y2
+  {-# INLINE foldlPx2 #-}
 
 
 instance Functor (Pixel Y) where
@@ -179,7 +178,7 @@ instance Storable e => Storable (Pixel Y e) where
 -- | Luma with Alpha channel.
 data YA = LumaYA  -- ^ Luma
         | AlphaYA -- ^ Alpha channel
-        deriving (Eq, Enum, Typeable)
+        deriving (Eq, Enum, Show, Bounded, Typeable)
 
 data instance Pixel YA e = PixelYA !e !e deriving Eq
 
@@ -199,10 +198,6 @@ class (ToY (Opaque cs), AlphaSpace cs Double) => ToYA cs where
   {-# INLINE toImageYA #-}
 
 
-instance Show YA where
-  show LumaYA  = "Luma"
-  show AlphaYA = "Alpha"
-
 instance (Elevator e, Typeable e) => ColorSpace YA e where
   type Components YA e = (e, e)
   broadcastC e = PixelYA e e
@@ -219,13 +214,15 @@ instance (Elevator e, Typeable e) => ColorSpace YA e where
   {-# INLINE setPxC #-}
   mapPxC f (PixelYA y a) = PixelYA (f LumaYA y) (f AlphaYA a)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
-  
+  foldlPx2 f !z (PixelYA y1 a1) (PixelYA y2 a2) = f (f z y1 y2) a1 a2
+  {-# INLINE foldlPx2 #-}
+
   
 instance (Elevator e, Typeable e) => AlphaSpace YA e where
   type Opaque YA = Y

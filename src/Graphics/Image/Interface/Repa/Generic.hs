@@ -132,7 +132,7 @@ instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
   backpermute !newDims g !img = SDImage (backpermuteR (getDelayedS img) newDims g)
   {-# INLINE backpermute #-}
 
-  fromLists = STImage . fromListsR
+  fromLists = STImage . fromListsRepa
   {-# INLINE fromLists #-}
 
   fold f !px0 (SDImage arr) = R.foldAllS f px0 arr
@@ -251,7 +251,7 @@ instance (BaseArray (RP r) cs e) => Array (RP r) cs e where
   backpermute !newDims g !img = PDImage (backpermuteR (getDelayedP img) newDims g)
   {-# INLINE backpermute #-}
 
-  fromLists = PTImage . fromListsR
+  fromLists = PTImage . fromListsRepa
   {-# INLINE fromLists #-}
 
   fold f !px0 (PScalar px) = f px0 px
@@ -386,14 +386,14 @@ backpermuteR !arr newDims g =
 {-# INLINE backpermuteR #-}
 
 
-fromListsR :: (R.Target r e) => [[e]] -> R.Array r DIM2 e
-fromListsR ls =
+fromListsRepa :: (R.Target r e) => [[e]] -> R.Array r DIM2 e
+fromListsRepa ls =
   if all (== n) (P.map length ls)
     then R.fromList (Z :. m :. n) . concat $ ls
-    else error "fromListsR: Inner lists do not all have an equal length."
+    else error "fromListsRepa: Inner lists do not all have an equal length."
   where
-    !(m, n) = checkDims "fromListsR" (length ls, length $ head ls)
-{-# INLINE fromListsR #-}
+    !(m, n) = checkDims "fromListsRepa" (length ls, length $ head ls)
+{-# INLINE fromListsRepa #-}
 
 
 

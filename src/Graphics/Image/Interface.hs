@@ -50,7 +50,8 @@ import Control.Monad.Primitive (PrimMonad (..))
 data family Pixel cs e :: *
 
 
-class (Eq cs, Enum cs, Show cs, Typeable cs, Elevator e, Typeable e) => ColorSpace cs e where
+class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e, Typeable e)
+      => ColorSpace cs e where
   
   type Components cs e
 
@@ -74,10 +75,12 @@ class (Eq cs, Enum cs, Show cs, Typeable cs, Elevator e, Typeable e) => ColorSpa
   mapPxC :: (cs -> e -> e) -> Pixel cs e -> Pixel cs e 
 
   -- | Map a function over all Pixel's componenets.
-  mapPx :: (e -> e) -> Pixel cs e -> Pixel cs e
+  liftPx :: (e -> e) -> Pixel cs e -> Pixel cs e
 
   -- | Zip two Pixels with a function.
-  zipWithPx :: (e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
+  liftPx2 :: (e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
+
+  foldlPx2 :: (b -> e -> e -> b) -> b -> Pixel cs e -> Pixel cs e -> b
 
   -- | Right fold over all Pixel's components.
   foldrPx :: (e -> b -> b) -> b -> Pixel cs e -> b
@@ -90,7 +93,7 @@ class (Eq cs, Enum cs, Show cs, Typeable cs, Elevator e, Typeable e) => ColorSpa
       where f' x k !z = k $! f z x
 
   foldl1Px :: (e -> e -> e) -> Pixel cs e -> e
-  foldl1Px f !xs = fromMaybe (error "foldl1: empty Pixel")
+  foldl1Px f !xs = fromMaybe (error "foldl1Px: empty Pixel")
                   (foldlPx mf Nothing xs)
       where
         mf m !y = Just (case m of
@@ -453,30 +456,107 @@ data Border px =
               --
   deriving Show
 
+-- handleBorderIndex' :: Border px -- ^ Border handling strategy.
+--                   -> (Int, Int) -- ^ Image dimensions
+--                   -> ((Int, Int) -> px) -- ^ Image's indexing function.
+--                   -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
+--                   -> px
+-- handleBorderIndex' border !(m, n) !getPx !(i, j) =
+--   if i >= 0 && j >= 0 && i < m && j < n then getPx (i, j) else getPxB border where
+--     getPxB (Fill px) = px
+--     getPxB Wrap      = getPx (i `mod` m, j `mod` n)
+--     getPxB Edge      = getPx (if i < 0 then 0 else if i >= m then m - 1 else i,
+--                               if j < 0 then 0 else if j >= n then n - 1 else j)
+--     getPxB Reflect   = getPx (if i < 0 then (abs i - 1) `mod` m else
+--                                 if i >= m then (m - (i - m + 1)) `mod` m else i,
+--                               if j < 0 then (abs j - 1) `mod` n else
+--                                 if j >= n then (n - (j - n + 1)) `mod` n else j)
+--     getPxB Continue  = getPx (if i < 0 then abs i `mod` m else
+--                                 if i >= m then (m - (i - m + 2)) `mod` m else i,
+--                               if j < 0 then abs j `mod` n else
+--                                 if j >= n then (n - (j - n + 2)) `mod` n else j)
+--     {-# INLINE getPxB #-}
+-- {-# INLINE handleBorderIndex' #-}
+
+
+
+
 -- | Border handling function. If @(i, j)@ location is within bounds, then supplied
 -- lookup function will be used, otherwise it will be handled according to a
 -- supplied border strategy.
 handleBorderIndex :: Border px -- ^ Border handling strategy.
-            -> (Int, Int) -- ^ Image dimensions
-            -> ((Int, Int) -> px) -- ^ Image's indexing function.
-            -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
-            -> px
+                   -> (Int, Int) -- ^ Image dimensions
+                   -> ((Int, Int) -> px) -- ^ Image's indexing function.
+                   -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
+                   -> px
 handleBorderIndex border !(m, n) !getPx !(i, j) =
-  if i >= 0 && j >= 0 && i < m && j < n then getPx (i, j) else getPxB border where
-    getPxB (Fill px) = px
-    getPxB Wrap      = getPx (i `mod` m, j `mod` n)
-    getPxB Edge      = getPx (if i < 0 then 0 else if i >= m then m - 1 else i,
-                              if j < 0 then 0 else if j >= n then n - 1 else j)
-    getPxB Reflect   = getPx (if i < 0 then (abs i - 1) `mod` m else
-                                if i >= m then (m - (i - m + 1)) `mod` m else i,
-                              if j < 0 then (abs j - 1) `mod` n else
-                                if j >= n then (n - (j - n + 1)) `mod` n else j)
-    getPxB Continue  = getPx (if i < 0 then abs i `mod` m else
-                                if i >= m then (m - (i - m + 2)) `mod` m else i,
-                              if j < 0 then abs j `mod` n else
-                                if j >= n then (n - (j - n + 2)) `mod` n else j)
-    {-# INLINE getPxB #-}
+  if north || east || south || west
+  then case border of
+    Fill px  -> px
+    Wrap     -> getPx (i `mod` m, j `mod` n)
+    Edge     -> getPx (if north then 0 else if south then m - 1 else i,
+                       if west then 0 else if east then n - 1 else j)
+    Reflect  -> getPx (if north then (abs i - 1) `mod` m else
+                         if south then (-i - 1) `mod` m else i,
+                       if west then (abs j - 1) `mod` n else
+                         if east then (-j - 1) `mod` n else j)
+    Continue -> getPx (if north then abs i `mod` m else
+                         if south then (-i - 2) `mod` m else i,
+                       if west then abs j `mod` n else
+                         if east then (-j - 2) `mod` n else j)
+    -- Reflect  -> getPx (if north then (abs i - 1) `mod` m else
+    --                      if south then (m - (i - m + 1)) `mod` m else i,
+    --                    if west then (abs j - 1) `mod` n else
+    --                      if east then (n - (j - n + 1)) `mod` n else j)
+    -- Continue -> getPx (if north then abs i `mod` m else
+    --                      if south then (m - (i - m + 2)) `mod` m else i,
+    --                    if west then abs j `mod` n else
+    --                      if east then (n - (j - n + 2)) `mod` n else j)
+  else getPx (i, j)
+  where
+    north = i < 0
+    {-# INLINE north #-}
+    south = i >= m
+    {-# INLINE south #-}
+    west = j < 0
+    {-# INLINE west #-}
+    east = j >= n
+    {-# INLINE east #-}
 {-# INLINE handleBorderIndex #-}
+
+
+
+-- handleBorderIndex' border !(m, n) getPx !(i, j) =
+--   case (i < 0, i >= m, j < 0, j >= n) of
+--     (False, False, False, False) -> getPx (i, j)
+--     (False, False, False,  True) ->
+--       case border of
+--         Fill px -> px
+--         Wrap -> getPx (i, j `mod` n)
+--         Edge -> getPx (i, n-1)
+--         Reflect -> getPx (i, (n - (j - n + 1)) `mod` n)
+--         Continue -> getPx (i, (n - (j - n + 2)) `mod` n)
+--     (False, False, True,  False) ->
+--       case border of
+--         Fill px -> px
+--         Wrap -> getPx (i, j `mod` n)
+--         Edge -> getPx (i, 0)
+--         Reflect -> getPx (i, (abs j - 1) `mod` n)
+--         Continue -> getPx (i, abs j `mod` n)
+--     (False, True, False,  False) ->
+--       case border of
+--         Fill px -> px
+--         Wrap -> getPx (i, j `mod` n)
+--         Edge -> getPx (i, 0)
+--         Reflect -> getPx (i, (abs j - 1) `mod` n)
+--         Continue -> getPx (i, abs j `mod` n)
+    --((False, False, False,  True), Edge) -> getPx (i, j `mod` n)
+      
+  -- case (i >= 0, j >= 0, i < m, j < n) of
+  --   (True, True, True, True) -> getPx (i, j)
+  --   (True, True, True, True) -> getPx (i, j)
+  --   then getPx (i, j) else getPxB border where
+
 
 
 -- | Image indexing function that returns a default pixel if index is out of bounds.
@@ -525,7 +605,7 @@ checkDims :: String -> (Int, Int) -> (Int, Int)
 checkDims err !ds@(m, n)
   | m <= 0 || n <= 0 = 
     error $
-    show err ++ ": Image dimensions are expected to be non-negative: " ++ show ds
+    show err ++ ": Image dimensions are expected to be positive: " ++ show ds
   | otherwise = ds
 {-# INLINE checkDims #-}
 

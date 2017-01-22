@@ -31,6 +31,63 @@ import Prelude hiding (traverse)
 
 import Graphics.Image.Interface
 import Graphics.Image.Processing.Interpolation
+import qualified Data.Vector as V
+
+
+
+-- | Generic downsampling function. Drop all rows and colums that satisfy the
+-- predicates.
+--
+-- >>> downsample odd even frog
+--
+downsample :: Array arr cs e =>
+              (Int -> Bool) -- ^ Rows predicate
+           -> (Int -> Bool) -- ^ Columns predicate
+           -> Image arr cs e -- ^ Source image
+           -> Image arr cs e
+downsample mPred nPred !img =
+  traverse img (const (V.length rowsIx, V.length colsIx)) getNewPx where
+    !(m, n) = dims img
+    !rowsIx = V.filter (not . mPred) $ V.enumFromN 0 m
+    !colsIx = V.filter (not . nPred) $ V.enumFromN 0 n
+    getNewPx getPx !(i, j) = getPx (V.unsafeIndex rowsIx i, V.unsafeIndex colsIx j)
+{-# INLINE downsample #-}
+
+
+-- | Upsample an image by inserting rows and columns with zero valued pixels
+-- into an image. Supplied functions specify how many rows/columns shoud be
+-- inserted @(before, after)@ a particular row/column. Returning a negative
+-- value in a tuple will result in an error.
+upsample :: Array arr cs e =>
+             (Int -> (Int, Int))
+          -> (Int -> (Int, Int))             
+          -> Image arr cs e
+          -> Image arr cs e
+upsample mAdd nAdd !img = traverse img (const (newM, newN)) getNewPx where
+  !(m, n) = dims img
+  validate !p@(pre, post)
+    | pre < 0 || post < 0 =
+      error $ "upsample: negative values are not accepted: " ++ show p
+    | otherwise = p
+  !rowsIx = V.unfoldr (spread (V.map (validate . mAdd) $ V.enumFromN 0 m)) (0, Nothing, Nothing)
+  !colsIx = V.unfoldr (spread (V.map (validate . nAdd) $ V.enumFromN 0 n)) (0, Nothing, Nothing)
+  spread v params =
+    case params of
+      (k, Nothing, Nothing) | k == V.length v -> Nothing
+      (k, Nothing, Nothing) ->
+        let (pre, post) = v V.! k in spread v (k, Just pre, Just post)
+      (k, Just 0, my)      -> Just (Just k, (k, Nothing, my))
+      (k, Just x, my)      -> Just (Nothing, (k, Just (x-1), my))
+      (k, Nothing, Just 0) -> spread v (k+1, Nothing, Nothing)
+      (k, Nothing, Just y) -> Just (Nothing, (k, Nothing, Just (y-1)))
+  !newM = V.length rowsIx
+  !newN = V.length colsIx
+  getNewPx getPx (i, j) =
+    case (rowsIx V.! i, colsIx V.! j) of
+      (Just i', Just j') -> getPx (i', j')
+      _                  -> 0
+{-# INLINE upsample #-}
+
 
 
 downsampleF :: Array arr cs e => (Int, Int) -> Image arr cs e -> Image arr cs e
@@ -38,7 +95,7 @@ downsampleF !(fm, fn) !img =
   traverse
     img
     (\ !(m, n) -> (m `div` fm, n `div` fn))
-    (\ !getPx !(i, j) -> getPx (i * fm, j * fn))
+    (\ getPx !(i, j) -> getPx (i * fm, j * fn))
 {-# INLINE downsampleF #-}
 
 
@@ -57,41 +114,43 @@ upsampleF !(fm, fn) !img =
 
 -- | Downsample an image by discarding every odd row.
 downsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
-downsampleRows = downsampleF (2, 1)
+downsampleRows = downsample odd (const False)
 {-# INLINE downsampleRows #-}
 
 
 -- | Downsample an image by discarding every odd column.
 downsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
-downsampleCols = downsampleF (1, 2)
+downsampleCols = downsample (const False) odd
 {-# INLINE downsampleCols #-}
 
 
--- | Downsample an image by discarding every odd row and column.
-downsample :: Array arr cs e => Image arr cs e -> Image arr cs e
-downsample = downsampleF (2, 2)
-{-# INLINE downsample #-}
+-- -- | Upsample an image by inserting a row of back pixels after each row of a
+-- -- source image.
+-- upsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
+-- upsampleRows = upsampleF (2, 1)
+-- {-# INLINE upsampleRows #-}
+
+
+-- -- | Upsample an image by inserting a column of back pixels after each column of a
+-- -- source image.
+-- upsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
+-- upsampleCols = upsampleF (1, 2)
+-- {-# INLINE upsampleCols #-}
 
 
 -- | Upsample an image by inserting a row of back pixels after each row of a
 -- source image.
 upsampleRows :: Array arr cs e => Image arr cs e -> Image arr cs e
-upsampleRows = upsampleF (2, 1)
+upsampleRows = upsample (const (0, 1)) (const (0, 0))-- upsampleF (2, 1)
 {-# INLINE upsampleRows #-}
 
 
 -- | Upsample an image by inserting a column of back pixels after each column of a
 -- source image.
 upsampleCols :: Array arr cs e => Image arr cs e -> Image arr cs e
-upsampleCols = upsampleF (1, 2)
+upsampleCols = upsample (const (0, 0)) (const (0, 1))-- upsampleF (2, 1)
 {-# INLINE upsampleCols #-}
 
-
--- | Upsample an image by inserting a row and a column of back pixels after each
--- row and a column of a source image.
-upsample :: Array arr cs e => Image arr cs e -> Image arr cs e
-upsample = upsampleF (2, 2)
-{-# INLINE upsample #-}
 
 
 -- | Concatenate two images together into one. Both input images must have the

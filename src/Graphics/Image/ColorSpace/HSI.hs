@@ -35,15 +35,10 @@ import Graphics.Image.Interface
 data HSI = HueHSI -- ^ Hue
          | SatHSI -- ^ Saturation 
          | IntHSI -- ^ Intensity
-         deriving (Eq, Enum, Typeable)
+         deriving (Eq, Enum, Show, Bounded, Typeable)
 
 data instance Pixel HSI e = PixelHSI !e !e !e deriving Eq
 
-
-instance Show HSI where
-  show HueHSI = "Hue"
-  show SatHSI = "Saturation"
-  show IntHSI = "Intensity"
   
 instance Show e => Show (Pixel HSI e) where
   show (PixelHSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"
@@ -68,12 +63,15 @@ instance (Elevator e, Typeable e) => ColorSpace HSI e where
   {-# INLINE setPxC #-}
   mapPxC f (PixelHSI h s i) = PixelHSI (f HueHSI h) (f SatHSI s) (f IntHSI i)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelHSI h1 s1 i1) (PixelHSI h2 s2 i2) =
+    f (f (f z h1 h2) s1 s2) i1 i2
+  {-# INLINE foldlPx2 #-}
 
 
 instance Functor (Pixel HSI) where
@@ -170,7 +168,7 @@ data HSIA = HueHSIA   -- ^ Hue
           | SatHSIA   -- ^ Saturation
           | IntHSIA   -- ^ Intensity
           | AlphaHSIA -- ^ Alpha
-          deriving (Eq, Enum, Typeable)
+          deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
 data instance Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
@@ -190,14 +188,7 @@ class ColorSpace cs Double => ToHSI cs where
   {-# INLINE toImageHSI #-}
 
 
-
-instance Show HSIA where
-  show HueHSIA   = "Hue"
-  show SatHSIA   = "Saturation"
-  show IntHSIA   = "Intensity"
-  show AlphaHSIA = "Alpha"
-
-  
+ 
 instance Show e => Show (Pixel HSIA e) where
   show (PixelHSIA h s i a) = "<HSIA:("++show h++"|"++show s++"|"++show i++"|"++show a++")>"
 
@@ -224,12 +215,15 @@ instance (Elevator e, Typeable e) => ColorSpace HSIA e where
   mapPxC f (PixelHSIA h s i a) =
     PixelHSIA (f HueHSIA h) (f SatHSIA s) (f IntHSIA i) (f AlphaHSIA a)
   {-# INLINE mapPxC #-}
-  mapPx = fmap
-  {-# INLINE mapPx #-}
-  zipWithPx = liftA2
-  {-# INLINE zipWithPx #-}
+  liftPx = fmap
+  {-# INLINE liftPx #-}
+  liftPx2 = liftA2
+  {-# INLINE liftPx2 #-}
   foldlPx = foldl'
   {-# INLINE foldlPx #-}
+  foldlPx2 f !z (PixelHSIA h1 s1 i1 a1) (PixelHSIA h2 s2 i2 a2) =
+    f (f (f (f z h1 h2) s1 s2) i1 i2) a1 a2
+  {-# INLINE foldlPx2 #-}
 
 
 instance (Elevator e, Typeable e) => AlphaSpace HSIA e where

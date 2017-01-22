@@ -23,9 +23,6 @@
 -- constant time and allows monadic operations and mutation on
 -- __@`MImage`@ @st@ @arr@ @cs@ @e@__, which is `Image`'s mutable cousin.
 --
--- Array representation type and the above classes it is installed in determine
--- operations that can be done on the image with that representation.
---
 -- Representations using <http://hackage.haskell.org/package/vector Vector> and
 -- <http://hackage.haskell.org/package/repa Repa> packages:
 --
@@ -36,11 +33,11 @@
 -- * `RSS` - Repa Sequential Storable array representation (computation is done sequentially).
 -- * `RPS` - Repa Parallel Storable array representation (computation is done in parallel).
 --
--- Images with `RSU` and `RPU` types, most of the time hold functions rather then
--- actual data, this way computation can be fused together, and later changed to
--- `VU` using `toManifest`, which in turn performs the fused computation. If at
--- any time computation needs to be forced, `compute` can be used for that
--- purpose.
+-- Images with `RSU`, `RSS`, `RPU` and `RPS` types, most of the time, hold
+-- functions rather than an actual data, this way computation can be fused
+-- together, and later changed to `VU` or `VS` using `toManifest`, which in turn
+-- performs the fused computation. If at any time computation needs to be
+-- forced, `compute` can be used for that purpose.
 --
 -- Many of the function names exported by this module will clash with the ones
 -- from "Prelude", hence it can be more convenient to import like this:
@@ -102,7 +99,7 @@ module Graphics.Image (
   transpose, backpermute,
   (|*|), 
   -- * Reduction
-  fold, sum, product, maximum, minimum, normalize,
+  fold, sum, product, maximum, minimum, normalize, eqTol,
   -- * Representations
   exchange,
   module IP
@@ -226,18 +223,24 @@ minimum !img = fold min (index00 img) img
 
 
 -- | Scales all of the pixels to be in the range @[0, 1]@.
-normalize :: (Array arr cs e, Array arr Gray e, Fractional e,
-              Fractional (Pixel cs e), Ord e) =>
+normalize :: (Array arr cs e, Array arr X e, Fractional e, Ord e) =>
              Image arr cs e -> Image arr cs e
 normalize !img = if l == s
                  then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
-                 else I.map normalizer img
+                 else I.map (liftPx (\ !e -> (e - s) / (l - s))) img
   where
-    !(PixelGray l, PixelGray s) = (maximum (I.map (PixelGray . foldl1Px max) img),
-                                   minimum (I.map (PixelGray . foldl1Px min) img))
-    normalizer !px = (px - broadcastC s) / broadcastC (l - s)
-    {-# INLINE normalizer #-}
+    !(PixelX l, PixelX s) = (maximum (I.map (PixelX . foldl1Px max) img),
+                             minimum (I.map (PixelX . foldl1Px min) img))
 {-# INLINE normalize #-}
+
+
+-- | Check weather two images are equal within a tolerance. Useful for comparing
+-- images with `Float` or `Double` precision.
+eqTol
+  :: (Array arr Binary Bit, Array arr cs e, Ord e, Num e) =>
+     e -> Image arr cs e -> Image arr cs e -> Bool
+eqTol !tol !img1 = IP.and . toImageBinaryUsing2 (eqTolPx tol) img1
+{-# INLINE eqTol #-}
 
 
 -- | Type restricted version of `fromLists` that constructs an image using
@@ -269,7 +272,7 @@ toLists img = [[index img (i, j) | j <- [0..cols img - 1]] | i <- [0..rows img -
 --       ------------------------------------------------------------------------------------------
 --     * __'Pixel' 'Binary' 'Bit'     = 'on' | 'off'__ - Bi-tonal.
 --     * __'Pixel' cs ('Complex' e) = ('Pixel' cs e) '+:' ('Pixel' cs e)__ - Complex pixels with any color space.
---     * __'Pixel' 'Gray' e         = PixelGray g__ - Used for separating channels from other color spaces.
+--     * __'Pixel' 'X' e         = PixelX g__ - Used for separating channels from other color spaces.
 -- @
 --
 -- Every 'Pixel' is an instance of 'Functor', 'Applicative', 'F.Foldable' and

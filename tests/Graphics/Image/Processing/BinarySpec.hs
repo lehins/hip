@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Graphics.Image.Processing.BinarySpec (spec) where
+module Graphics.Image.Processing.BinarySpec (spec, struct) where
 
 import Test.Hspec
 
@@ -27,6 +27,8 @@ figure =
     , [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     , [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ]
+
+
 struct :: Image VU Binary Bit
 struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 

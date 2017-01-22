@@ -65,24 +65,24 @@ data Histogram = Histogram { hBins :: V.Vector Int
 type Histograms = [Histogram]
 
 -- | Create a histogram per channel with 256 bins each.
-getHistograms :: forall arr cs e . (ChannelColour cs, MArray arr Gray e, Array arr Gray e, 
+getHistograms :: forall arr cs e . (ChannelColour cs, MArray arr X e, Array arr X e, 
                                     MArray arr cs e, Array arr cs e) =>
                  Image arr cs e
               -> Histograms
-getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogram . toGrayImages
+getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogram . toImagesX
   where setCh cs h = h { hName = show cs
                        , hColour = csColour cs }
 
 -- | Generate a histogram with 256 bins for a single channel Gray image.
-getHistogram :: MArray arr Gray e =>
-                Image arr Gray e
+getHistogram :: MArray arr X e =>
+                Image arr X e
              -> Histogram
 getHistogram img = Histogram { hBins = V.modify countBins $
                                        V.replicate
                                        (1 + fromIntegral (maxBound :: Word8)) (0 :: Int)
-                             , hName = show Gray
-                             , hColour = csColour Gray } where
-  incBin v (PixelGray g) = modify v (+1) $ fromIntegral (toWord8 g)
+                             , hName = show X
+                             , hColour = csColour X } where
+  incBin v (PixelX g) = modify v (+1) $ fromIntegral (toWord8 g)
   countBins v = I.mapM_ (incBin v) img
   
 
@@ -128,7 +128,7 @@ displayHistogramsUsing viewer block hists = do
     then display
     else void $ forkIO display
 
-instance ChannelColour Gray where
+instance ChannelColour X where
   csColour _ = C.opaque C.darkgray
 
 instance ChannelColour Y where

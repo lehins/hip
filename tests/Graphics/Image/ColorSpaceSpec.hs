@@ -1,34 +1,42 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 module Graphics.Image.ColorSpaceSpec (spec) where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-#endif
 import Test.Hspec
 import Test.QuickCheck
   
 import Graphics.Image as I
 import Graphics.Image.Interface as II
-import Graphics.Image.ColorSpace
 
 
-instance Arbitrary RGB where
-  arbitrary = do
-    NonNegative c <- arbitrary
-    return $ toEnum (c `mod` 3)
+instance Arbitrary (Pixel Binary Bit) where
+  arbitrary = elements [on, off]
 
-instance Arbitrary e => Arbitrary (Pixel RGB e) where
-  arbitrary = PixelRGB <$> arbitrary <*> arbitrary <*> arbitrary
+instance (ColorSpace Y e, Arbitrary e) => Arbitrary (Pixel Y e) where
+  arbitrary = fromComponents <$> arbitrary
+
+instance (ColorSpace YA e, Arbitrary e) => Arbitrary (Pixel YA e) where
+  arbitrary = fromComponents <$> arbitrary
+
+instance (ColorSpace RGB e, Arbitrary e) => Arbitrary (Pixel RGB e) where
+  arbitrary = fromComponents <$> arbitrary
+
+instance (ColorSpace RGBA e, Arbitrary e) => Arbitrary (Pixel RGBA e) where
+  arbitrary = fromComponents <$> arbitrary
 
 
-instance (MArray VU RGB e, Arbitrary e) => Arbitrary (Image VU RGB e) where
+instance (MArray VU cs e, Arbitrary (Pixel cs e)) => Arbitrary (Image VU cs e) where
   arbitrary = do
     (Positive m, Positive n) <- arbitrary
-    II.mapM (const arbitrary) $ I.makeImage (m, n) (const $ PixelGray (0 :: Double))
-  
+    II.makeImageM (m, n) (const arbitrary)
+
+
+instance (MArray VS cs e, Arbitrary (Pixel cs e)) => Arbitrary (Image VS cs e) where
+  arbitrary = do
+    (Positive m, Positive n) <- arbitrary
+    II.makeImageM (m, n) (const arbitrary)
+
 
 prop_ToFromComponents :: (ColorSpace cs e, Eq (Pixel cs e)) =>
                          Pixel cs e -> Bool
