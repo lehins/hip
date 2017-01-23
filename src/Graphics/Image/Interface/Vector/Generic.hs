@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -41,7 +41,7 @@ data V r = V r
 type family Repr arr :: * -> *
 
 instance Show r => Show (V r) where
-  show r = "Vector " ++ show r
+  show (V r) = "Vector " ++ show r
 
 instance SuperClass (V r) cs e => BaseArray (V r) cs e where
   type SuperClass (V r) cs e = (Show r, ColorSpace cs e, Num (Pixel cs e),
