@@ -37,7 +37,7 @@ prop_EncodeDecode imgD (EncDec input output) =
       }
     Right (img' :: Image VS RGB Double) ->
       let imgWord8' = I.map (fmap toWord8) img' in
-      if imgWord8 == imgWord8'
+      if eqTol 1 imgWord8 imgWord8'
         then succeeded
         else failed
              { reason =

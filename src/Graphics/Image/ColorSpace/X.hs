@@ -44,8 +44,8 @@ instance Show e => Show (Pixel X e) where
 instance (Elevator e, Typeable e) => ColorSpace X e where
   type Components X e = e
 
-  broadcastC = PixelX
-  {-# INLINE broadcastC #-}
+  promote = PixelX
+  {-# INLINE promote #-}
   fromComponents = PixelX
   {-# INLINE fromComponents #-}
   toComponents (PixelX g) = g

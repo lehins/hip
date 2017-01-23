@@ -1,3 +1,15 @@
+1.5.0.0
+=======
+
+* Refactored `Gray` color space to be `X`, in order to reflect it's generality
+* Renamed few core functions:
+  * `mapPx` -> `liftPx`,
+  * `zipWithPx` -> `liftPx2`,
+  * `broadcastC` -> `promote`,
+  * `singleton` -> `scalar`.
+* `upsample`/`downsample` functions are now a lot more general.
+
+
 1.4.0.1
 =======
 

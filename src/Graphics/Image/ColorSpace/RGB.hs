@@ -65,8 +65,8 @@ instance (Elevator e, Typeable e) => ColorSpace RGB e where
   {-# INLINE toComponents #-}
   fromComponents !(r, g, b) = PixelRGB r g b
   {-# INLINE fromComponents #-}
-  broadcastC = pure
-  {-# INLINE broadcastC #-}
+  promote = pure
+  {-# INLINE promote #-}
   getPxC (PixelRGB r _ _) RedRGB   = r
   getPxC (PixelRGB _ g _) GreenRGB = g
   getPxC (PixelRGB _ _ b) BlueRGB  = b
@@ -220,8 +220,8 @@ instance (Elevator e, Typeable e) => ColorSpace RGBA e where
   {-# INLINE toComponents #-}
   fromComponents !(r, g, b, a) = PixelRGBA r g b a
   {-# INLINE fromComponents #-}
-  broadcastC = pure
-  {-# INLINE broadcastC #-}
+  promote = pure
+  {-# INLINE promote #-}
   getPxC (PixelRGBA r _ _ _) RedRGBA   = r
   getPxC (PixelRGBA _ g _ _) GreenRGBA = g
   getPxC (PixelRGBA _ _ b _) BlueRGBA  = b
@@ -367,8 +367,8 @@ instance Storable e => Storable (Pixel RGBA e) where
 -- instance ColorSpace RGB16 Word16 where
 --   type Components RGB16 Word16 = (Word16, Word16, Word16)
 
---   broadcastC !e = PixelRGB16 e e e
---   {-# INLINE broadcastC #-}
+--   promote !e = PixelRGB16 e e e
+--   {-# INLINE promote #-}
 
 --   toComponents (PixelRGB16 r g b) = (r, g, b)
 --   {-# INLINE toComponents #-}
@@ -415,7 +415,7 @@ instance Storable e => Storable (Pixel RGBA e) where
 --   signum      = liftPx signum
 --   {-# INLINE signum #-}
   
---   fromInteger = broadcastC . fromInteger
+--   fromInteger = promote . fromInteger
 --   {-# INLINE fromInteger #-}
 
 
@@ -426,12 +426,12 @@ instance Storable e => Storable (Pixel RGBA e) where
 -- --   recip        = liftPx recip
 -- --   {-# INLINE recip #-}
 
--- --   fromRational = broadcastC . fromRational
+-- --   fromRational = promote . fromRational
 -- --   {-# INLINE fromRational #-}
 
 
 -- -- instance Floating (Pixel RGB16 Word16) where
--- --   pi      = broadcastC pi
+-- --   pi      = promote pi
 -- --   {-# INLINE pi #-}
 
 -- --   exp     = liftPx exp

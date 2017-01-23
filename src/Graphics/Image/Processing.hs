@@ -47,7 +47,7 @@ pixelGrid !(succ . fromIntegral -> k) !img = traverse img getNewDims getNewPx wh
   getNewDims !(m, n) = (1 + m*k, 1 + n*k)
   {-# INLINE getNewDims #-}
   getNewPx !getPx !(i, j) = if i `mod` k == 0 || j `mod` k == 0
-                            then broadcastC $ fromDouble 0.5
+                            then promote $ fromDouble 0.5
                             else getPx ((i - 1) `div` k, (j - 1) `div` k)
   {-# INLINE getNewPx #-}
 {-# INLINE pixelGrid #-}

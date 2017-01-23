@@ -55,8 +55,8 @@ instance Show e => Show (Pixel Y e) where
 
 instance (Elevator e, Typeable e) => ColorSpace Y e where
   type Components Y e = e
-  broadcastC = PixelY
-  {-# INLINE broadcastC #-}
+  promote = PixelY
+  {-# INLINE promote #-}
   fromComponents = PixelY
   {-# INLINE fromComponents #-}
   toComponents (PixelY y) = y
@@ -200,8 +200,8 @@ class (ToY (Opaque cs), AlphaSpace cs Double) => ToYA cs where
 
 instance (Elevator e, Typeable e) => ColorSpace YA e where
   type Components YA e = (e, e)
-  broadcastC e = PixelYA e e
-  {-# INLINE broadcastC #-}
+  promote e = PixelYA e e
+  {-# INLINE promote #-}
   fromComponents (y, a) = PixelYA y a
   {-# INLINE fromComponents #-}
   toComponents (PixelYA y a) = (y, a)

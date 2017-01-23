@@ -49,8 +49,8 @@ instance Show e => Show (Pixel YCbCr e) where
 instance (Elevator e, Typeable e) => ColorSpace YCbCr e where
   type Components YCbCr e = (e, e, e)
 
-  broadcastC !e = PixelYCbCr e e e
-  {-# INLINE broadcastC #-}
+  promote !e = PixelYCbCr e e e
+  {-# INLINE promote #-}
   fromComponents !(y, b, r) = PixelYCbCr y b r
   {-# INLINE fromComponents #-}
   toComponents (PixelYCbCr y b r) = (y, b, r)
@@ -186,8 +186,8 @@ instance Show e => Show (Pixel YCbCrA e) where
 instance (Elevator e, Typeable e) => ColorSpace YCbCrA e where
   type Components YCbCrA e = (e, e, e, e)
 
-  broadcastC !e = PixelYCbCrA e e e e
-  {-# INLINE broadcastC #-}
+  promote !e = PixelYCbCrA e e e e
+  {-# INLINE promote #-}
   fromComponents !(y, b, r, a) = PixelYCbCrA y b r a
   {-# INLINE fromComponents #-}
   toComponents (PixelYCbCrA y b r a) = (y, b, r, a)

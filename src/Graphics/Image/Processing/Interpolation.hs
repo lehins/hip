@@ -52,8 +52,8 @@ instance Interpolation Bilinear where
     {-# INLINE getPx' #-}
     !(i0, j0) = (floor i, floor j)
     !(i1, j1) = (i0 + 1, j0 + 1)
-    !iPx = broadcastC $ fromDouble (i - fromIntegral i0)
-    !jPx = broadcastC $ fromDouble (j - fromIntegral j0)
+    !iPx = promote $ fromDouble (i - fromIntegral i0)
+    !jPx = promote $ fromDouble (j - fromIntegral j0)
     !f00 = getPx' (i0, j0)
     !f10 = getPx' (i1, j0)
     !f01 = getPx' (i0, j1) 

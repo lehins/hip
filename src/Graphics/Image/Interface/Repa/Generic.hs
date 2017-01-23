@@ -84,8 +84,8 @@ instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
     (R.fromFunction (Z :. m :. n) (getWindowPx . sh2ix))
      (R.fromFunction (Z :. m :. n) (getBorderPx . sh2ix))
     
-  singleton = SScalar
-  {-# INLINE singleton #-}
+  scalar = SScalar
+  {-# INLINE scalar #-}
 
   index00 (SScalar px)  = px
   index00 (STImage arr) = R.index arr (Z :. 0 :. 0)
@@ -158,8 +158,8 @@ instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
      SDImage (multR (show img1 ++ " X " ++ show img2) arr1 arr2)
   (|*|) img1@(SDImage _) !img2            = compute img1 |*| img2
   (|*|) !img1            img2@(SDImage _) = img1 |*| compute img2
-  (|*|) (SScalar px1)    !img2            = STImage (singletonR px1) |*| img2
-  (|*|) !img1            (SScalar px2)    = img1 |*| STImage (singletonR px2)
+  (|*|) (SScalar px1)    !img2            = STImage (scalarR px1) |*| img2
+  (|*|) !img1            (SScalar px2)    = img1 |*| STImage (scalarR px2)
   {-# INLINE (|*|) #-}
 
   toManifest _ = error $ "RS.toManifest: Cannot convert generic Repa " ++
@@ -203,8 +203,8 @@ instance (BaseArray (RP r) cs e) => Array (RP r) cs e where
     (R.fromFunction (Z :. m :. n) (getWindowPx . sh2ix))
      (R.fromFunction (Z :. m :. n) (getBorderPx . sh2ix))
     
-  singleton = PScalar
-  {-# INLINE singleton #-}
+  scalar = PScalar
+  {-# INLINE scalar #-}
 
   index00 (PScalar px)  = px
   index00 (PTImage arr) = R.index arr (Z :. 0 :. 0)
@@ -286,8 +286,8 @@ instance (BaseArray (RP r) cs e) => Array (RP r) cs e where
      PDImage (multR (show img1 ++ " X " ++ show img2) arr1 arr2)
   (|*|) img1@(PDImage _) !img2            = compute img1 |*| img2
   (|*|) !img1            img2@(PDImage _) = img1 |*| compute img2
-  (|*|) (PScalar px1)    !img2            = PTImage (singletonR px1) |*| img2
-  (|*|) !img1            (PScalar px2)    = img1 |*| PTImage (singletonR px2)
+  (|*|) (PScalar px1)    !img2            = PTImage (scalarR px1) |*| img2
+  (|*|) !img1            (PScalar px2)    = img1 |*| PTImage (scalarR px2)
   {-# INLINE (|*|) #-}
 
   toManifest _ = error $ "RP.toManifest: Cannot convert generic Repa " ++
@@ -417,8 +417,8 @@ multR errMsg !arr1 !arr2 =
 {-# INLINE multR #-}
 
 
-singletonR :: (IVU.Unbox a, R.Target r a) => a -> R.Array r DIM2 a
-singletonR !px = R.computeS $ R.fromFunction (Z :. 1 :. 1) $ const px
+scalarR :: (IVU.Unbox a, R.Target r a) => a -> R.Array r DIM2 a
+scalarR !px = R.computeS $ R.fromFunction (Z :. 1 :. 1) $ const px
 
 
 getDelayedS :: Array (RS r) cs e => Image (RS r) cs e -> R.Array R.D DIM2 (Pixel cs e)

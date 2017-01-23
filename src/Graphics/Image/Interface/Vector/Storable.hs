@@ -65,8 +65,8 @@ instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
   makeImageWindowed !sh !window f g = VSImage $ makeImageWindowed sh window f g
   {-# INLINE makeImageWindowed #-}
   
-  singleton = VSImage . singleton
-  {-# INLINE singleton #-}
+  scalar = VSImage . scalar
+  {-# INLINE scalar #-}
 
   index00 (VSImage img) = index00 img
   {-# INLINE index00 #-}

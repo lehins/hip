@@ -52,8 +52,8 @@ instance (Elevator e, Typeable e) => ColorSpace CMYK e where
   {-# INLINE fromComponents #-}
   toComponents (PixelCMYK c m y k) = (c, m, y, k)
   {-# INLINE toComponents #-}
-  broadcastC !e = PixelCMYK e e e e
-  {-# INLINE broadcastC #-}
+  promote !e = PixelCMYK e e e e
+  {-# INLINE promote #-}
   getPxC (PixelCMYK c _ _ _) CyanCMYK = c
   getPxC (PixelCMYK _ m _ _) MagCMYK  = m
   getPxC (PixelCMYK _ _ y _) YelCMYK  = y
@@ -224,8 +224,8 @@ instance (Elevator e, Typeable e) => ColorSpace CMYKA e where
   {-# INLINE fromComponents #-}
   toComponents (PixelCMYKA c m y k a) = (c, m, y, k, a)
   {-# INLINE toComponents #-}
-  broadcastC !e = PixelCMYKA e e e e e
-  {-# INLINE broadcastC #-}
+  promote !e = PixelCMYKA e e e e e
+  {-# INLINE promote #-}
   getPxC (PixelCMYKA c _ _ _ _) CyanCMYKA  = c
   getPxC (PixelCMYKA _ m _ _ _) MagCMYKA   = m
   getPxC (PixelCMYKA _ _ y _ _) YelCMYKA   = y

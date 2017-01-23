@@ -160,8 +160,8 @@ instance BaseArray VS cs e => Array VS cs e where
     where mkPxIx !k = let !ix = toIx n k in (ix, f ix)
   {-# INLINE makeImage #-}
 
-  singleton = SScalar
-  {-# INLINE singleton #-}
+  scalar = SScalar
+  {-# INLINE scalar #-}
 
   index00 = (`indexSparse` (0,0)) 
   {-# INLINE index00 #-}

@@ -127,7 +127,7 @@ instance ToY YCbCr where
 instance ToYA YCbCrA where
   
 instance ToRGB Y where
-  toPixelRGB (PixelY g) = broadcastC g
+  toPixelRGB (PixelY g) = promote g
   {-# INLINE toPixelRGB #-}
 
 instance ToRGBA YA where

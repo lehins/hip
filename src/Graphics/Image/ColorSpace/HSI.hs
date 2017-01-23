@@ -51,8 +51,8 @@ instance (Elevator e, Typeable e) => ColorSpace HSI e where
   {-# INLINE toComponents #-}
   fromComponents !(h, s, i) = PixelHSI h s i
   {-# INLINE fromComponents #-}
-  broadcastC = pure
-  {-# INLINE broadcastC #-}
+  promote = pure
+  {-# INLINE promote #-}
   getPxC (PixelHSI h _ _) HueHSI = h
   getPxC (PixelHSI _ s _) SatHSI = s
   getPxC (PixelHSI _ _ i) IntHSI = i
@@ -200,8 +200,8 @@ instance (Elevator e, Typeable e) => ColorSpace HSIA e where
   {-# INLINE toComponents #-}
   fromComponents !(h, s, i, a) = PixelHSIA h s i a
   {-# INLINE fromComponents #-}
-  broadcastC = pure
-  {-# INLINE broadcastC #-}
+  promote = pure
+  {-# INLINE promote #-}
   getPxC (PixelHSIA h _ _ _) HueHSIA   = h
   getPxC (PixelHSIA _ s _ _) SatHSIA   = s
   getPxC (PixelHSIA _ _ i _) IntHSIA   = i

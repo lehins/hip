@@ -75,8 +75,8 @@ instance (BaseArray RSS cs e) => Array RSS cs e where
   makeImageWindowed !sz !w f = SSImage . makeImageWindowed sz w f
   {-# INLINE makeImageWindowed #-}
  
-  singleton = SSImage . I.singleton
-  {-# INLINE singleton #-}
+  scalar = SSImage . I.scalar
+  {-# INLINE scalar #-}
 
   index00 (SSImage img) = index00 img
   {-# INLINE index00 #-}
@@ -123,7 +123,7 @@ instance (BaseArray RSS cs e) => Array RSS cs e where
   (|*|) (SSImage img1) (SSImage img2) = SSImage (img1 |*| img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (SSImage (SScalar px)) = I.singleton px
+  toManifest (SSImage (SScalar px)) = I.scalar px
   toManifest (SSImage (STImage arr)) = fromRepaArrayStorable arr
   toManifest !img = toManifest (compute img)
   {-# INLINE toManifest #-}
@@ -153,8 +153,8 @@ instance (BaseArray RPS cs e) => Array RPS cs e where
   makeImageWindowed !sz !w f = PSImage . makeImageWindowed sz w f
   {-# INLINE makeImageWindowed #-}
  
-  singleton = PSImage . singleton
-  {-# INLINE singleton #-}
+  scalar = PSImage . scalar
+  {-# INLINE scalar #-}
 
   index00 (PSImage img) = index00 img
   {-# INLINE index00 #-}
@@ -201,7 +201,7 @@ instance (BaseArray RPS cs e) => Array RPS cs e where
   (|*|) (PSImage img1) (PSImage img2) = PSImage (img1 |*| img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (PSImage (PScalar px)) = singleton px
+  toManifest (PSImage (PScalar px)) = scalar px
   toManifest (PSImage (PTImage arr)) = fromRepaArrayStorable arr
   toManifest !img = toManifest (compute img)
   {-# INLINE toManifest #-}
@@ -223,7 +223,7 @@ instance Exchangable RSS RPS where
 
 -- | O(1) - Changes to Repa representation.
 instance Exchangable IVS.VS RSS where
-  exchange _ !img@(dims -> (1, 1)) = singleton (index00 img)
+  exchange _ !img@(dims -> (1, 1)) = scalar (index00 img)
   exchange _ !img =
     SSImage . STImage . toRepaArrayStorable $ img
   {-# INLINE exchange #-}
@@ -231,7 +231,7 @@ instance Exchangable IVS.VS RSS where
 
 -- | O(1) - Changes to Repa representation.
 instance Exchangable IVS.VS RPS where
-  exchange _ !img@(dims -> (1, 1)) = singleton (index00 img)
+  exchange _ !img@(dims -> (1, 1)) = scalar (index00 img)
   exchange _ !img =
     PSImage . PTImage . toRepaArrayStorable $ img
   {-# INLINE exchange #-}

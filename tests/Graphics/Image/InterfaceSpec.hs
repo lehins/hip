@@ -63,8 +63,8 @@ instance (Array arr1 cs e, Array arr2 cs e, Arbitrary (Pixel cs e)) =>
     getPx <- arbitrary
     if (m, n) == (1, 1)
       then do
-        img1 <- elements [I.makeImage (m, n) getPx, I.singleton (getPx (0, 0))]
-        img2 <- elements [I.makeImage (m, n) getPx, I.singleton (getPx (0, 0))]
+        img1 <- elements [I.makeImage (m, n) getPx, I.scalar (getPx (0, 0))]
+        img2 <- elements [I.makeImage (m, n) getPx, I.scalar (getPx (0, 0))]
         return $ Identical img1 img2
       else return $
            Identical (I.makeImage (m, n) getPx) (I.makeImage (m, n) getPx)

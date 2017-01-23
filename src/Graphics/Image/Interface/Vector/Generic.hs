@@ -90,8 +90,8 @@ instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
       {-# INLINE generate #-}
   {-# INLINE makeImageWindowed #-}
   
-  singleton = VScalar
-  {-# INLINE singleton #-}
+  scalar = VScalar
+  {-# INLINE scalar #-}
 
   index00 (VScalar px) = px
   index00 (VImage _ _ v) = v VG.! 0

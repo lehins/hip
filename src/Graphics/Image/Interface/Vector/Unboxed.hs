@@ -66,8 +66,8 @@ instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
   makeImageWindowed !sh !window f g = VUImage $ makeImageWindowed sh window f g
   {-# INLINE makeImageWindowed #-}
   
-  singleton = VUImage . singleton
-  {-# INLINE singleton #-}
+  scalar = VUImage . scalar
+  {-# INLINE scalar #-}
 
   index00 (VUImage img) = index00 img
   {-# INLINE index00 #-}

@@ -62,8 +62,8 @@ class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e, Typeable e)
   -- | Convert from an elemnt representation back to a Pixel.
   fromComponents :: Components cs e -> Pixel cs e
 
-  -- | Construt a pixel by replicating a same value among all of the components.
-  broadcastC :: e -> Pixel cs e
+  -- | Construt a Pixel by replicating the same value across all of the components.
+  promote :: e -> Pixel cs e
 
   -- | Retrieve Pixel's component value
   getPxC :: Pixel cs e -> cs -> e
@@ -200,9 +200,9 @@ class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
                        -- ^ Function that generates border pixels
                     -> Image arr cs e
 
-  -- | Create a singleton image, required for various operations on images with
+  -- | Create a scalar image, required for various operations on images with
   -- a scalar.
-  singleton :: Pixel cs e -> Image arr cs e
+  scalar :: Pixel cs e -> Image arr cs e
 
   -- | Retrieves a pixel at @(0, 0)@ index. Useful together with `fold`, when
   -- arbitrary initial pixel is needed.
@@ -656,7 +656,7 @@ instance Array arr cs e => Num (Image arr cs e) where
   signum      = map signum
   {-# INLINE signum #-}
   
-  fromInteger = singleton . fromInteger
+  fromInteger = scalar . fromInteger
   {-# INLINE fromInteger #-}
 
 
@@ -665,13 +665,13 @@ instance (Fractional (Pixel cs e), Array arr cs e) =>
   (/)          = zipWith (/)
   {-# INLINE (/) #-}
   
-  fromRational = singleton . fromRational 
+  fromRational = scalar . fromRational 
   {-# INLINE fromRational #-}
 
 
 instance (Floating (Pixel cs e), Array arr cs e) =>
          Floating (Image arr cs e) where
-  pi    = singleton pi
+  pi    = scalar pi
   {-# INLINE pi #-}
   
   exp   = map exp

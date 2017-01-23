@@ -117,9 +117,9 @@ instance Bits (Pixel Binary Bit) where
   
   rotate !b !n = liftPx (`rotate` n) b
 
-  zeroBits = broadcastC zeroBits
+  zeroBits = promote zeroBits
 
-  bit = broadcastC . bit
+  bit = promote . bit
 
   testBit (PixelBinary (Bit 1)) 0 = True
   testBit _                     _ = False
@@ -176,8 +176,8 @@ isOff = not . isOn
 instance ColorSpace Binary Bit where
   type Components Binary Bit = Bit
 
-  broadcastC = PixelBinary
-  {-# INLINE broadcastC #-}
+  promote = PixelBinary
+  {-# INLINE promote #-}
   fromComponents = PixelBinary
   {-# INLINE fromComponents #-}
   toComponents (PixelBinary b) = b
@@ -258,7 +258,7 @@ instance Num (Pixel Binary Bit) where
   {-# INLINE abs #-}
   signum      = liftPx signum
   {-# INLINE signum #-}
-  fromInteger = broadcastC . fromInteger
+  fromInteger = promote . fromInteger
   {-# INLINE fromInteger #-}
 
 

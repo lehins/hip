@@ -208,13 +208,13 @@ instance Convertible JP.PixelRGBA16 (Pixel YA Double) where
 -- Y -> RGB (Double)
 
 instance Convertible JP.Pixel8 (Pixel RGB Double) where
-  convert = broadcastC . toDouble
+  convert = promote . toDouble
 
 instance Convertible JP.Pixel16 (Pixel RGB Double) where
-  convert = broadcastC . toDouble
+  convert = promote . toDouble
 
 instance Convertible JP.PixelF (Pixel RGB Double) where
-  convert = broadcastC . toDouble
+  convert = promote . toDouble
 
 instance Convertible JP.PixelYA8 (Pixel RGB Double) where
   convert = convert . JP.dropTransparency

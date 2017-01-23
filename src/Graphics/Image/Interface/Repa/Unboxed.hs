@@ -68,8 +68,8 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
   makeImageWindowed !sz !w f = SUImage . makeImageWindowed sz w f
   {-# INLINE makeImageWindowed #-}
  
-  singleton = SUImage . singleton
-  {-# INLINE singleton #-}
+  scalar = SUImage . scalar
+  {-# INLINE scalar #-}
 
   index00 (SUImage img) = index00 img
   {-# INLINE index00 #-}
@@ -116,7 +116,7 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
   (|*|) (SUImage img1) (SUImage img2) = SUImage (img1 |*| img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (SUImage (SScalar px)) = singleton px
+  toManifest (SUImage (SScalar px)) = scalar px
   toManifest (SUImage (STImage arr)) =
     IVU.fromUnboxedVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
   toManifest !img = toManifest (compute img)
@@ -146,8 +146,8 @@ instance (BaseArray RPU cs e) => Array RPU cs e where
   makeImageWindowed !sz !w f = PUImage . makeImageWindowed sz w f
   {-# INLINE makeImageWindowed #-}
  
-  singleton = PUImage . singleton
-  {-# INLINE singleton #-}
+  scalar = PUImage . scalar
+  {-# INLINE scalar #-}
 
   index00 (PUImage img) = index00 img
   {-# INLINE index00 #-}
@@ -194,7 +194,7 @@ instance (BaseArray RPU cs e) => Array RPU cs e where
   (|*|) (PUImage img1) (PUImage img2) = PUImage (img1 |*| img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (PUImage (PScalar px)) = singleton px
+  toManifest (PUImage (PScalar px)) = scalar px
   toManifest (PUImage (PTImage arr)) =
     IVU.fromUnboxedVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
   toManifest !img = toManifest (compute img)
@@ -217,7 +217,7 @@ instance Exchangable RSU RPU where
 
 -- | O(1) - Changes to Repa representation.
 instance Exchangable IVU.VU RSU where
-  exchange _ img@(dims -> (1, 1)) = singleton (index00 img)
+  exchange _ img@(dims -> (1, 1)) = scalar (index00 img)
   exchange _ img =
     SUImage . STImage . R.fromUnboxed (ix2sh $ dims img) . IVU.toUnboxedVector $ img
   {-# INLINE exchange #-}
@@ -225,7 +225,7 @@ instance Exchangable IVU.VU RSU where
 
 -- | O(1) - Changes to Repa representation.
 instance Exchangable IVU.VU RPU where
-  exchange _ img@(dims -> (1, 1)) = singleton (index00 img)
+  exchange _ img@(dims -> (1, 1)) = scalar (index00 img)
   exchange _ img =
     PUImage . PTImage . R.fromUnboxed (ix2sh $ dims img) . IVU.toUnboxedVector $ img
   {-# INLINE exchange #-}
