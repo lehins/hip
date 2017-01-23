@@ -28,8 +28,8 @@ instance Arbitrary (EncDec InputFormat OutputFormat) where
 
 
 
-prop_EncodeDecode :: Image VS RGB Double -> EncDec InputFormat OutputFormat -> Result
-prop_EncodeDecode imgD (EncDec input output) =
+prop_EncodeDecode :: Image VS RGB Word8 -> EncDec InputFormat OutputFormat -> Result
+prop_EncodeDecode imgWord8 (EncDec input output) =
   case decode input (BL.toStrict (encode output [] (I.map (fmap toDouble) imgWord8))) of
     Left err ->
       failed
@@ -37,7 +37,7 @@ prop_EncodeDecode imgD (EncDec input output) =
       }
     Right (img' :: Image VS RGB Double) ->
       let imgWord8' = I.map (fmap toWord8) img' in
-      if eqTol 1 imgWord8 imgWord8'
+      if eqTol 2 imgWord8 imgWord8'
         then succeeded
         else failed
              { reason =
@@ -45,7 +45,6 @@ prop_EncodeDecode imgD (EncDec input output) =
                show (toLists imgWord8) ++
                "\n differes from decoded img: \n" ++ show (toLists imgWord8')
              }
-    where imgWord8 = I.map (fmap toWord8) imgD
           
 
 spec :: Spec
