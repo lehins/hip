@@ -95,58 +95,6 @@ instance Foldable (Pixel CMYK) where
   {-# INLINE foldr #-}
 
 
-instance Num e => Num (Pixel CMYK e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-
-
-instance Fractional e => Fractional (Pixel CMYK e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel CMYK e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
-
 
 instance Storable e => Storable (Pixel CMYK e) where
 
@@ -281,59 +229,6 @@ instance Applicative (Pixel CMYKA) where
 instance Foldable (Pixel CMYKA) where
   foldr f !z (PixelCMYKA c m y k a) = f c (f m (f y (f k (f a z))))
   {-# INLINE foldr #-}
-
-
-instance Num e => Num (Pixel CMYKA e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-
-
-instance Fractional e => Fractional (Pixel CMYKA e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel CMYKA e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
 
 
 instance Storable e => Storable (Pixel CMYKA e) where

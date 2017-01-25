@@ -107,57 +107,6 @@ instance Foldable (Pixel RGB) where
   {-# INLINE foldr #-}
 
 
-instance Num e => Num (Pixel RGB e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-  
-
-instance Fractional e => Fractional (Pixel RGB e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel RGB e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
 
 
 instance Storable e => Storable (Pixel RGB e) where
@@ -272,59 +221,6 @@ instance Foldable (Pixel RGBA) where
   foldr f !z (PixelRGBA r g b a) = f r (f g (f b (f a z)))
   {-# INLINE foldr #-}
 
-
-
-instance Num e => Num (Pixel RGBA e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-
-
-instance Fractional e => Fractional (Pixel RGBA e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel RGBA e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
 
  
 instance Storable e => Storable (Pixel RGBA e) where

@@ -93,60 +93,6 @@ instance Foldable (Pixel YCbCr) where
   {-# INLINE foldr #-}
 
 
-instance Num e => Num (Pixel YCbCr e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-
-
-instance Fractional e => Fractional (Pixel YCbCr e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel YCbCr e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
-
-
-
 instance Storable e => Storable (Pixel YCbCr e) where
 
   sizeOf _ = 3 * sizeOf (undefined :: e)
@@ -273,59 +219,6 @@ instance Applicative (Pixel YCbCrA) where
 instance Foldable (Pixel YCbCrA) where
   foldr f !z (PixelYCbCrA y b r a) = f y (f b (f r (f a z)))
   {-# INLINE foldr #-}
-
-
-instance Num e => Num (Pixel YCbCrA e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-
-
-instance Fractional e => Fractional (Pixel YCbCrA e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel YCbCrA e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
 
 
 instance Storable e => Storable (Pixel YCbCrA e) where

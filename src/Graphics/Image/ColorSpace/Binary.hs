@@ -247,21 +247,6 @@ instance Num Bit where
   {-# INLINE fromInteger #-}
 
 
-instance Num (Pixel Binary Bit) where
-  (+)         = liftPx2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftPx2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftPx2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftPx abs
-  {-# INLINE abs #-}
-  signum      = liftPx signum
-  {-# INLINE signum #-}
-  fromInteger = promote . fromInteger
-  {-# INLINE fromInteger #-}
-
-
 instance Storable Bit where
 
   sizeOf _ = sizeOf (undefined :: Word8)

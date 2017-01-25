@@ -90,58 +90,6 @@ instance Foldable (Pixel HSI) where
   foldr f !z (PixelHSI h s i) = f h (f s (f i z))
   {-# INLINE foldr #-}
 
-instance Num e => Num (Pixel HSI e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-  
-
-instance Fractional e => Fractional (Pixel HSI e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel HSI e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
-
 
 instance Storable e => Storable (Pixel HSI e) where
 
@@ -268,59 +216,6 @@ instance Applicative (Pixel HSIA) where
 instance Foldable (Pixel HSIA) where
   foldr f !z (PixelHSIA h s i a) = f h (f s (f i (f a z)))
   {-# INLINE foldr #-}
-
-
-instance Num e => Num (Pixel HSIA e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-
-
-instance Fractional e => Fractional (Pixel HSIA e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel HSIA e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
 
 
 instance Storable e => Storable (Pixel HSIA e) where

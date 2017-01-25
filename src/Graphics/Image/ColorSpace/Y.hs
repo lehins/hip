@@ -103,58 +103,6 @@ instance Monad (Pixel Y) where
   {-# INLINE (>>=) #-}
 
 
-instance Num e => Num (Pixel Y e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-  
-
-instance Fractional e => Fractional (Pixel Y e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel Y e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
-
 
 instance Storable e => Storable (Pixel Y e) where
 
@@ -250,63 +198,6 @@ instance Applicative (Pixel YA) where
 instance Foldable (Pixel YA) where
   foldr f !z (PixelYA y a) = f y (f a z)
   {-# INLINE foldr #-}
-
-
-instance Num e => Num (Pixel YA e) where
-  (+)         = liftA2 (+)
-  {-# INLINE (+) #-}
-  
-  (-)         = liftA2 (-)
-  {-# INLINE (-) #-}
-  
-  (*)         = liftA2 (*)
-  {-# INLINE (*) #-}
-  
-  abs         = liftA abs
-  {-# INLINE abs #-}
-  
-  signum      = liftA signum
-  {-# INLINE signum #-}
-  
-  fromInteger = pure . fromInteger
-  {-# INLINE fromInteger #-}
-
-instance Fractional e => Fractional (Pixel YA e) where
-  (/)          = liftA2 (/)
-  {-# INLINE (/) #-}
-  recip        = liftA recip
-  {-# INLINE recip #-}
-  fromRational = pure . fromRational
-  {-# INLINE fromRational #-}
-
-
-instance Floating e => Floating (Pixel YA e) where
-  pi      = pure pi
-  {-# INLINE pi #-}
-  exp     = liftA exp
-  {-# INLINE exp #-}
-  log     = liftA log
-  {-# INLINE log #-}
-  sin     = liftA sin
-  {-# INLINE sin #-}
-  cos     = liftA cos
-  {-# INLINE cos #-}
-  asin    = liftA asin
-  {-# INLINE asin #-}
-  atan    = liftA atan
-  {-# INLINE atan #-}
-  acos    = liftA acos
-  {-# INLINE acos #-}
-  sinh    = liftA sinh
-  {-# INLINE sinh #-}
-  cosh    = liftA cosh
-  {-# INLINE cosh #-}
-  asinh   = liftA asinh
-  {-# INLINE asinh #-}
-  atanh   = liftA atanh
-  {-# INLINE atanh #-}
-  acosh   = liftA acosh
-  {-# INLINE acosh #-}
 
 
 instance Storable e => Storable (Pixel YA e) where

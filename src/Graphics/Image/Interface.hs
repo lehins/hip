@@ -621,11 +621,64 @@ checkDims err !ds@(m, n)
 {-# INLINE checkDims #-}
 
 
-instance (Applicative (Pixel cs), Bounded e) => Bounded (Pixel cs e) where
-  maxBound = pure maxBound
+instance (ColorSpace cs e, Num e) => Num (Pixel cs e) where
+  (+)         = liftPx2 (+)
+  {-# INLINE (+) #-}
+  (-)         = liftPx2 (-)
+  {-# INLINE (-) #-}
+  (*)         = liftPx2 (*)
+  {-# INLINE (*) #-}
+  abs         = liftPx abs
+  {-# INLINE abs #-}
+  signum      = liftPx signum
+  {-# INLINE signum #-}
+  fromInteger = promote . fromInteger
+  {-# INLINE fromInteger #-}
+  
+
+instance (ColorSpace cs e, Fractional e) => Fractional (Pixel cs e) where
+  (/)          = liftPx2 (/)
+  {-# INLINE (/) #-}
+  recip        = liftPx recip
+  {-# INLINE recip #-}
+  fromRational = promote . fromRational
+  {-# INLINE fromRational #-}
+
+
+instance (ColorSpace cs e, Floating e) => Floating (Pixel cs e) where
+  pi      = promote pi
+  {-# INLINE pi #-}
+  exp     = liftPx exp
+  {-# INLINE exp #-}
+  log     = liftPx log
+  {-# INLINE log #-}
+  sin     = liftPx sin
+  {-# INLINE sin #-}
+  cos     = liftPx cos
+  {-# INLINE cos #-}
+  asin    = liftPx asin
+  {-# INLINE asin #-}
+  atan    = liftPx atan
+  {-# INLINE atan #-}
+  acos    = liftPx acos
+  {-# INLINE acos #-}
+  sinh    = liftPx sinh
+  {-# INLINE sinh #-}
+  cosh    = liftPx cosh
+  {-# INLINE cosh #-}
+  asinh   = liftPx asinh
+  {-# INLINE asinh #-}
+  atanh   = liftPx atanh
+  {-# INLINE atanh #-}
+  acosh   = liftPx acosh
+  {-# INLINE acosh #-}
+
+
+instance (ColorSpace cs e, Bounded e) => Bounded (Pixel cs e) where
+  maxBound = promote maxBound
   {-# INLINE maxBound #-}
   
-  minBound = pure minBound
+  minBound = promote minBound
   {-# INLINE minBound #-}
 
 
