@@ -488,7 +488,7 @@ addIxArr !arr = R.zipWith (,) arrIx arr
 
 
 foldIxS
-  :: (R.Elt b, R.Source r2 b) =>
+  :: (R.Elt b, IVU.Unbox b, R.Source r2 b) =>
      (b -> (Int, Int) -> b -> b) -> b -> R.Array r2 DIM2 b -> b
 foldIxS f !acc !arr = snd $ R.foldAllS g ((-1, 0), acc) arr'
   where

@@ -77,15 +77,13 @@ force arr = do
 main :: IO ()
 main = do
   -- img' <- readImageRGB RPU "images/frog.jpg"
-  -- let !img = compute img'
+  -- let !imgU = compute img'
   let !imgU = compute $ makeImage (1024, 768)
               (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j )))
               :: Image RPU Y Word8
   let sobelU = sobelGx imgU
   let sobelSepU = sobelGxSep imgU
   let !imgR = toRepaArray imgU
-  --imgRDouble <- force $ R.map (`getPxC` LumaY) imgR
-  -- let sobelRDouble = sobelGxR imgRDouble
   let sobelR = sobelGxR imgR
   let sobelRAlg = sobelGxRAlg imgR
   defaultMain
@@ -96,7 +94,6 @@ main = do
         , bench "separated U" $ whnf compute sobelSepU
         , bench "repa U Agorithms" $ whnfIO sobelRAlg
         , bench "repa U Stencil" $ whnfIO (force sobelR)
-        -- , bench "repa Double" $ whnfIO (force sobelRDouble)
         ]
     ]
 

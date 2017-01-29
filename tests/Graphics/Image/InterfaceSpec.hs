@@ -45,11 +45,16 @@ instance Arbitrary (Pixel RGB Word8) where
 instance Arbitrary (Pixel RGB Double) where
   arbitrary = PixelRGB <$> arbitraryDouble <*> arbitraryDouble <*> arbitraryDouble
 
-instance (Array arr cs e, MArray arr cs e, Arbitrary (Pixel cs e)) =>
+instance (Array arr cs e, Arbitrary (Pixel cs e)) =>
          Arbitrary (Image arr cs e) where
   arbitrary = do
     (Positive (Small m), Positive (Small n)) <- arbitrary
-    I.makeImageM (m, n) (const arbitrary)
+    getPx <- arbitrary
+    if (m, n) == (1, 1)
+      then do
+      elements [I.makeImage (m, n) getPx, I.scalar (getPx (0, 0))]
+      else
+      return $ I.makeImage (m, n) getPx
 
   shrink img | dims img == (1,1) = []
              | rows img == 1 = [downsampleCols img]
