@@ -21,9 +21,9 @@ import Graphics.Image.Processing.Geometric
 
 
 
--- | Correlate an image using a kernel. Border resolution technique is required.
-correlate :: I.Array arr cs e =>
-                  Border (Pixel cs e) -> Image arr cs e -> Image arr cs e -> Image arr cs e
+-- | Correlate an image with a kernel. Border resolution technique is required.
+correlate :: Array arr cs e =>
+             Border (Pixel cs e) -> Image arr cs e -> Image arr cs e -> Image arr cs e
 correlate !border !kernel !img =
   I.traverse (compute img) (const sz) stencil
   where
