@@ -280,12 +280,22 @@ prop_sameBackpermute _ (Positive (Small m), Positive (Small n)) f (Identical img
 prop_toFormLists :: (Array arr Y Word8, MArray arr Y Word8) => arr -> Image arr Y Word8 -> Bool
 prop_toFormLists _ img = img == I.fromLists (I.toLists img)
 
+prop_toFromVector :: Array arr Y Word8 => arr -> Image arr Y Word8 -> Bool
+prop_toFromVector _ img = img == fromVector (dims img) (toVector img)
+
 
 spec :: Spec
 spec = do
   describe "Interface Properties" $ do
     it "borderIndex" $ property prop_borderIndex
-    it "toFormLists" $ property $ prop_toFormLists VU
+    it "toFormLists VU" $ property $ prop_toFormLists VU
+    it "toFormLists VS" $ property $ prop_toFormLists VS
+    it "toFromVector VU" $ property $ prop_toFromVector VU
+    it "toFromVector VS" $ property $ prop_toFromVector VS
+    it "toFromVector RPU" $ property $ prop_toFromVector RPU
+    it "toFromVector RSU" $ property $ prop_toFromVector RSU
+    it "toFromVector RPS" $ property $ prop_toFromVector RPS
+    it "toFromVector RSS" $ property $ prop_toFromVector RSS
   describe "Representation Properties" $ do
     it "sameDims VS" $ property $ prop_sameDims VS
     it "sameDims RSU" $ property $ prop_sameDims RSU
@@ -293,27 +303,27 @@ spec = do
     it "sameImage VS" $ property $ prop_sameImage VS
     it "sameImage RSU" $ property $ prop_sameImage RSU
     it "sameImage RPU" $ property $ prop_sameImage RPU
-    --it "sameMap VS" $ property $ prop_sameMap VS
+    it "sameMap VS" $ property $ prop_sameMap VS
     it "sameMap RSU" $ property $ prop_sameMap RSU
     it "sameMap RPU" $ property $ prop_sameMap RPU
-    --it "sameImap VS" $ property $ prop_sameImap VS
+    it "sameImap VS" $ property $ prop_sameImap VS
     it "sameImap RSU" $ property $ prop_sameImap RSU
     it "sameImap RPU" $ property $ prop_sameImap RPU
-    --it "sameZipWith VS" $ property $ prop_sameZipWith VS
+    it "sameZipWith VS" $ property $ prop_sameZipWith VS
     it "sameZipWith RSU" $ property $ prop_sameZipWith RSU
     it "sameZipWith RPU" $ property $ prop_sameZipWith RPU
-    --it "sameIZipWith VS" $ property $ prop_sameIZipWith VS
+    it "sameIZipWith VS" $ property $ prop_sameIZipWith VS
     it "sameIZipWith RSU" $ property $ prop_sameIZipWith RSU
     it "sameIZipWith RPU" $ property $ prop_sameIZipWith RPU
-    --it "sameTraverse VS" $ property $ prop_sameTraverse VS
+    it "sameTraverse VS" $ property $ prop_sameTraverse VS
     it "sameTraverse RSU" $ property $ prop_sameTraverse RSU
     it "sameTraverse RPU" $ property $ prop_sameTraverse RPU
-    --it "sameTraverse2 VS" $ property $ prop_sameTraverse2 VS
+    it "sameTraverse2 VS" $ property $ prop_sameTraverse2 VS
     it "sameTraverse2 RSU" $ property $ prop_sameTraverse2 RSU
     it "sameTraverse2 RPU" $ property $ prop_sameTraverse2 RPU
-    --it "sameTranspose VS" $ property $ prop_sameTranspose VS
+    it "sameTranspose VS" $ property $ prop_sameTranspose VS
     it "sameTranspose RSU" $ property $ prop_sameTranspose RSU
     it "sameTranspose RPU" $ property $ prop_sameTranspose RPU
-    --it "sameBackpermute VS" $ property $ prop_sameBackpermute VS
+    it "sameBackpermute VS" $ property $ prop_sameBackpermute VS
     it "sameBackpermute RSU" $ property $ prop_sameBackpermute RSU
     it "sameBackpermute RPU" $ property $ prop_sameBackpermute RPU
