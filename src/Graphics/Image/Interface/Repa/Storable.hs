@@ -30,7 +30,7 @@ import Foreign.Storable
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Repa.Generic
 import qualified Graphics.Image.Interface.Vector.Storable as IVS
-import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
+
 
 
 
@@ -47,27 +47,26 @@ instance Show RPS where
   show RPS = "RepaParallelStorable"
   
 
-type instance Repr (RS IVS.S) = R.F
-
-type instance Repr (RP IVS.S) = R.F
+type instance Repr IVS.VS = R.F
 
 
 instance SuperClass RSS cs e => BaseArray RSS cs e where
   type SuperClass RSS cs e =
-    (ColorSpace cs e, Num (Pixel cs e),
+    (ColorSpace cs e,
      Storable e, Storable (Pixel cs e),
-     IVU.Unbox e, IVU.Unbox (Components cs e), 
      R.Elt e, R.Elt (Pixel cs e))
   
-  data Image RSS cs e = SSImage !(Image (RS IVS.S) cs e)
+  newtype Image RSS cs e = SSImage (Image (RS IVS.VS) cs e)
                        
   dims (SSImage img) = dims img
   {-# INLINE dims #-}
 
 
-instance (BaseArray RSS cs e) => Array RSS cs e where
+instance BaseArray RSS cs e => Array RSS cs e where
 
   type Manifest RSS = IVS.VS
+
+  type Vector RSS = Vector IVS.VS
   
   makeImage !sz f = SSImage (makeImage sz f)
   {-# INLINE makeImage #-}
@@ -128,24 +127,30 @@ instance (BaseArray RSS cs e) => Array RSS cs e where
   toManifest !img = toManifest (compute img)
   {-# INLINE toManifest #-}
 
+  toVector = I.toVector . toManifest
+  {-# INLINE toVector #-}
+
+  fromVector !sz = SSImage . STImage . fromVectorStorable sz
+  {-# INLINE fromVector #-}
 
 
 instance SuperClass RPS cs e => BaseArray RPS cs e where
   type SuperClass RPS cs e =
-    (ColorSpace cs e, Num (Pixel cs e),
+    (ColorSpace cs e,
      Storable e, Storable (Pixel cs e),
-     IVU.Unbox e, IVU.Unbox (Components cs e),
      R.Elt e, R.Elt (Pixel cs e))
   
-  data Image RPS cs e = PSImage !(Image (RP IVS.S) cs e)
+  newtype Image RPS cs e = PSImage (Image (RP IVS.VS) cs e)
                        
   dims (PSImage img) = dims img
   {-# INLINE dims #-}
 
 
-instance (BaseArray RPS cs e) => Array RPS cs e where
+instance BaseArray RPS cs e => Array RPS cs e where
 
   type Manifest RPS = IVS.VS
+
+  type Vector RPS = Vector IVS.VS
   
   makeImage !sz f = PSImage (makeImage sz f)
   {-# INLINE makeImage #-}
@@ -201,52 +206,16 @@ instance (BaseArray RPS cs e) => Array RPS cs e where
   (|*|) (PSImage img1) (PSImage img2) = PSImage (img1 |*| img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (PSImage (PScalar px)) = scalar px
+  toManifest (PSImage (PScalar px))  = scalar px
   toManifest (PSImage (PTImage arr)) = fromRepaArrayStorable arr
   toManifest !img = toManifest (compute img)
   {-# INLINE toManifest #-}
 
+  toVector = I.toVector . toManifest
+  {-# INLINE toVector #-}
 
--- | Changes computation strategy. Will casue all fused operations to be computed.
-instance Exchangable RPS RSS where
-  
-  exchange _ (PSImage img) = SSImage (toRS img)
-  {-# INLINE exchange #-}
-
-
--- | Changes computation strategy. Will casue all fused operations to be computed.
-instance Exchangable RSS RPS where
-  
-  exchange _ (SSImage img) = PSImage (toRP img)
-  {-# INLINE exchange #-}
-
-
--- | O(1) - Changes to Repa representation.
-instance Exchangable IVS.VS RSS where
-  exchange _ !img@(dims -> (1, 1)) = scalar (index00 img)
-  exchange _ !img =
-    SSImage . STImage . toRepaArrayStorable $ img
-  {-# INLINE exchange #-}
-
-
--- | O(1) - Changes to Repa representation.
-instance Exchangable IVS.VS RPS where
-  exchange _ !img@(dims -> (1, 1)) = scalar (index00 img)
-  exchange _ !img =
-    PSImage . PTImage . toRepaArrayStorable $ img
-  {-# INLINE exchange #-}
-
-
--- | Changes to Vector representation.
-instance Exchangable RSS IVS.VS where
-  exchange _ = toManifest
-  {-# INLINE exchange #-}
-
-
--- | Changes to Vector representation.
-instance Exchangable RPS IVS.VS where
-  exchange _ = toManifest
-  {-# INLINE exchange #-}
+  fromVector !sz = PSImage . PTImage . fromVectorStorable sz
+  {-# INLINE fromVector #-}
 
 
 fromRepaArrayStorable
@@ -254,22 +223,20 @@ fromRepaArrayStorable
      Array IVS.VS cs e
   => R.Array R.F DIM2 (Pixel cs e) -> Image IVS.VS cs e
 fromRepaArrayStorable !arr =
-  IVS.fromStorableVector (sh2ix (R.extent arr)) $
-  VS.unsafeFromForeignPtr0 (R.toForeignPtr arr) sz
+  fromVector (sh2ix (R.extent arr)) $
+  VS.unsafeFromForeignPtr0 (R.toForeignPtr arr) (m * n)
   where
-    !sz = sizeOf (undefined :: Pixel cs e) * m * n
     (Z :. m :. n) = R.extent arr
 
 
-toRepaArrayStorable
+fromVectorStorable
   :: forall cs e.
-     Array IVS.VS cs e
-  => Image IVS.VS cs e -> R.Array R.F DIM2 (Pixel cs e)
-toRepaArrayStorable !img
-  | sz == sz' = R.fromForeignPtr (ix2sh (dims img)) fp
-  | otherwise = error $ "toRepaArrayStorable: (impossible) Vector size mismatch: " ++
+     Storable (Pixel cs e)
+  => (Int, Int) -> VS.Vector (Pixel cs e) -> R.Array R.F DIM2 (Pixel cs e)
+fromVectorStorable !(m, n) !v
+  | sz == sz' = R.fromForeignPtr (ix2sh (m, n)) fp
+  | otherwise = error $ "fromVectorStorable: (impossible) Vector size mismatch: " ++
                 show sz ++ " vs " ++ show sz'
   where
-    !(fp, sz) = VS.unsafeToForeignPtr0 $ IVS.toStorableVector img
-    !sz' = sizeOf (undefined :: Pixel cs e) * m * n
-    !(m, n) = dims img
+    !(fp, sz) = VS.unsafeToForeignPtr0 v
+    !sz' = m * n

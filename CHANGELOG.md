@@ -1,3 +1,13 @@
+1.5.1.0
+=======
+
+* Significantly improved convolution performance.
+* Improved exchanging representation between images, by removing `Exchangable`
+  class, but keeping `exchange` function usage unchaged, thus it should be
+  backwards compatible up to a type signature.
+* Created general `fromVector` to `toVector` functions
+* Brought back `fromRepaArrayS` and `fromRepaArrayP` functions [#6]
+
 1.5.0.0
 =======
 

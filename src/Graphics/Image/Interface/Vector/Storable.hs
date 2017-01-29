@@ -18,7 +18,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Vector.Storable (
-  VS(..), S, Image(..), fromStorableVector, toStorableVector, fromIx, toIx, checkDims
+  VS(..), Image(..)
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -34,21 +34,14 @@ import Graphics.Image.Interface.Vector.Generic
 -- | Storable 'Vector' representation.
 data VS = VS
 
-data S
-
-type instance Repr (V S) = VS.Vector
-
-instance Show S where
-  show _ = "Storable"
-
 instance Show VS where
   show _ = "VectorStorable"
 
 instance SuperClass VS cs e => BaseArray VS cs e where
   type SuperClass VS cs e =
-    (ColorSpace cs e, Num (Pixel cs e), VS.Storable (Pixel cs e))
+    (ColorSpace cs e, VS.Storable (Pixel cs e))
 
-  data Image VS cs e = VSImage !(Image (V S) cs e)
+  newtype Image VS cs e = VSImage (Image (G VS) cs e)
 
   dims (VSImage img) = dims img
   {-# INLINE dims #-}
@@ -58,6 +51,8 @@ instance SuperClass VS cs e => BaseArray VS cs e where
 instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
 
   type Manifest VS = VS
+  
+  type Vector VS = VS.Vector
 
   makeImage !sh = VSImage . makeImage sh
   {-# INLINE makeImage #-}
@@ -110,19 +105,24 @@ instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
   eq (VSImage img1) (VSImage img2) = img1 == img2
   {-# INLINE eq #-}
 
-  compute (VSImage img) = VSImage $! compute img
+  compute (VSImage img) = VSImage (compute img)
   {-# INLINE compute #-}
 
   toManifest = id
   {-# INLINE toManifest #-}
 
+  toVector (VSImage (VImage _ _ v)) = v
+  toVector (VSImage (VScalar px))   = VS.singleton px
+  {-# INLINE toVector #-}
+
+  fromVector !sz = VSImage . fromVector sz
+  {-# INLINE fromVector #-}
 
 
 instance BaseArray VS cs e => MArray VS cs e where
   
-  data MImage s VS cs e = MVSImage (MImage s (V S) cs e)
+  newtype MImage s VS cs e = MVSImage (MImage s (G VS) cs e)
                               
-
   unsafeIndex (VSImage img) = unsafeIndex img
   {-# INLINE unsafeIndex #-}
 
@@ -170,27 +170,3 @@ instance BaseArray VS cs e => MArray VS cs e where
 
   swap (MVSImage img) = I.swap img
   {-# INLINE swap #-}
-
-
-
--- | Convert an image to a flattened Storable 'VS.Vector'. It is a __O(1)__ opeartion.
---
--- >>> toStorableVector $ makeImage (3, 2) (\(i, j) -> PixelY $ fromIntegral (i+j))
--- fromList [<Luma:(0.0)>,<Luma:(1.0)>,<Luma:(1.0)>,<Luma:(2.0)>,<Luma:(2.0)>,<Luma:(3.0)>]
---
-toStorableVector :: Array VS cs e => Image VS cs e -> VS.Vector (Pixel cs e)
-toStorableVector (VSImage img) = toVector img
-{-# INLINE toStorableVector #-}
-
-
--- | Construct a two dimensional image with @m@ rows and @n@ columns from a flat
--- Storable 'VS.Vector' of length @k@. It is a __O(1)__ opeartion. Make sure that @m * n = k@.
---
--- >>> fromStorableVector (200, 300) $ generate 60000 (\i -> PixelY $ fromIntegral i / 60000)
--- <Image VectorStorable Luma: 200x300>
---
--- <<images/grad_fromVector.png>>
--- 
-fromStorableVector :: Array VS cs e => (Int, Int) -> VS.Vector (Pixel cs e) -> Image VS cs e
-fromStorableVector !sz !v = VSImage $ fromVector sz v
-{-# INLINE fromStorableVector #-}

@@ -11,7 +11,7 @@ module Graphics.Image.Types (
   module Graphics.Image.ColorSpace,
   module Graphics.Image.IO.Formats,
   Array, Image, MArray, MImage,
-  Exchangable, Border(..),
+  Border(..),
   VU(..), VS(..), RSU(..), RPU(..), RSS(..), RPS(..)
   ) where
 
@@ -83,6 +83,7 @@ import Graphics.Image.IO.Formats
 
 
 
---{-# RULES
---"I.map/id" forall img. I.map id img = img
--- #-}
+-- {-# RULES
+-- "I.map/id" forall img. I.map id img = img
+-- "I.map/I.makeImage" forall f g sz. I.map f (I.makeImage sz g) = I.makeImage sz (f . g)
+--  #-}

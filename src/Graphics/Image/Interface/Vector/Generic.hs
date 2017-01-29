@@ -18,7 +18,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Vector.Generic (
-  V(..), Repr, Image(..), fromVector, toVector
+  G(..), Image(..), fromVector
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -36,49 +36,53 @@ import qualified Data.Vector.Generic.Mutable as MVG
 import Graphics.Image.Interface as I
 
 -- | Generic 'Vector' representation.
-data V r = V r
+data G r = G r
 
-type family Repr arr :: * -> *
 
-instance Show r => Show (V r) where
-  show (V r) = "Vector " ++ show r
+instance Show r => Show (G r) where
+  show (G r) = "Vector " ++ show r
 
-instance SuperClass (V r) cs e => BaseArray (V r) cs e where
-  type SuperClass (V r) cs e = (Show r, ColorSpace cs e, Num (Pixel cs e),
-                                VG.Vector (Repr (V r)) (Pixel cs e), VG.Vector (Repr (V r)) Int,
-                                VG.Vector (Repr (V r)) Bool, NFData ((Repr (V r)) (Pixel cs e)))
+instance SuperClass (G r) cs e => BaseArray (G r) cs e where
+  type SuperClass (G r) cs e =
+    (Show r, ColorSpace cs e,
+     VG.Vector (Vector r) Int, VG.Vector (Vector r) Bool,
+     VG.Vector (Vector r) (Pixel cs e), NFData ((Vector r) (Pixel cs e)))
 
-  data Image (V r) cs e = VScalar !(Pixel cs e)
+  data Image (G r) cs e = VScalar !(Pixel cs e)
                         | VImage {-# UNPACK #-} !Int
                                  {-# UNPACK #-} !Int
-                                 !((Repr (V r)) (Pixel cs e))
+                                 !((Vector (G r)) (Pixel cs e))
 
   dims (VImage m n _) = (m, n)
   dims (VScalar _)    = (1, 1)
   {-# INLINE dims #-}
 
 
-instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
+instance (VG.Vector (Vector r) (Pixel cs e),
+          MArray (G r) cs e, BaseArray (G r) cs e) => Array (G r) cs e where
 
-  type Manifest (V r) = V r
+  type Manifest (G r) = G r
 
-  makeImage !(checkDims "(V r).makeImage" -> (m, n)) f =
+  type Vector (G r) = Vector r
+
+  makeImage !(checkDims "(G r).makeImage" -> (m, n)) f =
     VImage m n $ VG.generate (m * n) (f . toIx n)
   {-# INLINE makeImage #-}
 
-  makeImageWindowed sz !((it, jt), (ib, jb)) getWindowPx getBorderPx =
+  -- TODO: add checkWithin
+  makeImageWindowed !sz !((it, jt), (ib, jb)) getWindowPx getBorderPx =
     VImage m n $ VG.create generate where
-      !(m, n) = checkDims "(V r).makeImageWindowed" sz
-      nestedLoop :: (VG.Mutable (Repr (V r))) s (Pixel cs e)
+      !(m, n) = checkDims "(G r).makeImageWindowed" sz
+      nestedLoop :: (VG.Mutable (Vector r)) s (Pixel cs e)
                  -> ((Int, Int) -> Pixel cs e)
                  -> Int -> Int -> Int -> Int
                  -> ST s ()
       nestedLoop !mv !getPx !fi !fj !ti !tj = do
-        VU.forM_ (VU.enumFromN fi (ti-1)) $ \i ->
-          VU.forM_ (VU.enumFromN fj (tj-1)) $ \j ->
-            MVG.write mv (fromIx n (i,j)) (getPx (i, j))
+        VU.forM_ (VU.enumFromN fi (ti-fi)) $ \i ->
+          VU.forM_ (VU.enumFromN fj (tj-fj)) $ \j ->
+            MVG.unsafeWrite mv (fromIx n (i, j)) (getPx (i, j))
       {-# INLINE nestedLoop #-}
-      generate :: ST s ((VG.Mutable (Repr (V r))) s (Pixel cs e))
+      generate :: ST s ((VG.Mutable (Vector (G r))) s (Pixel cs e))
       generate = do
         mv <- MVG.unsafeNew (m*n)
         nestedLoop mv getBorderPx 0 0 ib n
@@ -142,7 +146,7 @@ instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
   {-# INLINE transpose #-}
 
   -- TODO: add index verification and switch to VG.unsafeBackpermute
-  backpermute !(checkDims "(V r).backpermute" -> (m, n)) !f (VImage _ n' v) =
+  backpermute !(checkDims "(G r).backpermute" -> (m, n)) !f (VImage _ n' v) =
     VImage m n $ VG.backpermute v $ VG.generate (m*n) (fromIx n' . f . toIx n)
   backpermute !sz _ (VScalar px) = makeImage sz (const px)
   {-# INLINE backpermute #-}
@@ -151,7 +155,7 @@ instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
                   then VImage m n . VG.fromList . concat $ ls
                   else error "fromLists: Inner lists are of different lengths."
     where
-      !(m, n) = checkDims "(V r).fromLists" (length ls, length $ head ls)
+      !(m, n) = checkDims "(G r).fromLists" (length ls, length $ head ls)
   {-# INLINE fromLists #-}
 
   fold !f !px0 (VImage _ _ v) = VG.foldl' f px0 v
@@ -184,20 +188,30 @@ instance (MArray (V r) cs e, BaseArray (V r) cs e) => Array (V r) cs e where
   eq _ _ = False
   {-# INLINE eq #-}
 
-  compute (VImage m n v) = m `seq` n `seq` v `deepseq` (VImage m n v)
-  compute (VScalar px)    = px `seq` (VScalar px)
+  compute (VImage m n v) = v `deepseq` (VImage m n v)
+  compute (VScalar px)   = px `seq` (VScalar px)
   {-# INLINE compute #-}
 
   toManifest = id
   {-# INLINE toManifest #-}
 
+  toVector (VImage _ _ v) = VG.convert v
+  toVector (VScalar px)   = VG.singleton px
+  {-# INLINE[1] toVector #-}
 
-instance BaseArray (V r) cs e => MArray (V r) cs e where
+  fromVector !(m, n) !v
+    | m * n /= VG.length v =
+       error $ "fromVector: m * n doesn't equal the length of a Vector: " ++
+               show m ++ " * " ++ show n ++ " /= " ++ show (VG.length v)
+    | m == 1 && n == 1     = VScalar (VG.unsafeIndex v 0)
+    | otherwise            = VImage m n v
+  {-# INLINE fromVector #-}
+
+instance (BaseArray (G r) cs e) => MArray (G r) cs e where
   
-  data MImage s (V r) cs e = MVImage !Int !Int ((VG.Mutable (Repr (V r))) s (Pixel cs e))
+  data MImage s (G r) cs e = MVImage !Int !Int ((VG.Mutable (Vector (G r))) s (Pixel cs e))
                             | MVScalar (MutVar s (Pixel cs e))
-                              
-
+  
   unsafeIndex (VImage _ n v) !ix = VG.unsafeIndex v (fromIx n ix)
   unsafeIndex (VScalar px)     _ = px
   {-# INLINE unsafeIndex #-}
@@ -213,7 +227,7 @@ instance BaseArray (V r) cs e => MArray (V r) cs e where
   foldr f !a (VScalar px)   = f px a
   {-# INLINE foldr #-}
 
-  makeImageM !(checkDims "(V r).makeImageM" -> (m, n)) !f =
+  makeImageM !(checkDims "(G r).makeImageM" -> (m, n)) !f =
     VImage m n <$> VG.generateM (m * n) (f . toIx n)
   {-# INLINE makeImageM #-}
 
@@ -264,29 +278,3 @@ instance BaseArray (V r) cs e => MArray (V r) cs e where
   swap (MVImage _ n mv) !ix1 !ix2 = MVG.swap mv (fromIx n ix1) (fromIx n ix2)
   swap _                _    _    = return ()
   {-# INLINE swap #-}
-
-
--- | Convert an image to a flattened  'Vector'. It is a __O(1)__ opeartion.
---
--- >>> toVector $ makeImage (3, 2) (\(i, j) -> PixelY $ fromIntegral (i+j))
--- fromList [<Luma:(0.0)>,<Luma:(1.0)>,<Luma:(1.0)>,<Luma:(2.0)>,<Luma:(2.0)>,<Luma:(3.0)>]
---
-toVector :: VG.Vector (Repr (V r)) (Pixel cs e) => Image (V r) cs e -> (Repr (V r)) (Pixel cs e)
-toVector (VImage _ _ v) = v
-toVector (VScalar px)   = VG.singleton px
-{-# INLINE toVector #-}
-
-
--- | Construct a two dimensional image with @m@ rows and @n@ columns from a flat
---  'Vector' of length @k@. It is a __O(1)__ opeartion. Make sure that @m * n = k@.
---
--- >>> fromVector (200, 300) $ generate 60000 (\i -> PixelY $ fromIntegral i / 60000)
--- <Image Vector Luma: 200x300>
---
--- <<images/grad_fromVector.png>>
--- 
-fromVector :: (Array (V r) cs e, VG.Vector (Repr (V r)) (Pixel cs e)) => (Int, Int) -> (Repr (V r)) (Pixel cs e) -> Image (V r) cs e
-fromVector !(m, n) !v
-  | m * n == VG.length v = VImage m n v
-  | otherwise = error "fromVector: m * n doesn't equal the length of a Vector."
-{-# INLINE fromVector #-}

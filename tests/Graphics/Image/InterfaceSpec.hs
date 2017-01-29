@@ -166,25 +166,25 @@ prop_sameDims :: Array arr Y Word8 => arr -> Identical VU arr Y Word8 -> Bool
 prop_sameDims _ (Identical img1 img2) = I.dims img1 == I.dims img2
 
 prop_sameImage
-  :: (Exchangable arr VU, Array arr RGB Word8)
+  :: Array arr RGB Word8
   => arr -> Identical VU arr RGB Word8 -> Bool
 prop_sameImage _ (Identical img1 img2) = img1 == I.exchange VU img2
 
 prop_sameMap
-  :: (Exchangable arr RSU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr -> (Pixel Y Word8 -> Pixel Y Word8) -> Identical VU arr Y Word8 -> Bool
 prop_sameMap _ f (Identical img1 img2) =
   I.exchange RSU (I.map f img1) == I.exchange RSU (I.map f img2)
 
 prop_sameImap
-  :: (Exchangable arr RPU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8) -> Identical VU arr Y Word8 -> Bool
 prop_sameImap _ f (Identical img1 img2) =
   I.exchange RPU (I.imap f img1) == I.exchange RPU (I.imap f img2)
 
 
 prop_sameZipWith
-  :: (Exchangable arr RPU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr
   -> (Pixel Y Word8 -> Pixel Y Word8)
   -> (Pixel Y Word8 -> Pixel Y Word8 -> Pixel Y Word8)
@@ -198,7 +198,7 @@ prop_sameZipWith _ g f (Identical img1 img2) =
     img2' = I.map g img2
 
 prop_sameIZipWith
-  :: (Exchangable arr RPU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr
   -> (Pixel Y Word8 -> Pixel Y Word8)
   -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8 -> Pixel Y Word8)
@@ -212,7 +212,7 @@ prop_sameIZipWith _ g f (Identical img1 img2) =
     img2' = I.map g img2
 
 prop_sameTraverse
-  :: (Exchangable arr RSU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr
   -> ((Int, Int) -> (Positive (Small Int), Positive (Small Int)))
   -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8)
@@ -228,7 +228,7 @@ prop_sameTraverse _ g f (Identical img1 img2) =
 
 
 prop_sameTraverse2
-  :: (Exchangable arr RSU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr
   -> ((Int, Int) -> (Int, Int) -> (Positive (Small Int), Positive (Small Int)))
   -> ((Int, Int) -> Pixel Y Word8 -> Pixel Y Word8 -> Pixel Y Word8)
@@ -249,7 +249,7 @@ prop_sameTraverse2 _ g f (Identical img1a img2a) (Identical img1b img2b) =
 
 
 prop_sameTranspose
-  :: (Exchangable arr RSU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr
   -> Identical VU arr Y Word8
   -> Bool
@@ -258,7 +258,7 @@ prop_sameTranspose _ (Identical img1 img2) =
 
 
 prop_sameBackpermute
-  :: (Exchangable arr RPU, Array arr Y Word8)
+  :: Array arr Y Word8
   => arr
   -> (Positive (Small Int), Positive (Small Int))
   -> ((Int, Int) -> (Int, Int))

@@ -647,7 +647,7 @@ instance Array arr RGBA Double => Readable (Image arr RGBA Double) TIF where
 
 jpImageToImageUnsafe :: (Array VS cs e, JP.Pixel jpx) =>
                   JP.Image jpx -> Image VS cs e
-jpImageToImageUnsafe (JP.Image n m v) = fromStorableVector (m, n) $ V.unsafeCast v
+jpImageToImageUnsafe (JP.Image n m v) = fromVector (m, n) $ V.unsafeCast v
 
 
 
@@ -1068,7 +1068,7 @@ instance Writable (Image VS CMYK Double) TIF where
 
 imageToJPImage :: (JP.Pixel a, Array VS cs' e, Array VS cs (JP.PixelBaseComponent a)) =>
                   a -> (Pixel cs' e -> Pixel cs (JP.PixelBaseComponent a)) -> Image VS cs' e -> JP.Image a
-imageToJPImage _ f !img = JP.Image n m $ V.unsafeCast $ toStorableVector $ I.map f img where
+imageToJPImage _ f !img = JP.Image n m $ V.unsafeCast $ toVector $ I.map f img where
   !(m, n) = dims img
 {-# INLINE imageToJPImage #-}
 

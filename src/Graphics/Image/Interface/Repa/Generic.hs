@@ -26,11 +26,11 @@ import Prelude as P
 import Data.Array.Repa.Index
 import qualified Data.Array.Repa as R
 import qualified Data.Array.Repa.Eval as R
+import qualified Data.Vector.Generic as VG
 
 import Graphics.Image.ColorSpace.Binary (Bit(..))
 import Graphics.Image.Interface as I
 import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
-import qualified Graphics.Image.Interface.Vector.Generic as IVG
 import Graphics.Image.Interface.Repa.Helpers
 
 
@@ -56,13 +56,12 @@ instance Show r => Show (RS r) where
 
 instance SuperClass (RS r) cs e => BaseArray (RS r) cs e where
   type SuperClass (RS r) cs e =
-    (Show r, ColorSpace cs e, Num (Pixel cs e), R.Elt (Pixel cs e), R.Elt e, 
-     R.Target (Repr (RS r)) (Pixel cs e), R.Source (Repr (RS r)) (Pixel cs e),
-     IVU.Unbox e, IVU.Unbox (Components cs e), 
-     BaseArray (IVG.V r) cs e, Repr (RP r) ~ Repr (RS r))
+    (Show r, ColorSpace cs e, R.Elt (Pixel cs e), R.Elt e, 
+     R.Target (Repr r) (Pixel cs e), R.Source (Repr r) (Pixel cs e),
+     BaseArray r cs e)
   
   data Image (RS r) cs e = SScalar !(Pixel cs e)
-                         | STImage !(R.Array (Repr (RS r)) R.DIM2 (Pixel cs e))
+                         | STImage !(R.Array (Repr r) R.DIM2 (Pixel cs e))
                          | SDImage !(R.Array R.D R.DIM2 (Pixel cs e))
                        
   dims (SScalar _                          ) = (1, 1)
@@ -71,9 +70,12 @@ instance SuperClass (RS r) cs e => BaseArray (RS r) cs e where
   {-# INLINE dims #-}
 
 
-instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
+instance (VG.Vector (Vector r) (Pixel cs e),
+          MArray (Manifest r) cs e, BaseArray (RS r) cs e) => Array (RS r) cs e where
 
-  type Manifest (RS r) = Manifest (IVG.V r)
+  type Manifest (RS r) = Manifest r
+  
+  type Vector (RS r) = Vector r
   
   makeImage !(checkDims "RS.makeImage" -> (m, n)) f =
     SDImage $ R.fromFunction (Z :. m :. n) (f . sh2ix)
@@ -163,9 +165,16 @@ instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
   {-# INLINE (|*|) #-}
 
   toManifest _ = error $ "RS.toManifest: Cannot convert generic Repa " ++
-                         "representation to a generic Vector."
+                         "representation to a generic Vector representation."
   {-# INLINE toManifest #-}
 
+  toVector _ = error $ "RS.toVector: Cannot convert generic Repa " ++
+                        "representation to a generic Vector."
+  {-# INLINE toVector #-}
+
+  fromVector _ = error $ "RS.fromVector: Cannot convert to generic Repa " ++
+                        "from a generic Vector."
+  {-# INLINE fromVector #-}
 
 ---------------------
 -- Parallel Arrays --
@@ -175,13 +184,13 @@ instance (BaseArray (RS r) cs e) => Array (RS r) cs e where
 
 instance SuperClass (RP r) cs e => BaseArray (RP r) cs e where
   type SuperClass (RP r) cs e = (
-    Show r, ColorSpace cs e, Num (Pixel cs e),
-    R.Target (Repr (RP r)) (Pixel cs e), R.Source (Repr (RP r)) (Pixel cs e),
-    BaseArray (IVG.V r) cs e, Repr (RP r) ~ Repr (RS r),
-    IVU.Unbox e, IVU.Unbox (Components cs e), R.Elt e, R.Elt (Pixel cs e))
+    Show r, ColorSpace cs e,
+    R.Target (Repr r) (Pixel cs e), R.Source (Repr r) (Pixel cs e),
+    BaseArray r cs e,
+    R.Elt e, R.Elt (Pixel cs e))
   
   data Image (RP r) cs e = PScalar !(Pixel cs e)
-                         | PTImage !(R.Array (Repr (RP r)) R.DIM2 (Pixel cs e))
+                         | PTImage !(R.Array (Repr r) R.DIM2 (Pixel cs e))
                          | PDImage !(R.Array R.D R.DIM2 (Pixel cs e))
                        
   dims (PScalar _                          ) = (1, 1)
@@ -190,10 +199,13 @@ instance SuperClass (RP r) cs e => BaseArray (RP r) cs e where
   {-# INLINE dims #-}
 
 
-instance (BaseArray (RP r) cs e) => Array (RP r) cs e where
+instance (VG.Vector (Vector r) (Pixel cs e),
+          MArray (Manifest r) cs e, BaseArray (RP r) cs e) => Array (RP r) cs e where
 
-  type Manifest (RP r) = Manifest (IVG.V r)
-  
+  type Manifest (RP r) = Manifest r
+
+  type Vector (RP r) = Vector r
+
   makeImage !(checkDims "RP.makeImage" -> (m, n)) f =
     PDImage $ R.fromFunction (Z :. m :. n) (f . sh2ix)
   {-# INLINE makeImage #-}
@@ -294,7 +306,15 @@ instance (BaseArray (RP r) cs e) => Array (RP r) cs e where
                          "representation to a generic Vector."
   {-# INLINE toManifest #-}
 
+  toVector _ = error $ "RP.toVector: Cannot convert generic Repa " ++
+                        "representation to a generic Vector."
+  {-# INLINE toVector #-}
 
+  fromVector _ = error $ "RP.fromVector: Cannot convert to generic Repa " ++
+                        "from a generic Vector."
+  {-# INLINE fromVector #-}
+
+ 
 
 ----------------------
 -- Helper functions --
@@ -309,12 +329,12 @@ ix2sh !(i, j) = Z :. i :. j
 {-# INLINE ix2sh #-}
 
 
-toRS :: Repr (RP r) ~ Repr (RS r) => Image (RP r) cs e -> Image (RS r) cs e
+toRS :: Image (RP r) cs e -> Image (RS r) cs e
 toRS (PScalar px)  = SScalar px
 toRS (PDImage img) = SDImage img
 toRS (PTImage img) = STImage img
 
-toRP :: Repr (RP r) ~ Repr (RS r) => Image (RS r) cs e -> Image (RP r) cs e
+toRP :: Image (RS r) cs e -> Image (RP r) cs e
 toRP (SScalar px)  = PScalar px
 toRP (SDImage img) = PDImage img
 toRP (STImage img) = PTImage img
@@ -355,6 +375,8 @@ traverseR !arr getNewDims getNewPx =
     getNewE getPx = getNewPx (getPx . ix2sh) . sh2ix
     {-# INLINE getNewE #-}
 {-# INLINE traverseR #-}
+
+
 
 traverse2R
   :: (R.Source r2 c1, R.Source r1 c)
@@ -398,7 +420,7 @@ fromListsRepa ls =
 
 
 multR
-  :: (ColorSpace cs e, IVU.Unbox (Components cs e), Num (Pixel cs e), R.Elt (Pixel cs e),
+  :: (ColorSpace cs e, Num (Pixel cs e), R.Elt (Pixel cs e),
       R.Target r (Pixel cs e), R.Source r (Pixel cs e))
   => String -> R.Array r DIM2 (Pixel cs e) -> R.Array r DIM2 (Pixel cs e) -> R.Array R.D DIM2 (Pixel cs e)
 multR errMsg !arr1 !arr2 =
@@ -466,7 +488,7 @@ addIxArr !arr = R.zipWith (,) arrIx arr
 
 
 foldIxS
-  :: (R.Elt b, R.Source r2 b, IVU.Unbox b) =>
+  :: (R.Elt b, R.Source r2 b) =>
      (b -> (Int, Int) -> b -> b) -> b -> R.Array r2 DIM2 b -> b
 foldIxS f !acc !arr = snd $ R.foldAllS g ((-1, 0), acc) arr'
   where

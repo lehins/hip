@@ -34,7 +34,7 @@ import Graphics.Image.Interface as I
 data X = X deriving (Eq, Enum, Bounded, Show, Typeable)
 
 
-data instance Pixel X e = PixelX !e deriving (Ord, Eq)
+newtype instance Pixel X e = PixelX e deriving (Ord, Eq)
 
 
 instance Show e => Show (Pixel X e) where

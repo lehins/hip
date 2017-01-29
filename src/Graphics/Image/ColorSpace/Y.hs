@@ -35,7 +35,7 @@ import Graphics.Image.Interface
 data Y = LumaY deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
-data instance Pixel Y e = PixelY !e deriving (Ord, Eq)
+newtype instance Pixel Y e = PixelY e deriving (Ord, Eq)
 
 -- | Conversion to Luma color space.
 class ColorSpace cs Double => ToY cs where

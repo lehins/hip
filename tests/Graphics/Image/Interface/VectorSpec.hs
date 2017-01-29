@@ -5,7 +5,7 @@ import Test.Hspec
 import Test.QuickCheck
 
 import Graphics.Image as I
-import Graphics.Image.Interface.Vector
+import Graphics.Image.Interface as I
 
 import Graphics.Image.InterfaceSpec ()
 
@@ -18,7 +18,7 @@ prop_toFromIx (Positive n) (NonNegative k) = k == fromIx n (toIx n k)
 
 prop_toFromVector
   :: Image VU Y Word8 -> Bool
-prop_toFromVector img = img == fromUnboxedVector (dims img) (toUnboxedVector img)
+prop_toFromVector img = img == fromVector (dims img) (toVector img)
 
 spec :: Spec
 spec = do

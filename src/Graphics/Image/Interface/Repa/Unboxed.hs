@@ -41,18 +41,15 @@ instance Show RPU where
   show RPU = "RepaParallelUnboxed"
   
 
-type instance Repr (RS IVU.U) = R.U
-
-type instance Repr (RP IVU.U) = R.U
+type instance Repr IVU.VU = R.U
 
 
 instance SuperClass RSU cs e => BaseArray RSU cs e where
   type SuperClass RSU cs e =
-    (ColorSpace cs e, Num (Pixel cs e),
-     IVU.Unbox e, IVU.Unbox (Components cs e),
+    (ColorSpace cs e,
      R.Elt e, R.Elt (Pixel cs e))
   
-  data Image RSU cs e = SUImage !(Image (RS IVU.U) cs e)
+  newtype Image RSU cs e = SUImage (Image (RS IVU.VU) cs e)
                        
   dims (SUImage img) = dims img
   {-# INLINE dims #-}
@@ -61,6 +58,8 @@ instance SuperClass RSU cs e => BaseArray RSU cs e where
 instance (BaseArray RSU cs e) => Array RSU cs e where
 
   type Manifest RSU = IVU.VU
+
+  type Vector RSU = Vector IVU.VU
   
   makeImage !sz f = SUImage (makeImage sz f)
   {-# INLINE makeImage #-}
@@ -118,27 +117,32 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
 
   toManifest (SUImage (SScalar px)) = scalar px
   toManifest (SUImage (STImage arr)) =
-    IVU.fromUnboxedVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
+    fromVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
   toManifest !img = toManifest (compute img)
   {-# INLINE toManifest #-}
 
+  toVector = I.toVector . toManifest
+  {-# INLINE toVector #-}
+
+  fromVector sz = SUImage . STImage . R.fromUnboxed (ix2sh sz)
+  {-# INLINE fromVector #-}
 
 
 instance SuperClass RPU cs e => BaseArray RPU cs e where
   type SuperClass RPU cs e =
-    (ColorSpace cs e, Num (Pixel cs e),
-     IVU.Unbox e, IVU.Unbox (Components cs e),
-     R.Elt e, R.Elt (Pixel cs e))
+    (ColorSpace cs e, R.Elt e, R.Elt (Pixel cs e))
   
-  data Image RPU cs e = PUImage !(Image (RP IVU.U) cs e)
+  newtype Image RPU cs e = PUImage (Image (RP IVU.VU) cs e)
                        
   dims (PUImage img) = dims img
   {-# INLINE dims #-}
 
 
-instance (BaseArray RPU cs e) => Array RPU cs e where
+instance BaseArray RPU cs e => Array RPU cs e where
 
   type Manifest RPU = IVU.VU
+  
+  type Vector RPU = Vector IVU.VU
   
   makeImage !sz f = PUImage (makeImage sz f)
   {-# INLINE makeImage #-}
@@ -196,48 +200,12 @@ instance (BaseArray RPU cs e) => Array RPU cs e where
 
   toManifest (PUImage (PScalar px)) = scalar px
   toManifest (PUImage (PTImage arr)) =
-    IVU.fromUnboxedVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
+    fromVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
   toManifest !img = toManifest (compute img)
   {-# INLINE toManifest #-}
 
+  toVector = I.toVector . toManifest
+  {-# INLINE toVector #-}
 
--- | Changes computation strategy. Will casue all fused operations to be computed.
-instance Exchangable RPU RSU where
-  
-  exchange _ (PUImage img)  = SUImage (toRS img)
-  {-# INLINE exchange #-}
-
-
--- | Changes computation strategy. Will casue all fused operations to be computed.
-instance Exchangable RSU RPU where
-  
-  exchange _ (SUImage img)  = PUImage (toRP img)
-  {-# INLINE exchange #-}
-
-
--- | O(1) - Changes to Repa representation.
-instance Exchangable IVU.VU RSU where
-  exchange _ img@(dims -> (1, 1)) = scalar (index00 img)
-  exchange _ img =
-    SUImage . STImage . R.fromUnboxed (ix2sh $ dims img) . IVU.toUnboxedVector $ img
-  {-# INLINE exchange #-}
-
-
--- | O(1) - Changes to Repa representation.
-instance Exchangable IVU.VU RPU where
-  exchange _ img@(dims -> (1, 1)) = scalar (index00 img)
-  exchange _ img =
-    PUImage . PTImage . R.fromUnboxed (ix2sh $ dims img) . IVU.toUnboxedVector $ img
-  {-# INLINE exchange #-}
-
-
--- | Changes to Vector representation.
-instance Exchangable RSU IVU.VU where
-  exchange _ = toManifest
-  {-# INLINE exchange #-}
-
-
--- | Changes to Vector representation.
-instance Exchangable RPU IVU.VU where
-  exchange _ = toManifest
-  {-# INLINE exchange #-}
+  fromVector sz = PUImage . PTImage . R.fromUnboxed (ix2sh sz)
+  {-# INLINE fromVector #-}

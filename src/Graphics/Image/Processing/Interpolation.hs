@@ -19,7 +19,7 @@ import Graphics.Image.Interface
 class Interpolation method where
 
   -- | Construct a new pixel by using information from neighboring pixels.
-  interpolate :: (Num (Pixel cs e), ColorSpace cs e) =>
+  interpolate :: ColorSpace cs e =>
                  method -- ^ Interpolation method
               -> Border (Pixel cs e) -- ^ Border resolution strategy
               -> (Int, Int)          -- ^ Image dimensions @m@ rows and @n@ columns.

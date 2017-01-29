@@ -51,8 +51,8 @@ infixr 2  .||.
 -- >>> frog .<. flipH frog   -- (or: flipH frog .>. frog)
 --
 class Array arr Binary Bit => Thresholding a b arr | a b -> arr where
-  (.==.) :: (Eq (Pixel cs e), Array arr cs e)  => a cs e -> b cs e -> Image arr Binary Bit
-  (./=.) :: (Eq (Pixel cs e), Array arr cs e)  => a cs e -> b cs e -> Image arr Binary Bit
+  (.==.) :: Array arr cs e => a cs e -> b cs e -> Image arr Binary Bit
+  (./=.) :: Array arr cs e => a cs e -> b cs e -> Image arr Binary Bit
   (.<.)  :: (Ord (Pixel cs e), Array arr cs e) => a cs e -> b cs e -> Image arr Binary Bit
   (.<=.) :: (Ord (Pixel cs e), Array arr cs e) => a cs e -> b cs e -> Image arr Binary Bit
   (.>.)  :: (Ord (Pixel cs e), Array arr cs e) => a cs e -> b cs e -> Image arr Binary Bit

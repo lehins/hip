@@ -90,7 +90,7 @@ fromImageBinary = I.map fromPixelBinary
 
 -- | Check weather two Pixels are equal within a tolerance. Useful for comparing
 -- pixels with `Float` or `Double` precision.
-eqTolPx :: (ColorSpace cs e, Num e, Ord e) =>
+eqTolPx :: (ColorSpace cs e, Ord e) =>
            e -> Pixel cs e -> Pixel cs e -> Bool
 eqTolPx !tol = foldlPx2 comp True 
   where comp !acc !e1 !e2 = acc && max e1 e2 - min e1 e2 <= tol

@@ -113,14 +113,14 @@ instance Storable e => Storable (Pixel RGB e) where
 
   sizeOf _ = 3 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)
-  peek p = do
-    q <- return $ castPtr p
+  peek !p = do
+    let !q = castPtr p
     r <- peek q
     g <- peekElemOff q 1
     b <- peekElemOff q 2
     return (PixelRGB r g b)
-  poke p (PixelRGB r g b) = do
-    q <- return $ castPtr p
+  poke !p (PixelRGB r g b) = do
+    let !q = castPtr p
     poke q r
     pokeElemOff q 1 g
     pokeElemOff q 2 b

@@ -247,7 +247,7 @@ pnmDataToImage conv w h (PNM.PpmPixelDataRGB16 v) = makeImage (h, w) (conv . get
 makeImageUnsafe
   :: (Storable a, Array VS cs e)
   => (Int, Int) -> V.Vector a -> Image VS cs e
-makeImageUnsafe sz = fromStorableVector sz . V.unsafeCast
+makeImageUnsafe sz = fromVector sz . V.unsafeCast
 
 
 pnmDataPBMToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS Binary Bit)

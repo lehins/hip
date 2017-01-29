@@ -1,5 +1,5 @@
 Name:              hip
-Version:           1.5.0.0
+Version:           1.5.1.0
 License:           BSD3
 License-File:      LICENSE
 Author:            Alexey Kuleshevich
@@ -27,21 +27,22 @@ Library
   Default-Language: Haskell2010
   HS-Source-Dirs: src
 
-  Build-Depends: base            >= 4.5 && < 5
-               , bytestring      >= 0.9.0.4
-               , Chart           >= 1.5
+  Build-Depends: Chart           >= 1.5
                , Chart-diagrams  >= 1.5
+               , JuicyPixels     >= 3.2.7
+               , base            >= 4.5 && < 5
+               , bytestring      >= 0.9.0.4
                , colour          >= 2.3.3
                , deepseq         >= 1.1
                , directory       >= 1.2.2.0
                , filepath        >= 1.0
-               , JuicyPixels     >= 3.2.7
                , netpbm          >= 1.0.1
                , primitive       >= 0.4
                , process         >= 1.1.0.0
                , repa            >= 3.2.1.1 && < 4
                , temporary       >= 1.1.1
                , vector          >= 0.10
+               , vector-algorithms >= 0.7.0.1
   Other-Extensions: BangPatterns
                   , ConstraintKinds
                   , CPP
@@ -166,6 +167,7 @@ benchmark convolution-benchmarks
                      , criterion
                      , deepseq
                      , repa
+                     , repa-algorithms
                      , hip
   default-language:    Haskell2010
 

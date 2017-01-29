@@ -31,7 +31,7 @@ data Mode = Forward
 
 -- | Fast Fourier Transform
 fft :: (Applicative (Pixel cs),
-        Array arr cs (Complex e),
+        Array arr cs (Complex e), ColorSpace cs e,
         Fractional (Pixel cs (Complex e)), Floating (Pixel cs e), RealFloat e) =>
        Image arr cs (Complex e)
     -> Image arr cs (Complex e)
@@ -41,7 +41,7 @@ fft = fft2d Forward
 
 -- | Inverse Fast Fourier Transform
 ifft :: (Applicative (Pixel cs),
-         Array arr cs (Complex e),
+         Array arr cs (Complex e), ColorSpace cs e,
          Fractional (Pixel cs (Complex e)), Floating (Pixel cs e), RealFloat e) =>
         Image arr cs (Complex e)
      -> Image arr cs (Complex e)
@@ -63,7 +63,7 @@ isPowerOfTwo n = n /= 0 && (n .&. (n-1)) == 0
 
 -- | Compute the DFT of a matrix. Array dimensions must be powers of two else `error`.
 fft2d :: (Applicative (Pixel cs),
-          Array arr cs (Complex e),
+          Array arr cs (Complex e), ColorSpace cs e,
           Fractional (Pixel cs (Complex e)), Floating (Pixel cs e), RealFloat e) =>
          Mode
       -> Image arr cs (Complex e)
@@ -84,7 +84,7 @@ fft2d mode img =
 
 
 fftGeneral :: (Applicative (Pixel cs),
-               Array arr cs (Complex e),
+               Array arr cs (Complex e), ColorSpace cs e, 
                Floating (Pixel cs e), RealFloat e) =>
               Pixel cs e
            -> Image arr cs (Complex e)
@@ -109,8 +109,7 @@ fftGeneral !sign !img = transpose $ go n 0 1 where
 
 
 -- Compute a twiddle factor.
-twiddle :: (Applicative (Pixel cs),
-            Floating (Pixel cs e)) =>
+twiddle :: (Applicative (Pixel cs), Floating (Pixel cs e)) =>
            Pixel cs e
         -> Int                  -- index
         -> Int                  -- length

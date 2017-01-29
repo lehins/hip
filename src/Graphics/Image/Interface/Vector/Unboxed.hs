@@ -18,7 +18,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface.Vector.Unboxed (
-  U, VU(..), VU.Unbox, Image(..), fromUnboxedVector, toUnboxedVector, fromIx, toIx, checkDims
+  VU(..), VU.Unbox, Image(..)
   ) where
 
 import Prelude hiding (map, zipWith)
@@ -35,21 +35,14 @@ import Graphics.Image.Interface.Vector.Unboxing()
 -- | Unboxed 'Vector' representation.
 data VU = VU
 
-data U
-
-type instance Repr (V U) = VU.Vector
-
-instance Show U where
-  show _ = "Unboxed"
-
 instance Show VU where
   show _ = "VectorUnboxed"
 
 instance SuperClass VU cs e => BaseArray VU cs e where
   type SuperClass VU cs e =
-    (ColorSpace cs e, Num (Pixel cs e), VU.Unbox (Components cs e))
+    (ColorSpace cs e, VU.Unbox (Components cs e))
 
-  data Image VU cs e = VUImage !(Image (V U) cs e)
+  newtype Image VU cs e = VUImage (Image (G VU) cs e)
 
   dims (VUImage img) = dims img
   {-# INLINE dims #-}
@@ -59,6 +52,8 @@ instance SuperClass VU cs e => BaseArray VU cs e where
 instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
 
   type Manifest VU = VU
+
+  type Vector VU = VU.Vector
 
   makeImage !sh = VUImage . makeImage sh
   {-# INLINE makeImage #-}
@@ -111,18 +106,24 @@ instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
   eq (VUImage img1) (VUImage img2) = img1 == img2
   {-# INLINE eq #-}
 
-  compute (VUImage img) = VUImage $! compute img
+  compute (VUImage img) = VUImage (compute img)
   {-# INLINE compute #-}
 
   toManifest = id
   {-# INLINE toManifest #-}
 
+  toVector (VUImage (VImage _ _ v)) = v
+  toVector (VUImage (VScalar px))   = VU.singleton px
+  {-# INLINE toVector #-}
+
+  fromVector !sz = VUImage . fromVector sz
+  {-# INLINE fromVector #-}
+
 
 instance BaseArray VU cs e => MArray VU cs e where
   
-  data MImage s VU cs e = MVUImage (MImage s (V U) cs e)
+  newtype MImage s VU cs e = MVUImage (MImage s (G VU) cs e)
                               
-
   unsafeIndex (VUImage img) = unsafeIndex img
   {-# INLINE unsafeIndex #-}
 
@@ -171,26 +172,3 @@ instance BaseArray VU cs e => MArray VU cs e where
   swap (MVUImage img) = I.swap img
   {-# INLINE swap #-}
 
-
-
--- | Convert an image to a flattened Unboxed 'VU.Vector'. It is a __O(1)__ opeartion.
---
--- >>> toUnboxedVector $ makeImage (3, 2) (\(i, j) -> PixelY $ fromIntegral (i+j))
--- fromList [<Luma:(0.0)>,<Luma:(1.0)>,<Luma:(1.0)>,<Luma:(2.0)>,<Luma:(2.0)>,<Luma:(3.0)>]
---
-toUnboxedVector :: Array VU cs e => Image VU cs e -> VU.Vector (Pixel cs e)
-toUnboxedVector (VUImage img) = toVector img
-{-# INLINE toUnboxedVector #-}
-
-
--- | Construct a two dimensional image with @m@ rows and @n@ columns from a flat
--- Unboxed 'VU.Vector' of length @k@. It is a __O(1)__ opeartion. Make sure that @m * n = k@.
---
--- >>> fromUnboxedVector (200, 300) $ generate 60000 (\i -> PixelY $ fromIntegral i / 60000)
--- <Image VectorUnboxed Luma: 200x300>
---
--- <<images/grad_fromVector.png>>
--- 
-fromUnboxedVector :: Array VU cs e => (Int, Int) -> VU.Vector (Pixel cs e) -> Image VU cs e
-fromUnboxedVector !sz !v = VUImage $ fromVector sz v
-{-# INLINE fromUnboxedVector #-}

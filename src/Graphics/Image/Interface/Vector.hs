@@ -1,4 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector
@@ -11,25 +13,38 @@
 module Graphics.Image.Interface.Vector (
   -- * Representation
   VU(..), VS(..),
-  -- * Conversion
-  fromUnboxedVector, toUnboxedVector,
-  fromStorableVector, toStorableVector,
+  -- * Filtering
+  filter, ifilter,
   -- * Linear index conversion
   toIx, fromIx
   ) where
 
-import Data.Vector as V (convert)
-import Graphics.Image.Interface
-import Graphics.Image.Interface.Vector.Generic
+import Prelude hiding (filter)
+import qualified Data.Vector.Unboxed as U
+import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector.Unboxed
 import Graphics.Image.Interface.Vector.Storable
 
 
-instance Exchangable VU VS where
-  exchange _ (VUImage (VScalar px))   = VSImage (VScalar px)
-  exchange _ (VUImage (VImage m n v)) = VSImage (VImage m n (V.convert v))
+-- | Filter out Pixels from an image that do not satisfy the predicate and
+-- convert a result into a flat unboxed vector with indexed Pixels.
+filter :: Array arr cs e =>
+          (Pixel cs e -> Bool) -- ^ The predicate
+       -> Image arr cs e -- ^ Source image
+       -> U.Vector ((Int, Int), Pixel cs e)
+filter f !img = U.filter (f . snd) $ U.imap addIx $ U.convert $ toVector img where
+  (_, n) = dims img
+  addIx !k !px = (toIx n k, px)
 
 
-instance Exchangable VS VU where
-  exchange _ (VSImage (VScalar px))   = VUImage (VScalar px)
-  exchange _ (VSImage (VImage m n v)) = VUImage (VImage m n (V.convert v))
+-- | Filter out Pixels from an image that do not satisfy the index aware
+-- predicate and convert a result into a flat unboxed vector with indexed
+-- Pixels.
+ifilter :: Array arr cs e =>
+           ((Int, Int) -> Pixel cs e -> Bool) -- ^ The predicate
+        -> Image arr cs e -- ^ Source image
+        -> U.Vector ((Int, Int), Pixel cs e)
+ifilter f !img = U.filter (uncurry f) $ U.imap addIx $ U.convert $ toVector img where
+  (_, n) = dims img
+  addIx !k !px = (toIx n k, px)
+

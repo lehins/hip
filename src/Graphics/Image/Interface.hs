@@ -23,7 +23,7 @@
 module Graphics.Image.Interface (
   Pixel, ColorSpace(..), AlphaSpace(..), Elevator(..),
   BaseArray(..), Array(..), MArray(..),
-  Exchangable(..), exchangeFrom, exchangeThrough,
+  exchange,
   defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   fromIx, toIx, checkDims
 #if !MIN_VERSION_base(4,8,0)
@@ -36,21 +36,23 @@ import Prelude hiding (and, map, zipWith, sum, product)
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
 #endif
+import Control.Monad.Primitive (PrimMonad (..))
 import Data.Maybe (fromMaybe)
 import Data.Foldable
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
 import Control.DeepSeq (NFData(rnf), deepseq)
 import Data.Word
-
-import Control.Monad.Primitive (PrimMonad (..))
+import qualified Data.Vector.Generic as VG
+import qualified Data.Vector.Unboxed as VU
 
 
 -- | A Pixel family with a color space and a precision of elements.
 data family Pixel cs e :: *
 
 
-class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e, Typeable e)
+class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e, Typeable e,
+      Eq (Pixel cs e), VU.Unbox (Components cs e))
       => ColorSpace cs e where
   
   type Components cs e
@@ -133,7 +135,7 @@ class (ColorSpace (Opaque cs) e, ColorSpace cs e) => AlphaSpace cs e where
 -- >>> toWord8 rgb
 -- <RGB:(0|128|255)>
 --
-class Elevator e where
+class (Eq e, Num e, VU.Unbox e) => Elevator e where
 
   -- | Values are scaled to @[0, 255]@ range.
   toWord8 :: e -> Word8
@@ -158,13 +160,11 @@ class Elevator e where
 
 
 -- | Base array like representation for an image.
-class (Show arr, ColorSpace cs e, Num (Pixel cs e),
-       SuperClass arr cs e) =>
+class (Show arr, ColorSpace cs e, SuperClass arr cs e) =>
       BaseArray arr cs e where
 
   -- | Required array specific constraints for an array element.
   type SuperClass arr cs e :: Constraint
-  type SuperClass arr cs e = ()
 
   -- | Underlying image representation.
   data Image arr cs e
@@ -179,10 +179,12 @@ class (Show arr, ColorSpace cs e, Num (Pixel cs e),
   --
   dims :: Image arr cs e -> (Int, Int)
 
-class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
+class (VG.Vector (Vector arr) (Pixel cs e),
+       MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
 
   type Manifest arr :: *
-  
+
+  type Vector arr :: * -> *
 
   -- | Create an Image by supplying it's dimensions and a pixel generating
   -- function.
@@ -305,16 +307,39 @@ class (MArray (Manifest arr) cs e, BaseArray arr cs e) => Array arr cs e where
   -- the 'Eq' typeclass.
   eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
 
+  -- | `Array` class does not enforce an image to be represented as concrete
+  -- array of pixels in memory, but if at any time it is desired for the image
+  -- to be brought to a computed state, this function can be used.
   compute :: Image arr cs e -> Image arr cs e
 
+  -- | Each array has a sibling `Manifest` array representation, which 
   toManifest :: Image arr cs e -> Image (Manifest arr) cs e
-  
 
+  -- | Convert an image to a flattened 'Vector'. For all current representations
+  -- it is a __O(1)__ opeartion.
+  --
+  -- >>> toVector $ makeImage (3, 2) (\(i, j) -> PixelY $ fromIntegral (i+j))
+  -- fromList [<Luma:(0.0)>,<Luma:(1.0)>,<Luma:(1.0)>,<Luma:(2.0)>,<Luma:(2.0)>,<Luma:(3.0)>]
+  --
+  toVector :: Image arr cs e -> Vector arr (Pixel cs e)
+
+  -- | Construct a two dimensional image with @m@ rows and @n@ columns from a
+  --  flat 'Vector' of length @k@. For all current representations it is a
+  --  __O(1)__ opeartion. Make sure that @m * n = k@.
+  --
+  -- >>> fromVector (200, 300) $ generate 60000 (\i -> PixelY $ fromIntegral i / 60000)
+  -- <Image Vector Luma: 200x300>
+  --
+  -- <<images/grad_fromVector.png>>
+  -- 
+  fromVector :: (Int, Int) -> Vector arr (Pixel cs e) -> Image arr cs e
+
+       
 -- | Array representation that is actually has real data stored in memory, hence
 -- allowing for image indexing, forcing pixels into computed state etc.
-class BaseArray arr cs e => MArray arr cs e  where
+class (BaseArray arr cs e) => MArray arr cs e  where
   data MImage s arr cs e
-
+  
   unsafeIndex :: Image arr cs e -> (Int, Int) -> Pixel cs e
   
   -- | Get a pixel at @i@-th and @j@-th location.
@@ -386,43 +411,19 @@ class BaseArray arr cs e => MArray arr cs e  where
           MImage (PrimState m) arr cs e -> (Int, Int) -> (Int, Int) -> m ()
 
 
--- | Allows for changing an underlying image representation.
-class Exchangable arr' arr where
-
-  -- | Exchange the underlying array representation of an image.
-  exchange :: (Array arr' cs e, Array arr cs e) =>
-              arr -- ^ New representation of an image.
-           -> Image arr' cs e -- ^ Source image.
-           -> Image arr cs e
-
--- | Changing to the same array representation as before is disabled and `exchange`
--- will behave simply as an identitity function.
-instance Exchangable arr arr where
-
-  exchange _ !img = img
-  {-# INLINE exchange #-}
+-- | Exchange the underlying array representation of an image.
+exchange :: (Array arr' cs e, Array arr cs e) =>
+            arr -- ^ New representation of an image.
+         -> Image arr' cs e -- ^ Source image.
+         -> Image arr cs e
+exchange _ img@(dims -> (1, 1)) = scalar $ index00 img
+exchange _ img = fromVector (dims img) $ VG.convert $ toVector img
+{-# INLINE[0] exchange #-}
 
 
--- | `exchange` function that allows restricting representation type of the
--- source image.
-exchangeFrom :: (Exchangable arr' arr, Array arr' cs e, Array arr cs e) =>
-                arr'
-             -> arr -- ^ New representation of an image.
-             -> Image arr' cs e -- ^ Source image.
-             -> Image arr cs e
-exchangeFrom _ to !img = exchange to img
-{-# INLINE exchangeFrom #-}
-
-
--- | `exchange` an image representation through an intermediate one.
-exchangeThrough :: (Exchangable arr2 arr1, Exchangable arr1 arr,
-                    Array arr2 cs e, Array arr1 cs e, Array arr cs e) =>
-                arr1
-             -> arr -- ^ New representation of an image.
-             -> Image arr2 cs e -- ^ Source image.
-             -> Image arr cs e
-exchangeThrough through to = exchange to . exchange through
-{-# INLINE exchangeThrough #-}
+{-# RULES
+"exchange/id" forall arr. exchange arr = id
+ #-}
 
 
 -- | Approach to be used near the borders during various transformations.
@@ -467,30 +468,6 @@ data Border px =
               --
   deriving Show
 
--- handleBorderIndex' :: Border px -- ^ Border handling strategy.
---                   -> (Int, Int) -- ^ Image dimensions
---                   -> ((Int, Int) -> px) -- ^ Image's indexing function.
---                   -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
---                   -> px
--- handleBorderIndex' border !(m, n) !getPx !(i, j) =
---   if i >= 0 && j >= 0 && i < m && j < n then getPx (i, j) else getPxB border where
---     getPxB (Fill px) = px
---     getPxB Wrap      = getPx (i `mod` m, j `mod` n)
---     getPxB Edge      = getPx (if i < 0 then 0 else if i >= m then m - 1 else i,
---                               if j < 0 then 0 else if j >= n then n - 1 else j)
---     getPxB Reflect   = getPx (if i < 0 then (abs i - 1) `mod` m else
---                                 if i >= m then (m - (i - m + 1)) `mod` m else i,
---                               if j < 0 then (abs j - 1) `mod` n else
---                                 if j >= n then (n - (j - n + 1)) `mod` n else j)
---     getPxB Continue  = getPx (if i < 0 then abs i `mod` m else
---                                 if i >= m then (m - (i - m + 2)) `mod` m else i,
---                               if j < 0 then abs j `mod` n else
---                                 if j >= n then (n - (j - n + 2)) `mod` n else j)
---     {-# INLINE getPxB #-}
--- {-# INLINE handleBorderIndex' #-}
-
-
-
 
 -- | Border handling function. If @(i, j)@ location is within bounds, then supplied
 -- lookup function will be used, otherwise it will be handled according to a
@@ -500,7 +477,7 @@ handleBorderIndex :: Border px -- ^ Border handling strategy.
                    -> ((Int, Int) -> px) -- ^ Image's indexing function.
                    -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
                    -> px
-handleBorderIndex border !(m, n) !getPx !(i, j) =
+handleBorderIndex border !(m, n) getPx !(i, j) =
   if north || east || south || west
   then case border of
     Fill px  -> px
@@ -515,59 +492,13 @@ handleBorderIndex border !(m, n) !getPx !(i, j) =
                          if south then (-i - 2) `mod` m else i,
                        if west then abs j `mod` n else
                          if east then (-j - 2) `mod` n else j)
-    -- Reflect  -> getPx (if north then (abs i - 1) `mod` m else
-    --                      if south then (m - (i - m + 1)) `mod` m else i,
-    --                    if west then (abs j - 1) `mod` n else
-    --                      if east then (n - (j - n + 1)) `mod` n else j)
-    -- Continue -> getPx (if north then abs i `mod` m else
-    --                      if south then (m - (i - m + 2)) `mod` m else i,
-    --                    if west then abs j `mod` n else
-    --                      if east then (n - (j - n + 2)) `mod` n else j)
   else getPx (i, j)
   where
-    north = i < 0
-    {-# INLINE north #-}
-    south = i >= m
-    {-# INLINE south #-}
-    west = j < 0
-    {-# INLINE west #-}
-    east = j >= n
-    {-# INLINE east #-}
+    !north = i < 0
+    !south = i >= m
+    !west  = j < 0
+    !east  = j >= n
 {-# INLINE handleBorderIndex #-}
-
-
-
--- handleBorderIndex' border !(m, n) getPx !(i, j) =
---   case (i < 0, i >= m, j < 0, j >= n) of
---     (False, False, False, False) -> getPx (i, j)
---     (False, False, False,  True) ->
---       case border of
---         Fill px -> px
---         Wrap -> getPx (i, j `mod` n)
---         Edge -> getPx (i, n-1)
---         Reflect -> getPx (i, (n - (j - n + 1)) `mod` n)
---         Continue -> getPx (i, (n - (j - n + 2)) `mod` n)
---     (False, False, True,  False) ->
---       case border of
---         Fill px -> px
---         Wrap -> getPx (i, j `mod` n)
---         Edge -> getPx (i, 0)
---         Reflect -> getPx (i, (abs j - 1) `mod` n)
---         Continue -> getPx (i, abs j `mod` n)
---     (False, True, False,  False) ->
---       case border of
---         Fill px -> px
---         Wrap -> getPx (i, j `mod` n)
---         Edge -> getPx (i, 0)
---         Reflect -> getPx (i, (abs j - 1) `mod` n)
---         Continue -> getPx (i, abs j `mod` n)
-    --((False, False, False,  True), Edge) -> getPx (i, j `mod` n)
-      
-  -- case (i >= 0, j >= 0, i < m, j < n) of
-  --   (True, True, True, True) -> getPx (i, j)
-  --   (True, True, True, True) -> getPx (i, j)
-  --   then getPx (i, j) else getPxB border where
-
 
 
 -- | Image indexing function that returns a default pixel if index is out of bounds.

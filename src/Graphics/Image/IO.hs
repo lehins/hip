@@ -88,7 +88,7 @@ readImage path = do
   imgstr <- B.readFile path
   let maybeFormat = guessFormat path :: Maybe InputFormat
       formats = enumFrom . toEnum $ 0
-      orderedFormats = maybe formats (\f -> f:filter (/=f) formats) maybeFormat
+      orderedFormats = maybe formats (\f -> f:P.filter (/=f) formats) maybeFormat
       reader (Left err) format = 
         return $ either (Left . ((err++"\n")++)) Right (decode format imgstr)
       reader img         _     = return img
@@ -132,7 +132,7 @@ readImageExact format path = fmap (decode format) (B.readFile path)
 -- highest precision 'GIF' supports and it currently cannot be saved with
 -- transparency.
 writeImage :: (Array VS cs e, Array arr cs e,
-               Exchangable arr VS, Writable (Image VS cs e) OutputFormat) =>
+               Writable (Image VS cs e) OutputFormat) =>
               FilePath            -- ^ Location where an image should be written.
            -> Image arr cs e -- ^ An image to write. 
            -> IO ()
@@ -197,7 +197,7 @@ an image will appear.
 
 -}
 displayImage :: (Array VS cs e, Array arr cs e,
-                 Exchangable arr VS, Writable (Image VS cs e) TIF) =>
+                 Writable (Image VS cs e) TIF) =>
                 Image arr cs e -- ^ Image to be displayed
              -> IO ()
 displayImage = displayImageUsing defaultViewer False . exchange VS

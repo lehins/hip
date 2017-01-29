@@ -237,7 +237,7 @@ normalize !img = if l == s
 -- | Check weather two images are equal within a tolerance. Useful for comparing
 -- images with `Float` or `Double` precision.
 eqTol
-  :: (Array arr Binary Bit, Array arr cs e, Ord e, Num e) =>
+  :: (Array arr Binary Bit, Array arr cs e, Ord e) =>
      e -> Image arr cs e -> Image arr cs e -> Bool
 eqTol !tol !img1 = IP.and . toImageBinaryUsing2 (eqTolPx tol) img1
 {-# INLINE eqTol #-}
