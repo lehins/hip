@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -25,6 +26,7 @@ import Prelude hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Functor
 #endif
+import Data.Typeable (Typeable)
 import qualified Data.Vector.Storable as VS
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector.Generic
@@ -32,7 +34,7 @@ import Graphics.Image.Interface.Vector.Generic
 
 
 -- | Storable 'Vector' representation.
-data VS = VS
+data VS = VS deriving Typeable
 
 instance Show VS where
   show _ = "VectorStorable"

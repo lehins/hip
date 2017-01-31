@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -27,6 +28,7 @@ import Data.Array.Repa.Index
 import qualified Data.Array.Repa as R
 import qualified Data.Array.Repa.Eval as R
 import qualified Data.Vector.Generic as VG
+import Data.Typeable (Typeable)
 
 import Graphics.Image.ColorSpace.Binary (Bit(..))
 import Graphics.Image.Interface as I
@@ -38,10 +40,10 @@ type family Repr arr :: *
 
 
 -- | Repa Array representation, which is computed in parallel.
-data RP r = RP r
+data RP r = RP r deriving Typeable
 
 -- | Repa Array representation, which is computed sequentially. 
-data RS r = RS r
+data RS r = RS r deriving Typeable
 
 instance Show r => Show (RP r) where
   show (RP r) = "RepaParallel " ++ show r
@@ -56,7 +58,7 @@ instance Show r => Show (RS r) where
 
 instance SuperClass (RS r) cs e => BaseArray (RS r) cs e where
   type SuperClass (RS r) cs e =
-    (Show r, ColorSpace cs e, R.Elt (Pixel cs e), R.Elt e, 
+    (Typeable r, ColorSpace cs e, R.Elt (Pixel cs e), R.Elt e, 
      R.Target (Repr r) (Pixel cs e), R.Source (Repr r) (Pixel cs e),
      BaseArray r cs e)
   
@@ -184,7 +186,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
 
 instance SuperClass (RP r) cs e => BaseArray (RP r) cs e where
   type SuperClass (RP r) cs e = (
-    Show r, ColorSpace cs e,
+    Typeable r, ColorSpace cs e,
     R.Target (Repr r) (Pixel cs e), R.Source (Repr r) (Pixel cs e),
     BaseArray r cs e,
     R.Elt e, R.Elt (Pixel cs e))

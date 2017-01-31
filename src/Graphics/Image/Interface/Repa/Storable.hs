@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -26,6 +27,7 @@ import qualified Data.Array.Repa.Eval as R
 import qualified Data.Array.Repa.Repr.ForeignPtr as R
 import qualified Data.Vector.Storable as VS
 import Foreign.Storable
+import Data.Typeable (Typeable)
 
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Repa.Generic
@@ -35,16 +37,16 @@ import qualified Graphics.Image.Interface.Vector.Storable as IVS
 
 
 -- | Repa Array representation backed by Storable Vector, which is computed sequentially. 
-data RSS = RSS
+data RSS = RSS deriving Typeable
 
 -- | Repa Array representation backed by Storable Vector, which is computed in parallel.
-data RPS = RPS
+data RPS = RPS deriving Typeable
 
 instance Show RSS where
-  show RSS = "RepaSequentialStorable"
+  show _ = "RepaSequentialStorable"
 
 instance Show RPS where
-  show RPS = "RepaParallelStorable"
+  show _ = "RepaParallelStorable"
   
 
 type instance Repr IVS.VS = R.F

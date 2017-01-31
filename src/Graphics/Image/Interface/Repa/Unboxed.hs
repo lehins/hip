@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -22,6 +23,7 @@ module Graphics.Image.Interface.Repa.Unboxed (
 import Prelude as P
 import qualified Data.Array.Repa as R 
 import qualified Data.Array.Repa.Eval as R
+import Data.Typeable (Typeable)
 
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Repa.Generic
@@ -29,16 +31,16 @@ import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
 
 
 -- | Repa Array representation backed by Unboxed Vector, which is computed sequentially. 
-data RSU = RSU
+data RSU = RSU deriving Typeable
 
 -- | Repa Array representation backed by Unboxed Vector, which is computed in parallel.
-data RPU = RPU
+data RPU = RPU deriving Typeable
 
 instance Show RSU where
-  show RSU = "RepaSequentialUnboxed"
+  show _ = "RepaSequentialUnboxed"
 
 instance Show RPU where
-  show RPU = "RepaParallelUnboxed"
+  show _ = "RepaParallelUnboxed"
   
 
 type instance Repr IVU.VU = R.U

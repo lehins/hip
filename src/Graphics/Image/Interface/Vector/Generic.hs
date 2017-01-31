@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -30,13 +31,14 @@ import Control.Monad.ST
 import Data.Functor
 #endif
 import Data.Primitive.MutVar
+import Data.Typeable (Typeable)
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Generic.Mutable as MVG
 import Graphics.Image.Interface as I
 
 -- | Generic 'Vector' representation.
-data G r = G r
+data G r = G r deriving Typeable
 
 
 instance Show r => Show (G r) where
@@ -44,7 +46,7 @@ instance Show r => Show (G r) where
 
 instance SuperClass (G r) cs e => BaseArray (G r) cs e where
   type SuperClass (G r) cs e =
-    (Show r, ColorSpace cs e,
+    (Typeable r, ColorSpace cs e,
      VG.Vector (Vector r) Int, VG.Vector (Vector r) Bool,
      VG.Vector (Vector r) (Pixel cs e), NFData ((Vector r) (Pixel cs e)))
 

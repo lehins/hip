@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -25,6 +26,7 @@ import Prelude hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Functor
 #endif
+import Data.Typeable (Typeable)
 import qualified Data.Vector.Unboxed as VU
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector.Generic
@@ -33,7 +35,7 @@ import Graphics.Image.Interface.Vector.Unboxing()
 
 
 -- | Unboxed 'Vector' representation.
-data VU = VU
+data VU = VU deriving Typeable
 
 instance Show VU where
   show _ = "VectorUnboxed"

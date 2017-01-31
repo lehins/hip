@@ -160,7 +160,7 @@ class (Eq e, Num e, VU.Unbox e) => Elevator e where
 
 
 -- | Base array like representation for an image.
-class (Show arr, ColorSpace cs e, SuperClass arr cs e) =>
+class (Typeable arr, ColorSpace cs e, SuperClass arr cs e) =>
       BaseArray arr cs e where
 
   -- | Required array specific constraints for an array element.
@@ -337,7 +337,7 @@ class (VG.Vector (Vector arr) (Pixel cs e),
        
 -- | Array representation that is actually has real data stored in memory, hence
 -- allowing for image indexing, forcing pixels into computed state etc.
-class (BaseArray arr cs e) => MArray arr cs e  where
+class BaseArray arr cs e => MArray arr cs e  where
   data MImage s arr cs e
   
   unsafeIndex :: Image arr cs e -> (Int, Int) -> Pixel cs e
@@ -705,8 +705,7 @@ instance BaseArray arr cs e =>
          Show (Image arr cs e) where
   show (dims -> (m, n)) =
     "<Image " ++
-    show (undefined :: arr) ++
-    " " ++
+    showsTypeRep (typeOf (undefined :: arr)) " " ++
     showsTypeRep (typeOf (undefined :: cs)) " (" ++
     showsTypeRep (typeOf (undefined :: e)) "): " ++
      show m ++ "x" ++ show n ++ ">"
@@ -716,8 +715,7 @@ instance MArray arr cs e =>
          Show (MImage st arr cs e) where
   show (mdims -> (m, n)) =
     "<MutableImage " ++
-    show (undefined :: arr) ++
-    " " ++
+    showsTypeRep (typeOf (undefined :: arr)) " " ++
     showsTypeRep (typeOf (undefined :: cs)) " (" ++
     showsTypeRep (typeOf (undefined :: e)) "): " ++
      show m ++ "x" ++ show n ++ ">"
