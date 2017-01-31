@@ -146,13 +146,13 @@ writeImage path = BL.writeFile path . encode format [] . exchange VS where
 -- options. Precision and color space, that an image will be written as, is decided
 -- from image's type. Attempt to write image file in a format that does not
 -- support color space and precision combination will result in a compile error.
-writeImageExact :: Writable (Image arr cs e) format =>
+writeImageExact :: Writable img format =>
                    format
                    -- ^ A file format that an image should be saved in. See
                    -- <#g:4 Supported Image Formats>
                 -> [SaveOption format] -- ^ A list of format specific options.
                 -> FilePath -- ^ Location where an image should be written.
-                -> (Image arr cs e) -- ^ An image to write. Can be a list of images in case
+                -> img -- ^ An image to write. Can be a list of images in case
                        -- of formats supporting animation.
                 -> IO ()
 writeImageExact format opts path = BL.writeFile path . encode format opts
