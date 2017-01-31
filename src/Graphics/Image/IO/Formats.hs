@@ -17,6 +17,7 @@ module Graphics.Image.IO.Formats (
   module Graphics.Image.IO.Formats.Netpbm,
   InputFormat(..), OutputFormat(..),
   Readable(..), Writable(..), ImageFormat(..),
+  SaveOption(..)
   ) where
 
 import Graphics.Image.ColorSpace
