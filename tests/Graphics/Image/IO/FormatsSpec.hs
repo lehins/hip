@@ -11,6 +11,7 @@ import Test.QuickCheck hiding (Result(..))
 import Test.QuickCheck.Property
 
 import Graphics.Image as I
+import Graphics.Image.Interface as I
 
 import Graphics.Image.InterfaceSpec()
 
