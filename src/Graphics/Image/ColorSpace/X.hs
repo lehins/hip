@@ -23,7 +23,6 @@ import Data.Foldable
 import Data.Typeable (Typeable)
 import Foreign.Ptr
 import Foreign.Storable
-
 import Graphics.Image.Interface as I
 
 -- ^ This is a single channel colorspace, that is designed to separate Gray

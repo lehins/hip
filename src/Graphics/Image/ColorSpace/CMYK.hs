@@ -14,8 +14,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.CMYK (
-  CMYK(..), CMYKA(..), Pixel(..), 
-  ToCMYK(..), ToCMYKA(..)
+  CMYK(..), CMYKA(..), Pixel(..)
   ) where
 
 import Prelude hiding (map)
@@ -24,9 +23,7 @@ import Data.Foldable
 import Data.Typeable (Typeable)
 import Foreign.Ptr
 import Foreign.Storable
-
 import Graphics.Image.Interface
-import Graphics.Image.Interface.Instances()
 
 ------------
 --- CMYK ---
@@ -38,20 +35,6 @@ data CMYK = CyanCMYK -- ^ Cyan
           | YelCMYK  -- ^ Yellow
           | KeyCMYK  -- ^ Key (Black)
           deriving (Eq, Enum, Show, Bounded, Typeable)
-
-
--- | Conversion to `CMYK` color space.
-class ColorSpace cs e => ToCMYK cs e where
-
-  -- | Convert to a `CMYK` pixel.
-  toPixelCMYK :: Pixel cs e -> Pixel CMYK Double
-
-  -- | Convert to a `CMYK` image.
-  toImageCMYK :: (Array arr cs e, Array arr CMYK Double) =>
-                 Image arr cs e
-              -> Image arr CMYK Double
-  toImageCMYK = map toPixelCMYK
-  {-# INLINE toImageCMYK #-}
 
 
 instance Show e => Show (Pixel CMYK e) where
@@ -141,21 +124,6 @@ data CMYKA = CyanCMYKA  -- ^ Cyan
            | AlphaCMYKA -- ^ Alpha 
            deriving (Eq, Enum, Show, Bounded, Typeable)
 
-
--- | Conversion to `CMYKA`.
-class ToCMYK cs e => ToCMYKA cs e where
-
-  -- | Convert to a `CMYKA` pixel.
-  toPixelCMYKA :: Pixel cs e -> Pixel CMYKA Double
-  toPixelCMYKA = addAlpha 1 . toPixelCMYK
-  {-# INLINE toPixelCMYKA #-}
-
-  -- | Convert to a `CMYKA` image.
-  toImageCMYKA :: (Array arr cs e, Array arr CMYKA Double) =>
-                  Image arr cs e
-               -> Image arr CMYKA Double
-  toImageCMYKA = map toPixelCMYKA
-  {-# INLINE toImageCMYKA #-}
 
 data instance Pixel CMYKA e = PixelCMYKA !e !e !e !e !e deriving Eq
 

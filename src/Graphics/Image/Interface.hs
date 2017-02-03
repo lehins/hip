@@ -42,10 +42,10 @@ import Data.Foldable
 import GHC.Exts (Constraint)
 import Data.Typeable (Typeable, showsTypeRep, typeOf)
 import Control.DeepSeq (NFData(rnf), deepseq)
-import Data.Word
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Unboxed as VU
 
+import Graphics.Image.Interface.Elevator
 
 -- | A Pixel family with a color space and a precision of elements.
 data family Pixel cs e :: *
@@ -115,7 +115,7 @@ class (ColorSpace (Opaque cs) e, ColorSpace cs e) => AlphaSpace cs e where
   -- | Get an alpha channel of a transparant pixel. 
   getAlpha :: Pixel cs e -> e
 
-  -- | Add an alpha channel of an opaque pixel.
+  -- | Add an alpha channel to an opaque pixel.
   --
   -- @ addAlpha 0 (PixelHSI 1 2 3) == PixelHSIA 1 2 3 0 @
   addAlpha :: e -> Pixel (Opaque cs) e -> Pixel cs e
@@ -126,37 +126,6 @@ class (ColorSpace (Opaque cs) e, ColorSpace cs e) => AlphaSpace cs e where
   -- @ dropAlpha (PixelRGBA 1 2 3 4) == PixelRGB 1 2 3 @
   --
   dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
-
-
--- | A class with a set of convenient functions that allow for changing precision of
--- channels within pixels, while scaling the values to keep them in an appropriate range.
---
--- >>> let rgb = PixelRGB 0.0 0.5 1.0 :: Pixel RGB Double
--- >>> toWord8 rgb
--- <RGB:(0|128|255)>
---
-class (Eq e, Num e, Typeable e, VU.Unbox e) => Elevator e where
-
-  -- | Values are scaled to @[0, 255]@ range.
-  toWord8 :: e -> Word8
-
-  -- | Values are scaled to @[0, 65535]@ range.
-  toWord16 :: e -> Word16
-
-  -- | Values are scaled to @[0, 4294967295]@ range.
-  toWord32 :: e -> Word32
-
-  -- | Values are scaled to @[0, 18446744073709551615]@ range.
-  toWord64 :: e -> Word64
-
-  -- | Values are scaled to @[0.0, 1.0]@ range.
-  toFloat :: e -> Float
-
-  -- | Values are scaled to @[0.0, 1.0]@ range.
-  toDouble :: e -> Double
-
-  -- | Values are scaled from @[0.0, 1.0]@ range.
-  fromDouble :: Double -> e
 
 
 -- | Base array like representation for an image.

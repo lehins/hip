@@ -14,8 +14,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.RGB (
-  RGB(..), RGBA(..), Pixel(..),
-  ToRGB(..), ToRGBA(..),
+  RGB(..), RGBA(..), Pixel(..)
   ) where
 
 import Prelude hiding (map)
@@ -24,9 +23,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import Data.Foldable
 import Data.Typeable (Typeable)
-
 import Graphics.Image.Interface
-import Graphics.Image.Interface.Instances()
 
 -----------
 --- RGB ---
@@ -42,21 +39,6 @@ data instance Pixel RGB e = PixelRGB !e !e !e deriving Eq
 
 instance Show e => Show (Pixel RGB e) where
   show (PixelRGB r g b) = "<RGB:("++show r++"|"++show g++"|"++show b++")>"
-
-
--- | Conversion to `RGB` color space.
-class ColorSpace cs e => ToRGB cs e where
-
-  -- | Convert to an `RGB` pixel.
-  toPixelRGB :: Pixel cs e -> Pixel RGB Double
-
-  -- | Convert to an `RGB` image.
-  toImageRGB :: (Array arr cs e, Array arr RGB Double) =>
-                Image arr cs e
-             -> Image arr RGB Double
-  toImageRGB = map toPixelRGB
-  {-# INLINE toImageRGB #-}
-
 
 
 instance Elevator e => ColorSpace RGB e where
@@ -89,8 +71,6 @@ instance Elevator e => ColorSpace RGB e where
   {-# INLINE foldlPx2 #-}
 
 
-
-
 instance Functor (Pixel RGB) where
   fmap f (PixelRGB r g b) = PixelRGB (f r) (f g) (f b)
   {-# INLINE fmap #-}
@@ -108,10 +88,7 @@ instance Foldable (Pixel RGB) where
   {-# INLINE foldr #-}
 
 
-
-
 instance Storable e => Storable (Pixel RGB e) where
-
   sizeOf _ = 3 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)
   peek !p = do
@@ -125,8 +102,6 @@ instance Storable e => Storable (Pixel RGB e) where
     poke q r
     pokeElemOff q 1 g
     pokeElemOff q 2 b
-
-
 
 
 ------------
@@ -145,22 +120,6 @@ data instance Pixel RGBA e = PixelRGBA !e !e !e !e deriving Eq
 
 instance Show e => Show (Pixel RGBA e) where
   show (PixelRGBA r g b a) = "<RGBA:("++show r++"|"++show g++"|"++show b++"|"++show a++")>"
-
-
--- | Conversion to `RGBA` from another color space with Alpha channel.
-class ToRGB cs e => ToRGBA cs e where
-
-  -- | Convert to an `RGBA` pixel.
-  toPixelRGBA :: Pixel cs e -> Pixel RGBA Double
-  toPixelRGBA = addAlpha 1 . toPixelRGB
-  {-# INLINE toPixelRGBA #-}
-
-  -- | Convert to an `RGBA` image.
-  toImageRGBA :: (Array arr cs e, Array arr RGBA Double) =>
-                Image arr cs e
-             -> Image arr RGBA Double
-  toImageRGBA = map toPixelRGBA
-  {-# INLINE toImageRGBA #-}
 
 
 instance Elevator e => ColorSpace RGBA e where
@@ -207,7 +166,6 @@ instance Elevator e => AlphaSpace RGBA e where
   {-# INLINE dropAlpha #-}
 
 
-
 instance Functor (Pixel RGBA) where
   fmap f (PixelRGBA r g b a) = PixelRGBA (f r) (f g) (f b) (f a)
   {-# INLINE fmap #-}
@@ -222,10 +180,8 @@ instance Foldable (Pixel RGBA) where
   foldr f !z (PixelRGBA r g b a) = f r (f g (f b (f a z)))
   {-# INLINE foldr #-}
 
-
  
 instance Storable e => Storable (Pixel RGBA e) where
-
   sizeOf _ = 3 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)
   peek p = do

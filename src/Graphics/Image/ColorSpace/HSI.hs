@@ -14,8 +14,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.HSI (
-  HSI(..), HSIA(..), Pixel(..), 
-  ToHSI(..), ToHSIA(..)
+  HSI(..), HSIA(..), Pixel(..)
   ) where
 
 import Prelude hiding (map)
@@ -24,9 +23,7 @@ import Data.Foldable
 import Data.Typeable (Typeable)
 import Foreign.Ptr
 import Foreign.Storable
-
 import Graphics.Image.Interface
-import Graphics.Image.Interface.Instances()
 
 -----------
 --- HSI ---
@@ -39,20 +36,6 @@ data HSI = HueHSI -- ^ Hue
          deriving (Eq, Enum, Show, Bounded, Typeable)
 
 data instance Pixel HSI e = PixelHSI !e !e !e deriving Eq
-
-
--- | Conversion to `HSI` color space.
-class ColorSpace cs e => ToHSI cs e where
-
-  -- | Convert to an `HSI` pixel.
-  toPixelHSI :: Pixel cs e -> Pixel HSI Double
-
-  -- | Convert to an `HSI` image.
-  toImageHSI :: (Array arr cs e, Array arr HSI Double) =>
-                Image arr cs e
-             -> Image arr HSI Double
-  toImageHSI = map toPixelHSI
-  {-# INLINE toImageHSI #-}
 
 
 instance Show e => Show (Pixel HSI e) where
@@ -137,22 +120,6 @@ data HSIA = HueHSIA   -- ^ Hue
 data instance Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
 
 
--- | Conversion to `HSIA` from another color space with Alpha channel.
-class ToHSI cs e => ToHSIA cs e where
-
-  -- | Convert to an `HSIA` pixel.
-  toPixelHSIA :: Pixel cs e -> Pixel HSIA Double
-  toPixelHSIA = addAlpha 1 . toPixelHSI
-  {-# INLINE toPixelHSIA #-}
-
-  -- | Convert to an `HSIA` image.
-  toImageHSIA :: (Array arr cs e, Array arr HSIA Double) =>
-                 Image arr cs e
-              -> Image arr HSIA Double
-  toImageHSIA = map toPixelHSIA
-  {-# INLINE toImageHSIA #-}
-
-
 instance Show e => Show (Pixel HSIA e) where
   show (PixelHSIA h s i a) = "<HSIA:("++show h++"|"++show s++"|"++show i++"|"++show a++")>"
 
@@ -219,7 +186,6 @@ instance Foldable (Pixel HSIA) where
 
 
 instance Storable e => Storable (Pixel HSIA e) where
-
   sizeOf _ = 3 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)
   peek p = do

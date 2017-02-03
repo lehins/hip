@@ -19,35 +19,100 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace (
-  -- * ColorSpace
-  ColorSpace, Pixel(..), AlphaSpace(..), Elevator(..),
-  -- * Operations on Pixels
-  eqTolPx,
-  -- * Luma
-  module Graphics.Image.ColorSpace.Y,
-  -- * RGB
-  module Graphics.Image.ColorSpace.RGB,
-  -- * HSI
-  module Graphics.Image.ColorSpace.HSI,
-  -- * CMYK
-  module Graphics.Image.ColorSpace.CMYK,
-  -- * YCbCr
-  module Graphics.Image.ColorSpace.YCbCr,
-  -- * Gray level
-  module Graphics.Image.ColorSpace.X,
-  -- * Binary
-  Binary, Bit, on, off, isOn, isOff, fromBool, complement,
+  -- * Pixels
+  -- ** Family of Pixels
+  -- | Pixel is a type family for all available color spaces. Below will be
+  -- listed all class instances pixels are installed in, as well as all pixel
+  -- constructors, eg:
+  --
+  -- >>> :t (PixelY 0) -- Black pixel in Luma
+  -- (PixelY 0) :: Num e => Pixel Y e
+  -- >>> PixelRGB 255 0 0 :: Pixel RGB Word8 -- Red pixel in RGB
+  -- <RGB:(255|0|0)>
+  -- >>> PixelRGB 1 0 0 :: Pixel RGB Double -- Same red pixel in RGB with Double precision.
+  -- <RGB:(1.0|0.0|0.0)>
+  -- >>> (PixelRGB 255 0 0 :: Pixel RGB Word8) == (toWord8 <$> (PixelRGB 1 0 0 :: Pixel RGB Double))
+  -- True
+  --
+  Pixel(..),
+  -- ** Luma (gray scale)
+  -- | Conversion to Luma from other color spaces.
+  toPixelY, toImageY,
+  toPixelYA, toImageYA,
+  -- ** RGB
+  -- | Conversion to RGB from other color spaces.
+  toPixelRGB, toImageRGB,
+  toPixelRGBA, toImageRGBA,
+  -- ** HSI
+  -- | Conversion to HSI from other color spaces.
+  toPixelHSI, toImageHSI,
+  toPixelHSIA, toImageHSIA,
+  -- ** CMYK
+  -- | Conversion to CMYK from other color spaces.
+  toPixelCMYK, toImageCMYK,
+  toPixelCMYKA, toImageCMYKA,
+  -- ** YCbCr
+  -- | Conversion to YCbCr from other color spaces.
+  toPixelYCbCr, toImageYCbCr,
+  toPixelYCbCrA, toImageYCbCrA,
+  -- ** Binary
+  -- | This is a Binary colorspace, pixel's of which can be created using
+  -- these __/constructors/__:
+  --
+  --   [@'on'@] Represents value @1@ or 'True'. It's a foreground pixel and is
+  --   displayed in black.
+  --
+  --   [@'off'@] Represents value @0@ or 'False'. It's a background pixel and is
+  --   displayed in white.
+  --
+  -- Note, that values are inverted before writing to or reading from file, since
+  -- grayscale images represent black as a @0@ value and white as @1@ on a
+  -- @[0,1]@ scale.
+  --
+  -- Binary pixels also behave as binary numbers with a size of 1-bit, for instance:
+  --
+  -- >>> on + on -- equivalent to: 1 .|. 1
+  -- <Binary:(1)>
+  -- >>> (on + on) * off -- equivalent to: (1 .|. 1) .&. 0
+  -- <Binary:(0)>
+  -- >>> (on + on) - on
+  -- <Binary:(0)>
+  --
+  on, off, isOn, isOff, fromBool, complement,
   toPixelBinary, fromPixelBinary, toImageBinary, fromImageBinary,
-  -- * Complex
+  -- ** Complex
   module Graphics.Image.ColorSpace.Complex,
-  -- * Re-exports
+  -- ** X
+  toImagesX, fromImagesX, -- TODO: add toPixelsX, fromPixelsX
+  -- * ColorSpace
+  -- ** Operations on Pixels
+  eqTolPx,
+  -- ** Luma
+  Y(..), YA(..),
+  ToY, ToYA,
+  -- ** RGB
+  RGB(..), RGBA(..),
+  ToRGB, ToRGBA,
+  -- ** HSI
+  HSI(..), HSIA(..),
+  ToHSI, ToHSIA,
+  -- ** CMYK
+  CMYK(..), CMYKA(..),
+  ToCMYK, ToCMYKA,
+  -- ** YCbCr
+  YCbCr(..), YCbCrA(..),
+  ToYCbCr, ToYCbCrA,
+  -- ** Binary
+  Binary, Bit, 
+  -- ** X
+  X(..),
+  -- * Useful re-exports
   Word8, Word16, Word32, Word64
   ) where
 
 import Data.Word
 
-import Graphics.Image.Interface hiding (map)
-import Graphics.Image.Interface.Instances()
+import Graphics.Image.Interface as I
 import Graphics.Image.ColorSpace.Binary
 import Graphics.Image.ColorSpace.RGB
 import Graphics.Image.ColorSpace.HSI
@@ -56,7 +121,6 @@ import Graphics.Image.ColorSpace.X
 import Graphics.Image.ColorSpace.Y
 import Graphics.Image.ColorSpace.YCbCr
 import Graphics.Image.ColorSpace.Complex
-import qualified Graphics.Image.Interface as I (map)
 
 
 -- Binary:
@@ -92,6 +156,20 @@ eqTolPx !tol = foldlPx2 comp True
 {-# INLINE eqTolPx #-}
 
 -- ToY
+
+-- | Conversion to Luma color space.
+class ColorSpace cs e => ToY cs e where
+
+  -- | Convert a pixel to Luma pixel.
+  toPixelY :: Pixel cs e -> Pixel Y Double
+
+-- | Convert an image to Luma image.
+toImageY :: (ToY cs e, Array arr cs e, Array arr Y Double) =>
+            Image arr cs e
+         -> Image arr Y Double
+toImageY = I.map toPixelY
+{-# INLINE toImageY #-}
+
 
 instance Elevator e => ToY X e where
   toPixelY (PixelX y) = PixelY $ toDouble y
@@ -140,6 +218,22 @@ instance Elevator e => ToY YCbCrA e where
 
 
 -- ToYA
+
+-- | Conversion to Luma from another color space.
+class ToY cs e => ToYA cs e where
+
+  -- | Convert a pixel to Luma pixel with Alpha.
+  toPixelYA :: Pixel cs e -> Pixel YA Double
+  toPixelYA = addAlpha 1 . toPixelY
+  {-# INLINE toPixelYA #-}
+
+-- | Convert an image to Luma image with Alpha.
+toImageYA :: (ToYA cs e, Array arr cs e, Array arr YA Double) =>
+             Image arr cs e
+          -> Image arr YA Double
+toImageYA = I.map toPixelYA
+{-# INLINE toImageYA #-}
+
                                 
 instance ToY Y e => ToYA Y e
 
@@ -172,6 +266,22 @@ instance Elevator e => ToYA YCbCrA e where
   {-# INLINE toPixelYA #-}
 
 -- ToRGB
+
+
+-- | Conversion to `RGB` color space.
+class ColorSpace cs e => ToRGB cs e where
+
+  -- | Convert to an `RGB` pixel.
+  toPixelRGB :: Pixel cs e -> Pixel RGB Double
+
+-- | Convert to an `RGB` image.
+toImageRGB :: (ToRGB cs e, Array arr cs e, Array arr RGB Double) =>
+              Image arr cs e
+           -> Image arr RGB Double
+toImageRGB = I.map toPixelRGB
+{-# INLINE toImageRGB #-}
+
+
   
 instance Elevator e => ToRGB Y e where
   toPixelRGB (PixelY g) = promote $ toDouble g
@@ -245,6 +355,22 @@ instance Elevator e => ToRGB CMYKA e where
 
 -- ToRGBA
 
+-- | Conversion to `RGBA` from another color space with Alpha channel.
+class ToRGB cs e => ToRGBA cs e where
+
+  -- | Convert to an `RGBA` pixel.
+  toPixelRGBA :: Pixel cs e -> Pixel RGBA Double
+  toPixelRGBA = addAlpha 1 . toPixelRGB
+  {-# INLINE toPixelRGBA #-}
+
+-- | Convert to an `RGBA` image.
+toImageRGBA :: (ToRGBA cs e, Array arr cs e, Array arr RGBA Double) =>
+              Image arr cs e
+           -> Image arr RGBA Double
+toImageRGBA = I.map toPixelRGBA
+{-# INLINE toImageRGBA #-}
+
+
 instance ToRGB Y e => ToRGBA Y e
 
 instance Elevator e => ToRGBA YA e where
@@ -277,6 +403,20 @@ instance Elevator e => ToRGBA YCbCrA e where
 
 
 -- ToHSI
+
+-- | Conversion to `HSI` color space.
+class ColorSpace cs e => ToHSI cs e where
+
+  -- | Convert to an `HSI` pixel.
+  toPixelHSI :: Pixel cs e -> Pixel HSI Double
+
+-- | Convert to an `HSI` image.
+toImageHSI :: (ToHSI cs e, Array arr cs e, Array arr HSI Double) =>
+              Image arr cs e
+           -> Image arr HSI Double
+toImageHSI = I.map toPixelHSI
+{-# INLINE toImageHSI #-}
+
   
 instance Elevator e => ToHSI Y e where
   toPixelHSI (PixelY y) = PixelHSI 0 0 $ toDouble y
@@ -327,6 +467,21 @@ instance Elevator e => ToHSI CMYKA e where
 
 -- ToHSIA
 
+-- | Conversion to `HSIA` from another color space with Alpha channel.
+class ToHSI cs e => ToHSIA cs e where
+
+  -- | Convert to an `HSIA` pixel.
+  toPixelHSIA :: Pixel cs e -> Pixel HSIA Double
+  toPixelHSIA = addAlpha 1 . toPixelHSI
+  {-# INLINE toPixelHSIA #-}
+
+-- | Convert to an `HSIA` image.
+toImageHSIA :: (ToHSIA cs e, Array arr cs e, Array arr HSIA Double) =>
+               Image arr cs e
+            -> Image arr HSIA Double
+toImageHSIA = I.map toPixelHSIA
+{-# INLINE toImageHSIA #-}
+
 
 instance ToHSI Y e => ToHSIA Y e
 
@@ -361,6 +516,19 @@ instance Elevator e => ToHSIA YCbCrA e where
 
 
 -- ToCMYK
+
+-- | Conversion to `CMYK` color space.
+class ColorSpace cs e => ToCMYK cs e where
+
+  -- | Convert to a `CMYK` pixel.
+  toPixelCMYK :: Pixel cs e -> Pixel CMYK Double
+
+-- | Convert to a `CMYK` image.
+toImageCMYK :: (ToCMYK cs e, Array arr cs e, Array arr CMYK Double) =>
+               Image arr cs e
+            -> Image arr CMYK Double
+toImageCMYK = I.map toPixelCMYK
+{-# INLINE toImageCMYK #-}
 
 
 instance Elevator e => ToCMYK Y e where
@@ -410,6 +578,21 @@ instance Elevator e => ToCMYK YCbCrA e where
 
 -- ToCMYKA
 
+-- | Conversion to `CMYKA`.
+class ToCMYK cs e => ToCMYKA cs e where
+
+  -- | Convert to a `CMYKA` pixel.
+  toPixelCMYKA :: Pixel cs e -> Pixel CMYKA Double
+  toPixelCMYKA = addAlpha 1 . toPixelCMYK
+  {-# INLINE toPixelCMYKA #-}
+
+-- | Convert to a `CMYKA` image.
+toImageCMYKA :: (ToCMYKA cs e, Array arr cs e, Array arr CMYKA Double) =>
+                Image arr cs e
+             -> Image arr CMYKA Double
+toImageCMYKA = I.map toPixelCMYKA
+{-# INLINE toImageCMYKA #-}
+
 
 instance ToCMYK Y e => ToCMYKA Y e
 
@@ -445,6 +628,21 @@ instance Elevator e => ToCMYKA YCbCrA e where
 
 
 -- ToYCbCr
+
+-- | Conversion to `YCbCr` color space.
+class ColorSpace cs e => ToYCbCr cs e where
+
+  -- | Convert to an `YCbCr` pixel.
+  toPixelYCbCr :: Pixel cs e -> Pixel YCbCr Double
+
+-- | Convert to an `YCbCr` image.
+toImageYCbCr :: (ToYCbCr cs e, Array arr cs e, Array arr YCbCr Double) =>
+                Image arr cs e
+             -> Image arr YCbCr Double
+toImageYCbCr = I.map toPixelYCbCr
+{-# INLINE toImageYCbCr #-}
+
+
 
 instance Elevator e => ToYCbCr Y e where
   toPixelYCbCr = toPixelYCbCr . toPixelRGB
@@ -491,6 +689,24 @@ instance Elevator e => ToYCbCr CMYKA e where
 
 
 -- ToYCbCrA
+
+
+-- | Conversion to `YCbCrA` from another color space with Alpha channel.
+class ToYCbCr cs e => ToYCbCrA cs e where
+
+  -- | Convert to an `YCbCrA` pixel.
+  toPixelYCbCrA :: Pixel cs e -> Pixel YCbCrA Double
+  toPixelYCbCrA = addAlpha 1 . toPixelYCbCr
+  {-# INLINE toPixelYCbCrA #-}
+
+-- | Convert to an `YCbCrA` image.
+toImageYCbCrA :: (ToYCbCrA cs e, Array arr cs e, Array arr YCbCrA Double) =>
+                 Image arr cs e
+              -> Image arr YCbCrA Double
+toImageYCbCrA = I.map toPixelYCbCrA
+{-# INLINE toImageYCbCrA #-}
+
+ 
 
 instance ToYCbCr Y e => ToYCbCrA Y e
 

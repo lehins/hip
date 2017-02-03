@@ -14,8 +14,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.YCbCr (
-  YCbCr(..), YCbCrA(..), Pixel(..), 
-  ToYCbCr(..), ToYCbCrA(..)
+  YCbCr(..), YCbCrA(..), Pixel(..)
   ) where
 
 import Prelude hiding (map)
@@ -24,10 +23,7 @@ import Data.Foldable
 import Data.Typeable (Typeable)
 import Foreign.Ptr
 import Foreign.Storable
-
 import Graphics.Image.Interface
-import Graphics.Image.Interface.Instances()
-
 
 -------------
 --- YCbCr ---
@@ -43,20 +39,6 @@ data YCbCr = LumaYCbCr  -- ^ Luma component (commonly denoted as __Y'__)
 data instance Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
 
   
--- | Conversion to `YCbCr` color space.
-class ColorSpace cs e => ToYCbCr cs e where
-
-  -- | Convert to an `YCbCr` pixel.
-  toPixelYCbCr :: Pixel cs e -> Pixel YCbCr Double
-
-  -- | Convert to an `YCbCr` image.
-  toImageYCbCr :: (Array arr cs e, Array arr YCbCr Double) =>
-                  Image arr cs e
-               -> Image arr YCbCr Double
-  toImageYCbCr = map toPixelYCbCr
-  {-# INLINE toImageYCbCr #-}
-
-
 instance Show e => Show (Pixel YCbCr e) where
   show (PixelYCbCr y b r) = "<YCbCr:("++show y++"|"++show b++"|"++show r++")>"
 
@@ -139,23 +121,6 @@ data YCbCrA = LumaYCbCrA  -- ^ Luma component (commonly denoted as __Y'__)
 
 data instance Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
 
-
--- | Conversion to `YCbCrA` from another color space with Alpha channel.
-class ToYCbCr cs e => ToYCbCrA cs e where
-
-  -- | Convert to an `YCbCrA` pixel.
-  toPixelYCbCrA :: Pixel cs e -> Pixel YCbCrA Double
-  toPixelYCbCrA = addAlpha 1 . toPixelYCbCr
-  {-# INLINE toPixelYCbCrA #-}
-
-  -- | Convert to an `YCbCrA` image.
-  toImageYCbCrA :: (Array arr cs e, Array arr YCbCrA Double) =>
-                   Image arr cs e
-                -> Image arr YCbCrA Double
-  toImageYCbCrA = map toPixelYCbCrA
-  {-# INLINE toImageYCbCrA #-}
-
- 
 
 instance Show e => Show (Pixel YCbCrA e) where
   show (PixelYCbCrA y b r a) = "<YCbCrA:("++show y++"|"++show b++"|"++show r++"|"++show a++")>"

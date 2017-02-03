@@ -13,11 +13,11 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.Complex (
-  -- ** Rectangular form
+  -- *** Rectangular form
   Complex(..), (+:), realPart, imagPart,
-  -- ** Polar form
+  -- *** Polar form
   mkPolar, cis, polar, magnitude, phase,
-  -- ** Conjugate
+  -- *** Conjugate
   conjugate
   ) where
 

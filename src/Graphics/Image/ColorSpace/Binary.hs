@@ -33,28 +33,7 @@ import qualified Data.Vector.Unboxed            as U
 import Graphics.Image.Interface
 
 
--- | This is a Binary colorspace, pixel's of which can be created using
--- these __/constructors/__:
---
---   [@'on'@] Represents value @1@ or 'True'. It's a foreground pixel and is
---   displayed in black.
---
---   [@'off'@] Represents value @0@ or 'False'. It's a background pixel and is
---   displayed in white.
---
--- Note, that values are inverted before writing to or reading from file, since
--- grayscale images represent black as a @0@ value and white as @1@ on a
--- @[0,1]@ scale.
---
--- Binary pixels also behave as binary numbers with a size of 1-bit, for instance:
---
--- >>> on + on -- equivalent to: 1 .|. 1
--- <Binary:(1)>
--- >>> (on + on) * off -- equivalent to: (1 .|. 1) .&. 0
--- <Binary:(0)>
--- >>> (on + on) - on
--- <Binary:(0)>
---
+-- | Binary Color Space, also known as bi-tonal.
 data Binary = Binary deriving (Eq, Enum, Bounded, Show, Typeable)
 
 
@@ -65,7 +44,7 @@ newtype Bit = Bit Word8 deriving (Ord, Eq, Typeable)
 newtype instance Pixel Binary Bit = PixelBinary Bit deriving (Ord, Eq)
 
 
-  -- | Convert to a `Binary` pixel.
+-- | Convert to a `Binary` pixel.
 toPixelBinary :: ColorSpace cs e => Pixel cs e -> Pixel Binary Bit
 toPixelBinary px = if px == 0 then on else off
 
@@ -210,7 +189,7 @@ instance ColorSpace Binary Bit where
   foldlPx2 f !z (PixelBinary b1) (PixelBinary b2) = f z b1 b2
   {-# INLINE foldlPx2 #-}
 
-
+-- | Values: @0@ and @1@
 instance Elevator Bit where
   toWord8 (Bit 0) = 0
   toWord8 _       = maxBound

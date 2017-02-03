@@ -78,7 +78,7 @@ Library
                  , Graphics.Image.IO.Formats.JuicyPixels.Readable
                  , Graphics.Image.IO.Formats.JuicyPixels.Writable
                  , Graphics.Image.IO.Formats.Netpbm
-                 , Graphics.Image.Interface.Instances
+                 , Graphics.Image.Interface.Elevator
                  , Graphics.Image.Interface.Repa.Generic
                  , Graphics.Image.Interface.Repa.Storable
                  , Graphics.Image.Interface.Repa.Unboxed

@@ -109,7 +109,7 @@ import Prelude as P hiding (maximum, minimum, sum, product)
 import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
-import Graphics.Image.Interface as I
+import Graphics.Image.Interface as I hiding (Pixel)
 import Graphics.Image.Types as IP
 
 import Graphics.Image.Processing as IP

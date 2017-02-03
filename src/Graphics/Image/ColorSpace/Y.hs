@@ -14,8 +14,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.Y (
-  Y(..), YA(..), Pixel(..), 
-  ToY(..), toImageY, ToYA(..), toImageYA
+  Y(..), YA(..), Pixel(..)
   ) where
 
 import Prelude hiding (map)
@@ -24,9 +23,7 @@ import Data.Foldable
 import Data.Typeable (Typeable)
 import Foreign.Ptr
 import Foreign.Storable
-
 import Graphics.Image.Interface
-import Graphics.Image.Interface.Instances()
 
 ---------
 --- Y ---
@@ -37,20 +34,6 @@ data Y = LumaY deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
 newtype instance Pixel Y e = PixelY e deriving (Ord, Eq)
-
--- | Conversion to Luma color space.
-class ColorSpace cs e => ToY cs e where
-
-  -- | Convert a pixel to Luma pixel.
-  toPixelY :: Pixel cs e -> Pixel Y Double
-
--- | Convert an image to Luma image.
-toImageY :: (ToY cs e, Array arr cs e, Array arr Y Double) =>
-            Image arr cs e
-         -> Image arr Y Double
-toImageY = map toPixelY
-{-# INLINE toImageY #-}
-
 
 instance Show e => Show (Pixel Y e) where
   show (PixelY g) = "<Luma:("++show g++")>"
@@ -132,20 +115,6 @@ data YA = LumaYA  -- ^ Luma
 
 data instance Pixel YA e = PixelYA !e !e deriving Eq
 
--- | Conversion to Luma from another color space.
-class ToY cs e => ToYA cs e where
-
-  -- | Convert a pixel to Luma pixel with Alpha.
-  toPixelYA :: Pixel cs e -> Pixel YA Double
-  toPixelYA = addAlpha 1 . toPixelY
-  {-# INLINE toPixelYA #-}
-
--- | Convert an image to Luma image with Alpha.
-toImageYA :: (ToYA cs e, Array arr cs e, Array arr YA Double) =>
-             Image arr cs e
-          -> Image arr YA Double
-toImageYA = map toPixelYA
-{-# INLINE toImageYA #-}
 
 instance Show e => Show (Pixel YA e) where
   show (PixelYA y a) = "<LumaAlpha:("++show y++"|"++show a++")>"
