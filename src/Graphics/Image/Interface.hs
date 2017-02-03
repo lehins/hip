@@ -51,7 +51,7 @@ import qualified Data.Vector.Unboxed as VU
 data family Pixel cs e :: *
 
 
-class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e, Typeable e,
+class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e,
       Eq (Pixel cs e), VU.Unbox (Components cs e))
       => ColorSpace cs e where
   
@@ -135,7 +135,7 @@ class (ColorSpace (Opaque cs) e, ColorSpace cs e) => AlphaSpace cs e where
 -- >>> toWord8 rgb
 -- <RGB:(0|128|255)>
 --
-class (Eq e, Num e, VU.Unbox e) => Elevator e where
+class (Eq e, Num e, Typeable e, VU.Unbox e) => Elevator e where
 
   -- | Values are scaled to @[0, 255]@ range.
   toWord8 :: e -> Word8

@@ -16,6 +16,7 @@
 --
 module Graphics.Image.ColorSpace.Binary (
   Binary(..), Bit(..), on, off, isOn, isOff, fromBool,
+  toPixelBinary,
   module Data.Bits
   ) where
 
@@ -23,13 +24,13 @@ import Prelude hiding (map)
 import Control.Monad
 import Data.Bits
 import Data.Word (Word8)
-import Graphics.Image.Interface
 import Data.Typeable (Typeable)
 import Foreign.Ptr
 import Foreign.Storable
 import qualified Data.Vector.Generic            as V
 import qualified Data.Vector.Generic.Mutable    as M
 import qualified Data.Vector.Unboxed            as U
+import Graphics.Image.Interface
 
 
 -- | This is a Binary colorspace, pixel's of which can be created using
@@ -62,6 +63,12 @@ data Binary = Binary deriving (Eq, Enum, Bounded, Show, Typeable)
 newtype Bit = Bit Word8 deriving (Ord, Eq, Typeable)
 
 newtype instance Pixel Binary Bit = PixelBinary Bit deriving (Ord, Eq)
+
+
+  -- | Convert to a `Binary` pixel.
+toPixelBinary :: ColorSpace cs e => Pixel cs e -> Pixel Binary Bit
+toPixelBinary px = if px == 0 then on else off
+
 
 instance Show (Pixel Binary Bit) where
   show (PixelBinary (Bit 0)) = "<Binary:(0)>"

@@ -26,6 +26,7 @@ import Foreign.Ptr
 import Foreign.Storable
 
 import Graphics.Image.Interface
+import Graphics.Image.Interface.Instances()
 
 
 -------------
@@ -41,12 +42,26 @@ data YCbCr = LumaYCbCr  -- ^ Luma component (commonly denoted as __Y'__)
 
 data instance Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
 
+  
+-- | Conversion to `YCbCr` color space.
+class ColorSpace cs e => ToYCbCr cs e where
+
+  -- | Convert to an `YCbCr` pixel.
+  toPixelYCbCr :: Pixel cs e -> Pixel YCbCr Double
+
+  -- | Convert to an `YCbCr` image.
+  toImageYCbCr :: (Array arr cs e, Array arr YCbCr Double) =>
+                  Image arr cs e
+               -> Image arr YCbCr Double
+  toImageYCbCr = map toPixelYCbCr
+  {-# INLINE toImageYCbCr #-}
+
 
 instance Show e => Show (Pixel YCbCr e) where
   show (PixelYCbCr y b r) = "<YCbCr:("++show y++"|"++show b++"|"++show r++")>"
 
 
-instance (Elevator e, Typeable e) => ColorSpace YCbCr e where
+instance Elevator e => ColorSpace YCbCr e where
   type Components YCbCr e = (e, e, e)
 
   promote !e = PixelYCbCr e e e
@@ -124,12 +139,29 @@ data YCbCrA = LumaYCbCrA  -- ^ Luma component (commonly denoted as __Y'__)
 
 data instance Pixel YCbCrA e = PixelYCbCrA !e !e !e !e deriving Eq
 
+
+-- | Conversion to `YCbCrA` from another color space with Alpha channel.
+class ToYCbCr cs e => ToYCbCrA cs e where
+
+  -- | Convert to an `YCbCrA` pixel.
+  toPixelYCbCrA :: Pixel cs e -> Pixel YCbCrA Double
+  toPixelYCbCrA = addAlpha 1 . toPixelYCbCr
+  {-# INLINE toPixelYCbCrA #-}
+
+  -- | Convert to an `YCbCrA` image.
+  toImageYCbCrA :: (Array arr cs e, Array arr YCbCrA Double) =>
+                   Image arr cs e
+                -> Image arr YCbCrA Double
+  toImageYCbCrA = map toPixelYCbCrA
+  {-# INLINE toImageYCbCrA #-}
+
  
+
 instance Show e => Show (Pixel YCbCrA e) where
   show (PixelYCbCrA y b r a) = "<YCbCrA:("++show y++"|"++show b++"|"++show r++"|"++show a++")>"
 
 
-instance (Elevator e, Typeable e) => ColorSpace YCbCrA e where
+instance Elevator e => ColorSpace YCbCrA e where
   type Components YCbCrA e = (e, e, e, e)
 
   promote !e = PixelYCbCrA e e e e
@@ -161,39 +193,8 @@ instance (Elevator e, Typeable e) => ColorSpace YCbCrA e where
     f (f (f (f z y1 y2) b1 b2) r1 r2) a1 a2
   {-# INLINE foldlPx2 #-}
 
-  
--- | Conversion to `YCbCr` color space.
-class ColorSpace cs Double => ToYCbCr cs where
 
-  -- | Convert to an `YCbCr` pixel.
-  toPixelYCbCr :: Pixel cs Double -> Pixel YCbCr Double
-
-  -- | Convert to an `YCbCr` image.
-  toImageYCbCr :: (Array arr cs Double, Array arr YCbCr Double) =>
-                  Image arr cs Double
-               -> Image arr YCbCr Double
-  toImageYCbCr = map toPixelYCbCr
-  {-# INLINE toImageYCbCr #-}
-
-
--- | Conversion to `YCbCrA` from another color space with Alpha channel.
-class (ToYCbCr (Opaque cs), AlphaSpace cs Double) => ToYCbCrA cs where
-
-  -- | Convert to an `YCbCrA` pixel.
-  toPixelYCbCrA :: Pixel cs Double -> Pixel YCbCrA Double
-  toPixelYCbCrA px = addAlpha (getAlpha px) (toPixelYCbCr (dropAlpha px))
-  {-# INLINE toPixelYCbCrA #-}
-
-  -- | Convert to an `YCbCrA` image.
-  toImageYCbCrA :: (Array arr cs Double, Array arr YCbCrA Double) =>
-                   Image arr cs Double
-                -> Image arr YCbCrA Double
-  toImageYCbCrA = map toPixelYCbCrA
-  {-# INLINE toImageYCbCrA #-}
-
-  
-
-instance (Elevator e, Typeable e) => AlphaSpace YCbCrA e where
+instance Elevator e => AlphaSpace YCbCrA e where
   type Opaque YCbCrA = YCbCr
 
   getAlpha (PixelYCbCrA _ _ _ a) = a

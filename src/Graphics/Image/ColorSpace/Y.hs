@@ -15,7 +15,7 @@
 --
 module Graphics.Image.ColorSpace.Y (
   Y(..), YA(..), Pixel(..), 
-  ToY(..), ToYA(..)
+  ToY(..), toImageY, ToYA(..), toImageYA
   ) where
 
 import Prelude hiding (map)
@@ -26,6 +26,7 @@ import Foreign.Ptr
 import Foreign.Storable
 
 import Graphics.Image.Interface
+import Graphics.Image.Interface.Instances()
 
 ---------
 --- Y ---
@@ -38,22 +39,23 @@ data Y = LumaY deriving (Eq, Enum, Show, Bounded, Typeable)
 newtype instance Pixel Y e = PixelY e deriving (Ord, Eq)
 
 -- | Conversion to Luma color space.
-class ColorSpace cs Double => ToY cs where
+class ColorSpace cs e => ToY cs e where
 
   -- | Convert a pixel to Luma pixel.
-  toPixelY :: Pixel cs Double -> Pixel Y Double
+  toPixelY :: Pixel cs e -> Pixel Y Double
 
-  -- | Convert an image to Luma image.
-  toImageY :: (Array arr cs Double, Array arr Y Double) =>
-              Image arr cs Double
-           -> Image arr Y Double
-  toImageY = map toPixelY
-  {-# INLINE toImageY #-}
+-- | Convert an image to Luma image.
+toImageY :: (ToY cs e, Array arr cs e, Array arr Y Double) =>
+            Image arr cs e
+         -> Image arr Y Double
+toImageY = map toPixelY
+{-# INLINE toImageY #-}
+
 
 instance Show e => Show (Pixel Y e) where
   show (PixelY g) = "<Luma:("++show g++")>"
 
-instance (Elevator e, Typeable e) => ColorSpace Y e where
+instance Elevator e => ColorSpace Y e where
   type Components Y e = e
   promote = PixelY
   {-# INLINE promote #-}
@@ -130,23 +132,26 @@ data YA = LumaYA  -- ^ Luma
 
 data instance Pixel YA e = PixelYA !e !e deriving Eq
 
--- | Conversion to Luma from another color space with Alpha channel.
-class (ToY (Opaque cs), AlphaSpace cs Double) => ToYA cs where
+-- | Conversion to Luma from another color space.
+class ToY cs e => ToYA cs e where
 
   -- | Convert a pixel to Luma pixel with Alpha.
-  toPixelYA :: Pixel cs Double -> Pixel YA Double
-  toPixelYA px = addAlpha (getAlpha px) (toPixelY (dropAlpha px))
+  toPixelYA :: Pixel cs e -> Pixel YA Double
+  toPixelYA = addAlpha 1 . toPixelY
   {-# INLINE toPixelYA #-}
 
-  -- | Convert an image to Luma image with Alpha.
-  toImageYA :: (Array arr cs Double, Array arr YA Double) =>
-               Image arr cs Double
-            -> Image arr YA Double
-  toImageYA = map toPixelYA
-  {-# INLINE toImageYA #-}
+-- | Convert an image to Luma image with Alpha.
+toImageYA :: (ToYA cs e, Array arr cs e, Array arr YA Double) =>
+             Image arr cs e
+          -> Image arr YA Double
+toImageYA = map toPixelYA
+{-# INLINE toImageYA #-}
+
+instance Show e => Show (Pixel YA e) where
+  show (PixelYA y a) = "<LumaAlpha:("++show y++"|"++show a++")>"
 
 
-instance (Elevator e, Typeable e) => ColorSpace YA e where
+instance Elevator e => ColorSpace YA e where
   type Components YA e = (e, e)
   promote e = PixelYA e e
   {-# INLINE promote #-}
@@ -172,7 +177,7 @@ instance (Elevator e, Typeable e) => ColorSpace YA e where
   {-# INLINE foldlPx2 #-}
 
   
-instance (Elevator e, Typeable e) => AlphaSpace YA e where
+instance Elevator e => AlphaSpace YA e where
   type Opaque YA = Y
 
   getAlpha (PixelYA _ a) = a

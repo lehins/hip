@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Graphics.Image.IO
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -81,18 +82,22 @@ guessFormat path =
 -- ('Graphics.Image.ColorSpace.Y', 'Graphics.Image.ColorSpace.YA',
 -- 'Graphics.Image.ColorSpace.RGB' and 'Graphics.Image.ColorSpace.RGBA' only)
 -- with 'Double' precision, while doing all necessary conversions.
-readImage :: Readable (Image arr cs Double) InputFormat =>
+readImage :: forall arr cs e .
+             (Array VS cs e, Array arr cs e,
+              Readable (Image VS cs e) InputFormat) =>
              FilePath
-          -> IO (Either String (Image arr cs Double))
+          -> IO (Either String (Image arr cs e))
 readImage path = do
   imgstr <- B.readFile path
   let maybeFormat = guessFormat path :: Maybe InputFormat
       formats = enumFrom . toEnum $ 0
       orderedFormats = maybe formats (\f -> f:P.filter (/=f) formats) maybeFormat
+      reader :: Either String (Image VS cs e) -> InputFormat -> IO (Either String (Image VS cs e))
       reader (Left err) format = 
         return $ either (Left . ((err++"\n")++)) Right (decode format imgstr)
       reader img         _     = return img
-  M.foldM reader (Left "") orderedFormats
+  imgE <- M.foldM reader (Left "") orderedFormats
+  return $ fmap (exchange (undefined :: arr)) imgE
 
 -- | This function allows for reading any supported image in the exact colorspace
 -- and precision it is currently encoded in. For instance, frog image can be
@@ -112,12 +117,12 @@ readImage path = do
 -- Attempt to read an image in a particular color space that is not supported by
 -- the format, will result in a compile error. Refer to 'Readable' class for all
 -- images that can be decoded.
-readImageExact :: Readable (Image arr cs e) format =>
+readImageExact :: Readable img format =>
                   format
                   -- ^ A file format that an image should be read as. See
                    -- <#g:4 Supported Image Formats>
                -> FilePath -- ^ Location of an image.
-               -> IO (Either String (Image arr cs e))
+               -> IO (Either String img)
 readImageExact format path = fmap (decode format) (B.readFile path)
 
 
@@ -138,7 +143,7 @@ writeImage :: (Array VS cs e, Array arr cs e,
            -> IO ()
 writeImage path = BL.writeFile path . encode format [] . exchange VS where
   format = fromMaybe (error ("Could not guess output format. Use 'writeImageExact' "++
-                         "or supply a filename with supported format."))
+                             "or supply a filename with supported format."))
            (guessFormat path :: Maybe OutputFormat)
 
 
@@ -188,14 +193,13 @@ displayImageFile (ExternalViewer exe args ix) imgPath =
   where (argsBefore, argsAfter) = splitAt ix args
 
 
-{- | Makes a call to an external viewer that is set as a default image viewer by
-the OS. This is a non-blocking function call, so it will take some time before
-an image will appear.
-
-  >>> frog <- readImageRGB VU "images/frog.jpg"
-  >>> displayImage frog
-
--}
+-- | Makes a call to an external viewer that is set as a default image viewer by
+-- the OS. This is a non-blocking function call, so it will take some time
+-- before an image will appear.
+--
+--  >>> frog <- readImageRGB VU "images/frog.jpg"
+--  >>> displayImage frog
+--
 displayImage :: (Array VS cs e, Array arr cs e,
                  Writable (Image VS cs e) TIF) =>
                 Image arr cs e -- ^ Image to be displayed

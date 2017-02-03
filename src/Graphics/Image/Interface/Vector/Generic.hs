@@ -218,7 +218,7 @@ instance (BaseArray (G r) cs e) => MArray (G r) cs e where
   unsafeIndex (VScalar px)     _ = px
   {-# INLINE unsafeIndex #-}
 
-  deepSeqImage (VImage m n v) = m `seq` n `seq` deepseq v
+  deepSeqImage (VImage _ _ v) = deepseq v
   deepSeqImage (VScalar px)   = seq px
   {-# INLINE deepSeqImage #-}
 

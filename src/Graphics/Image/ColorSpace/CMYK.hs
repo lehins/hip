@@ -26,6 +26,7 @@ import Foreign.Ptr
 import Foreign.Storable
 
 import Graphics.Image.Interface
+import Graphics.Image.Interface.Instances()
 
 ------------
 --- CMYK ---
@@ -39,13 +40,27 @@ data CMYK = CyanCMYK -- ^ Cyan
           deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
+-- | Conversion to `CMYK` color space.
+class ColorSpace cs e => ToCMYK cs e where
+
+  -- | Convert to a `CMYK` pixel.
+  toPixelCMYK :: Pixel cs e -> Pixel CMYK Double
+
+  -- | Convert to a `CMYK` image.
+  toImageCMYK :: (Array arr cs e, Array arr CMYK Double) =>
+                 Image arr cs e
+              -> Image arr CMYK Double
+  toImageCMYK = map toPixelCMYK
+  {-# INLINE toImageCMYK #-}
+
+
 instance Show e => Show (Pixel CMYK e) where
   show (PixelCMYK c m y k) = "<CMYK:("++show c++"|"++show m++"|"++show y++"|"++show k++")>"
 
 
 data instance Pixel CMYK e = PixelCMYK !e !e !e !e deriving Eq
 
-instance (Elevator e, Typeable e) => ColorSpace CMYK e where
+instance Elevator e => ColorSpace CMYK e where
   type Components CMYK e = (e, e, e, e)
   
   fromComponents !(c, m, y, k) = PixelCMYK c m y k
@@ -127,32 +142,17 @@ data CMYKA = CyanCMYKA  -- ^ Cyan
            deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
--- | Conversion to `CMYK` color space.
-class ColorSpace cs Double => ToCMYK cs where
-
-  -- | Convert to a `CMYK` pixel.
-  toPixelCMYK :: Pixel cs Double -> Pixel CMYK Double
-
-  -- | Convert to a `CMYK` image.
-  toImageCMYK :: (Array arr cs Double, Array arr CMYK Double) =>
-                 Image arr cs Double
-              -> Image arr CMYK Double
-  toImageCMYK = map toPixelCMYK
-  {-# INLINE toImageCMYK #-}
-
-
-
--- | Conversion to `CMYKA` from another color space with Alpha channel.
-class (ToCMYK (Opaque cs), AlphaSpace cs Double) => ToCMYKA cs where
+-- | Conversion to `CMYKA`.
+class ToCMYK cs e => ToCMYKA cs e where
 
   -- | Convert to a `CMYKA` pixel.
-  toPixelCMYKA :: Pixel cs Double -> Pixel CMYKA Double
-  toPixelCMYKA px = addAlpha (getAlpha px) (toPixelCMYK (dropAlpha px))
+  toPixelCMYKA :: Pixel cs e -> Pixel CMYKA Double
+  toPixelCMYKA = addAlpha 1 . toPixelCMYK
   {-# INLINE toPixelCMYKA #-}
 
   -- | Convert to a `CMYKA` image.
-  toImageCMYKA :: (Array arr cs Double, Array arr CMYKA Double) =>
-                  Image arr cs Double
+  toImageCMYKA :: (Array arr cs e, Array arr CMYKA Double) =>
+                  Image arr cs e
                -> Image arr CMYKA Double
   toImageCMYKA = map toPixelCMYKA
   {-# INLINE toImageCMYKA #-}
@@ -165,7 +165,7 @@ instance Show e => Show (Pixel CMYKA e) where
     "<CMYKA:("++show c++"|"++show m++"|"++show y++"|"++show k++"|"++show a++")>"
 
 
-instance (Elevator e, Typeable e) => ColorSpace CMYKA e where
+instance Elevator e => ColorSpace CMYKA e where
   type Components CMYKA e = (e, e, e, e, e)
   
   fromComponents !(c, m, y, k, a) = PixelCMYKA c m y k a
@@ -200,7 +200,7 @@ instance (Elevator e, Typeable e) => ColorSpace CMYKA e where
   {-# INLINE foldlPx2 #-}
 
 
-instance (Elevator e, Typeable e) => AlphaSpace CMYKA e where
+instance Elevator e => AlphaSpace CMYKA e where
   type Opaque CMYKA = CMYK
 
   getAlpha (PixelCMYKA _ _ _ _ a) = a

@@ -74,8 +74,11 @@ Library
                  , Graphics.Image.ColorSpace.Y
                  , Graphics.Image.ColorSpace.YCbCr
                  , Graphics.Image.IO.Base
-                 , Graphics.Image.IO.Formats.JuicyPixels
+                 , Graphics.Image.IO.Formats.JuicyPixels.Common
+                 , Graphics.Image.IO.Formats.JuicyPixels.Readable
+                 , Graphics.Image.IO.Formats.JuicyPixels.Writable
                  , Graphics.Image.IO.Formats.Netpbm
+                 , Graphics.Image.Interface.Instances
                  , Graphics.Image.Interface.Repa.Generic
                  , Graphics.Image.Interface.Repa.Storable
                  , Graphics.Image.Interface.Repa.Unboxed
@@ -118,7 +121,7 @@ Test-Suite hip-tests
   GHC-Options:        -Wall -threaded -with-rtsopts=-N
 
 
-benchmark convolution-benchmarks
+benchmark convolution
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmarks
   main-is:             Canny.hs
@@ -131,6 +134,7 @@ benchmark convolution-benchmarks
                      , hip
   default-language:    Haskell2010
 
+                       
 Source-Repository head
   Type:     git
   Location: https://github.com/lehins/hip.git

@@ -26,19 +26,7 @@ instance (ColorSpace RGBA e, Arbitrary e) => Arbitrary (Pixel RGBA e) where
   arbitrary = fromComponents <$> arbitrary
 
 
-instance (MArray VU cs e, Arbitrary (Pixel cs e)) => Arbitrary (Image VU cs e) where
-  arbitrary = do
-    (Positive m, Positive n) <- arbitrary
-    II.makeImageM (m, n) (const arbitrary)
-
-
-instance (MArray VS cs e, Arbitrary (Pixel cs e)) => Arbitrary (Image VS cs e) where
-  arbitrary = do
-    (Positive m, Positive n) <- arbitrary
-    II.makeImageM (m, n) (const arbitrary)
-
-
-prop_ToFromComponents :: (ColorSpace cs e, Eq (Pixel cs e)) =>
+prop_ToFromComponents :: ColorSpace cs e =>
                          Pixel cs e -> Bool
 prop_ToFromComponents px = px == fromComponents (toComponents px)
 

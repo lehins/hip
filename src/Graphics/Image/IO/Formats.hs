@@ -6,18 +6,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.IO.Formats
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Formats (
-  module Graphics.Image.IO.Formats.JuicyPixels,
+  module Graphics.Image.IO.Formats.JuicyPixels.Common,
   module Graphics.Image.IO.Formats.Netpbm,
   InputFormat(..), OutputFormat(..),
   Readable(..), Writable(..), ImageFormat(..),
-  SaveOption(..)
+  Convertible(..)
   ) where
 
 import Graphics.Image.ColorSpace
@@ -25,12 +25,13 @@ import Graphics.Image.Interface
 import Graphics.Image.Processing
 import Graphics.Image.Processing.Complex
 import Graphics.Image.IO.Base
-import Graphics.Image.IO.Formats.JuicyPixels
+import Graphics.Image.IO.Formats.JuicyPixels.Common
+import Graphics.Image.IO.Formats.JuicyPixels.Readable()
+import Graphics.Image.IO.Formats.JuicyPixels.Writable()
 import Graphics.Image.IO.Formats.Netpbm
 
 
--- | A collection of all image formats that can be read into HIP images with
--- 'Double' precision pixel channels.
+-- | A collection of all image formats that can be read into HIP images.
 data InputFormat = InputBMP
                  | InputGIF
                  | InputHDR

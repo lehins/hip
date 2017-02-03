@@ -5,6 +5,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 #if __GLASGOW_HASKELL__ >= 800
   {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 #endif
@@ -42,11 +44,10 @@ module Graphics.Image.ColorSpace (
   Word8, Word16, Word32, Word64
   ) where
 
-import qualified Data.Complex as C
 import Data.Word
-import Data.Int
-import GHC.Float
+
 import Graphics.Image.Interface hiding (map)
+import Graphics.Image.Interface.Instances()
 import Graphics.Image.ColorSpace.Binary
 import Graphics.Image.ColorSpace.RGB
 import Graphics.Image.ColorSpace.HSI
@@ -60,24 +61,17 @@ import qualified Graphics.Image.Interface as I (map)
 
 -- Binary:
 
--- | Convert any pixel to binary pixel.
-toPixelBinary :: (Eq (Pixel cs e), Num (Pixel cs e))
-                 => Pixel cs e -> Pixel Binary Bit
-toPixelBinary px = if px == 0 then on else off
-{-# INLINE toPixelBinary #-}
+-- | Convert to a `Binary` image.
+toImageBinary :: (Array arr cs e, Array arr Binary Bit) =>
+                 Image arr cs e
+              -> Image arr Binary Bit
+toImageBinary = I.map toPixelBinary
+{-# INLINE toImageBinary #-}
 
 -- | Convert a Binary pixel to Luma pixel
 fromPixelBinary :: Pixel Binary Bit -> Pixel Y Word8
 fromPixelBinary b = PixelY $ if isOn b then minBound else maxBound
 {-# INLINE fromPixelBinary #-}
-
-
--- | Convert any image to binary image.
-toImageBinary :: (Array arr cs e, Array arr Binary Bit, Eq (Pixel cs e)) =>
-                 Image arr cs e
-              -> Image arr Binary Bit
-toImageBinary = I.map toPixelBinary
-{-# INLINE toImageBinary #-}
 
 
 -- | Convert a Binary image to Luma image
@@ -97,43 +91,106 @@ eqTolPx !tol = foldlPx2 comp True
         {-# INLINE comp #-}
 {-# INLINE eqTolPx #-}
 
+-- ToY
 
-instance ToY X where
-  toPixelY (PixelX y) = PixelY y
+instance Elevator e => ToY X e where
+  toPixelY (PixelX y) = PixelY $ toDouble y
+  {-# INLINE toPixelY #-}
+
+instance Elevator e => ToY Y e where
+  toPixelY (PixelY y) = PixelY $ toDouble y
+  {-# INLINE toPixelY #-}
+
+instance Elevator e => ToY YA e where
+  toPixelY (PixelYA y _) = PixelY $ toDouble y
   {-# INLINE toPixelY #-}
 
 -- | Computes Luma: @ Y' = 0.299 * R' + 0.587 * G' + 0.114 * B' @
-instance ToY RGB where
-  toPixelY (PixelRGB r g b) = PixelY (0.299*r + 0.587*g + 0.114*b)
+instance Elevator e => ToY RGB e where
+  toPixelY (fmap toDouble -> (PixelRGB r g b)) = PixelY (0.299*r + 0.587*g + 0.114*b)
   {-# INLINE toPixelY #-}
 
-instance ToYA RGBA where
-
-instance ToY HSI where
-  toPixelY = toPixelY . toPixelRGB
+instance Elevator e => ToY RGBA e where
+  toPixelY = toPixelY . dropAlpha
   {-# INLINE toPixelY #-}
 
-instance ToYA HSIA where
-
-instance ToY CMYK where
-  toPixelY = toPixelY . toPixelRGB
+instance Elevator e => ToY HSI e where
+  toPixelY = toPixelY . toPixelRGB . fmap toDouble
   {-# INLINE toPixelY #-}
 
+instance Elevator e => ToY HSIA e where
+  toPixelY = toPixelY . dropAlpha
+  {-# INLINE toPixelY #-}
+
+instance Elevator e => ToY CMYK e where
+  toPixelY = toPixelY . toPixelRGB . fmap toDouble
+  {-# INLINE toPixelY #-}
+
+instance Elevator e => ToY CMYKA e where
+  toPixelY = toPixelY . toPixelRGB . fmap toDouble . dropAlpha
+  {-# INLINE toPixelY #-}
+
+instance Elevator e => ToY YCbCr e where
+  toPixelY (PixelYCbCr y _ _) = PixelY $ toDouble y
+  {-# INLINE toPixelY #-}
+
+instance Elevator e => ToY YCbCrA e where
+  toPixelY (PixelYCbCrA y _ _ _) = PixelY $ toDouble y
+  {-# INLINE toPixelY #-}
+
+
+-- ToYA
+                                
+instance ToY Y e => ToYA Y e
+
+instance Elevator e => ToYA YA e where
+  toPixelYA = fmap toDouble
+  {-# INLINE toPixelYA #-}
+
+instance ToY RGB e => ToYA RGB e
+
+instance Elevator e => ToYA RGBA e where
+  toPixelYA !px = addAlpha (toDouble $ getAlpha px) (toPixelY (dropAlpha px))
+  {-# INLINE toPixelYA #-}
+
+instance ToY HSI e => ToYA HSI e
+
+instance Elevator e => ToYA HSIA e where
+  toPixelYA !px = addAlpha (toDouble $ getAlpha px) (toPixelY (dropAlpha px))
+  {-# INLINE toPixelYA #-}
+
+instance ToY CMYK e => ToYA CMYK e
+
+instance Elevator e => ToYA CMYKA e where
+  toPixelYA !px = addAlpha (toDouble $ getAlpha px) (toPixelY (dropAlpha px))
+  {-# INLINE toPixelYA #-}
+
+instance ToY YCbCr e => ToYA YCbCr e
+
+instance Elevator e => ToYA YCbCrA e where
+  toPixelYA !px = addAlpha (toDouble $ getAlpha px) (toPixelY (dropAlpha px))
+  {-# INLINE toPixelYA #-}
+
+-- ToRGB
   
-instance ToY YCbCr where
-  toPixelY (PixelYCbCr y _ _) = PixelY y
-  {-# INLINE toPixelY #-}
-  
-instance ToYA YCbCrA where
-  
-instance ToRGB Y where
-  toPixelRGB (PixelY g) = promote g
+instance Elevator e => ToRGB Y e where
+  toPixelRGB (PixelY g) = promote $ toDouble g
   {-# INLINE toPixelRGB #-}
 
-instance ToRGBA YA where
+instance Elevator e => ToRGB YA e where
+  toPixelRGB = toPixelRGB . dropAlpha
+  {-# INLINE toPixelRGB #-}
 
-instance ToRGB HSI where
-  toPixelRGB (PixelHSI h' s i) = getRGB (h'*2*pi) where
+instance Elevator e => ToRGB RGB e where
+  toPixelRGB = fmap toDouble
+  {-# INLINE toPixelRGB #-}
+
+instance Elevator e => ToRGB RGBA e where
+  toPixelRGB = fmap toDouble . dropAlpha
+  {-# INLINE toPixelRGB #-}
+
+instance Elevator e => ToRGB HSI e where
+  toPixelRGB (fmap toDouble -> PixelHSI h' s i) = getRGB (h'*2*pi) where
     !is = i*s
     !second = i - is
     getFirst !a !b = i + is*cos a/cos b
@@ -158,38 +215,79 @@ instance ToRGB HSI where
     {-# INLINE getRGB #-}
   {-# INLINE toPixelRGB #-}
 
-instance ToRGBA HSIA where
+instance Elevator e => ToRGB HSIA e where
+  toPixelRGB = toPixelRGB . dropAlpha
+  {-# INLINE toPixelRGB #-}
 
 
-instance ToRGB YCbCr where
-
-  toPixelRGB (PixelYCbCr y cb cr) = PixelRGB r g b where
+instance Elevator e => ToRGB YCbCr e where
+  toPixelRGB (fmap toDouble -> PixelYCbCr y cb cr) = PixelRGB r g b where
     !r = y                      +   1.402*(cr - 0.5)
     !g = y - 0.34414*(cb - 0.5) - 0.71414*(cr - 0.5)
     !b = y +   1.772*(cb - 0.5)
   {-# INLINE toPixelRGB #-}
 
-instance ToRGBA YCbCrA where
+instance Elevator e => ToRGB YCbCrA e where
+  toPixelRGB = toPixelRGB . dropAlpha
+  {-# INLINE toPixelRGB #-}
 
-instance ToRGB CMYK where
-
-  toPixelRGB (PixelCMYK c m y k) = PixelRGB r g b where
+instance Elevator e => ToRGB CMYK e where
+  toPixelRGB (fmap toDouble -> PixelCMYK c m y k) = PixelRGB r g b where
     !r = (1-c)*(1-k)
     !g = (1-m)*(1-k)
     !b = (1-y)*(1-k)
   {-# INLINE toPixelRGB #-}
-  
-instance ToRGBA CMYKA where
 
+instance Elevator e => ToRGB CMYKA e where
+  toPixelRGB = toPixelRGB . dropAlpha
+  {-# INLINE toPixelRGB #-}
+
+
+-- ToRGBA
+
+instance ToRGB Y e => ToRGBA Y e
+
+instance Elevator e => ToRGBA YA e where
+  toPixelRGBA !px = addAlpha (toDouble $ getAlpha px) (toPixelRGB (dropAlpha px))
+  {-# INLINE toPixelRGBA #-}
+
+instance ToRGB RGB e => ToRGBA RGB e
+
+instance Elevator e => ToRGBA RGBA e where
+  toPixelRGBA = fmap toDouble
+  {-# INLINE toPixelRGBA #-}
+
+instance ToRGB HSI e => ToRGBA HSI e
+
+instance Elevator e => ToRGBA HSIA e where
+  toPixelRGBA !px = addAlpha (toDouble $ getAlpha px) (toPixelRGB (dropAlpha px))
+  {-# INLINE toPixelRGBA #-}
+
+instance ToRGB CMYK e => ToRGBA CMYK e
+
+instance Elevator e => ToRGBA CMYKA e where
+  toPixelRGBA !px = addAlpha (toDouble $ getAlpha px) (toPixelRGB (dropAlpha px))
+  {-# INLINE toPixelRGBA #-}
+
+instance ToRGB YCbCr e => ToRGBA YCbCr e
+
+instance Elevator e => ToRGBA YCbCrA e where
+  toPixelRGBA !px = addAlpha (toDouble $ getAlpha px) (toPixelRGB (dropAlpha px))
+  {-# INLINE toPixelRGBA #-}
+
+
+-- ToHSI
   
-instance ToHSI Y where
-  toPixelHSI (PixelY g) = PixelHSI 0 0 g
+instance Elevator e => ToHSI Y e where
+  toPixelHSI (PixelY y) = PixelHSI 0 0 $ toDouble y
   {-# INLINE toPixelHSI #-}
 
-instance ToHSIA YA where
-  
-instance ToHSI RGB where
-  toPixelHSI (PixelRGB r g b) = PixelHSI h s i where
+instance Elevator e => ToHSI YA e where
+  toPixelHSI = toPixelHSI . dropAlpha
+  {-# INLINE toPixelHSI #-}
+
+instance Elevator e => ToHSI RGB e where
+  toPixelHSI (fmap toDouble -> PixelRGB r g b) = PixelHSI h s i where
     !h' = atan2 y x
     !h = (if h' < 0 then h' + 2*pi else h') / (2*pi)
     !s = if i == 0 then 0 else 1 - minimum [r, g, b] / i
@@ -197,281 +295,232 @@ instance ToHSI RGB where
     !x = (2*r - g - b) / 2.449489742783178
     !y = (g - b) / 1.4142135623730951
   {-# INLINE toPixelHSI #-}
-    
-instance ToHSIA RGBA where
+
+instance Elevator e => ToHSI RGBA e where
+  toPixelHSI = toPixelHSI . dropAlpha
+  {-# INLINE toPixelHSI #-}
+
+instance Elevator e => ToHSI HSI e where
+  toPixelHSI = fmap toDouble
+  {-# INLINE toPixelHSI #-}
+
+instance Elevator e => ToHSI HSIA e where
+  toPixelHSI = toPixelHSI . dropAlpha
+  {-# INLINE toPixelHSI #-}
+
+instance Elevator e => ToHSI YCbCr e where
+  toPixelHSI = toPixelHSI . toPixelRGB
+  {-# INLINE toPixelHSI #-}
+
+instance Elevator e => ToHSI YCbCrA e where
+  toPixelHSI = toPixelHSI . dropAlpha
+  {-# INLINE toPixelHSI #-}
+
+instance Elevator e => ToHSI CMYK e where
+  toPixelHSI = toPixelHSI . toPixelRGB
+  {-# INLINE toPixelHSI #-}
+
+instance Elevator e => ToHSI CMYKA e where
+  toPixelHSI = toPixelHSI . dropAlpha
+  {-# INLINE toPixelHSI #-}
 
 
-instance ToYCbCr RGB where
+-- ToHSIA
 
-  toPixelYCbCr (PixelRGB r g b) = PixelYCbCr y cb cr where
+
+instance ToHSI Y e => ToHSIA Y e
+
+instance Elevator e => ToHSIA YA e where
+  toPixelHSIA !px = addAlpha (toDouble $ getAlpha px) (toPixelHSI (dropAlpha px))
+  {-# INLINE toPixelHSIA #-}
+
+instance ToHSI RGB e => ToHSIA RGB e
+
+instance Elevator e => ToHSIA RGBA e where
+  toPixelHSIA !px = addAlpha (toDouble $ getAlpha px) (toPixelHSI (dropAlpha px))
+  {-# INLINE toPixelHSIA #-}
+
+instance ToHSI HSI e => ToHSIA HSI e
+
+instance Elevator e => ToHSIA HSIA e where
+  toPixelHSIA = fmap toDouble
+  {-# INLINE toPixelHSIA #-}
+
+instance ToHSI CMYK e => ToHSIA CMYK e
+
+instance Elevator e => ToHSIA CMYKA e where
+  toPixelHSIA !px = addAlpha (toDouble $ getAlpha px) (toPixelHSI (dropAlpha px))
+  {-# INLINE toPixelHSIA #-}
+
+instance ToHSI YCbCr e => ToHSIA YCbCr e
+
+instance Elevator e => ToHSIA YCbCrA e where
+  toPixelHSIA !px = addAlpha (toDouble $ getAlpha px) (toPixelHSI (dropAlpha px))
+  {-# INLINE toPixelHSIA #-}
+
+
+
+-- ToCMYK
+
+
+instance Elevator e => ToCMYK Y e where
+  toPixelCMYK = toPixelCMYK . toPixelRGB
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK YA e where
+  toPixelCMYK = toPixelCMYK . dropAlpha
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK RGB e where
+  toPixelCMYK (fmap toDouble -> PixelRGB r g b) = PixelCMYK c m y k where
+    !c = (1 - r - k)/(1 - k)
+    !m = (1 - g - k)/(1 - k)
+    !y = (1 - b - k)/(1 - k)
+    !k = 1 - max r (max g b)
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK RGBA e where
+  toPixelCMYK = toPixelCMYK . dropAlpha
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK HSI e where
+  toPixelCMYK = toPixelCMYK . toPixelRGB
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK HSIA e where
+  toPixelCMYK = toPixelCMYK . dropAlpha
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK CMYK e where
+  toPixelCMYK = fmap toDouble
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK CMYKA e where
+  toPixelCMYK = toPixelCMYK . dropAlpha
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK YCbCr e where
+  toPixelCMYK = toPixelCMYK . toPixelRGB
+  {-# INLINE toPixelCMYK #-}
+
+instance Elevator e => ToCMYK YCbCrA e where
+  toPixelCMYK = toPixelCMYK . dropAlpha
+  {-# INLINE toPixelCMYK #-}
+
+
+-- ToCMYKA
+
+
+instance ToCMYK Y e => ToCMYKA Y e
+
+instance Elevator e => ToCMYKA YA e where
+  toPixelCMYKA !px = addAlpha (toDouble $ getAlpha px) (toPixelCMYK (dropAlpha px))
+  {-# INLINE toPixelCMYKA #-}
+
+instance ToCMYK RGB e => ToCMYKA RGB e
+
+instance Elevator e => ToCMYKA RGBA e where
+  toPixelCMYKA !px = addAlpha (toDouble $ getAlpha px) (toPixelCMYK (dropAlpha px))
+  {-# INLINE toPixelCMYKA #-}
+
+instance ToCMYK HSI e => ToCMYKA HSI e
+
+instance Elevator e => ToCMYKA HSIA e where
+  toPixelCMYKA !px = addAlpha (toDouble $ getAlpha px) (toPixelCMYK (dropAlpha px))
+  {-# INLINE toPixelCMYKA #-}
+
+instance ToCMYK CMYK e => ToCMYKA CMYK e
+
+instance Elevator e => ToCMYKA CMYKA e where
+  toPixelCMYKA = fmap toDouble
+  {-# INLINE toPixelCMYKA #-}
+
+instance ToCMYK YCbCr e => ToCMYKA YCbCr e
+
+instance Elevator e => ToCMYKA YCbCrA e where
+  toPixelCMYKA !px = addAlpha (toDouble $ getAlpha px) (toPixelCMYK (dropAlpha px))
+  {-# INLINE toPixelCMYKA #-}
+
+
+
+
+-- ToYCbCr
+
+instance Elevator e => ToYCbCr Y e where
+  toPixelYCbCr = toPixelYCbCr . toPixelRGB
+  {-# INLINE toPixelYCbCr #-}
+
+instance Elevator e => ToYCbCr YA e where
+  toPixelYCbCr = toPixelYCbCr . dropAlpha
+  {-# INLINE toPixelYCbCr #-}
+
+instance Elevator e => ToYCbCr RGB e where
+  toPixelYCbCr (fmap toDouble -> PixelRGB r g b) = PixelYCbCr y cb cr where
     !y  =          0.299*r +    0.587*g +    0.114*b
     !cb = 0.5 - 0.168736*r - 0.331264*g +      0.5*b
     !cr = 0.5 +      0.5*r - 0.418688*g - 0.081312*b
   {-# INLINE toPixelYCbCr #-}
 
-instance ToYCbCrA RGBA where
-  
+instance Elevator e => ToYCbCr RGBA e where
+  toPixelYCbCr = toPixelYCbCr . dropAlpha
+  {-# INLINE toPixelYCbCr #-}
 
-instance ToCMYK RGB where
+instance Elevator e => ToYCbCr HSI e where
+  toPixelYCbCr = toPixelYCbCr . toPixelRGB
+  {-# INLINE toPixelYCbCr #-}
 
-  toPixelCMYK (PixelRGB r g b) = PixelCMYK c m y k where
-    !c = (1 - r - k)/(1 - k)
-    !m = (1 - g - k)/(1 - k)
-    !y = (1 - b - k)/(1 - k)
-    !k = 1 - max r (max g b)
+instance Elevator e => ToYCbCr HSIA e where
+  toPixelYCbCr = toPixelYCbCr . dropAlpha
+  {-# INLINE toPixelYCbCr #-}
 
-instance ToCMYKA RGBA where
+instance Elevator e => ToYCbCr YCbCr e where
+  toPixelYCbCr = fmap toDouble
+  {-# INLINE toPixelYCbCr #-}
 
+instance Elevator e => ToYCbCr YCbCrA e where
+  toPixelYCbCr = toPixelYCbCr . dropAlpha
+  {-# INLINE toPixelYCbCr #-}
 
-dropDown :: forall a b. (Integral a, Bounded a, Integral b, Bounded b) => a -> b
-dropDown !e = fromIntegral $ fromIntegral e `div` ((maxBound :: a) `div`
-                                                   fromIntegral (maxBound :: b)) 
-{-# INLINE dropDown #-}
+instance Elevator e => ToYCbCr CMYK e where
+  toPixelYCbCr = toPixelYCbCr . toPixelRGB
+  {-# INLINE toPixelYCbCr #-}
 
-raiseUp :: forall a b. (Integral a, Bounded a, Integral b, Bounded b) => a -> b
-raiseUp !e = fromIntegral e * ((maxBound :: b) `div` fromIntegral (maxBound :: a))
-{-# INLINE raiseUp #-}
-
-
-squashTo1 :: forall a b. (Fractional b, Integral a, Bounded a) => a -> b
-squashTo1 !e = fromIntegral e / fromIntegral (maxBound :: a)
-{-# INLINE squashTo1 #-}
-
-stretch :: forall a b. (RealFrac a, Floating a, Integral b, Bounded b) => a -> b
-stretch !e = round (fromIntegral (maxBound :: b) * clamp01 e)
+instance Elevator e => ToYCbCr CMYKA e where
+  toPixelYCbCr = toPixelYCbCr . dropAlpha
+  {-# INLINE toPixelYCbCr #-}
 
 
--- | Clamp a value to @[0, 1]@ range.
-clamp01 :: (Ord a, Floating a) => a -> a
-clamp01 !x = min (max 0 x) 1
-{-# INLINE clamp01 #-}
+-- ToYCbCrA
+
+instance ToYCbCr Y e => ToYCbCrA Y e
+
+instance Elevator e => ToYCbCrA YA e where
+  toPixelYCbCrA !px = addAlpha (toDouble $ getAlpha px) (toPixelYCbCr (dropAlpha px))
+  {-# INLINE toPixelYCbCrA #-}
+
+instance ToYCbCr RGB e => ToYCbCrA RGB e
 
 
-instance Elevator Word8 where
+instance ToYCbCr HSI e => ToYCbCrA HSI e
 
-  toWord8 = id
-  {-# INLINE toWord8 #-}
-  toWord16 = raiseUp
-  {-# INLINE toWord16 #-}
-  toWord32 = raiseUp
-  {-# INLINE toWord32 #-}
-  toWord64 = raiseUp
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1
-  {-# INLINE toDouble #-}
-  fromDouble = toWord8
-  {-# INLINE fromDouble #-}
+instance Elevator e => ToYCbCrA HSIA e where
+  toPixelYCbCrA !px = addAlpha (toDouble $ getAlpha px) (toPixelYCbCr (dropAlpha px))
+  {-# INLINE toPixelYCbCrA #-}
 
+instance Elevator e => ToYCbCrA RGBA e where
+  toPixelYCbCrA !px = addAlpha (toDouble $ getAlpha px) (toPixelYCbCr (dropAlpha px))
+  {-# INLINE toPixelYCbCrA #-}
 
-instance Elevator Word16 where
+instance ToYCbCr CMYK e => ToYCbCrA CMYK e
 
-  toWord8 = dropDown
-  {-# INLINE toWord8 #-}
-  toWord16 = id
-  {-# INLINE toWord16 #-}
-  toWord32 = raiseUp
-  {-# INLINE toWord32 #-}
-  toWord64 = raiseUp
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1
-  {-# INLINE toDouble #-}
-  fromDouble = toWord16
-  {-# INLINE fromDouble #-}
+instance Elevator e => ToYCbCrA CMYKA e where
+  toPixelYCbCrA !px = addAlpha (toDouble $ getAlpha px) (toPixelYCbCr (dropAlpha px))
+  {-# INLINE toPixelYCbCrA #-}
+
+instance ToYCbCr YCbCr e => ToYCbCrA YCbCr e
+
+instance Elevator e => ToYCbCrA YCbCrA e where
+  toPixelYCbCrA = fmap toDouble
+  {-# INLINE toPixelYCbCrA #-}
 
 
-instance Elevator Word32 where
-
-  toWord8 = dropDown
-  {-# INLINE toWord8 #-}
-  toWord16 = dropDown
-  {-# INLINE toWord16 #-}
-  toWord32 = id
-  {-# INLINE toWord32 #-}
-  toWord64 = raiseUp
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1
-  {-# INLINE toDouble #-}
-  fromDouble = toWord32
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Word64 where
-
-  toWord8 = dropDown
-  {-# INLINE toWord8 #-}
-  toWord16 = dropDown
-  {-# INLINE toWord16 #-}
-  toWord32 = dropDown
-  {-# INLINE toWord32 #-}
-  toWord64 = id
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1
-  {-# INLINE toDouble #-}
-  fromDouble = toWord64
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Word where
-
-  toWord8 = dropDown
-  {-# INLINE toWord8 #-}
-  toWord16 = dropDown
-  {-# INLINE toWord16 #-}
-  toWord32 = dropDown
-  {-# INLINE toWord32 #-}
-  toWord64 = fromIntegral
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1
-  {-# INLINE toDouble #-}
-  fromDouble = stretch . clamp01
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Int8 where
-
-  toWord8 = fromIntegral . (max 0)
-  {-# INLINE toWord8 #-}
-  toWord16 = raiseUp . (max 0)
-  {-# INLINE toWord16 #-}
-  toWord32 = raiseUp . (max 0)
-  {-# INLINE toWord32 #-}
-  toWord64 = raiseUp . (max 0)
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1 . (max 0)
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1 . (max 0)
-  {-# INLINE toDouble #-}
-  fromDouble = stretch . clamp01
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Int16 where
-
-  toWord8 = dropDown . (max 0)
-  {-# INLINE toWord8 #-}
-  toWord16 = fromIntegral . (max 0)
-  {-# INLINE toWord16 #-}
-  toWord32 = raiseUp . (max 0)
-  {-# INLINE toWord32 #-}
-  toWord64 = raiseUp . (max 0)
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1 . (max 0)
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1 . (max 0)
-  {-# INLINE toDouble #-}
-  fromDouble = stretch . clamp01
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Int32 where
-
-  toWord8 = dropDown . (max 0)
-  {-# INLINE toWord8 #-}
-  toWord16 = dropDown . (max 0)
-  {-# INLINE toWord16 #-}
-  toWord32 = fromIntegral . (max 0)
-  {-# INLINE toWord32 #-}
-  toWord64 = raiseUp . (max 0)
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1 . (max 0)
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1 . (max 0)
-  {-# INLINE toDouble #-}
-  fromDouble = stretch . clamp01
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Int64 where
-
-  toWord8 = dropDown . (max 0)
-  {-# INLINE toWord8 #-}
-  toWord16 = dropDown . (max 0)
-  {-# INLINE toWord16 #-}
-  toWord32 = dropDown . (max 0)
-  {-# INLINE toWord32 #-}
-  toWord64 = fromIntegral . (max 0)
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1 . (max 0)
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1 . (max 0)
-  {-# INLINE toDouble #-}
-  fromDouble = stretch . clamp01
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Int where
-
-  toWord8 = dropDown . (max 0)
-  {-# INLINE toWord8 #-}
-  toWord16 = dropDown . (max 0)
-  {-# INLINE toWord16 #-}
-  toWord32 = dropDown . (max 0)
-  {-# INLINE toWord32 #-}
-  toWord64 = fromIntegral . (max 0)
-  {-# INLINE toWord64 #-}
-  toFloat = squashTo1 . (max 0)
-  {-# INLINE toFloat #-}
-  toDouble = squashTo1 . (max 0)
-  {-# INLINE toDouble #-}
-  fromDouble = stretch . clamp01
-  {-# INLINE fromDouble #-}
-
-
-instance Elevator Float where
-  toWord8 = stretch . clamp01
-  {-# INLINE toWord8 #-}
-  toWord16 = stretch . clamp01
-  {-# INLINE toWord16 #-}
-  toWord32 = stretch . clamp01
-  {-# INLINE toWord32 #-}
-  toWord64 = stretch . clamp01
-  {-# INLINE toWord64 #-}
-  toFloat = id
-  {-# INLINE toFloat #-}
-  toDouble = float2Double
-  {-# INLINE toDouble #-}
-  fromDouble = toFloat
-  {-# INLINE fromDouble #-}
-
-instance Elevator Double where
-  toWord8 = stretch . clamp01
-  {-# INLINE toWord8 #-}
-  toWord16 = stretch . clamp01
-  {-# INLINE toWord16 #-}
-  toWord32 = stretch . clamp01
-  {-# INLINE toWord32 #-}
-  toWord64 = stretch . clamp01
-  {-# INLINE toWord64 #-}
-  toFloat = double2Float
-  {-# INLINE toFloat #-}
-  toDouble = id
-  {-# INLINE toDouble #-}
-  fromDouble = id
-  {-# INLINE fromDouble #-}
-
-
-instance (Num e, Elevator e, RealFloat e) => Elevator (C.Complex e) where
-  toWord8 = toWord8 . C.realPart
-  {-# INLINE toWord8 #-}
-  toWord16 = toWord16 . C.realPart
-  {-# INLINE toWord16 #-}
-  toWord32 = toWord32 . C.realPart
-  {-# INLINE toWord32 #-}
-  toWord64 = toWord64 . C.realPart
-  {-# INLINE toWord64 #-}
-  toFloat = toFloat . C.realPart
-  {-# INLINE toFloat #-}
-  toDouble = toDouble . C.realPart
-  {-# INLINE toDouble #-}
-  fromDouble = (C.:+ 0) . fromDouble
-  {-# INLINE fromDouble #-}

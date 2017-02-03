@@ -26,6 +26,7 @@ import Foreign.Ptr
 import Foreign.Storable
 
 import Graphics.Image.Interface
+import Graphics.Image.Interface.Instances()
 
 -----------
 --- HSI ---
@@ -39,12 +40,26 @@ data HSI = HueHSI -- ^ Hue
 
 data instance Pixel HSI e = PixelHSI !e !e !e deriving Eq
 
-  
+
+-- | Conversion to `HSI` color space.
+class ColorSpace cs e => ToHSI cs e where
+
+  -- | Convert to an `HSI` pixel.
+  toPixelHSI :: Pixel cs e -> Pixel HSI Double
+
+  -- | Convert to an `HSI` image.
+  toImageHSI :: (Array arr cs e, Array arr HSI Double) =>
+                Image arr cs e
+             -> Image arr HSI Double
+  toImageHSI = map toPixelHSI
+  {-# INLINE toImageHSI #-}
+
+
 instance Show e => Show (Pixel HSI e) where
   show (PixelHSI h s i) = "<HSI:("++show h++"|"++show s++"|"++show i++")>"
 
 
-instance (Elevator e, Typeable e) => ColorSpace HSI e where
+instance Elevator e => ColorSpace HSI e where
   type Components HSI e = (e, e, e)
 
   toComponents (PixelHSI h s i) = (h, s, i)
@@ -122,26 +137,27 @@ data HSIA = HueHSIA   -- ^ Hue
 data instance Pixel HSIA e = PixelHSIA !e !e !e !e deriving Eq
 
 
--- | Conversion to `HSI` color space.
-class ColorSpace cs Double => ToHSI cs where
+-- | Conversion to `HSIA` from another color space with Alpha channel.
+class ToHSI cs e => ToHSIA cs e where
 
-  -- | Convert to an `HSI` pixel.
-  toPixelHSI :: Pixel cs Double -> Pixel HSI Double
+  -- | Convert to an `HSIA` pixel.
+  toPixelHSIA :: Pixel cs e -> Pixel HSIA Double
+  toPixelHSIA = addAlpha 1 . toPixelHSI
+  {-# INLINE toPixelHSIA #-}
 
-  -- | Convert to an `HSI` image.
-  toImageHSI :: (Array arr cs Double, Array arr HSI Double) =>
-                Image arr cs Double
-             -> Image arr HSI Double
-  toImageHSI = map toPixelHSI
-  {-# INLINE toImageHSI #-}
+  -- | Convert to an `HSIA` image.
+  toImageHSIA :: (Array arr cs e, Array arr HSIA Double) =>
+                 Image arr cs e
+              -> Image arr HSIA Double
+  toImageHSIA = map toPixelHSIA
+  {-# INLINE toImageHSIA #-}
 
 
- 
 instance Show e => Show (Pixel HSIA e) where
   show (PixelHSIA h s i a) = "<HSIA:("++show h++"|"++show s++"|"++show i++"|"++show a++")>"
 
 
-instance (Elevator e, Typeable e) => ColorSpace HSIA e where
+instance Elevator e => ColorSpace HSIA e where
   type Components HSIA e = (e, e, e, e)
 
   toComponents (PixelHSIA h s i a) = (h, s, i, a)
@@ -174,7 +190,7 @@ instance (Elevator e, Typeable e) => ColorSpace HSIA e where
   {-# INLINE foldlPx2 #-}
 
 
-instance (Elevator e, Typeable e) => AlphaSpace HSIA e where
+instance Elevator e => AlphaSpace HSIA e where
   type Opaque HSIA = HSI
 
   getAlpha (PixelHSIA _ _ _ a) = a
@@ -183,22 +199,6 @@ instance (Elevator e, Typeable e) => AlphaSpace HSIA e where
   {-# INLINE addAlpha #-}
   dropAlpha (PixelHSIA h s i _) = PixelHSI h s i
   {-# INLINE dropAlpha #-}
-
-
--- | Conversion to `HSIA` from another color space with Alpha channel.
-class (ToHSI (Opaque cs), AlphaSpace cs Double) => ToHSIA cs where
-
-  -- | Convert to an `HSIA` pixel.
-  toPixelHSIA :: Pixel cs Double -> Pixel HSIA Double
-  toPixelHSIA px = addAlpha (getAlpha px) (toPixelHSI (dropAlpha px))
-  {-# INLINE toPixelHSIA #-}
-
-  -- | Convert to an `HSIA` image.
-  toImageHSIA :: (Array arr cs Double, Array arr HSIA Double) =>
-                 Image arr cs Double
-              -> Image arr HSIA Double
-  toImageHSIA = map toPixelHSIA
-  {-# INLINE toImageHSIA #-}
 
 
 instance Functor (Pixel HSIA) where

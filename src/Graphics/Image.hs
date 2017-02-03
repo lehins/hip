@@ -247,6 +247,7 @@ eqTol !tol !img1 = IP.and . toImageBinaryUsing2 (eqTolPx tol) img1
 -- supplied representation.
 fromListsR :: Array arr cs e => arr -> [[Pixel cs e]] -> Image arr cs e
 fromListsR _ = fromLists
+{-# INLINE fromListsR #-}
 
 -- | Generates a nested list of pixels from an image.
 --

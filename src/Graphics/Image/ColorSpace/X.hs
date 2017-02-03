@@ -41,7 +41,7 @@ instance Show e => Show (Pixel X e) where
   show (PixelX g) = "<X:("++show g++")>"
 
 
-instance (Elevator e, Typeable e) => ColorSpace X e where
+instance Elevator e => ColorSpace X e where
   type Components X e = e
 
   promote = PixelX
