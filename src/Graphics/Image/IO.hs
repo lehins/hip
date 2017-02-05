@@ -350,12 +350,12 @@ how it is possible to work with image seqences.
 So, we download and image, but it's a little bit too big, and it's in RGBA
 colorspace.
 
-* Read an animated GIF as a list images:
+* Read an animated GIF as a list of images:
 
 >>> imgs <- readImageExact' GIFA "images/downloaded/strawberry.gif" :: IO [(GifDelay, Image VS RGBA Word8)]
 
-* convert to `RGB` colorspace by dropping alpha channel and raising precision,
-since we cannot write GIFs in RGBA colorspace :
+* convert to `RGB` colorspace by dropping alpha channel and increasing precision,
+since we cannot write GIFs in RGBA colorspace:
 
 >>> let imgsRGB = fmap (fmap toImageRGB) imgs
 
@@ -365,7 +365,7 @@ since we cannot write GIFs in RGBA colorspace :
 
 >>> let imgsRGBsmall = fmap (fmap (scale Bilinear Edge (0.5, 0.5))) imgsRGB
 
-* Here we save thesequence as new animated image. We don't need to drop
+* Here we save the sequence as a new animated image. We don't need to drop
   precision back to `Word8`, it will be taken care for us:
 
 >>> writeImageExact GIFA [GIFALooping LoopingForever] "images/strawberry.gif" imgsRGBsmall

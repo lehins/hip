@@ -23,7 +23,7 @@ module Graphics.Image.ColorSpace (
   -- ** Family of Pixels
   -- | Pixel is a type family for all available color spaces. Below will be
   -- listed all class instances pixels are installed in, as well as all pixel
-  -- constructors, eg:
+  -- constructors.
   --
   -- >>> :t (PixelY 0) -- Black pixel in Luma
   -- (PixelY 0) :: Num e => Pixel Y e
