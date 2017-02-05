@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-duplicate-exports #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- |
@@ -65,27 +65,28 @@ module Graphics.Image (
   --
   makeImageR, makeImage, fromListsR, fromLists, toLists,
   -- * IO
+  module Graphics.Image.IO,
   -- ** Reading
   -- | Read supported files into an 'Image' with pixels in 'Double'
   -- precision. In order to read an image in a different representation, color
   -- space or precision, use 'readImage' or 'readImageExact' from
-  -- <Graphics-Image-IO.html Graphics.Image.IO> instead. While reading an
-  -- image, it's underlying representation can be specified by passing one of
-  -- `VU`, `RSU` or `RPU` as the first argument to @readImage*@ functions. Here is
-  -- a quick demonstration of how two images can be read as different
-  -- representations and later easily combined as their average.
+  -- <Graphics-Image-IO.html Graphics.Image.IO> instead. While reading an image,
+  -- it's underlying representation can be specified by passing one of `VU`,
+  -- `VS`, `RSU`, `RPU`, `RSS` or `RSU` as the first argument to @readImage*@
+  -- functions. Here is a quick demonstration of how two images can be read as
+  -- different representations and later easily combined as their average.
   --
-  -- >>> cluster <- readImageRGB RPU "images/cluster.jpg"
+  -- >>> cluster <- readImageRGB VU "images/cluster.jpg"
   -- >>> displayImage cluster
   -- >>> centaurus <- readImageRGB VU "images/centaurus.jpg"
   -- >>> displayImage centaurus
-  -- >>> displayImage ((cluster + exchange RPU centaurus) / 2)
+  -- >>> displayImage ((cluster + centaurus) / 2)
   --
   -- <<images/cluster.jpg>> <<images/centaurus.jpg>> <<images/centaurus_and_cluster.jpg>>
   --
-  readImageY, readImageYA, readImageRGB, readImageRGBA, readImageExact,
+  readImageY, readImageYA, readImageRGB, readImageRGBA,
   -- ** Writing
-  writeImage, writeImageExact, displayImage,
+  writeImage, displayImage,
   -- * Accessors
   -- ** Dimensions
   rows, cols, dims,
@@ -150,25 +151,25 @@ makeImageR _ = I.makeImage
 
 -- | Read image as luma (brightness).
 readImageY :: Array arr Y Double => arr -> FilePath -> IO (Image arr Y Double)
-readImageY _ = fmap (either error id) . readImage
+readImageY _ = readImage'
 {-# INLINE readImageY #-}
 
 
 -- | Read image as luma with 'Alpha' channel.
 readImageYA :: Array arr YA Double => arr -> FilePath -> IO (Image arr YA Double)
-readImageYA _ = fmap (either error id) . readImage
+readImageYA _ = readImage'
 {-# INLINE readImageYA #-}
 
 
 -- | Read image in RGB colorspace.
 readImageRGB :: Array arr RGB Double => arr -> FilePath -> IO (Image arr RGB Double)
-readImageRGB _ = fmap (either error id) . readImage
+readImageRGB _ = readImage'
 {-# INLINE readImageRGB #-}
 
 
 -- | Read image in RGB colorspace with 'Alpha' channel.
 readImageRGBA :: Array arr RGBA Double => arr -> FilePath -> IO (Image arr RGBA Double)
-readImageRGBA _ = fmap (either error id) . readImage
+readImageRGBA _ = readImage'
 {-# INLINE readImageRGBA #-}
 
 

@@ -15,9 +15,8 @@ module Graphics.Image.IO.Formats.Netpbm (
   PBM(..), PGM(..), PPM(..)
   ) where
 
-
 import Graphics.Image.ColorSpace
-import Graphics.Image.Interface hiding (map)
+import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector
 import Graphics.Image.IO.Base
 import Foreign.Storable (Storable)
@@ -75,75 +74,6 @@ instance ImageFormat [PPM] where
 -- Converting to and from Netpbm -----------------------------------------------
 --------------------------------------------------------------------------------
 
--- -> Y (Double)
-
-instance Convertible PNM.PbmPixel (Pixel Y Double) where
-  convert (PNM.PbmPixel bool) = PixelY $ if bool then 0 else 1
-  
-instance Convertible PNM.PgmPixel8 (Pixel Y Double) where
-  convert (PNM.PgmPixel8 w8) = PixelY $ toDouble w8
-
-instance Convertible PNM.PgmPixel16 (Pixel Y Double) where
-  convert (PNM.PgmPixel16 w16) = PixelY $ toDouble w16
-
-instance Convertible PNM.PpmPixelRGB8 (Pixel Y Double) where
-  convert (PNM.PpmPixelRGB8 r g b) = toPixelY . fmap toDouble $ PixelRGB r g b
-
-instance Convertible PNM.PpmPixelRGB16 (Pixel Y Double) where
-  convert (PNM.PpmPixelRGB16 r g b) = toPixelY . fmap toDouble $ PixelRGB r g b
-
--- -> YA (Double)
-
-instance Convertible PNM.PbmPixel (Pixel YA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PbmPixel -> Pixel Y Double)
-  
-instance Convertible PNM.PgmPixel8 (Pixel YA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PgmPixel8 -> Pixel Y Double)
-
-instance Convertible PNM.PgmPixel16 (Pixel YA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PgmPixel16 -> Pixel Y Double)
-
-instance Convertible PNM.PpmPixelRGB8 (Pixel YA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PpmPixelRGB8 -> Pixel Y Double)
-
-instance Convertible PNM.PpmPixelRGB16 (Pixel YA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PpmPixelRGB16 -> Pixel Y Double)
-
--- -> RGB (Double)
-
-instance Convertible PNM.PbmPixel (Pixel RGB Double) where
-  convert = toPixelRGB . (convert :: PNM.PbmPixel -> Pixel Y Double)
-  
-instance Convertible PNM.PgmPixel8 (Pixel RGB Double) where
-  convert = toPixelRGB . (convert :: PNM.PgmPixel8 -> Pixel Y Double)
-
-instance Convertible PNM.PgmPixel16 (Pixel RGB Double) where
-  convert = toPixelRGB . (convert :: PNM.PgmPixel16 -> Pixel Y Double)
-
-instance Convertible PNM.PpmPixelRGB8 (Pixel RGB Double) where
-  convert (PNM.PpmPixelRGB8 r g b) = fmap toDouble $ PixelRGB r g b
-
-instance Convertible PNM.PpmPixelRGB16 (Pixel RGB Double) where
-  convert (PNM.PpmPixelRGB16 r g b) = fmap toDouble $ PixelRGB r g b
-
-
--- -> RGBA (Double)
-
-instance Convertible PNM.PbmPixel (Pixel RGBA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PbmPixel -> Pixel RGB Double)
-  
-instance Convertible PNM.PgmPixel8 (Pixel RGBA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PgmPixel8 -> Pixel RGB Double)
-
-instance Convertible PNM.PgmPixel16 (Pixel RGBA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PgmPixel16 -> Pixel RGB Double)
-
-instance Convertible PNM.PpmPixelRGB8 (Pixel RGBA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PpmPixelRGB8 -> Pixel RGB Double)
-
-instance Convertible PNM.PpmPixelRGB16 (Pixel RGBA Double) where
-  convert = addAlpha 1 . (convert :: PNM.PpmPixelRGB16 -> Pixel RGB Double)
-
 
 ---- Exact precision conversions
 
@@ -169,27 +99,27 @@ instance Convertible PNM.PpmPixelRGB16 (Pixel RGB Word16) where
 --------------------------------------------------------------------------------
 
 
--- BMP Format Reading (general)
+-- BPM Format Reading (general)
 
-instance Array arr Y Double => Readable (Image arr Y Double) PBM where
-  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+instance Readable (Image VS Y Double) PBM where
+  decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
-instance Array arr Y Double => Readable (Image arr Y Double) PGM where
-  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+instance Readable (Image VS Y Double) PGM where
+  decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
-instance Array arr Y Double => Readable (Image arr Y Double) PPM where
-  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+instance Readable (Image VS Y Double) PPM where
+  decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
-instance Array arr YA Double => Readable (Image arr YA Double) PPM where
-  decode _ = fmap (ppmToImageUsing (pnmDataToImage (addAlpha 1)) . head) . decodePnm
+instance Readable (Image VS YA Double) PPM where
+  decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
-instance Array arr RGB Double => Readable (Image arr RGB Double) PPM where
-  decode _ = fmap (ppmToImageUsing (pnmDataToImage id) . head) . decodePnm
+instance Readable (Image VS RGB Double) PPM where
+  decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
-instance Array arr RGBA Double => Readable (Image arr RGBA Double) PPM where
-  decode _ = fmap (ppmToImageUsing (pnmDataToImage (addAlpha 1)) . head) . decodePnm
+instance Readable (Image VS RGBA Double) PPM where
+  decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
--- BMP Format Reading (exact)
+-- BPM Format Reading (exact)
 
 instance Readable (Image VS Binary Bit) PBM where
   decode _ = either Left (ppmToImageUsing pnmDataPBMToImage . head) . decodePnm
@@ -226,22 +156,26 @@ instance Readable [Image VS RGB Word16] [PPM] where
 pnmToImagesUsing :: (Int -> Int -> PNM.PpmPixelData -> Either String b)
                  -> B.ByteString -> Either String [b]
 pnmToImagesUsing conv =
-  fmap (map (either error id . ppmToImageUsing conv)) . decodePnm
+  fmap (fmap (either error id . ppmToImageUsing conv)) . decodePnm
 
 
-getPx :: (Storable a, Convertible a b) => V.Vector a -> Int -> (Int, Int) -> b
-getPx v w (i, j) = convert (v V.! (i * w + j))
-
-
-pnmDataToImage :: (Array arr cs e, Convertible PNM.PbmPixel px,
-                   Convertible PNM.PgmPixel16 px, Convertible PNM.PgmPixel8 px,
-                   Convertible PNM.PpmPixelRGB16 px, Convertible PNM.PpmPixelRGB8 px) =>
-                  (px -> Pixel cs e) -> Int -> Int -> PNM.PpmPixelData -> Image arr cs e
-pnmDataToImage conv w h (PNM.PbmPixelData v)      = makeImage (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PgmPixelData8 v)     = makeImage (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PgmPixelData16 v)    = makeImage (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PpmPixelDataRGB8 v)  = makeImage (h, w) (conv . getPx v w)
-pnmDataToImage conv w h (PNM.PpmPixelDataRGB16 v) = makeImage (h, w) (conv . getPx v w)
+pnmDataToImage :: (Convertible (Pixel Binary Bit) (Pixel cs e),
+                   Convertible (Pixel Y Word8) (Pixel cs e),
+                   Convertible (Pixel Y Word16) (Pixel cs e),
+                   Convertible (Pixel RGB Word8) (Pixel cs e),
+                   Convertible (Pixel RGB Word16) (Pixel cs e),
+                   Array VS cs e) =>
+                  Int -> Int -> PNM.PpmPixelData -> Image VS cs e
+pnmDataToImage w h (PNM.PbmPixelData v)      =
+  I.map convert (makeImageUnsafe (h, w) v :: Image VS Binary Bit)
+pnmDataToImage w h (PNM.PgmPixelData8 v)     =
+  I.map convert (makeImageUnsafe (h, w) v :: Image VS Y Word8)
+pnmDataToImage w h (PNM.PgmPixelData16 v)    =
+  I.map convert (makeImageUnsafe (h, w) v :: Image VS Y Word16)
+pnmDataToImage w h (PNM.PpmPixelDataRGB8 v)  =
+  I.map convert (makeImageUnsafe (h, w) v :: Image VS RGB Word8)
+pnmDataToImage w h (PNM.PpmPixelDataRGB16 v) =
+  I.map convert (makeImageUnsafe (h, w) v :: Image VS RGB Word16)
 
 
 makeImageUnsafe

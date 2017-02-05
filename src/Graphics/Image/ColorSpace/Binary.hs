@@ -15,7 +15,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.Binary (
-  Binary(..), Bit(..), on, off, isOn, isOff, fromBool,
+  Binary(..), Bit(..), Pixel(..), on, off, isOn, isOff, fromBool, zero, one,
   toPixelBinary,
   module Data.Bits
   ) where
@@ -126,17 +126,25 @@ instance Bits (Pixel Binary Bit) where
   popCount _                     = 1
 
 
+zero :: Bit
+zero = Bit 0
+{-# INLINE zero #-}
+
+one :: Bit
+one = Bit 1
+{-# INLINE one #-}
+
 -- | Represents value 'True' or @1@ in binary. Often also called a foreground
 -- pixel of an object.
 on :: Pixel Binary Bit
-on = PixelBinary (Bit 1)
+on = PixelBinary one
 {-# INLINE on #-}
 
 
 -- | Represents value 'False' or @0@ in binary. Often also called a background
 -- pixel.
 off :: Pixel Binary Bit
-off = PixelBinary (Bit 0)
+off = PixelBinary zero
 {-# INLINE off #-}
 
 

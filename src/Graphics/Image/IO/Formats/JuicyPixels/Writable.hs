@@ -87,27 +87,27 @@ instance Writable (Image VS RGBA Double) GIF where
   encode _ opts = encodeGIF opts ((fmap toWord8) . dropAlpha)
 
 
-encodeGIFs :: (Array VS cs' e, Array VS cs Word8) =>
-              [SaveOption [GIF]] -> (Pixel cs' e -> Pixel cs Word8)
+encodeGIFA :: (Array VS cs' e, Array VS cs Word8) =>
+              [SaveOption GIFA] -> (Pixel cs' e -> Pixel cs Word8)
            -> [(JP.GifDelay, Image VS cs' e)] -> BL.ByteString
-encodeGIFs !opts !conv =
-  either error id . JP.encodeGifImages (getGIFsLoop opts) . P.map palletizeGif where
-    getGIFsLoop []                   = JP.LoopingNever
-    getGIFsLoop (GIFsLooping loop:_) = loop
-    getGIFsLoop (_:xs)               = getGIFsLoop xs    
-    getGIFsPal []                      = JP.defaultPaletteOptions
-    getGIFsPal (GIFsPalette palOpts:_) = palOpts
-    getGIFsPal (_:xs)                  = getGIFsPal xs
+encodeGIFA !opts !conv =
+  either error id . JP.encodeGifImages (getGIFALoop opts) . P.map palletizeGif where
+    getGIFALoop []                   = JP.LoopingNever
+    getGIFALoop (GIFALooping loop:_) = loop
+    getGIFALoop (_:xs)               = getGIFALoop xs    
+    getGIFAPal []                      = JP.defaultPaletteOptions
+    getGIFAPal (GIFAPalette palOpts:_) = palOpts
+    getGIFAPal (_:xs)                  = getGIFAPal xs
     palletizeGif !(d, img) = (p, d, jimg) where  
-      !(jimg, p) = JP.palettize (getGIFsPal opts) $
+      !(jimg, p) = JP.palettize (getGIFAPal opts) $
                    imageToJPImage (undefined :: JP.PixelRGB8) conv img
 
 
-instance Writable [(JP.GifDelay, Image VS RGB Word8)] [GIF] where
-  encode _ opts = encodeGIFs opts id
+instance Writable [(JP.GifDelay, Image VS RGB Word8)] GIFA where
+  encode _ opts = encodeGIFA opts id
 
-instance Writable [(JP.GifDelay, Image VS RGB Double)] [GIF] where
-  encode _ opts = encodeGIFs opts (fmap toWord8)
+instance Writable [(JP.GifDelay, Image VS RGB Double)] GIFA where
+  encode _ opts = encodeGIFA opts (fmap toWord8)
 
 -- Writable HDR
 

@@ -17,39 +17,22 @@
 module Graphics.Image.IO.Formats.JuicyPixels.Readable () where
 
 import Prelude as P
-import Data.Either
+
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Vector
 import Graphics.Image.IO.Base
 import Graphics.Image.IO.Formats.JuicyPixels.Common
-import qualified Data.ByteString as B (ByteString)
+import qualified Data.ByteString as B  -- (ByteString)
 import qualified Codec.Picture as JP
 import qualified Codec.Picture.Types as JP
+import qualified Codec.Picture.Gif as JP
 import qualified Data.Vector.Storable as V
 
 
 --------------------------------------------------------------------------------
 -- Converting to and from JuicyPixels ------------------------------------------
 --------------------------------------------------------------------------------
-
---  Y (Double)
-
-instance ToY cs e => Convertible (Pixel cs e) (Pixel Y Double) where
-  convert = toPixelY
-
-instance ToYA cs e => Convertible (Pixel cs e) (Pixel YA Double) where
-  convert = toPixelYA
-
--- RGB -> RGB (Double)
-
-instance ToRGB cs e => Convertible (Pixel cs e) (Pixel RGB Double) where
-  convert = toPixelRGB
-
-instance ToRGBA cs e => Convertible (Pixel cs e) (Pixel RGBA Double) where
-  convert = toPixelRGBA
-
-
 
 ---- to JuicyPixels -----
 
@@ -100,22 +83,22 @@ instance Convertible JP.PixelCMYK16 (Pixel CMYK Word16) where
 
 
 instance Convertible (Pixel Y Word8) JP.Pixel8 where
-  convert (PixelY g) = g
+  convert (PixelY y) = y
   
 instance Convertible (Pixel Y Word16) JP.Pixel16 where
-  convert (PixelY g) = g
+  convert (PixelY y) = y
 
 instance Convertible (Pixel Y Word32) JP.Pixel32 where
-  convert (PixelY g) = g
+  convert (PixelY y) = y
 
 instance Convertible (Pixel Y Float) JP.PixelF where
-  convert (PixelY g) = g
+  convert (PixelY y) = y
 
 instance Convertible (Pixel YA Word8) JP.PixelYA8 where
-  convert (PixelYA g a) = JP.PixelYA8 g a
+  convert (PixelYA y a) = JP.PixelYA8 y a
   
 instance Convertible (Pixel YA Word16) JP.PixelYA16 where
-  convert (PixelYA g a) = JP.PixelYA16 g a
+  convert (PixelYA y a) = JP.PixelYA16 y a
 
 instance Convertible (Pixel RGB Word8) JP.PixelRGB8 where
   convert (PixelRGB r g b) = JP.PixelRGB8 r g b
@@ -131,7 +114,6 @@ instance Convertible (Pixel RGBA Word8) JP.PixelRGBA8 where
   
 instance Convertible (Pixel RGBA Word16) JP.PixelRGBA16 where
   convert (PixelRGBA r g b a) = JP.PixelRGBA16 r g b a
-
 
 instance Convertible (Pixel YCbCr Word8) JP.PixelYCbCr8 where
   convert (PixelYCbCr y cb cr) = JP.PixelYCbCr8 y cb cr
@@ -174,19 +156,36 @@ instance Readable (Image VS RGBA Word8) GIF where
   decode _ = jpImageRGBA8ToImage . JP.decodeGif
 
 
--- List of GIF Format frames Reading
+-- Animated GIF Format frames reading into a list
 
 decodeGifs :: (Either String JP.DynamicImage -> Either String img)
            -> B.ByteString -> Either String [img]
-decodeGifs decoder = either Left decodeLS . JP.decodeGifImages where
-    decodeLS ls = if null errs then Right imgs else Left $ unlines errs where
-      (errs, imgs) = partitionEithers $ P.map (decoder . Right) ls
+decodeGifs decoder bs = do
+  imgs <- JP.decodeGifImages bs
+  sequence $ fmap (decoder . Right) imgs
 
-instance Readable [Image VS RGB Word8] [GIF] where
+
+decodeGifsDelays :: (Either String JP.DynamicImage -> Either String img)
+                 -> B.ByteString -> Either String [(GifDelay, img)]
+decodeGifsDelays decoder bs = do
+  imgs <- JP.decodeGifImages bs
+  delays <- JP.getDelaysGifImages bs
+  gifs <- sequence $ fmap (decoder . Right) imgs
+  return $ zip delays gifs
+
+
+
+instance Readable [Image VS RGB Word8] GIFA where
   decode _ = decodeGifs jpImageRGB8ToImage
 
-instance Readable [Image VS RGBA Word8] [GIF] where
+instance Readable [Image VS RGBA Word8] GIFA where
   decode _ = decodeGifs jpImageRGBA8ToImage
+
+instance Readable [(GifDelay, Image VS RGB Word8)] GIFA where
+  decode _ = decodeGifsDelays jpImageRGB8ToImage
+
+instance Readable [(GifDelay, Image VS RGBA Word8)] GIFA where
+  decode _ = decodeGifsDelays jpImageRGBA8ToImage
 
 
 -- HDR Format Reading
@@ -322,16 +321,16 @@ instance Readable (Image VS RGBA Double) GIF where
   decode _ = jpDynamicImageToImage . JP.decodeGif
 
 
-instance Readable [Image VS Y Double] [GIF] where
+instance Readable [Image VS Y Double] GIFA where
   decode _ = decodeGifs jpDynamicImageToImage
 
-instance Readable [Image VS YA Double] [GIF] where
+instance Readable [Image VS YA Double] GIFA where
   decode _ = decodeGifs jpDynamicImageToImage
 
-instance Readable [Image VS RGB Double] [GIF] where
+instance Readable [Image VS RGB Double] GIFA where
   decode _ = decodeGifs jpDynamicImageToImage
 
-instance Readable [Image VS RGBA Double] [GIF] where
+instance Readable [Image VS RGBA Double] GIFA where
   decode _ = decodeGifs jpDynamicImageToImage
 
 
@@ -480,21 +479,21 @@ jpImageCMYK16ToImage (Right (JP.ImageCMYK16 jimg)) = Right (jpImageToImageUnsafe
 jpImageCMYK16ToImage jimg = jpCSError "CMYK16 (Pixel CMYK Word16)" jimg
 
 
-jpDynamicImageToImage' :: (Convertible (Pixel Y Word8) (Pixel cs Double),
-                           Convertible (Pixel YA Word8) (Pixel cs Double),
-                           Convertible (Pixel Y Word16) (Pixel cs Double),
-                           Convertible (Pixel YA Word16) (Pixel cs Double),
-                           Convertible (Pixel Y Float) (Pixel cs Double),
-                           Convertible (Pixel RGB Word8) (Pixel cs Double),
-                           Convertible (Pixel RGBA Word8) (Pixel cs Double),
-                           Convertible (Pixel RGB Word16) (Pixel cs Double),
-                           Convertible (Pixel RGBA Word16) (Pixel cs Double),
-                           Convertible (Pixel RGB Float) (Pixel cs Double),
-                           Convertible (Pixel YCbCr Word8) (Pixel cs Double),
-                           Convertible (Pixel CMYK Word8) (Pixel cs Double),
-                           Convertible (Pixel CMYK Word16) (Pixel cs Double),
-                           Array VS cs Double) =>
-                          JP.DynamicImage -> Image VS cs Double
+jpDynamicImageToImage' :: (Convertible (Pixel Y Word8) (Pixel cs e),
+                           Convertible (Pixel YA Word8) (Pixel cs e),
+                           Convertible (Pixel Y Word16) (Pixel cs e),
+                           Convertible (Pixel YA Word16) (Pixel cs e),
+                           Convertible (Pixel Y Float) (Pixel cs e),
+                           Convertible (Pixel RGB Word8) (Pixel cs e),
+                           Convertible (Pixel RGBA Word8) (Pixel cs e),
+                           Convertible (Pixel RGB Word16) (Pixel cs e),
+                           Convertible (Pixel RGBA Word16) (Pixel cs e),
+                           Convertible (Pixel RGB Float) (Pixel cs e),
+                           Convertible (Pixel YCbCr Word8) (Pixel cs e),
+                           Convertible (Pixel CMYK Word8) (Pixel cs e),
+                           Convertible (Pixel CMYK Word16) (Pixel cs e),
+                           Array VS cs e) =>
+                          JP.DynamicImage -> Image VS cs e
 jpDynamicImageToImage' (JP.ImageY8 jimg)     =
   I.map convert $ (jpImageToImageUnsafe jimg :: Image VS Y Word8)
 jpDynamicImageToImage' (JP.ImageYA8 jimg)    =
@@ -523,21 +522,21 @@ jpDynamicImageToImage' (JP.ImageCMYK16 jimg) =
   I.map convert $ (jpImageToImageUnsafe jimg :: Image VS CMYK Word16)
 
 
-jpDynamicImageToImage :: (Convertible (Pixel Y Word8) (Pixel cs Double),
-                           Convertible (Pixel YA Word8) (Pixel cs Double),
-                           Convertible (Pixel Y Word16) (Pixel cs Double),
-                           Convertible (Pixel YA Word16) (Pixel cs Double),
-                           Convertible (Pixel Y Float) (Pixel cs Double),
-                           Convertible (Pixel RGB Word8) (Pixel cs Double),
-                           Convertible (Pixel RGBA Word8) (Pixel cs Double),
-                           Convertible (Pixel RGB Word16) (Pixel cs Double),
-                           Convertible (Pixel RGBA Word16) (Pixel cs Double),
-                           Convertible (Pixel RGB Float) (Pixel cs Double),
-                           Convertible (Pixel YCbCr Word8) (Pixel cs Double),
-                           Convertible (Pixel CMYK Word8) (Pixel cs Double),
-                           Convertible (Pixel CMYK Word16) (Pixel cs Double),
-                           Array VS cs Double) =>
-                         Either String JP.DynamicImage -> Either String (Image VS cs Double)
+jpDynamicImageToImage :: (Convertible (Pixel Y Word8) (Pixel cs e),
+                          Convertible (Pixel YA Word8) (Pixel cs e),
+                          Convertible (Pixel Y Word16) (Pixel cs e),
+                          Convertible (Pixel YA Word16) (Pixel cs e),
+                          Convertible (Pixel Y Float) (Pixel cs e),
+                          Convertible (Pixel RGB Word8) (Pixel cs e),
+                          Convertible (Pixel RGBA Word8) (Pixel cs e),
+                          Convertible (Pixel RGB Word16) (Pixel cs e),
+                          Convertible (Pixel RGBA Word16) (Pixel cs e),
+                          Convertible (Pixel RGB Float) (Pixel cs e),
+                          Convertible (Pixel YCbCr Word8) (Pixel cs e),
+                          Convertible (Pixel CMYK Word8) (Pixel cs e),
+                          Convertible (Pixel CMYK Word16) (Pixel cs e),
+                          Array VS cs e) =>
+                         Either String JP.DynamicImage -> Either String (Image VS cs e)
 jpDynamicImageToImage = either jpError (Right . jpDynamicImageToImage')
 
 

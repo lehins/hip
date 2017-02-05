@@ -17,10 +17,29 @@ module Graphics.Image.IO.Base (
 import qualified Data.ByteString as B (ByteString)
 import qualified Data.ByteString.Lazy as BL (ByteString)
 
+import Graphics.Image.ColorSpace
 
 -- | Used during converting pixels between libraries.
 class Convertible a b where
   convert :: a -> b
+
+--  Y (Double)
+
+instance ToY cs e => Convertible (Pixel cs e) (Pixel Y Double) where
+  convert = toPixelY
+
+instance ToYA cs e => Convertible (Pixel cs e) (Pixel YA Double) where
+  convert = toPixelYA
+
+-- RGB -> RGB (Double)
+
+instance ToRGB cs e => Convertible (Pixel cs e) (Pixel RGB Double) where
+  convert = toPixelRGB
+
+instance ToRGBA cs e => Convertible (Pixel cs e) (Pixel RGBA Double) where
+  convert = toPixelRGBA
+
+
 
 -- | Image file format. Helps in guessing image format using a file extension,
 -- as well as supplying format specific options during saving an image.

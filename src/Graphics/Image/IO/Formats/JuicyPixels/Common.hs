@@ -16,7 +16,8 @@
 --
 module Graphics.Image.IO.Formats.JuicyPixels.Common (
   BMP(..),
-  GIF(..), JP.GifDelay, JP.GifLooping(..), JP.PaletteOptions(..), JP.PaletteCreationMethod(..),
+  GIF(..), GIFA(..),
+  JP.GifDelay, JP.GifLooping(..), JP.PaletteOptions(..), JP.PaletteCreationMethod(..),
   HDR(..),
   JPG(..),
   PNG(..),
@@ -50,12 +51,14 @@ instance ImageFormat GIF where
   
   ext _ = ".gif"
 
-  
--- TODO: Create (Seq GIF)
-instance ImageFormat [GIF] where
-  data SaveOption [GIF] = GIFsPalette JP.PaletteOptions
-                        | GIFsLooping JP.GifLooping
 
+  -- | Graphics Interchange Format animated image with @.gif@ extension.
+data GIFA = GIFA
+
+instance ImageFormat GIFA where
+  data SaveOption GIFA = GIFAPalette JP.PaletteOptions
+                       | GIFALooping JP.GifLooping
+  
   ext _ = ext GIF
 
 -- | High-dynamic-range image with @.hdr@ or @.pic@ extension.

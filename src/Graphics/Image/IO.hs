@@ -12,15 +12,16 @@
 --
 module Graphics.Image.IO (
   -- * Reading
-  readImage, readImageExact,
+  readImage, readImage',
+  readImageExact, readImageExact',
   -- * Writing
   writeImage, writeImageExact,
   -- * Displaying
   ExternalViewer(..),
   displayImage,
   displayImageUsing,
-  displayImageFile,
   -- ** Common viewers
+  displayImageFile,
   defaultViewer,
   eogViewer,
   gpicviewViewer,
@@ -30,7 +31,11 @@ module Graphics.Image.IO (
   module Graphics.Image.IO.Formats
   
   -- $supported
-  
+
+  -- * Hands on examples
+  -- ** Animated GIF
+
+  -- $animation
   ) where
 
 import Prelude as P hiding (readFile, writeFile)
@@ -74,18 +79,19 @@ guessFormat path =
         headMaybe ls = if null ls then Nothing else Just $ head ls
 
 -- | This function will try to guess an image format from file's extension,
--- then it will attempt to read it as such. It will fall back onto the rest of
+-- then it will attempt to decode it as such. It will fall back onto the rest of
 -- the supported formats and will try to read them regarless of file's
 -- extension. Whenever image cannot be decoded, 'Left' containing all errors for
 -- each attempted format will be returned, and 'Right' containing an image
--- otherwise. Image will be read into a type signature specified 'ColorSpace'
--- ('Graphics.Image.ColorSpace.Y', 'Graphics.Image.ColorSpace.YA',
--- 'Graphics.Image.ColorSpace.RGB' and 'Graphics.Image.ColorSpace.RGBA' only)
--- with 'Double' precision, while doing all necessary conversions.
+-- otherwise. Image will be read with a type signature specified:
+--
+--  >>> frog <- readImage "images/frog.jpg" :: IO (Either String (Image VS RGB Word8))
+--  >>> displayImage frog
+--
 readImage :: forall arr cs e .
              (Array VS cs e, Array arr cs e,
               Readable (Image VS cs e) InputFormat) =>
-             FilePath
+             FilePath -- ^ File path for an image
           -> IO (Either String (Image arr cs e))
 readImage path = do
   imgstr <- B.readFile path
@@ -99,24 +105,34 @@ readImage path = do
   imgE <- M.foldM reader (Left "") orderedFormats
   return $ fmap (exchange (undefined :: arr)) imgE
 
--- | This function allows for reading any supported image in the exact colorspace
--- and precision it is currently encoded in. For instance, frog image can be
--- read into it's 'Graphics.Image.ColorSpace.YCbCr' colorspace with
--- 'Graphics.Image.ColorSpace.Word8' precision and into any supported array
--- representation.
+
+-- | Just like `readImage`, but will throw an exception if incorrect format is
+-- detected.
+readImage' :: (Array VS cs e, Array arr cs e,
+               Readable (Image VS cs e) InputFormat) =>
+              FilePath -> IO (Image arr cs e)
+readImage' path = either error id <$> readImage path
+
+
+-- | This function allows for reading all supported image in their exact
+-- colorspace and precision. Only `VS` image representation can be read
+-- natively, but `Graphics.Image.exchange` can be use later to switch to a
+-- different representation. For instance, "frog.jpg" image can be read into
+-- it's 'Graphics.Image.ColorSpace.YCbCr' colorspace with
+-- 'Graphics.Image.ColorSpace.Word8' precision:
 --
--- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image RP YCbCr Word8))
--- Right <Image RepaParallel YCbCr (Word8): 200x320>
+-- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image VS YCbCr Word8))
+-- Right <Image VS YCbCr (Word8): 200x320>
 --
 -- The drawback here is that colorspace and precision has to match exactly,
 -- otherwise it will return an error:
 --
--- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image RP RGB Word8))
+-- >>> readImageExact JPG "images/frog.jpg" :: IO (Either String (Image VS RGB Word8))
 -- Left "JuicyPixel decoding error: Input image is in YCbCr8 (Pixel YCbCr Word8), cannot convert it to RGB8 (Pixel RGB Word8) colorspace."
 --
--- Attempt to read an image in a particular color space that is not supported by
--- the format, will result in a compile error. Refer to 'Readable' class for all
--- images that can be decoded.
+-- Any attempt to read an image in a color space, which is not supported by
+-- supplied format, will result in a compile error. Refer to 'Readable' class
+-- for all images that can be decoded.
 readImageExact :: Readable img format =>
                   format
                   -- ^ A file format that an image should be read as. See
@@ -124,6 +140,12 @@ readImageExact :: Readable img format =>
                -> FilePath -- ^ Location of an image.
                -> IO (Either String img)
 readImageExact format path = fmap (decode format) (B.readFile path)
+
+
+-- | Just like `readImageExact`, but will throw an exception if incorrect format
+-- is detected.
+readImageExact' :: Readable b format => format -> FilePath -> IO b
+readImageExact' format path = either error id <$> readImageExact format path
 
 
 -- | Just like 'readImage', this function will guess an output file format from the
@@ -165,7 +187,8 @@ writeImageExact format opts path = BL.writeFile path . encode format opts
 
 -- | An image is written as a @.tiff@ file into an operating system's temporary
 -- directory and passed as an argument to the external viewer program.
-displayImageUsing :: Writable (Image arr cs e) TIF =>
+displayImageUsing :: (Array VS cs e, Array arr cs e,
+                      Writable (Image VS cs e) TIF) =>
                      ExternalViewer -- ^ External viewer to use
                   -> Bool -- ^ Should the call be blocking
                   -> Image arr cs e -- ^ Image to display
@@ -177,7 +200,7 @@ displayImageUsing viewer block img = do
         bracket (openBinaryTempFile tmpDir "tmp-img.tiff")
           (hClose . snd)
           (\ (imgPath, imgHandle) -> do
-              BL.hPut imgHandle $ encode TIF [] img
+              BL.hPut imgHandle $ encode TIF [] $ exchange VS img
               hClose imgHandle
               displayImageFile viewer imgPath)
   if block
@@ -194,19 +217,15 @@ displayImageFile (ExternalViewer exe args ix) imgPath =
 
 
 -- | Makes a call to an external viewer that is set as a default image viewer by
--- the OS. This is a non-blocking function call, so it will take some time
+-- the OS. This is a non-blocking function call, so it might take some time
 -- before an image will appear.
---
---  >>> frog <- readImageRGB VU "images/frog.jpg"
---  >>> displayImage frog
---
 displayImage :: (Array VS cs e, Array arr cs e,
                  Writable (Image VS cs e) TIF) =>
                 Image arr cs e -- ^ Image to be displayed
              -> IO ()
-displayImage = displayImageUsing defaultViewer False . exchange VS
+displayImage = displayImageUsing defaultViewer False
 
-
+-- | Default viewer is inferred from the operating system.
 defaultViewer :: ExternalViewer
 defaultViewer =
 #if defined(OS_Win32)
@@ -220,29 +239,32 @@ defaultViewer =
 #endif
 
 
--- | @eog /tmp/hip/img.tiff@
+-- | @eog \/tmp\/hip\/img.tiff@
+--
 -- <https://help.gnome.org/users/eog/stable/ Eye of GNOME>
 eogViewer :: ExternalViewer
 eogViewer = ExternalViewer "eog" [] 0
 
 
--- | @feh --fullscreen --auto-zoom /tmp/hip/img.tiff@
+-- | @feh --fullscreen --auto-zoom \/tmp\/hip\/img.tiff@
+--
 -- <https://feh.finalrewind.org/ FEH>
 fehViewer :: ExternalViewer
 fehViewer = ExternalViewer "feh" ["--fullscreen", "--auto-zoom"] 2
 
 
--- | @gpicview /tmp/hip/img.tiff@
+-- | @gpicview \/tmp\/hip\/img.tiff@
+--
 -- <http://lxde.sourceforge.net/gpicview/ GPicView>
 gpicviewViewer :: ExternalViewer
 gpicviewViewer = ExternalViewer "gpicview" [] 0
 
 
--- | @gimp /tmp/hip/img.tiff@
+-- | @gimp \/tmp\/hip\/img.tiff@
+--
 -- <https://www.gimp.org/ GIMP>
 gimpViewer :: ExternalViewer
 gimpViewer = ExternalViewer "gimp" [] 0
-
 
 
 {- $supported
@@ -251,51 +273,52 @@ Encoding and decoding of images is done using
 <http://hackage.haskell.org/package/netpbm netpbm> packages.
    
 List of image formats that are currently supported, and their exact
-'ColorSpace's and precision for reading and writing:
+'ColorSpace's and precision for reading and writing without an implicit
+conversion:
   
 * 'BMP':
 
-    * __read__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __write__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __read__: ('Y' 'Word8'), ('RGB' 'Word8'), ('RGBA' 'Word8')
+    * __write__: ('Y' 'Word8'), ('RGB' 'Word8'), ('RGBA' 'Word8')
 
 * 'GIF':
 
-    * __read__: ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __write__: ('RGB'  'Word8')
-    * Also supports reading and writing animated images, when used as @['GIF']@
+    * __read__: ('RGB' 'Word8'), ('RGBA' 'Word8')
+    * __write__: ('RGB' 'Word8')
+    * Also supports reading and writing animated images, when used as @'GIFA'@
 
 * 'HDR':
 
-    * __read__: ('RGB'  'Float')
-    * __write__: ('RGB'  'Float')
+    * __read__: ('RGB' 'Float')
+    * __write__: ('RGB' 'Float')
 
 * 'JPG':
 
-    * __read__: ('Y' 'Word8'), ('YA' 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    * __read__: ('Y' 'Word8'), ('YA' 'Word8'), ('RGB' 'Word8'), ('CMYK' 'Word8'),
     ('YCbCr', 'Word8')
-    * __write__: ('Y' 'Word8'), ('YA', 'Word8'), ('RGB'  'Word8'), ('CMYK'  'Word8'),
+    * __write__: ('Y' 'Word8'), ('YA', 'Word8'), ('RGB' 'Word8'), ('CMYK' 'Word8'),
     ('YCbCr', 'Word8')
 
 * 'PNG':
 
     * __read__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+    ('RGB' 'Word8'), ('RGB' 'Word16'), ('RGBA' 'Word8'), ('RGBA' 'Word16')
     * __write__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
+    ('RGB' 'Word8'), ('RGB' 'Word16'), ('RGBA' 'Word8'), ('RGBA' 'Word16')
 
 * 'TGA':
 
-    * __read__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
-    * __write__: ('Y' 'Word8'), ('RGB'  'Word8'), ('RGBA'  'Word8')
+    * __read__: ('Y' 'Word8'), ('RGB' 'Word8'), ('RGBA' 'Word8')
+    * __write__: ('Y' 'Word8'), ('RGB' 'Word8'), ('RGBA' 'Word8')
 
 * 'TIF':
 
     * __read__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16'),
-    ('CMYK'  'Word8'), ('CMYK'  'Word16')
+    ('RGB' 'Word8'), ('RGB' 'Word16'), ('RGBA' 'Word8'), ('RGBA' 'Word16'),
+    ('CMYK' 'Word8'), ('CMYK' 'Word16')
     * __write__: ('Y' 'Word8'), ('Y' 'Word16'), ('YA' 'Word8'), ('YA' 'Word16'),
-    ('RGB'  'Word8'), ('RGB'  'Word16'), ('RGBA'  'Word8'), ('RGBA'  'Word16')
-    ('CMYK'  'Word8'), ('CMYK'  'Word16'), ('YCbCr'  'Word8')
+    ('RGB' 'Word8'), ('RGB' 'Word16'), ('RGBA' 'Word8'), ('RGBA' 'Word16')
+    ('CMYK' 'Word8'), ('CMYK' 'Word16'), ('YCbCr' 'Word8')
 
 * 'PBM':
 
@@ -309,8 +332,48 @@ List of image formats that are currently supported, and their exact
 
 * 'PPM':
 
-    * __read__: ('RGB'  'Word8'), ('RGB'  'Word16')
+    * __read__: ('RGB' 'Word8'), ('RGB' 'Word16')
     * Also supports sequence of images in one file, when read as @['PPM']@
 
 -}
 
+
+
+{- $animation
+
+JuicyPixels is capable of encoding/decoding all sorts of poular formats, one of
+which is animated GIFs. Here I would like to present a short demonstration on
+how it is possible to work with image seqences.
+
+<<images/downloaded/strawberry.gif>>
+
+So, we download and image, but it's a little bit too big, and it's in RGBA
+colorspace.
+
+* Read an animated GIF as a list images:
+
+>>> imgs <- readImageExact' GIFA "images/downloaded/strawberry.gif" :: IO [(GifDelay, Image VS RGBA Word8)]
+
+* convert to `RGB` colorspace by dropping alpha channel and raising precision,
+since we cannot write GIFs in RGBA colorspace :
+
+>>> let imgsRGB = fmap (fmap toImageRGB) imgs
+
+* if `toImageRGB` hadn't increased the precision to `Double` in the previous
+  step, `Bilinear` interpolation would have simply destroyed the image quality
+  in this step. Scale all images in the sequence by a half:
+
+>>> let imgsRGBsmall = fmap (fmap (scale Bilinear Edge (0.5, 0.5))) imgsRGB
+
+* Here we save thesequence as new animated image. We don't need to drop
+  precision back to `Word8`, it will be taken care for us:
+
+>>> writeImageExact GIFA [GIFALooping LoopingForever] "images/strawberry.gif" imgsRGBsmall
+
+* Now lets extend the animation a bit:
+
+>>> writeImageExact GIFA [GIFALooping LoopingForever] "images/strawberry_backwards.gif" (imgsRGBsmall ++ reverse imgsRGBsmall)
+
+<<images/strawberry.gif>> <<images/strawberry_backwards.gif>>
+
+-}

@@ -1,3 +1,11 @@
+1.5.2.0
+=======
+
+* Fixed `Storable` instance for some Pixel types.
+* Fixed reading/writing animated GIFs. Added a detailed example to documentation.
+* Improved encodeing/decoding of images.
+* Improved coversion between `ColorSpace`s. 
+
 1.5.1.0
 =======
 
@@ -102,3 +110,5 @@ Major API changes:
 
 * Made it compatible with GHC >= 7.4 (#1)
 * Added histogram plotting using Charts
+
+

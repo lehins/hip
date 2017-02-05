@@ -96,7 +96,7 @@ instance Foldable (Pixel CMYK) where
 
 instance Storable e => Storable (Pixel CMYK e) where
 
-  sizeOf _ = 3 * sizeOf (undefined :: e)
+  sizeOf _ = 4 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)
   peek p = do
     q <- return $ castPtr p
@@ -201,7 +201,7 @@ instance Foldable (Pixel CMYKA) where
 
 instance Storable e => Storable (Pixel CMYKA e) where
 
-  sizeOf _ = 3 * sizeOf (undefined :: e)
+  sizeOf _ = 5 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)
   peek p = do
     q <- return $ castPtr p

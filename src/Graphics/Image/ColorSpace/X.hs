@@ -14,7 +14,9 @@
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.X (
-  X(..), Pixel(..), toImagesX, fromImagesX
+  X(..), Pixel(..),
+  toPixelsX, toImagesX,
+  fromPixelsX, fromImagesX
   ) where
 
 import Prelude as P
@@ -103,6 +105,30 @@ instance Storable e => Storable (Pixel X e) where
     q <- return $ castPtr p
     poke q g
 
+
+-- | Separate a Pixel into a list of components with 'X' pixels containing every
+-- component from the pixel.
+--
+-- >>> toPixelsX (PixelRGB 4 5 6)
+-- [<X:(4)>,<X:(5)>,<X:(6)>]
+--
+toPixelsX :: ColorSpace cs e => Pixel cs e -> [Pixel X e]
+toPixelsX = foldrPx ((:) . PixelX) []
+
+-- | Combine a list of `X` pixels into a Pixel with a specified channel
+-- order. Not the most efficient way to construct a pixel, but might prove
+-- useful to someone.
+--
+-- >>> fromPixelsX [(RedRGB, 3), (BlueRGB, 5), (GreenRGB, 4)]
+-- <RGB:(3.0|4.0|5.0)>
+-- >>> fromPixelsX $ zip (enumFrom RedRGB) (toPixelsX $ PixelRGB 4 5 6)
+-- <RGB:(4.0|5.0|6.0)>
+--
+fromPixelsX :: ColorSpace cs e => [(cs, Pixel X e)] -> Pixel cs e
+fromPixelsX = foldl' f (promote 0) where
+  f !px (c, PixelX x) = setPxC px c x
+
+
 -- | Separate an image into a list of images with 'X' pixels containing every
 -- channel from the source image.
 --
@@ -126,7 +152,7 @@ toImagesX !img = P.map getCh (enumFrom minBound) where
 --
 -- For example here is a frog with swapped 'BlueRGB' and 'GreenRGB' channels.
 --
--- >>> writeImage "images/frog_rbg.jpg" $ fromImagesX [frog_red, frog_green, frog_blue] [RedRGB, BlueRGB, GreenRGB]
+-- >>> writeImage "images/frog_rbg.jpg" $ fromImagesX [(RedRGB, frog_red), (BlueRGB, frog_green), (GreenRGB, frog_blue)]
 --
 -- <<images/frog.jpg>> <<images/frog_rbg.jpg>>
 --
@@ -134,12 +160,12 @@ toImagesX !img = P.map getCh (enumFrom minBound) where
 -- sometimes pretty useful, exactly the same effect as in example above can be
 -- achieved in a much simpler and a more efficient way:
 --
--- @ map (\(PixelRGB r g b) -> PixelRGB r b g) frog @
+-- @ `I.map` (\\(PixelRGB r g b) -> PixelRGB r b g) frog @
 --
-fromImagesX :: forall arr cs e . (Array arr X e, Array arr cs e) =>
-                  [(cs, Image arr X e)] -> Image arr cs e
+fromImagesX :: (Array arr X e, Array arr cs e) =>
+               [(cs, Image arr X e)] -> Image arr cs e
 fromImagesX = fromXs 0 where
-  updateCh ch px (PixelX e) = setPxC px ch e
+  updateCh !ch !px (PixelX e) = setPxC px ch e
   {-# INLINE updateCh #-}
   fromXs img []      = img
   fromXs img ((c, i):xs) = fromXs (I.zipWith (updateCh c) img i) xs

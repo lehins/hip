@@ -78,12 +78,13 @@ module Graphics.Image.ColorSpace (
   -- >>> (on + on) - on
   -- <Binary:(0)>
   --
-  on, off, isOn, isOff, fromBool, complement,
+  on, off, isOn, isOff, one, zero, fromBool, complement,
   toPixelBinary, fromPixelBinary, toImageBinary, fromImageBinary,
   -- ** Complex
   module Graphics.Image.ColorSpace.Complex,
   -- ** X
-  toImagesX, fromImagesX, -- TODO: add toPixelsX, fromPixelsX
+  toPixelsX, fromPixelsX,
+  toImagesX, fromImagesX,
   -- * ColorSpace
   -- ** Operations on Pixels
   eqTolPx,
@@ -103,7 +104,7 @@ module Graphics.Image.ColorSpace (
   YCbCr(..), YCbCrA(..),
   ToYCbCr, ToYCbCrA,
   -- ** Binary
-  Binary, Bit, 
+  Binary(..), Bit, 
   -- ** X
   X(..),
   -- * Useful re-exports
@@ -111,7 +112,6 @@ module Graphics.Image.ColorSpace (
   ) where
 
 import Data.Word
-
 import Graphics.Image.Interface as I
 import Graphics.Image.ColorSpace.Binary
 import Graphics.Image.ColorSpace.RGB
@@ -173,6 +173,10 @@ toImageY = I.map toPixelY
 
 instance Elevator e => ToY X e where
   toPixelY (PixelX y) = PixelY $ toDouble y
+  {-# INLINE toPixelY #-}
+
+instance ToY Binary Bit where
+  toPixelY (PixelBinary b) = PixelY $ toDouble b
   {-# INLINE toPixelY #-}
 
 instance Elevator e => ToY Y e where
@@ -237,6 +241,10 @@ toImageYA = I.map toPixelYA
                                 
 instance ToY Y e => ToYA Y e
 
+instance ToYA Binary Bit where
+  toPixelYA(PixelBinary b) = PixelYA (toDouble b) 1
+  {-# INLINE toPixelYA #-}
+
 instance Elevator e => ToYA YA e where
   toPixelYA = fmap toDouble
   {-# INLINE toPixelYA #-}
@@ -282,7 +290,10 @@ toImageRGB = I.map toPixelRGB
 {-# INLINE toImageRGB #-}
 
 
-  
+instance ToRGB Binary Bit where
+  toPixelRGB (PixelBinary b) = pure $ toDouble b
+  {-# INLINE toPixelRGB #-}
+
 instance Elevator e => ToRGB Y e where
   toPixelRGB (PixelY g) = promote $ toDouble g
   {-# INLINE toPixelRGB #-}
@@ -370,6 +381,8 @@ toImageRGBA :: (ToRGBA cs e, Array arr cs e, Array arr RGBA Double) =>
 toImageRGBA = I.map toPixelRGBA
 {-# INLINE toImageRGBA #-}
 
+
+instance ToRGBA Binary Bit
 
 instance ToRGB Y e => ToRGBA Y e
 

@@ -182,7 +182,7 @@ instance Foldable (Pixel RGBA) where
 
  
 instance Storable e => Storable (Pixel RGBA e) where
-  sizeOf _ = 3 * sizeOf (undefined :: e)
+  sizeOf _ = 4 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)
   peek p = do
     q <- return $ castPtr p

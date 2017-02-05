@@ -1,5 +1,5 @@
 Name:              hip
-Version:           1.5.1.1
+Version:           1.5.2.0
 License:           BSD3
 License-File:      LICENSE
 Author:            Alexey Kuleshevich
@@ -20,6 +20,8 @@ Cabal-Version:     >= 1.10
 Build-Type:        Simple
 Extra-Doc-Files:   images/*.jpg
                  , images/*.png
+                 , images/*.gif
+                 , images/downloaded/*.gif
                  , images/*.svg
                  , README.md
                    CHANGELOG.md
