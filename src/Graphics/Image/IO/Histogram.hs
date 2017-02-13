@@ -72,25 +72,31 @@ getHistograms :: forall arr cs e . (ChannelColour cs, MArray arr X e, Array arr 
                  Image arr cs e
               -> Histograms
 getHistograms = P.zipWith setCh (enumFrom (toEnum 0) :: [cs]) . P.map getHistogram . toImagesX
-  where setCh cs h = h { hName = show cs
-                       , hColour = csColour cs }
+  where setCh !cs !h = h { hName = show cs
+                         , hColour = csColour cs }
+        {-# INLINE setCh #-}
+{-# INLINE getHistograms #-}
 
 -- | Generate a histogram with 256 bins for a single channel Gray image.
 getHistogram :: MArray arr X e =>
                 Image arr X e
              -> Histogram
-getHistogram img = Histogram { hBins = V.modify countBins $
-                                       V.replicate
-                                       (1 + fromIntegral (maxBound :: Word8)) (0 :: Int)
-                             , hName = show X
-                             , hColour = csColour X } where
-  incBin v (PixelX x) = modify v (+1) $ fromIntegral (toWord8 x)
-  countBins v = I.mapM_ (incBin v) img
+getHistogram !img = Histogram { hBins = V.modify countBins $
+                                        V.replicate
+                                        (1 + fromIntegral (maxBound :: Word8)) (0 :: Int)
+                              , hName = show X
+                              , hColour = csColour X }
+  where
+    incBin !v (PixelX x) = modify v (+1) $ fromIntegral (toWord8 x)
+    {-# INLINE incBin #-}
+    countBins !v = I.mapM_ (incBin v) img
+    {-# INLINE countBins #-}
+{-# INLINE getHistogram #-}
 
 
 -- | Discrete cumulative distribution function.
 cdf :: MArray arr X e => Image arr X e -> V.Vector Double
-cdf img = V.unfoldr gen (0, 0)
+cdf !img = V.unfoldr gen (0, 0)
   where
     !p = 1 / fromIntegral (m * n)
     !(m, n) = dims img
@@ -101,6 +107,8 @@ cdf img = V.unfoldr gen (0, 0)
       | otherwise =
         let !acc' = acc + fromIntegral (V.unsafeIndex histogram k)
         in Just (acc' * p, (acc', k + 1))
+    {-# INLINE gen #-}
+{-# INLINE cdf #-}
 
 
 -- | Histogram equalization.
@@ -112,11 +120,14 @@ histogramEqualize
      , MArray arr X Word8
      )
   => Image arr cs e -> Image arr Y Double
-histogramEqualize img = I.map f imgX where
+histogramEqualize !img = I.map f imgX where
   !imgX = I.map (toX . toPixelY) img
   toX (PixelY y) = PixelX $ toWord8 y
+  {-# INLINE toX #-}
   !cdfImg = cdf imgX
   f (PixelX x) = PixelY (V.unsafeIndex cdfImg (fromIntegral x))
+  {-# INLINE f #-}
+{-# INLINE histogramEqualize #-}
 
 
 -- | Write histograms into a PNG image file.
