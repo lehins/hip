@@ -1,10 +1,10 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.IO.Histogram
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -12,30 +12,31 @@
 --
 module Graphics.Image.IO.Histogram (
   Histogram(..), Histograms, ChannelColour(..), getHistograms, getHistogram,
+  histogramEqualize, cdf,
   displayHistograms, writeHistograms
   ) where
 
-import Prelude as P 
-import Control.Concurrent (forkIO)
-import Control.Monad (void)
-import qualified Data.Colour as C
-import qualified Data.Colour.Names as C
-import qualified Data.Vector.Unboxed as V
-import System.Directory (getTemporaryDirectory)
-import System.FilePath ((</>))
-import System.IO.Temp (createTempDirectory)
+import           Control.Concurrent                        (forkIO)
+import           Control.Monad                             (void)
+import qualified Data.Colour                               as C
+import qualified Data.Colour.Names                         as C
+import qualified Data.Vector.Unboxed                       as V
+import           Prelude                                   as P
+import           System.Directory                          (getTemporaryDirectory)
+import           System.FilePath                           ((</>))
+import           System.IO.Temp                            (createTempDirectory)
 
-import Graphics.Image.Interface as I
-import Graphics.Image.IO
-import Graphics.Image.ColorSpace
-import Graphics.Rendering.Chart.Easy
-import Graphics.Rendering.Chart.Backend.Diagrams
+import           Graphics.Image.ColorSpace
+import           Graphics.Image.Interface                  as I
+import           Graphics.Image.IO
+import           Graphics.Rendering.Chart.Backend.Diagrams
+import           Graphics.Rendering.Chart.Easy
 
 #if MIN_VERSION_vector(0,11,0)
-import Data.Vector.Unboxed.Mutable (modify)
+import           Data.Vector.Unboxed.Mutable               (modify)
 #else
-import Control.Monad.Primitive (PrimMonad (..))
-import qualified Data.Vector.Unboxed.Mutable as MV
+import           Control.Monad.Primitive                   (PrimMonad (..))
+import qualified Data.Vector.Unboxed.Mutable               as MV
 
 modify :: (PrimMonad m, V.Unbox a) => MV.MVector (PrimState m) a -> (a -> a) -> Int -> m ()
 modify v f idx = do
@@ -45,16 +46,16 @@ modify v f idx = do
 
 
 class ChannelColour cs where
- 
+
   -- | Get a pure colour representation of a channel.
   csColour :: cs -> C.AlphaColour Double
 
 
 -- | A single channel histogram of an image.
-data Histogram = Histogram { hBins :: V.Vector Int
+data Histogram = Histogram { hBins   :: V.Vector Int
                              -- ^ Vector containing pixel counts. Index of a
                              -- vector serves as an original pixel value.
-                           , hName :: String
+                           , hName   :: String
                              -- ^ Name of the channel that will be displayed in
                              -- the legend.
                            , hColour :: C.AlphaColour Double
@@ -64,8 +65,9 @@ data Histogram = Histogram { hBins :: V.Vector Int
 -- data type with fields like title, width, heigth, etc.
 type Histograms = [Histogram]
 
+
 -- | Create a histogram per channel with 256 bins each.
-getHistograms :: forall arr cs e . (ChannelColour cs, MArray arr X e, Array arr X e, 
+getHistograms :: forall arr cs e . (ChannelColour cs, MArray arr X e, Array arr X e,
                                     MArray arr cs e, Array arr cs e) =>
                  Image arr cs e
               -> Histograms
@@ -82,9 +84,40 @@ getHistogram img = Histogram { hBins = V.modify countBins $
                                        (1 + fromIntegral (maxBound :: Word8)) (0 :: Int)
                              , hName = show X
                              , hColour = csColour X } where
-  incBin v (PixelX g) = modify v (+1) $ fromIntegral (toWord8 g)
+  incBin v (PixelX x) = modify v (+1) $ fromIntegral (toWord8 x)
   countBins v = I.mapM_ (incBin v) img
-  
+
+
+-- | Discrete cumulative distribution function.
+cdf :: MArray arr X e => Image arr X e -> V.Vector Double
+cdf img = V.unfoldr gen (0, 0)
+  where
+    !p = 1 / fromIntegral (m * n)
+    !(m, n) = dims img
+    !histogram = hBins $ getHistogram img
+    !l = V.length histogram
+    gen !(acc, k)
+      | k == l = Nothing
+      | otherwise =
+        let !acc' = acc + fromIntegral (V.unsafeIndex histogram k)
+        in Just (acc' * p, (acc', k + 1))
+
+
+-- | Histogram equalization.
+histogramEqualize
+  :: ( ToY cs e
+     , Array arr cs e
+     , Array arr Y Double
+     , Array arr X Word8
+     , MArray arr X Word8
+     )
+  => Image arr cs e -> Image arr Y Double
+histogramEqualize img = I.map f imgX where
+  !imgX = I.map (toX . toPixelY) img
+  toX (PixelY y) = PixelX $ toWord8 y
+  !cdfImg = cdf imgX
+  f (PixelX x) = PixelY (V.unsafeIndex cdfImg (fromIntegral x))
+
 
 -- | Write histograms into a PNG image file.
 --
@@ -157,9 +190,9 @@ instance ChannelColour HSI where
   csColour IntHSI = C.opaque C.darkblue
 
 instance ChannelColour HSIA where
-  csColour HueHSIA = C.opaque C.purple
-  csColour SatHSIA = C.opaque C.orange
-  csColour IntHSIA = C.opaque C.darkblue
+  csColour HueHSIA   = C.opaque C.purple
+  csColour SatHSIA   = C.opaque C.orange
+  csColour IntHSIA   = C.opaque C.darkblue
   csColour AlphaHSIA = C.opaque C.gray
 
 

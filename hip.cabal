@@ -126,7 +126,7 @@ Test-Suite hip-tests
 benchmark convolution
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmarks
-  main-is:             Canny.hs
+  main-is:             Convolution.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
   build-depends:       base
                      , criterion
@@ -136,7 +136,17 @@ benchmark convolution
                      , hip
   default-language:    Haskell2010
 
-                       
+benchmark histogram
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmarks
+  main-is:             Histogram.hs
+  ghc-options:         -threaded -O2
+  build-depends:       base
+                     , criterion
+                     , hip
+  default-language:    Haskell2010
+
+
 Source-Repository head
   Type:     git
   Location: https://github.com/lehins/hip.git

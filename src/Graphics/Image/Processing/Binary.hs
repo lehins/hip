@@ -1,15 +1,15 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns            #-}
+{-# LANGUAGE CPP                     #-}
+{-# LANGUAGE FlexibleContexts        #-}
+{-# LANGUAGE FlexibleInstances       #-}
+{-# LANGUAGE FunctionalDependencies  #-}
+{-# LANGUAGE MultiParamTypeClasses   #-}
 #if __GLASGOW_HASKELL__ >= 800
-  {-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 #endif
 -- |
 -- Module      : Graphics.Image.Processing.Binary
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -28,13 +28,14 @@ module Graphics.Image.Processing.Binary (
   erode, dialate, open, close
   ) where
 
-import Prelude hiding (map, zipWith, and, or)
-import Data.Bits
-import Graphics.Image.Interface
-import Graphics.Image.ColorSpace
-import Graphics.Image.Processing.Convolution
+import           Data.Bits
+import           Graphics.Image.ColorSpace
+import           Graphics.Image.Interface
+import           Graphics.Image.Processing.Convolution
+import           Prelude                               hiding (and, map, or,
+                                                        zipWith)
 
-import qualified Data.Foldable as F
+import qualified Data.Foldable                         as F
 
 infix  4  .==., ./=., .<., .<=., .>=., .>.
 infixr 3  .&&.
@@ -63,64 +64,64 @@ class Array arr Binary Bit => Thresholding a b arr | a b -> arr where
 instance Array arr Binary Bit => Thresholding (Image arr) (Image arr) arr where
   (.==.) = toImageBinaryUsing2 (==)
   {-# INLINE (.==.) #-}
-  
+
   (./=.) = toImageBinaryUsing2 (/=)
   {-# INLINE (./=.) #-}
-  
+
   (.<.)  = toImageBinaryUsing2 (<)
   {-# INLINE (.<.) #-}
-  
+
   (.<=.) = toImageBinaryUsing2 (<=)
   {-# INLINE (.<=.) #-}
-  
+
   (.>.)  = toImageBinaryUsing2 (>)
   {-# INLINE (.>.) #-}
-  
+
   (.>=.) = toImageBinaryUsing2 (>=)
   {-# INLINE (.>=.) #-}
-  
+
 
 instance Array arr Binary Bit => Thresholding Pixel (Image arr) arr where
   (.==.) !px = toImageBinaryUsing (==px)
   {-# INLINE (.==.) #-}
-  
+
   (./=.) !px = toImageBinaryUsing (/=px)
   {-# INLINE (./=.) #-}
-  
+
   (.<.)  !px = toImageBinaryUsing (< px)
   {-# INLINE (.<.) #-}
-  
+
   (.<=.) !px = toImageBinaryUsing (<=px)
   {-# INLINE (.<=.) #-}
-  
+
   (.>.)  !px = toImageBinaryUsing (> px)
   {-# INLINE (.>.) #-}
-  
+
   (.>=.) !px = toImageBinaryUsing (>=px)
   {-# INLINE (.>=.) #-}
-  
+
 
 instance Array arr Binary Bit => Thresholding (Image arr) Pixel arr where
   (.==.) !img !px = toImageBinaryUsing (==px) img
   {-# INLINE (.==.) #-}
-  
+
   (./=.) !img !px = toImageBinaryUsing (/=px) img
   {-# INLINE (./=.) #-}
-  
+
   (.<.)  !img !px = toImageBinaryUsing (< px) img
   {-# INLINE (.<.) #-}
-  
+
   (.<=.) !img !px = toImageBinaryUsing (<=px) img
   {-# INLINE (.<=.) #-}
-  
+
   (.>.)  !img !px = toImageBinaryUsing (> px) img
   {-# INLINE (.>.) #-}
-  
+
   (.>=.) !img !px = toImageBinaryUsing (>=px) img
   {-# INLINE (.>=.) #-}
 
 
--- | Pixel wise @AND@ operator on binary images. 
+-- | Pixel wise @AND@ operator on binary images.
 (.&&.) :: Array arr Binary Bit =>
           Image arr Binary Bit -> Image arr Binary Bit -> Image arr Binary Bit
 (.&&.) = zipWith (*)
