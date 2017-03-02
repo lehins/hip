@@ -22,7 +22,7 @@ module Graphics.Image.Processing.Geometric (
   -- ** Rotation
   rotate90, rotate180, rotate270, rotate,
   -- ** Scaling
-  resize, scale                                          
+  resize, scale
   ) where
 
 #if MIN_VERSION_base(4,8,0)
@@ -41,9 +41,9 @@ import qualified Data.Vector as V
 --
 -- >>> frog <- readImageRGB RPU "images/frog.jpg"
 -- >>> displayImage $ downsample ((0 ==) . (`mod` 5)) odd frog
--- 
+--
 -- <<images/frog.jpg>> <<images/frog_downsampled.jpg>>
--- 
+--
 downsample :: Array arr cs e =>
               (Int -> Bool) -- ^ Rows predicate
            -> (Int -> Bool) -- ^ Columns predicate
@@ -345,10 +345,13 @@ rotate !method border !theta' !img = traverse img getNewDims getNewPx where
          (False, False) -> (-mD * cosTheta, nD') -- III quadrant
          (False, True ) -> (0, -mD * sinTheta)   -- IV quadrant
   getNewDims _ = (ceiling mD', ceiling nD')
-  getNewPx getPx (i, j) = interpolate method border sz getPx (i', j') where
-    (iD, jD) = (fromIntegral i - iDelta + 0.5, fromIntegral j - jDelta + 0.5)
-    i' = iD * cosTheta + jD * sinTheta - 0.5
-    j' = jD * cosTheta - iD * sinTheta - 0.5
+  {-# INLINE getNewDims #-}
+  getNewPx getPx !(i, j) = interpolate method border sz getPx (i', j') where
+    !(iD, jD) = (fromIntegral i - iDelta + 0.5, fromIntegral j - jDelta + 0.5)
+    !i' = iD * cosTheta + jD * sinTheta - 0.5
+    !j' = jD * cosTheta - iD * sinTheta - 0.5
+  {-# INLINE getNewPx #-}
+{-# INLINE rotate #-}
 
 
 -- | Resize an image using an interpolation method.

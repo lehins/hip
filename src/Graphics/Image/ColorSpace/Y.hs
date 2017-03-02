@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.Y
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -17,13 +17,13 @@ module Graphics.Image.ColorSpace.Y (
   Y(..), YA(..), Pixel(..)
   ) where
 
-import Prelude hiding (map)
-import Control.Applicative
-import Data.Foldable
-import Data.Typeable (Typeable)
-import Foreign.Ptr
-import Foreign.Storable
-import Graphics.Image.Interface
+import           Control.Applicative
+import           Data.Foldable
+import           Data.Typeable            (Typeable)
+import           Foreign.Ptr
+import           Foreign.Storable
+import           Graphics.Image.Interface
+import           Prelude                  hiding (map)
 
 ---------
 --- Y ---
@@ -92,14 +92,16 @@ instance Monad (Pixel Y) where
 instance Storable e => Storable (Pixel Y e) where
 
   sizeOf _ = sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
-    q <- return $ castPtr p
+  {-# INLINE alignment #-}
+  peek !p = do
+    let !q = castPtr p
     y <- peek q
     return (PixelY y)
-  poke p (PixelY y) = do
-    q <- return $ castPtr p
-    poke q y
+  {-# INLINE peek #-}
+  poke !p (PixelY y) = let !q = castPtr p in poke q y
+  {-# INLINE poke #-}
 
 
 
@@ -145,7 +147,7 @@ instance Elevator e => ColorSpace YA e where
   foldlPx2 f !z (PixelYA y1 a1) (PixelYA y2 a2) = f (f z y1 y2) a1 a2
   {-# INLINE foldlPx2 #-}
 
-  
+
 instance Elevator e => AlphaSpace YA e where
   type Opaque YA = Y
 
@@ -156,7 +158,7 @@ instance Elevator e => AlphaSpace YA e where
   dropAlpha (PixelYA y _) = PixelY y
   {-# INLINE dropAlpha #-}
 
-  
+
 instance Functor (Pixel YA) where
   fmap f (PixelYA y a) = PixelYA (f y) (f a)
   {-# INLINE fmap #-}
@@ -177,14 +179,18 @@ instance Foldable (Pixel YA) where
 instance Storable e => Storable (Pixel YA e) where
 
   sizeOf _ = 2 * sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     y <- peekElemOff q 0
     a <- peekElemOff q 1
     return (PixelYA y a)
-  poke p (PixelYA y a) = do
+  {-# INLINE peek #-}
+  poke !p (PixelYA y a) = do
     q <- return $ castPtr p
     pokeElemOff q 0 y
     pokeElemOff q 1 a
+  {-# INLINE poke #-}
 

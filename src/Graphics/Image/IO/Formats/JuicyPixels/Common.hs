@@ -35,7 +35,7 @@ import qualified Codec.Picture as JP
 
 
 -- | Bitmap image with @.bmp@ extension.
-data BMP = BMP
+data BMP = BMP deriving Show
 
 instance ImageFormat BMP where
   data SaveOption BMP
@@ -44,25 +44,25 @@ instance ImageFormat BMP where
 
 
 -- | Graphics Interchange Format image with @.gif@ extension.
-data GIF = GIF
+data GIF = GIF deriving Show
 
 instance ImageFormat GIF where
   data SaveOption GIF = GIFPalette JP.PaletteOptions
-  
+
   ext _ = ".gif"
 
 
   -- | Graphics Interchange Format animated image with @.gif@ extension.
-data GIFA = GIFA
+data GIFA = GIFA deriving Show
 
 instance ImageFormat GIFA where
   data SaveOption GIFA = GIFAPalette JP.PaletteOptions
                        | GIFALooping JP.GifLooping
-  
+
   ext _ = ext GIF
 
 -- | High-dynamic-range image with @.hdr@ or @.pic@ extension.
-data HDR = HDR
+data HDR = HDR deriving Show
 
 instance ImageFormat HDR where
   data SaveOption HDR
@@ -73,7 +73,7 @@ instance ImageFormat HDR where
 
 
 -- | Joint Photographic Experts Group image with @.jpg@ or @.jpeg@ extension.
-data JPG = JPG
+data JPG = JPG deriving Show
 
 instance ImageFormat JPG where
   data SaveOption JPG = JPGQuality Word8
@@ -84,7 +84,7 @@ instance ImageFormat JPG where
 
 
 -- | Portable Network Graphics image with @.png@ extension.
-data PNG = PNG
+data PNG = PNG deriving Show
 
 instance ImageFormat PNG where
   data SaveOption PNG
@@ -102,10 +102,10 @@ instance ImageFormat TGA where
 
 
 -- | Tagged Image File Format image with @.tif@ or @.tiff@ extension.
-data TIF = TIF
+data TIF = TIF deriving Show
 
 instance ImageFormat TIF where
-  data SaveOption TIF  
+  data SaveOption TIF
 
   ext _ = ".tif"
 

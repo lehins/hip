@@ -12,7 +12,7 @@
 --
 module Graphics.Image.IO.Histogram (
   Histogram(..), Histograms, ChannelColour(..), getHistograms, getHistogram,
-  histogramEqualize, cdf,
+  equalizeHistogram, cdf,
   displayHistograms, writeHistograms
   ) where
 
@@ -111,8 +111,8 @@ cdf !img = V.unfoldr gen (0, 0)
 {-# INLINE cdf #-}
 
 
--- | Histogram equalization.
-histogramEqualize
+-- | Converts an image to Luma and performs histogram equalization.
+equalizeHistogram
   :: ( ToY cs e
      , Array arr cs e
      , Array arr Y Double
@@ -120,14 +120,13 @@ histogramEqualize
      , MArray arr X Word8
      )
   => Image arr cs e -> Image arr Y Double
-histogramEqualize !img = I.map f imgX where
+equalizeHistogram !img = I.map f imgX where
   !imgX = I.map (toX . toPixelY) img
   toX (PixelY y) = PixelX $ toWord8 y
   {-# INLINE toX #-}
-  !cdfImg = cdf imgX
-  f (PixelX x) = PixelY (V.unsafeIndex cdfImg (fromIntegral x))
+  f (PixelX x) = PixelY (V.unsafeIndex (cdf imgX) (fromIntegral x))
   {-# INLINE f #-}
-{-# INLINE histogramEqualize #-}
+{-# INLINE equalizeHistogram #-}
 
 
 -- | Write histograms into a PNG image file.

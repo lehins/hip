@@ -3,7 +3,7 @@
 {-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Processing.Interpolation
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -56,8 +56,8 @@ instance Interpolation Bilinear where
     !jPx = promote $ fromDouble (j - fromIntegral j0)
     !f00 = getPx' (i0, j0)
     !f10 = getPx' (i1, j0)
-    !f01 = getPx' (i0, j1) 
-    !f11 = getPx' (i1, j1) 
+    !f01 = getPx' (i0, j1)
+    !f11 = getPx' (i1, j1)
     !fi0 = f00 + iPx*(f10-f00)
     !fi1 = f01 + iPx*(f11-f01)
   {-# INLINE interpolate #-}

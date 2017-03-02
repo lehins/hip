@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.YCbCr
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -17,13 +17,13 @@ module Graphics.Image.ColorSpace.YCbCr (
   YCbCr(..), YCbCrA(..), Pixel(..)
   ) where
 
-import Prelude hiding (map)
-import Control.Applicative
-import Data.Foldable
-import Data.Typeable (Typeable)
-import Foreign.Ptr
-import Foreign.Storable
-import Graphics.Image.Interface
+import           Control.Applicative
+import           Data.Foldable
+import           Data.Typeable            (Typeable)
+import           Foreign.Ptr
+import           Foreign.Storable
+import           Graphics.Image.Interface
+import           Prelude                  hiding (map)
 
 -------------
 --- YCbCr ---
@@ -38,7 +38,7 @@ data YCbCr = LumaYCbCr  -- ^ Luma component (commonly denoted as __Y'__)
 
 data instance Pixel YCbCr e = PixelYCbCr !e !e !e deriving Eq
 
-  
+
 instance Show e => Show (Pixel YCbCr e) where
   show (PixelYCbCr y b r) = "<YCbCr:("++show y++"|"++show b++"|"++show r++")>"
 
@@ -93,18 +93,22 @@ instance Foldable (Pixel YCbCr) where
 instance Storable e => Storable (Pixel YCbCr e) where
 
   sizeOf _ = 3 * sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     y <- peek q
     b <- peekElemOff q 1
     r <- peekElemOff q 2
     return (PixelYCbCr y b r)
-  poke p (PixelYCbCr y b r) = do
+  {-# INLINE poke #-}
+  poke !p (PixelYCbCr y b r) = do
     q <- return $ castPtr p
     pokeElemOff q 0 y
     pokeElemOff q 1 b
     pokeElemOff q 2 r
+  {-# INLINE peek #-}
 
 
 --------------
@@ -190,19 +194,23 @@ instance Foldable (Pixel YCbCrA) where
 instance Storable e => Storable (Pixel YCbCrA e) where
 
   sizeOf _ = 4 * sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     y <- peekElemOff q 0
     b <- peekElemOff q 1
     r <- peekElemOff q 2
     a <- peekElemOff q 3
     return (PixelYCbCrA y b r a)
-  poke p (PixelYCbCrA y b r a) = do
+  {-# INLINE peek #-}
+  poke !p (PixelYCbCrA y b r a) = do
     q <- return $ castPtr p
     poke q y
     pokeElemOff q 1 b
     pokeElemOff q 2 r
     pokeElemOff q 3 a
+  {-# INLINE poke #-}
 
 

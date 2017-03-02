@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module      : Graphics.Image
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -98,7 +98,7 @@ module Graphics.Image (
   -- ** Geometric
   I.traverse, traverse2,
   transpose, backpermute,
-  (|*|), 
+  (|*|),
   -- * Reduction
   fold, sum, product, maximum, minimum, normalize, eqTol,
   -- * Representations
@@ -139,13 +139,13 @@ import Graphics.Image.IO.Histogram as IP
 --
 -- <<images/grad_gray.png>> <<images/grad_color.png>>
 --
-makeImageR :: Array arr cs Double =>
+makeImageR :: Array arr cs e =>
               arr -- ^ Underlying image representation.
            -> (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
-           -> ((Int, Int) -> Pixel cs Double)
+           -> ((Int, Int) -> Pixel cs e)
            -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
            -- and returns a pixel for that location.
-           -> Image arr cs Double
+           -> Image arr cs e
 makeImageR _ = I.makeImage
 {-# INLINE makeImageR #-}
 

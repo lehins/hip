@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.X
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -19,13 +19,13 @@ module Graphics.Image.ColorSpace.X (
   fromPixelsX, fromImagesX
   ) where
 
-import Prelude as P
-import Control.Applicative
-import Data.Foldable
-import Data.Typeable (Typeable)
-import Foreign.Ptr
-import Foreign.Storable
-import Graphics.Image.Interface as I
+import           Control.Applicative
+import           Data.Foldable
+import           Data.Typeable            (Typeable)
+import           Foreign.Ptr
+import           Foreign.Storable
+import           Graphics.Image.Interface as I
+import           Prelude                  as P
 
 -- ^ This is a single channel colorspace, that is designed to separate Gray
 -- level values from other types of colorspace, hence it is not convertible to
@@ -96,14 +96,18 @@ instance Monad (Pixel X) where
 instance Storable e => Storable (Pixel X e) where
 
   sizeOf _ = sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     g <- peek q
     return (PixelX g)
-  poke p (PixelX g) = do
+  {-# INLINE peek #-}
+  poke !p (PixelX g) = do
     q <- return $ castPtr p
     poke q g
+  {-# INLINE poke #-}
 
 
 -- | Separate a Pixel into a list of components with 'X' pixels containing every
@@ -167,7 +171,7 @@ fromImagesX :: (Array arr X e, Array arr cs e) =>
 fromImagesX = fromXs 0 where
   updateCh !ch !px (PixelX e) = setPxC px ch e
   {-# INLINE updateCh #-}
-  fromXs img []      = img
+  fromXs img []          = img
   fromXs img ((c, i):xs) = fromXs (I.zipWith (updateCh c) img i) xs
   {-# INLINE fromXs #-}
 {-# INLINE fromImagesX #-}

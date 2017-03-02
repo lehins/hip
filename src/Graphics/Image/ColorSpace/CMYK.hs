@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.CMYK
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -17,13 +17,13 @@ module Graphics.Image.ColorSpace.CMYK (
   CMYK(..), CMYKA(..), Pixel(..)
   ) where
 
-import Prelude hiding (map)
-import Control.Applicative
-import Data.Foldable
-import Data.Typeable (Typeable)
-import Foreign.Ptr
-import Foreign.Storable
-import Graphics.Image.Interface
+import           Control.Applicative
+import           Data.Foldable
+import           Data.Typeable            (Typeable)
+import           Foreign.Ptr
+import           Foreign.Storable
+import           Graphics.Image.Interface
+import           Prelude                  hiding (map)
 
 ------------
 --- CMYK ---
@@ -45,7 +45,7 @@ data instance Pixel CMYK e = PixelCMYK !e !e !e !e deriving Eq
 
 instance Elevator e => ColorSpace CMYK e where
   type Components CMYK e = (e, e, e, e)
-  
+
   fromComponents !(c, m, y, k) = PixelCMYK c m y k
   {-# INLINE fromComponents #-}
   toComponents (PixelCMYK c m y k) = (c, m, y, k)
@@ -97,20 +97,24 @@ instance Foldable (Pixel CMYK) where
 instance Storable e => Storable (Pixel CMYK e) where
 
   sizeOf _ = 4 * sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     c <- peek q
     m <- peekElemOff q 1
     y <- peekElemOff q 2
     k <- peekElemOff q 3
     return (PixelCMYK c m y k)
-  poke p (PixelCMYK c m y k) = do
+  {-# INLINE peek #-}
+  poke !p (PixelCMYK c m y k) = do
     q <- return $ castPtr p
     poke q c
     pokeElemOff q 1 m
     pokeElemOff q 2 y
     pokeElemOff q 3 k
+  {-# INLINE poke #-}
 
 -------------
 --- CMYKA ---
@@ -121,7 +125,7 @@ data CMYKA = CyanCMYKA  -- ^ Cyan
            | MagCMYKA   -- ^ Magenta
            | YelCMYKA   -- ^ Yellow
            | KeyCMYKA   -- ^ Key (Black)
-           | AlphaCMYKA -- ^ Alpha 
+           | AlphaCMYKA -- ^ Alpha
            deriving (Eq, Enum, Show, Bounded, Typeable)
 
 
@@ -135,7 +139,7 @@ instance Show e => Show (Pixel CMYKA e) where
 
 instance Elevator e => ColorSpace CMYKA e where
   type Components CMYKA e = (e, e, e, e, e)
-  
+
   fromComponents !(c, m, y, k, a) = PixelCMYKA c m y k a
   {-# INLINE fromComponents #-}
   toComponents (PixelCMYKA c m y k a) = (c, m, y, k, a)
@@ -173,7 +177,7 @@ instance Elevator e => AlphaSpace CMYKA e where
 
   getAlpha (PixelCMYKA _ _ _ _ a) = a
   {-# INLINE getAlpha #-}
-  
+
   addAlpha !a (PixelCMYK c m y k) = PixelCMYKA c m y k a
   {-# INLINE addAlpha #-}
 
@@ -202,8 +206,10 @@ instance Foldable (Pixel CMYKA) where
 instance Storable e => Storable (Pixel CMYKA e) where
 
   sizeOf _ = 5 * sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     c <- peek q
     m <- peekElemOff q 1
@@ -211,10 +217,12 @@ instance Storable e => Storable (Pixel CMYKA e) where
     k <- peekElemOff q 3
     a <- peekElemOff q 4
     return (PixelCMYKA c m y k a)
-  poke p (PixelCMYKA c m y k a) = do
+  {-# INLINE peek #-}
+  poke !p (PixelCMYKA c m y k a) = do
     q <- return $ castPtr p
     poke q c
     pokeElemOff q 1 m
     pokeElemOff q 2 y
     pokeElemOff q 3 k
     pokeElemOff q 4 a
+  {-# INLINE poke #-}

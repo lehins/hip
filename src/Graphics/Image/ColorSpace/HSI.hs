@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.HSI
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -17,13 +17,13 @@ module Graphics.Image.ColorSpace.HSI (
   HSI(..), HSIA(..), Pixel(..)
   ) where
 
-import Prelude hiding (map)
-import Control.Applicative
-import Data.Foldable
-import Data.Typeable (Typeable)
-import Foreign.Ptr
-import Foreign.Storable
-import Graphics.Image.Interface
+import           Control.Applicative
+import           Data.Foldable
+import           Data.Typeable            (Typeable)
+import           Foreign.Ptr
+import           Foreign.Storable
+import           Graphics.Image.Interface
+import           Prelude                  hiding (map)
 
 -----------
 --- HSI ---
@@ -31,7 +31,7 @@ import Graphics.Image.Interface
 
 -- | Hue, Saturation and Intensity color space.
 data HSI = HueHSI -- ^ Hue
-         | SatHSI -- ^ Saturation 
+         | SatHSI -- ^ Saturation
          | IntHSI -- ^ Intensity
          deriving (Eq, Enum, Show, Bounded, Typeable)
 
@@ -92,18 +92,22 @@ instance Foldable (Pixel HSI) where
 instance Storable e => Storable (Pixel HSI e) where
 
   sizeOf _ = 3 * sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     r <- peek q
     g <- peekElemOff q 1
     b <- peekElemOff q 2
     return (PixelHSI r g b)
-  poke p (PixelHSI r g b) = do
+  {-# INLINE peek #-}
+  poke !p (PixelHSI r g b) = do
     q <- return $ castPtr p
     poke q r
     pokeElemOff q 1 g
     pokeElemOff q 2 b
+  {-# INLINE poke #-}
 
 ------------
 --- HSIA ---
@@ -187,17 +191,21 @@ instance Foldable (Pixel HSIA) where
 
 instance Storable e => Storable (Pixel HSIA e) where
   sizeOf _ = 4 * sizeOf (undefined :: e)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: e)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     h <- peek q
     s <- peekElemOff q 1
     i <- peekElemOff q 2
     a <- peekElemOff q 3
     return (PixelHSIA h s i a)
-  poke p (PixelHSIA h s i a) = do
+  {-# INLINE peek #-}
+  poke !p (PixelHSIA h s i a) = do
     q <- return $ castPtr p
     poke q h
     pokeElemOff q 1 s
     pokeElemOff q 2 i
     pokeElemOff q 3 a
+  {-# INLINE poke #-}

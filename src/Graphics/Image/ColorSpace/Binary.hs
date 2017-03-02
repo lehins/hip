@@ -1,11 +1,11 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.Binary
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -16,21 +16,20 @@
 --
 module Graphics.Image.ColorSpace.Binary (
   Binary(..), Bit(..), Pixel(..), on, off, isOn, isOff, fromBool, zero, one,
-  toPixelBinary,
-  module Data.Bits
+  toPixelBinary
   ) where
 
-import Prelude hiding (map)
-import Control.Monad
-import Data.Bits
-import Data.Word (Word8)
-import Data.Typeable (Typeable)
-import Foreign.Ptr
-import Foreign.Storable
-import qualified Data.Vector.Generic            as V
-import qualified Data.Vector.Generic.Mutable    as M
-import qualified Data.Vector.Unboxed            as U
-import Graphics.Image.Interface
+import           Control.Monad
+import           Data.Bits
+import           Data.Typeable               (Typeable)
+import qualified Data.Vector.Generic         as V
+import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Unboxed         as U
+import           Data.Word                   (Word8)
+import           Foreign.Ptr
+import           Foreign.Storable
+import           Graphics.Image.Interface
+import           Prelude                     hiding (map)
 
 
 -- | Binary Color Space, also known as bi-tonal.
@@ -71,7 +70,7 @@ instance Bits Bit where
 
   shift !b 0 = b
   shift  _ _ = Bit 0
-  
+
   rotate !b _ = b
 
   zeroBits = Bit 0
@@ -106,7 +105,7 @@ instance Bits (Pixel Binary Bit) where
   complement = liftPx complement
 
   shift !b !n = liftPx (`shift` n) b
-  
+
   rotate !b !n = liftPx (`rotate` n) b
 
   zeroBits = promote zeroBits
@@ -185,7 +184,7 @@ instance ColorSpace Binary Bit where
   getPxC (PixelBinary b) _ = b
   {-# INLINE getPxC #-}
   setPxC (PixelBinary _) _ b = PixelBinary b
-  {-# INLINE setPxC #-}  
+  {-# INLINE setPxC #-}
   mapPxC f (PixelBinary b) = PixelBinary (f Binary b)
   {-# INLINE mapPxC #-}
   liftPx f (PixelBinary b) = PixelBinary (f b)
@@ -221,7 +220,7 @@ instance Elevator Bit where
   fromDouble _ = Bit 1
   {-# INLINE fromDouble #-}
 
-  
+
 
 instance Num Bit where
   (Bit 0) + (Bit 0) = Bit 0
@@ -250,27 +249,35 @@ instance Num Bit where
 instance Storable Bit where
 
   sizeOf _ = sizeOf (undefined :: Word8)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: Word8)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     b <- peek q
     return (Bit b)
-  poke p (Bit b) = do
+  {-# INLINE peek #-}
+  poke !p (Bit b) = do
     q <- return $ castPtr p
     poke q b
+  {-# INLINE poke #-}
 
 
 instance Storable (Pixel Binary Bit) where
 
   sizeOf _ = sizeOf (undefined :: Bit)
+  {-# INLINE sizeOf #-}
   alignment _ = alignment (undefined :: Bit)
-  peek p = do
+  {-# INLINE alignment #-}
+  peek !p = do
     q <- return $ castPtr p
     b <- peek q
     return (PixelBinary b)
-  poke p (PixelBinary b) = do
+  {-# INLINE peek #-}
+  poke !p (PixelBinary b) = do
     q <- return $ castPtr p
     poke q b
+  {-# INLINE poke #-}
 
 
 

@@ -180,7 +180,7 @@ instance Foldable (Pixel RGBA) where
   foldr f !z (PixelRGBA r g b a) = f r (f g (f b (f a z)))
   {-# INLINE foldr #-}
 
- 
+
 instance Storable e => Storable (Pixel RGBA e) where
   sizeOf _ = 4 * sizeOf (undefined :: e)
   alignment _ = alignment (undefined :: e)

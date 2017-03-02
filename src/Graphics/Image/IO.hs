@@ -29,7 +29,7 @@ module Graphics.Image.IO (
   gimpViewer,
   -- * Supported Image Formats
   module Graphics.Image.IO.Formats
-  
+
   -- $supported
 
   -- * Hands on examples
@@ -64,7 +64,7 @@ import Graphics.Image.IO.Formats
 data ExternalViewer =
   ExternalViewer FilePath [String] Int
     -- ^ Any custom viewer, which can be specified:
-    -- 
+    --
     -- * @FilePath@ - to the actual viewer executable.
     -- * @[String]@ - command line arguments that will be passed to the executable.
     -- * @Int@ - position index in the above list where `FilePath` to an image should be
@@ -99,7 +99,7 @@ readImage path = do
       formats = enumFrom . toEnum $ 0
       orderedFormats = maybe formats (\f -> f:P.filter (/=f) formats) maybeFormat
       reader :: Either String (Image VS cs e) -> InputFormat -> IO (Either String (Image VS cs e))
-      reader (Left err) format = 
+      reader (Left err) format =
         return $ either (Left . ((err++"\n")++)) Right (decode format imgstr)
       reader img         _     = return img
   imgE <- M.foldM reader (Left "") orderedFormats
@@ -161,7 +161,7 @@ readImageExact' format path = either error id <$> readImageExact format path
 writeImage :: (Array VS cs e, Array arr cs e,
                Writable (Image VS cs e) OutputFormat) =>
               FilePath            -- ^ Location where an image should be written.
-           -> Image arr cs e -- ^ An image to write. 
+           -> Image arr cs e -- ^ An image to write.
            -> IO ()
 writeImage path = BL.writeFile path . encode format [] . exchange VS where
   format = fromMaybe (error ("Could not guess output format. Use 'writeImageExact' "++
@@ -183,7 +183,7 @@ writeImageExact :: Writable img format =>
                        -- of formats supporting animation.
                 -> IO ()
 writeImageExact format opts path = BL.writeFile path . encode format opts
-  
+
 
 -- | An image is written as a @.tiff@ file into an operating system's temporary
 -- directory and passed as an argument to the external viewer program.
@@ -271,11 +271,11 @@ gimpViewer = ExternalViewer "gimp" [] 0
 Encoding and decoding of images is done using
 <http://hackage.haskell.org/package/JuicyPixels JuicyPixels> and
 <http://hackage.haskell.org/package/netpbm netpbm> packages.
-   
+
 List of image formats that are currently supported, and their exact
 'ColorSpace's and precision for reading and writing without an implicit
 conversion:
-  
+
 * 'BMP':
 
     * __read__: ('Y' 'Word8'), ('RGB' 'Word8'), ('RGBA' 'Word8')

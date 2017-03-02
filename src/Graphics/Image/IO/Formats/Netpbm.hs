@@ -26,7 +26,7 @@ import qualified Data.Vector.Storable as V
 
 
 -- | Netpbm: portable bitmap image with @.pbm@ extension.
-data PBM = PBM
+data PBM = PBM deriving Show
 
 instance ImageFormat PBM where
   data SaveOption PBM
@@ -35,7 +35,7 @@ instance ImageFormat PBM where
 
 
 -- | Netpbm: portable graymap image with @.pgm@ extension.
-data PGM = PGM
+data PGM = PGM deriving Show
 
 instance ImageFormat PGM where
   data SaveOption PGM
@@ -44,7 +44,7 @@ instance ImageFormat PGM where
 
 
 -- | Netpbm: portable pixmap image with @.ppm@ extension.
-data PPM = PPM
+data PPM = PPM deriving Show
 
 instance ImageFormat PPM where
   data SaveOption PPM

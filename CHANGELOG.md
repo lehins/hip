@@ -3,8 +3,8 @@
 
 * Fixed `Storable` instance for some Pixel types.
 * Fixed reading/writing animated GIFs. Added a detailed example to documentation.
-* Improved encodeing/decoding of images.
-* Improved coversion between `ColorSpace`s. 
+* Improved encoding/decoding of images.
+* Improved coversion between `ColorSpace`s.
 
 1.5.1.0
 =======
@@ -21,10 +21,12 @@
 
 * Refactored `Gray` color space to be `X`, in order to reflect it's generality
 * Renamed few core functions:
+
   * `mapPx` -> `liftPx`,
   * `zipWithPx` -> `liftPx2`,
   * `broadcastC` -> `promote`,
   * `singleton` -> `scalar`.
+
 * `upsample`/`downsample` functions are now a lot more general.
 
 
@@ -52,7 +54,7 @@ Major API changes:
   * Renaming `RS` and `RP` Repa representations into `RSU` and `RPU`.
   * Addition `VS` Storable Vector representationas well as `RSS` and `RPS`
     Storable Repa representations.
-    
+
 1.3.0.0
 =======
 
@@ -84,7 +86,7 @@ Major API changes:
   * OS default image viewer is used for displaying images with ability to use a custom one.
   * Histogram plotting is done using diagrams instead of cairo backend,
     significantly simplifying installation
-    
+
 
 1.0.2.0
 =======
@@ -110,5 +112,3 @@ Major API changes:
 
 * Made it compatible with GHC >= 7.4 (#1)
 * Added histogram plotting using Charts
-
-

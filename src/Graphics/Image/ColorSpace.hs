@@ -1,12 +1,12 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE ViewPatterns          #-}
 #if __GLASGOW_HASKELL__ >= 800
   {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 #endif
@@ -104,24 +104,24 @@ module Graphics.Image.ColorSpace (
   YCbCr(..), YCbCrA(..),
   ToYCbCr, ToYCbCrA,
   -- ** Binary
-  Binary(..), Bit, 
+  Binary(..), Bit,
   -- ** X
   X(..),
   -- * Useful re-exports
   Word8, Word16, Word32, Word64
   ) where
 
-import Data.Word
-import Graphics.Image.Interface as I
-import Graphics.Image.ColorSpace.Binary
-import Graphics.Image.ColorSpace.RGB
-import Graphics.Image.ColorSpace.HSI
-import Graphics.Image.ColorSpace.CMYK
-import Graphics.Image.ColorSpace.X
-import Graphics.Image.ColorSpace.Y
-import Graphics.Image.ColorSpace.YCbCr
-import Graphics.Image.ColorSpace.Complex
-
+import           Data.Bits                         (complement)
+import           Data.Word
+import           Graphics.Image.ColorSpace.Binary
+import           Graphics.Image.ColorSpace.CMYK
+import           Graphics.Image.ColorSpace.Complex
+import           Graphics.Image.ColorSpace.HSI
+import           Graphics.Image.ColorSpace.RGB
+import           Graphics.Image.ColorSpace.X
+import           Graphics.Image.ColorSpace.Y
+import           Graphics.Image.ColorSpace.YCbCr
+import           Graphics.Image.Interface          as I
 
 -- Binary:
 
@@ -150,7 +150,7 @@ fromImageBinary = I.map fromPixelBinary
 -- pixels with `Float` or `Double` precision.
 eqTolPx :: (ColorSpace cs e, Ord e) =>
            e -> Pixel cs e -> Pixel cs e -> Bool
-eqTolPx !tol = foldlPx2 comp True 
+eqTolPx !tol = foldlPx2 comp True
   where comp !acc !e1 !e2 = acc && max e1 e2 - min e1 e2 <= tol
         {-# INLINE comp #-}
 {-# INLINE eqTolPx #-}
@@ -238,7 +238,7 @@ toImageYA :: (ToYA cs e, Array arr cs e, Array arr YA Double) =>
 toImageYA = I.map toPixelYA
 {-# INLINE toImageYA #-}
 
-                                
+
 instance ToY Y e => ToYA Y e
 
 instance ToYA Binary Bit where
@@ -430,7 +430,7 @@ toImageHSI :: (ToHSI cs e, Array arr cs e, Array arr HSI Double) =>
 toImageHSI = I.map toPixelHSI
 {-# INLINE toImageHSI #-}
 
-  
+
 instance Elevator e => ToHSI Y e where
   toPixelHSI (PixelY y) = PixelHSI 0 0 $ toDouble y
   {-# INLINE toPixelHSI #-}
@@ -719,7 +719,7 @@ toImageYCbCrA :: (ToYCbCrA cs e, Array arr cs e, Array arr YCbCrA Double) =>
 toImageYCbCrA = I.map toPixelYCbCrA
 {-# INLINE toImageYCbCrA #-}
 
- 
+
 
 instance ToYCbCr Y e => ToYCbCrA Y e
 
