@@ -105,6 +105,14 @@ instance ImageFormat OutputFormat where
   ext OutputTGA = ext TGA
   ext OutputTIF = ext TIF
 
+  exts OutputBMP = exts BMP
+  exts OutputGIF = exts GIF
+  exts OutputHDR = exts HDR
+  exts OutputJPG = exts JPG
+  exts OutputPNG = exts PNG
+  exts OutputTGA = exts TGA
+  exts OutputTIF = exts TIF
+
 
 instance (Writable (Image arr cs Double) BMP,
           Writable (Image arr cs Double) GIF,
