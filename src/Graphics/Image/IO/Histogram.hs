@@ -122,9 +122,10 @@ equalizeHistogram
   => Image arr cs e -> Image arr Y Double
 equalizeHistogram !img = I.map f imgX where
   !imgX = I.map (toX . toPixelY) img
+  !cdfImg = cdf imgX
   toX (PixelY y) = PixelX $ toWord8 y
   {-# INLINE toX #-}
-  f (PixelX x) = PixelY (V.unsafeIndex (cdf imgX) (fromIntegral x))
+  f (PixelX x) = PixelY (V.unsafeIndex cdfImg (fromIntegral x))
   {-# INLINE f #-}
 {-# INLINE equalizeHistogram #-}
 

@@ -23,6 +23,6 @@ main = do
         "Histogram"
         [ bench "Compute All" $ nf (hBins . head . getHistograms) imgY
         , bench "Compute Direct " $ nf (hBins . getHistogram . I.map toX) imgY
-        , bench "Equalize" $ nf histogramEqualize imgY
+        , bench "Equalize" $ nf equalizeHistogram imgY
         ]
     ]

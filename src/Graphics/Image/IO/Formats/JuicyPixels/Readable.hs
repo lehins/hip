@@ -1,11 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.IO.Formats.JuicyPixels.Readable
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -16,18 +15,18 @@
 --
 module Graphics.Image.IO.Formats.JuicyPixels.Readable () where
 
-import Prelude as P
+import           Prelude                                      as P
 
-import Graphics.Image.ColorSpace
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Vector
-import Graphics.Image.IO.Base
-import Graphics.Image.IO.Formats.JuicyPixels.Common
-import qualified Data.ByteString as B  -- (ByteString)
-import qualified Codec.Picture as JP
-import qualified Codec.Picture.Types as JP
-import qualified Codec.Picture.Gif as JP
-import qualified Data.Vector.Storable as V
+import qualified Codec.Picture                                as JP
+import qualified Codec.Picture.Gif                            as JP
+import qualified Codec.Picture.Types                          as JP
+import qualified Data.ByteString                              as B
+import qualified Data.Vector.Storable                         as V
+import           Graphics.Image.ColorSpace
+import           Graphics.Image.Interface                     as I
+import           Graphics.Image.Interface.Vector
+import           Graphics.Image.IO.Base
+import           Graphics.Image.IO.Formats.JuicyPixels.Common
 
 
 --------------------------------------------------------------------------------
@@ -40,7 +39,7 @@ import qualified Data.Vector.Storable as V
 
 instance Convertible JP.Pixel8 (Pixel Y Word8) where
   convert = PixelY
-  
+
 instance Convertible JP.Pixel16 (Pixel Y Word16) where
   convert = PixelY
 
@@ -52,13 +51,13 @@ instance Convertible JP.PixelF (Pixel Y Float) where
 
 instance Convertible JP.PixelYA8 (Pixel YA Word8) where
   convert (JP.PixelYA8 g a) = PixelYA g a
-  
+
 instance Convertible JP.PixelYA16 (Pixel YA Word16) where
   convert (JP.PixelYA16 g a) = PixelYA g a
 
 instance Convertible JP.PixelRGB8 (Pixel RGB Word8) where
   convert (JP.PixelRGB8 r g b) = PixelRGB r g b
-  
+
 instance Convertible JP.PixelRGB16 (Pixel RGB Word16) where
   convert (JP.PixelRGB16 r g b) = PixelRGB r g b
 
@@ -67,7 +66,7 @@ instance Convertible JP.PixelRGBF (Pixel RGB Float) where
 
 instance Convertible JP.PixelRGBA8 (Pixel RGBA Word8) where
   convert (JP.PixelRGBA8 r g b a) = PixelRGBA r g b a
-  
+
 instance Convertible JP.PixelRGBA16 (Pixel RGBA Word16) where
   convert (JP.PixelRGBA16 r g b a) = PixelRGBA r g b a
 
@@ -84,7 +83,7 @@ instance Convertible JP.PixelCMYK16 (Pixel CMYK Word16) where
 
 instance Convertible (Pixel Y Word8) JP.Pixel8 where
   convert (PixelY y) = y
-  
+
 instance Convertible (Pixel Y Word16) JP.Pixel16 where
   convert (PixelY y) = y
 
@@ -96,13 +95,13 @@ instance Convertible (Pixel Y Float) JP.PixelF where
 
 instance Convertible (Pixel YA Word8) JP.PixelYA8 where
   convert (PixelYA y a) = JP.PixelYA8 y a
-  
+
 instance Convertible (Pixel YA Word16) JP.PixelYA16 where
   convert (PixelYA y a) = JP.PixelYA16 y a
 
 instance Convertible (Pixel RGB Word8) JP.PixelRGB8 where
   convert (PixelRGB r g b) = JP.PixelRGB8 r g b
-  
+
 instance Convertible (Pixel RGB Word16) JP.PixelRGB16 where
   convert (PixelRGB r g b) = JP.PixelRGB16 r g b
 
@@ -111,7 +110,7 @@ instance Convertible (Pixel RGB Float) JP.PixelRGBF where
 
 instance Convertible (Pixel RGBA Word8) JP.PixelRGBA8 where
   convert (PixelRGBA r g b a) = JP.PixelRGBA8 r g b a
-  
+
 instance Convertible (Pixel RGBA Word16) JP.PixelRGBA16 where
   convert (PixelRGBA r g b a) = JP.PixelRGBA16 r g b a
 
