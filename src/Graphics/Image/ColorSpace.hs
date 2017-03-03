@@ -122,6 +122,8 @@ import           Graphics.Image.ColorSpace.X
 import           Graphics.Image.ColorSpace.Y
 import           Graphics.Image.ColorSpace.YCbCr
 import           Graphics.Image.Interface          as I
+import           Graphics.Image.Interface.Elevator
+
 
 -- Binary:
 
@@ -343,9 +345,9 @@ instance Elevator e => ToRGB HSIA e where
 
 instance Elevator e => ToRGB YCbCr e where
   toPixelRGB (fmap toDouble -> PixelYCbCr y cb cr) = PixelRGB r g b where
-    !r = y                      +   1.402*(cr - 0.5)
-    !g = y - 0.34414*(cb - 0.5) - 0.71414*(cr - 0.5)
-    !b = y +   1.772*(cb - 0.5)
+    !r = clamp01 (y                      +   1.402*(cr - 0.5))
+    !g = clamp01 (y - 0.34414*(cb - 0.5) - 0.71414*(cr - 0.5))
+    !b = clamp01 (y +   1.772*(cb - 0.5))
   {-# INLINE toPixelRGB #-}
 
 instance Elevator e => ToRGB YCbCrA e where
@@ -667,9 +669,9 @@ instance Elevator e => ToYCbCr YA e where
 
 instance Elevator e => ToYCbCr RGB e where
   toPixelYCbCr (fmap toDouble -> PixelRGB r g b) = PixelYCbCr y cb cr where
-    !y  =          0.299*r +    0.587*g +    0.114*b
-    !cb = 0.5 - 0.168736*r - 0.331264*g +      0.5*b
-    !cr = 0.5 +      0.5*r - 0.418688*g - 0.081312*b
+    !y  = clamp01 (         0.299*r +    0.587*g +    0.114*b)
+    !cb = clamp01 (0.5 - 0.168736*r - 0.331264*g +      0.5*b)
+    !cr = clamp01 (0.5 +      0.5*r - 0.418688*g - 0.081312*b)
   {-# INLINE toPixelYCbCr #-}
 
 instance Elevator e => ToYCbCr RGBA e where

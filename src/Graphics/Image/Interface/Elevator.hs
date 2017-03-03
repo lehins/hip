@@ -15,6 +15,7 @@
 --
 module Graphics.Image.Interface.Elevator (
   Elevator(..)
+  , clamp01
   ) where
 
 import qualified Data.Complex as C
@@ -77,6 +78,7 @@ squashTo1 !e = fromIntegral e / fromIntegral (maxBound :: a)
 -- | Convert to integral streaching it's value up to a maximum value.
 stretch :: forall a b. (RealFrac a, Floating a, Integral b, Bounded b) => a -> b
 stretch !e = round (fromIntegral (maxBound :: b) * clamp01 e)
+{-# INLINE stretch #-}
 
 
 -- | Clamp a value to @[0, 1]@ range.
