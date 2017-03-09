@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -71,30 +70,6 @@ instance ImageFormat [PPM] where
 
 
 --------------------------------------------------------------------------------
--- Converting to and from Netpbm -----------------------------------------------
---------------------------------------------------------------------------------
-
-
----- Exact precision conversions
-
-
-instance Convertible PNM.PbmPixel (Pixel Binary Bit) where
-  convert (PNM.PbmPixel bool) = fromBool bool
-  
-instance Convertible PNM.PgmPixel8 (Pixel Y Word8) where
-  convert (PNM.PgmPixel8 w8) = PixelY w8
-
-instance Convertible PNM.PgmPixel16 (Pixel Y Word16) where
-  convert (PNM.PgmPixel16 w16) = PixelY w16
-
-instance Convertible PNM.PpmPixelRGB8 (Pixel RGB Word8) where
-  convert (PNM.PpmPixelRGB8 r g b) = PixelRGB r g b
-
-instance Convertible PNM.PpmPixelRGB16 (Pixel RGB Word16) where
-  convert (PNM.PpmPixelRGB16 r g b) = PixelRGB r g b
-
-
---------------------------------------------------------------------------------
 -- Decoding images using Netpbm ------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -159,23 +134,19 @@ pnmToImagesUsing conv =
   fmap (fmap (either error id . ppmToImageUsing conv)) . decodePnm
 
 
-pnmDataToImage :: (Convertible (Pixel Binary Bit) (Pixel cs e),
-                   Convertible (Pixel Y Word8) (Pixel cs e),
-                   Convertible (Pixel Y Word16) (Pixel cs e),
-                   Convertible (Pixel RGB Word8) (Pixel cs e),
-                   Convertible (Pixel RGB Word16) (Pixel cs e),
-                   Array VS cs e) =>
-                  Int -> Int -> PNM.PpmPixelData -> Image VS cs e
+pnmDataToImage
+  :: (Convertible cs e, ColorSpace cs e, V.Storable (Pixel cs e)) =>
+     Int -> Int -> PNM.PpmPixelData -> Image VS cs e
 pnmDataToImage w h (PNM.PbmPixelData v)      =
-  I.map convert (makeImageUnsafe (h, w) v :: Image VS Binary Bit)
+  convert (makeImageUnsafe (h, w) v :: Image VS Binary Bit)
 pnmDataToImage w h (PNM.PgmPixelData8 v)     =
-  I.map convert (makeImageUnsafe (h, w) v :: Image VS Y Word8)
+  convert (makeImageUnsafe (h, w) v :: Image VS Y Word8)
 pnmDataToImage w h (PNM.PgmPixelData16 v)    =
-  I.map convert (makeImageUnsafe (h, w) v :: Image VS Y Word16)
+  convert (makeImageUnsafe (h, w) v :: Image VS Y Word16)
 pnmDataToImage w h (PNM.PpmPixelDataRGB8 v)  =
-  I.map convert (makeImageUnsafe (h, w) v :: Image VS RGB Word8)
+  convert (makeImageUnsafe (h, w) v :: Image VS RGB Word8)
 pnmDataToImage w h (PNM.PpmPixelDataRGB16 v) =
-  I.map convert (makeImageUnsafe (h, w) v :: Image VS RGB Word16)
+  convert (makeImageUnsafe (h, w) v :: Image VS RGB Word16)
 
 
 makeImageUnsafe

@@ -21,6 +21,7 @@ import Test.QuickCheck
 
 import Graphics.Image as I
 import Graphics.Image.Interface as I
+import Graphics.Image.ColorSpaceSpec()
 
 
 data Identical arr1 arr2 cs e =
@@ -28,22 +29,6 @@ data Identical arr1 arr2 cs e =
        (Image arr2 cs e)
   deriving (Show)
 
--- | Generator for values in range @[0, 1]@
-arbitraryDouble :: Gen Double
-arbitraryDouble = toDouble <$> (arbitrary :: Gen Word64)
-
-
-instance Arbitrary (Pixel Y Word8) where
-  arbitrary = PixelY <$> arbitrary
-
-instance Arbitrary (Pixel Y Double) where
-  arbitrary = PixelY <$> arbitraryDouble
-
-instance Arbitrary (Pixel RGB Word8) where
-  arbitrary = PixelRGB <$> arbitrary <*> arbitrary <*> arbitrary
-
-instance Arbitrary (Pixel RGB Double) where
-  arbitrary = PixelRGB <$> arbitraryDouble <*> arbitraryDouble <*> arbitraryDouble
 
 instance (Array arr cs e, Arbitrary (Pixel cs e)) =>
          Arbitrary (Image arr cs e) where
@@ -84,7 +69,7 @@ instance Arbitrary px => Arbitrary (Border px) where
       , return Reflect
       , return Continue
       ]
-      
+
 
 #if MIN_VERSION_base(4,8,0)
 instance (Typeable a, Typeable b) => Show (a -> b) where

@@ -76,9 +76,7 @@ Library
                  , Graphics.Image.ColorSpace.Y
                  , Graphics.Image.ColorSpace.YCbCr
                  , Graphics.Image.IO.Base
-                 , Graphics.Image.IO.Formats.JuicyPixels.Common
-                 , Graphics.Image.IO.Formats.JuicyPixels.Readable
-                 , Graphics.Image.IO.Formats.JuicyPixels.Writable
+                 , Graphics.Image.IO.Formats.JuicyPixels
                  , Graphics.Image.IO.Formats.Netpbm
                  , Graphics.Image.Interface.Elevator
                  , Graphics.Image.Interface.Repa.Generic

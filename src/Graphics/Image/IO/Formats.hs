@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 -- |
 -- Module      : Graphics.Image.IO.Formats
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -12,23 +12,25 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.IO.Formats (
-  module Graphics.Image.IO.Formats.JuicyPixels.Common,
-  module Graphics.Image.IO.Formats.Netpbm,
-  InputFormat(..), OutputFormat(..),
-  Readable(..), Writable(..), ImageFormat(..),
-  Convertible(..)
+module Graphics.Image.IO.Formats
+  ( module JuicyPixels
+  , module Netpbm
+    -- * General
+  , ImageFormat(..)
+  , InputFormat(..)
+  , OutputFormat(..)
+  , Readable(..)
+  , Writable(..)
+  , Convertible(..)
   ) where
 
-import Graphics.Image.ColorSpace
-import Graphics.Image.Interface
-import Graphics.Image.Processing
-import Graphics.Image.Processing.Complex
-import Graphics.Image.IO.Base
-import Graphics.Image.IO.Formats.JuicyPixels.Common
-import Graphics.Image.IO.Formats.JuicyPixels.Readable()
-import Graphics.Image.IO.Formats.JuicyPixels.Writable()
-import Graphics.Image.IO.Formats.Netpbm
+
+import           Graphics.Image.Interface
+import           Graphics.Image.IO.Base
+import           Graphics.Image.IO.Formats.JuicyPixels as JuicyPixels
+import           Graphics.Image.IO.Formats.Netpbm as Netpbm
+
+
 
 
 -- | A collection of all image formats that can be read into HIP images.
@@ -129,11 +131,3 @@ instance (Writable (Image arr cs Double) BMP,
   encode OutputPNG _ = encode PNG []
   encode OutputTGA _ = encode TGA []
   encode OutputTIF _ = encode TIF []
-
-
-instance (Array arr cs e, Array arr cs (Complex e),
-          RealFloat e, Applicative (Pixel cs),
-          Writable (Image arr cs e) format) =>
-         Writable (Image arr cs (Complex e)) format where
-  encode format opts imgC =
-    encode format opts (leftToRight (realPartI imgC) (imagPartI imgC))

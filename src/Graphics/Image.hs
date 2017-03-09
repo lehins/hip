@@ -101,6 +101,7 @@ module Graphics.Image (
   (|*|),
   -- * Reduction
   fold, sum, product, maximum, minimum, normalize, eqTol,
+  -- * Manifest Image
   -- * Representations
   exchange,
   module IP

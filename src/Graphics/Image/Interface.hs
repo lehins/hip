@@ -24,7 +24,7 @@ module Graphics.Image.Interface (
   Pixel, ColorSpace(..), AlphaSpace(..), Elevator(..),
   BaseArray(..), Array(..), MArray(..),
   exchange,
-  defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
+  index, defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   fromIx, toIx, checkDims
 #if !MIN_VERSION_base(4,8,0)
   , module Control.Applicative
@@ -54,7 +54,7 @@ data family Pixel cs e :: *
 class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e,
       Eq (Pixel cs e), VU.Unbox (Components cs e))
       => ColorSpace cs e where
-  
+
   type Components cs e
 
   -- | Convert a Pixel to a representation suitable for storage as an unboxed
@@ -69,12 +69,12 @@ class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e,
 
   -- | Retrieve Pixel's component value
   getPxC :: Pixel cs e -> cs -> e
-  
+
   -- | Set Pixel's component value
   setPxC :: Pixel cs e -> cs -> e -> Pixel cs e
-  
+
   -- | Map a channel aware function over all Pixel's components.
-  mapPxC :: (cs -> e -> e) -> Pixel cs e -> Pixel cs e 
+  mapPxC :: (cs -> e -> e) -> Pixel cs e -> Pixel cs e
 
   -- | Map a function over all Pixel's componenets.
   liftPx :: (e -> e) -> Pixel cs e -> Pixel cs e
@@ -105,21 +105,21 @@ class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e,
   toListPx !px = foldr' f [] (enumFrom (toEnum 0))
     where f !cs !ls = getPxC px cs:ls
 
-  
+
 
 -- | A color space that supports transparency.
 class (ColorSpace (Opaque cs) e, ColorSpace cs e) => AlphaSpace cs e where
   -- | A corresponding opaque version of this color space.
   type Opaque cs
 
-  -- | Get an alpha channel of a transparant pixel. 
+  -- | Get an alpha channel of a transparant pixel.
   getAlpha :: Pixel cs e -> e
 
   -- | Add an alpha channel to an opaque pixel.
   --
   -- @ addAlpha 0 (PixelHSI 1 2 3) == PixelHSIA 1 2 3 0 @
   addAlpha :: e -> Pixel (Opaque cs) e -> Pixel cs e
-  
+
   -- | Convert a transparent pixel to an opaque one by dropping the alpha
   -- channel.
   --
@@ -217,7 +217,7 @@ class (VG.Vector (Vector arr) (Pixel cs e),
            -- function), a location @(i, j)@ in a new image and returns a pixel
            -- for that location.
            -> Image arr cs e
-  
+
   -- | Traverse two images.
   traverse2 :: (Array arr cs1 e1, Array arr cs2 e2) =>
                Image arr cs1 e1 -- ^ First source image.
@@ -229,11 +229,11 @@ class (VG.Vector (Vector arr) (Pixel cs e),
                 (Int, Int) -> Pixel cs e)
             -- ^ Function that produces pixels for the new image.
             -> Image arr cs e
-  
+
   -- | Transpose an image
   transpose :: Image arr cs e -> Image arr cs e
 
-  -- | Backwards permutation of an image. 
+  -- | Backwards permutation of an image.
   backpermute :: (Int, Int) -- ^ Dimensions of a result image.
               -> ((Int, Int) -> (Int, Int))
                  -- ^ Function that maps an index of a source image to an index
@@ -256,7 +256,7 @@ class (VG.Vector (Vector arr) (Pixel cs e),
   -- | Perform matrix multiplication on two images. Inner dimensions must agree.
   (|*|) :: Image arr cs e -> Image arr cs e -> Image arr cs e
 
-  -- | Undirected reduction of an image. 
+  -- | Undirected reduction of an image.
   fold :: (Pixel cs e -> Pixel cs e -> Pixel cs e) -- ^ An associative folding function.
        -> Pixel cs e -- ^ Initial element, that is neutral with respect to the folding function.
        -> Image arr cs e -- ^ Source image.
@@ -281,7 +281,7 @@ class (VG.Vector (Vector arr) (Pixel cs e),
   -- to be brought to a computed state, this function can be used.
   compute :: Image arr cs e -> Image arr cs e
 
-  -- | Each array has a sibling `Manifest` array representation, which 
+  -- | Each array has a sibling `Manifest` array representation, which
   toManifest :: Image arr cs e -> Image (Manifest arr) cs e
 
   -- | Convert an image to a flattened 'Vector'. For all current representations
@@ -300,26 +300,17 @@ class (VG.Vector (Vector arr) (Pixel cs e),
   -- <Image Vector Luma: 200x300>
   --
   -- <<images/grad_fromVector.png>>
-  -- 
+  --
   fromVector :: (Int, Int) -> Vector arr (Pixel cs e) -> Image arr cs e
 
-       
+
 -- | Array representation that is actually has real data stored in memory, hence
 -- allowing for image indexing, forcing pixels into computed state etc.
 class BaseArray arr cs e => MArray arr cs e  where
   data MImage s arr cs e
-  
+
+  -- | Get a pixel at @(i, j)@ location without any bounds checks.
   unsafeIndex :: Image arr cs e -> (Int, Int) -> Pixel cs e
-  
-  -- | Get a pixel at @i@-th and @j@-th location.
-  --
-  -- >>> let grad_gray = makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
-  -- >>> index grad_gray (20, 30) == PixelY ((20*30) / (200*200))
-  -- True
-  --
-  index :: Image arr cs e -> (Int, Int) -> Pixel cs e
-  index !img !ix = borderIndex (error $ show img ++ " - Index out of bounds: " ++ show ix) img ix
-  {-# INLINE index #-}
 
   -- | Make sure that an image is fully evaluated.
   deepSeqImage :: Image arr cs e -> a -> a
@@ -470,6 +461,17 @@ handleBorderIndex border !(m, n) getPx !(i, j) =
 {-# INLINE handleBorderIndex #-}
 
 
+-- | Get a pixel at @i@-th and @j@-th location.
+--
+-- >>> let grad_gray = makeImage (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+-- >>> index grad_gray (20, 30) == PixelY ((20*30) / (200*200))
+-- True
+--
+index :: MArray arr cs e => Image arr cs e -> (Int, Int) -> Pixel cs e
+index !img !ix = borderIndex (error $ show img ++ " - Index out of bounds: " ++ show ix) img ix
+{-# INLINE index #-}
+
+
 -- | Image indexing function that returns a default pixel if index is out of bounds.
 defaultIndex :: MArray arr cs e =>
                 Pixel cs e -> Image arr cs e -> (Int, Int) -> Pixel cs e
@@ -514,7 +516,7 @@ toIx !n !k = divMod k n
 
 checkDims :: String -> (Int, Int) -> (Int, Int)
 checkDims err !ds@(m, n)
-  | m <= 0 || n <= 0 = 
+  | m <= 0 || n <= 0 =
     error $
     show err ++ ": Image dimensions are expected to be positive: " ++ show ds
   | otherwise = ds
@@ -534,7 +536,7 @@ instance (ColorSpace cs e, Num e) => Num (Pixel cs e) where
   {-# INLINE signum #-}
   fromInteger = promote . fromInteger
   {-# INLINE fromInteger #-}
-  
+
 
 instance (ColorSpace cs e, Fractional e) => Fractional (Pixel cs e) where
   (/)          = liftPx2 (/)
@@ -573,52 +575,40 @@ instance (ColorSpace cs e, Floating e) => Floating (Pixel cs e) where
   acosh   = liftPx acosh
   {-# INLINE acosh #-}
 
-
 instance (ColorSpace cs e, Bounded e) => Bounded (Pixel cs e) where
   maxBound = promote maxBound
   {-# INLINE maxBound #-}
-  
   minBound = promote minBound
   {-# INLINE minBound #-}
-
 
 instance (Foldable (Pixel cs), NFData e) => NFData (Pixel cs e) where
 
   rnf = foldr' deepseq ()
   {-# INLINE rnf #-}
 
-
 instance (Array arr cs e, Eq (Pixel cs e)) => Eq (Image arr cs e) where
   (==) = eq
   {-# INLINE (==) #-}
 
-  
 instance Array arr cs e => Num (Image arr cs e) where
   (+)         = zipWith (+)
   {-# INLINE (+) #-}
-  
   (-)         = zipWith (-)
   {-# INLINE (-) #-}
-  
   (*)         = zipWith (*)
   {-# INLINE (*) #-}
-  
   abs         = map abs
   {-# INLINE abs #-}
-  
   signum      = map signum
   {-# INLINE signum #-}
-  
   fromInteger = scalar . fromInteger
   {-# INLINE fromInteger #-}
-
 
 instance (Fractional (Pixel cs e), Array arr cs e) =>
          Fractional (Image arr cs e) where
   (/)          = zipWith (/)
   {-# INLINE (/) #-}
-  
-  fromRational = scalar . fromRational 
+  fromRational = scalar . fromRational
   {-# INLINE fromRational #-}
 
 
@@ -626,48 +616,35 @@ instance (Floating (Pixel cs e), Array arr cs e) =>
          Floating (Image arr cs e) where
   pi    = scalar pi
   {-# INLINE pi #-}
-  
   exp   = map exp
   {-# INLINE exp #-}
-  
   log   = map log
   {-# INLINE log #-}
-  
   sin   = map sin
   {-# INLINE sin #-}
-  
   cos   = map cos
   {-# INLINE cos #-}
-  
   asin  = map asin
   {-# INLINE asin #-}
-  
   atan  = map atan
   {-# INLINE atan #-}
-  
   acos  = map acos
   {-# INLINE acos #-}
-  
   sinh  = map sinh
   {-# INLINE sinh #-}
-  
   cosh  = map cosh
   {-# INLINE cosh #-}
-  
   asinh = map asinh
   {-# INLINE asinh #-}
-  
   atanh = map atanh
   {-# INLINE atanh #-}
-  
   acosh = map acosh
-  {-# INLINE acosh #-}  
+  {-# INLINE acosh #-}
 
 
 instance MArray arr cs e => NFData (Image arr cs e) where
   rnf img = img `deepSeqImage` ()
   {-# INLINE rnf #-}
-
 
 
 instance BaseArray arr cs e =>

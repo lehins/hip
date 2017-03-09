@@ -1,7 +1,8 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.IO.Base
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -14,30 +15,29 @@ module Graphics.Image.IO.Base (
   ImageFormat(..), Readable(..), Writable(..), Convertible(..),
   ) where
 
-import qualified Data.ByteString as B (ByteString)
-import qualified Data.ByteString.Lazy as BL (ByteString)
-
-import Graphics.Image.ColorSpace
+import qualified Data.ByteString                     as B (ByteString)
+import qualified Data.ByteString.Lazy                as BL (ByteString)
+import           Graphics.Image.ColorSpace
+import           Graphics.Image.Interface            (Array, Image)
+import           Graphics.Image.Processing.Complex   (imagPartI, realPartI)
+import           Graphics.Image.Processing.Geometric (leftToRight)
 
 -- | Used during converting pixels between libraries.
-class Convertible a b where
-  convert :: a -> b
+class Convertible cs e where
+  convert :: (ToYA cs' e', ToRGBA cs' e', Array arr cs' e', Array arr cs e) => Image arr cs' e' -> Image arr cs e
 
---  Y (Double)
 
-instance ToY cs e => Convertible (Pixel cs e) (Pixel Y Double) where
-  convert = toPixelY
+instance Convertible Y Double where
+  convert = toImageY
 
-instance ToYA cs e => Convertible (Pixel cs e) (Pixel YA Double) where
-  convert = toPixelYA
+instance Convertible YA Double where
+  convert = toImageYA
 
--- RGB -> RGB (Double)
+instance Convertible RGB Double where
+  convert = toImageRGB
 
-instance ToRGB cs e => Convertible (Pixel cs e) (Pixel RGB Double) where
-  convert = toPixelRGB
-
-instance ToRGBA cs e => Convertible (Pixel cs e) (Pixel RGBA Double) where
-  convert = toPixelRGBA
+instance Convertible RGBA Double where
+  convert = toImageRGBA
 
 
 
@@ -71,3 +71,12 @@ class ImageFormat format => Writable img format where
 
   -- | Encode an image to `BL.ByteString`.
   encode :: format -> [SaveOption format] -> img -> BL.ByteString
+
+
+-- | Writing Complex images: places real part on the left side of imaginary part.
+instance (Array arr cs e, Array arr cs (Complex e),
+          RealFloat e, Applicative (Pixel cs),
+          Writable (Image arr cs e) format) =>
+         Writable (Image arr cs (Complex e)) format where
+  encode format opts !imgC =
+    encode format opts (leftToRight (realPartI imgC) (imagPartI imgC))

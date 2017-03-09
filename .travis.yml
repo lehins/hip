@@ -59,30 +59,30 @@ matrix:
 
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
-  - env: BUILD=stack ARGS=""
-    compiler: ": #stack default"
+  - env: BUILD=stack ARGS="--stack-yaml stack.lts-2.yaml"
+    compiler: ": #stack 7.8.4 (lts-2.22)"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--stack-yaml stack.lts-2.22.yaml"
-    compiler: ": #stack 7.8.4"
+  - env: BUILD=stack ARGS="--stack-yaml stack.lts-3.yaml"
+    compiler: ": #stack 7.10.2 (lts-3.22)"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--stack-yaml stack.lts-3.22.yaml"
-    compiler: ": #stack 7.10.2"
-    addons: {apt: {packages: [libgmp-dev]}}
-
-  - env: BUILD=stack ARGS="--stack-yaml stack.lts-6.26.yaml"
-    compiler: ": #stack 7.10.3"
+  - env: BUILD=stack ARGS="--stack-yaml stack.lts-6.yaml"
+    compiler: ": #stack 7.10.3 (lts-6.30)"
     addons: {apt: {packages: [libgmp-dev]}}
 
   - env: BUILD=stack ARGS="--resolver lts-7"
-    compiler: ": #stack 8.0.1"
+    compiler: ": #stack 8.0.1 (lts-7)"
+    addons: {apt: {packages: [libgmp-dev]}}
+
+  - env: BUILD=stack ARGS=""
+    compiler: ": #stack 8.0.2 (lts-8.3) - default"
     addons: {apt: {packages: [libgmp-dev]}}
 
   # Nightly builds are allowed to fail
-  - env: BUILD=stack ARGS="--resolver nightly"
-    compiler: ": #stack nightly"
-    addons: {apt: {packages: [libgmp-dev]}}
+  # - env: BUILD=stack ARGS="--resolver nightly"
+  #   compiler: ": #stack nightly"
+  #   addons: {apt: {packages: [libgmp-dev]}}
 
   - env: BUILD=stack ARGS="--resolver lts-7"
     compiler: ": #stack 8.0.1 osx"
@@ -90,7 +90,7 @@ matrix:
 
   allow_failures:
   - env: BUILD=cabal GHCVER=head  CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
-  - env: BUILD=stack ARGS="--resolver nightly"
+  #- env: BUILD=stack ARGS="--resolver nightly"
 
 branches:
   except:

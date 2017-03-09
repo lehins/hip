@@ -107,7 +107,16 @@ module Graphics.Image.ColorSpace (
   Binary(..), Bit,
   -- ** X
   X(..),
-  -- * Useful re-exports
+  -- * Precision
+  -- ** Image
+  toWord8I,
+  toWord16I,
+  toWord32I,
+  toFloatI,
+  toDoubleI,
+  -- ** Pixel
+  toWord8Px,
+  -- ** Componenet
   Word8, Word16, Word32, Word64
   ) where
 
@@ -754,4 +763,47 @@ instance Elevator e => ToYCbCrA YCbCrA e where
   toPixelYCbCrA = fmap toDouble
   {-# INLINE toPixelYCbCrA #-}
 
+
+-- | Change image precision to `Word8`.
+toWord8I :: (Functor (Pixel cs), Array arr cs e, Array arr cs Word8)
+         => Image arr cs e -> Image arr cs Word8
+toWord8I = I.map (fmap toWord8)
+{-# INLINABLE toWord8I #-}
+
+{-
+{-# SPECIALIZE toWord8I :: (Array arr Y Double, Array arr Y Word8) => Image arr Y Double -> Image arr Y Word8 #-}
+{-# SPECIALIZE toWord8I :: (Array arr YA Double, Array arr YA Word8) => Image arr YA Double -> Image arr YA Word8 #-}
+{-# SPECIALIZE toWord8I :: (Array arr RGB Double, Array arr RGB Word8) => Image arr RGB Double -> Image arr RGB Word8 #-}
+{-# SPECIALIZE toWord8I :: (Array arr RGBA Double, Array arr RGBA Word8) => Image arr RGBA Double -> Image arr RGBA Word8 #-}
+-}
+-- | Change image precision to `Word16`.
+toWord16I :: (Functor (Pixel cs), Array arr cs e, Array arr cs Word16)
+         => Image arr cs e -> Image arr cs Word16
+toWord16I = I.map (fmap toWord16)
+{-# INLINABLE toWord16I #-}
+
+-- | Change image precision to `Word32`.
+toWord32I :: (Functor (Pixel cs), Array arr cs e, Array arr cs Word32)
+         => Image arr cs e -> Image arr cs Word32
+toWord32I = I.map (fmap toWord32)
+{-# INLINABLE toWord32I #-}
+
+-- | Change image precision to `Float`.
+toFloatI :: (Functor (Pixel cs), Array arr cs e, Array arr cs Float)
+         => Image arr cs e -> Image arr cs Float
+toFloatI = I.map (fmap toFloat)
+{-# INLINABLE toFloatI #-}
+
+-- | Change image precision to `Double`.
+toDoubleI :: (Functor (Pixel cs), Array arr cs e, Array arr cs Double)
+         => Image arr cs e -> Image arr cs Double
+toDoubleI = I.map (fmap toDouble)
+{-# INLINABLE toDoubleI #-}
+
+
+
+-- | Change pixel precision to `Word8`.
+toWord8Px :: (Functor (Pixel cs), Elevator e) => Pixel cs e -> Pixel cs Word8
+toWord8Px = fmap toWord8
+{-# INLINABLE toWord8Px #-}
 
