@@ -398,13 +398,22 @@ instance ImageFormat GIF where
   ext _ = ".gif"
 
 
-  -- | Graphics Interchange Format animated image with @.gif@ extension.
+-- | Graphics Interchange Format animated image with @.gif@ extension.
 data GIFA = GIFA deriving Show
+{-# DEPRECATED GIFA "use (`Seq` `GIF`) instead" #-}
+
 
 instance ImageFormat GIFA where
   data SaveOption GIFA = GIFAPalette JP.PaletteOptions
                        | GIFALooping JP.GifLooping
 
+  ext _ = ext GIF
+
+
+
+instance ImageFormat (Seq GIF) where
+  data SaveOption (Seq GIF) = GIFSeqPalette JP.PaletteOptions
+                            | GIFSeqLooping JP.GifLooping
   ext _ = ext GIF
 
 
@@ -479,6 +488,33 @@ instance Readable [Image VS RGBA Double] GIFA where
   decode _ = decodeGifs (Right . jpDynamicImageToImage)
 
 
+instance Readable [Image VS RGB Word8] (Seq GIF) where
+  decode _ = decodeGifs jpImageRGB8ToImage
+
+instance Readable [Image VS RGBA Word8] (Seq GIF) where
+  decode _ = decodeGifs jpImageRGBA8ToImage
+
+instance Readable [(JP.GifDelay, Image VS RGB Word8)] (Seq GIF) where
+  decode _ = decodeGifsDelays jpImageRGB8ToImage
+
+instance Readable [(JP.GifDelay, Image VS RGBA Word8)] (Seq GIF) where
+  decode _ = decodeGifsDelays jpImageRGBA8ToImage
+
+
+
+instance Readable [Image VS Y Double] (Seq GIF) where
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
+
+instance Readable [Image VS YA Double] (Seq GIF) where
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
+
+instance Readable [Image VS RGB Double] (Seq GIF) where
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
+
+instance Readable [Image VS RGBA Double] (Seq GIF) where
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
+
+
 
 --------------------------------------------------------------------------------
 -- Encoding GIF Format ---------------------------------------------------------
@@ -530,6 +566,29 @@ instance Writable [(JP.GifDelay, Image VS RGB Word8)] GIFA where
 
 instance Writable [(JP.GifDelay, Image VS RGB Double)] GIFA where
   encode _ opts = encodeGIFA opts . fmap (\ !(d, i) -> (d, toWord8I i))
+
+
+
+encodeGIFSeq :: [SaveOption (Seq GIF)]
+           -> [(JP.GifDelay, Image VS RGB Word8)] -> BL.ByteString
+encodeGIFSeq !opts =
+  either error id . JP.encodeGifImages (getGIFSeqLoop opts) . P.map palletizeGif where
+    getGIFSeqLoop []                     = JP.LoopingNever
+    getGIFSeqLoop (GIFSeqLooping loop:_) = loop
+    getGIFSeqLoop (_:xs)                 = getGIFSeqLoop xs
+    getGIFSeqPal []                        = JP.defaultPaletteOptions
+    getGIFSeqPal (GIFSeqPalette palOpts:_) = palOpts
+    getGIFSeqPal (_:xs)                    = getGIFSeqPal xs
+    palletizeGif !(d, img) = (p, d, jimg) where
+      !(jimg, p) = JP.palettize (getGIFSeqPal opts) $ toJPImageRGB8 img
+    {-# INLINE palletizeGif #-}
+{-# INLINE encodeGIFSeq #-}
+
+instance Writable [(JP.GifDelay, Image VS RGB Word8)] (Seq GIF) where
+  encode _ opts = encodeGIFSeq opts
+
+instance Writable [(JP.GifDelay, Image VS RGB Double)] (Seq GIF) where
+  encode _ opts = encodeGIFSeq opts . fmap (fmap toWord8I)
 
 
 

@@ -22,6 +22,7 @@ module Graphics.Image.IO.Formats
   , Readable(..)
   , Writable(..)
   , Convertible(..)
+  , Seq(..)
   ) where
 
 

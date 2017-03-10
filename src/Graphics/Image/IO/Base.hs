@@ -12,7 +12,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Base (
-  ImageFormat(..), Readable(..), Writable(..), Convertible(..),
+  ImageFormat(..), Readable(..), Writable(..), Convertible(..), Seq(..)
   ) where
 
 import qualified Data.ByteString                     as B (ByteString)
@@ -41,6 +41,8 @@ instance Convertible RGBA Double where
   convert = toImageRGBA
 
 
+-- | Special wrapper for formats that support encoding/decoding sequence of images.
+newtype Seq f = Seq f
 
 -- | Image file format. Helps in guessing image format using a file extension,
 -- as well as supplying format specific options during saving an image.

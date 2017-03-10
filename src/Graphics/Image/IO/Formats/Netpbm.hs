@@ -4,15 +4,15 @@
 {-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.IO.Formats.Netpbm
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Formats.Netpbm
-  -- * Netpbm formats
-  ( PBM(..)
+  ( -- * Netpbm formats
+    PBM(..)
   , PGM(..)
   , PPM(..)
   ) where
@@ -54,20 +54,20 @@ instance ImageFormat PPM where
   ext _ = ".ppm"
 
 
-instance ImageFormat [PBM] where
-  data SaveOption [PBM]
+instance ImageFormat (Seq PBM) where
+  data SaveOption (Seq PBM)
 
   ext _ = ".pbm"
 
 
-instance ImageFormat [PGM] where
-  data SaveOption [PGM]
+instance ImageFormat (Seq PGM) where
+  data SaveOption (Seq PGM)
 
   ext _ = ".pgm"
 
 
-instance ImageFormat [PPM] where
-  data SaveOption [PPM]
+instance ImageFormat (Seq PPM) where
+  data SaveOption (Seq PPM)
 
   ext _ = ".ppm"
 
@@ -76,8 +76,6 @@ instance ImageFormat [PPM] where
 -- Decoding images using Netpbm ------------------------------------------------
 --------------------------------------------------------------------------------
 
-
--- BPM Format Reading (general)
 
 instance Readable (Image VS Y Double) PBM where
   decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
@@ -97,7 +95,6 @@ instance Readable (Image VS RGB Double) PPM where
 instance Readable (Image VS RGBA Double) PPM where
   decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
--- BPM Format Reading (exact)
 
 instance Readable (Image VS Binary Bit) PBM where
   decode _ = either Left (ppmToImageUsing pnmDataPBMToImage . head) . decodePnm
@@ -115,19 +112,19 @@ instance Readable (Image VS RGB Word16) PPM where
   decode _ = either Left (ppmToImageUsing pnmDataPPM16ToImage . head) . decodePnm
 
 
-instance Readable [Image VS Binary Bit] [PBM] where
+instance Readable [Image VS Binary Bit] (Seq PBM) where
   decode _ = pnmToImagesUsing pnmDataPBMToImage
 
-instance Readable [Image VS Y Word8] [PGM] where
+instance Readable [Image VS Y Word8] (Seq PGM) where
   decode _ = pnmToImagesUsing pnmDataPGM8ToImage
 
-instance Readable [Image VS Y Word16] [PGM] where
+instance Readable [Image VS Y Word16] (Seq PGM) where
   decode _ = pnmToImagesUsing pnmDataPGM16ToImage
 
-instance Readable [Image VS RGB Word8] [PPM] where
+instance Readable [Image VS RGB Word8] (Seq PPM) where
   decode _ = pnmToImagesUsing pnmDataPPM8ToImage
 
-instance Readable [Image VS RGB Word16] [PPM] where
+instance Readable [Image VS RGB Word16] (Seq PPM) where
   decode _ = pnmToImagesUsing pnmDataPPM16ToImage
 
 

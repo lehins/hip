@@ -4,6 +4,7 @@
 * Fixed FFT performace issue
 * Reduced JuicyPixels module compile time and introduced conversion functions.
 * Created `Filter` and implemented few filters: `gaussianBlur`
+* Indroduced `Seq` format wrapper for sequence of images (eg. animated GIFs)
 
 1.5.2.0
 =======
