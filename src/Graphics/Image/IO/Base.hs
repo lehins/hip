@@ -18,13 +18,14 @@ module Graphics.Image.IO.Base (
 import qualified Data.ByteString                     as B (ByteString)
 import qualified Data.ByteString.Lazy                as BL (ByteString)
 import           Graphics.Image.ColorSpace
-import           Graphics.Image.Interface            (Array, Image)
+import           Graphics.Image.Interface            as I
 import           Graphics.Image.Processing.Complex   (imagPartI, realPartI)
 import           Graphics.Image.Processing.Geometric (leftToRight)
 
 -- | Used during converting pixels between libraries.
 class Convertible cs e where
-  convert :: (ToYA cs' e', ToRGBA cs' e', Array arr cs' e', Array arr cs e) => Image arr cs' e' -> Image arr cs e
+  convert :: (ToYA cs' e', ToRGBA cs' e', Array arr cs' e', Array arr cs e) =>
+    Image arr cs' e' -> Image arr cs e
 
 
 instance Convertible Y Double where
@@ -50,11 +51,13 @@ class ImageFormat format where
   -- | Default file extension for this image format.
   ext :: format -> String
 
-  -- | Known extensions for this image format.
+  -- | Known file extensions for this image format, if more than one is commonly
+  -- used, eg. ".jpeg", ".jpg".
   exts :: format -> [String]
   exts f = [ext f]
 
-  -- | Returns `True` if a file extension (ex. @".png"@) corresponds to this format.
+  -- | Checks if a file extension
+  -- corresponds to the format, eg. @isFormat ".png" PNG == True@
   isFormat :: String -> format -> Bool
   isFormat e f = e `elem` exts f
 

@@ -1,7 +1,7 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.IO.Formats.Netpbm
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -10,18 +10,21 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.IO.Formats.Netpbm (
-  PBM(..), PGM(..), PPM(..)
+module Graphics.Image.IO.Formats.Netpbm
+  -- * Netpbm formats
+  ( PBM(..)
+  , PGM(..)
+  , PPM(..)
   ) where
 
-import Graphics.Image.ColorSpace
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Vector
-import Graphics.Image.IO.Base
-import Foreign.Storable (Storable)
-import qualified Data.ByteString as B (ByteString)
-import qualified Graphics.Netpbm as PNM
-import qualified Data.Vector.Storable as V
+import qualified Data.ByteString                 as B (ByteString)
+import qualified Data.Vector.Storable            as V
+import           Foreign.Storable                (Storable)
+import           Graphics.Image.ColorSpace
+import           Graphics.Image.Interface        as I
+import           Graphics.Image.Interface.Vector
+import           Graphics.Image.IO.Base
+import qualified Graphics.Netpbm                 as PNM
 
 
 -- | Netpbm: portable bitmap image with @.pbm@ extension.
@@ -180,7 +183,7 @@ ppmToImageUsing :: (Int -> Int -> PNM.PpmPixelData -> t) -> PNM.PPM -> t
 ppmToImageUsing conv PNM.PPM {PNM.ppmHeader = PNM.PPMHeader {PNM.ppmWidth = w
                                                             ,PNM.ppmHeight = h}
                              ,PNM.ppmData = ppmData} = conv w h ppmData
-                                                        
+
 
 decodePnm :: B.ByteString -> Either String [PNM.PPM]
 decodePnm = pnmResultToImage . PNM.parsePPM where

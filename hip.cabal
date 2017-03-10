@@ -1,5 +1,5 @@
 Name:              hip
-Version:           1.5.2.0
+Version:           1.5.3.0
 License:           BSD3
 License-File:      LICENSE
 Author:            Alexey Kuleshevich
@@ -66,6 +66,7 @@ Library
                  , Graphics.Image.Processing
                  , Graphics.Image.Processing.Binary
                  , Graphics.Image.Processing.Complex
+                 , Graphics.Image.Processing.Filter
                  , Graphics.Image.Types
   Other-Modules:   Graphics.Image.ColorSpace.Binary
                  , Graphics.Image.ColorSpace.CMYK

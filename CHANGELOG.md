@@ -1,6 +1,13 @@
 1.5.2.0
 =======
 
+* Fixed FFT performace issue
+* Reduced JuicyPixels module compile time and introduced conversion functions.
+* Created `Filter` and implemented few filters: `gaussianBlur`
+
+1.5.2.0
+=======
+
 * Fixed `Storable` instance for some Pixel types.
 * Fixed reading/writing animated GIFs. Added a detailed example to documentation.
 * Improved encoding/decoding of images.

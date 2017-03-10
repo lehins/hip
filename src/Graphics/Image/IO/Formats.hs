@@ -13,8 +13,8 @@
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Formats
-  ( module JuicyPixels
-  , module Netpbm
+  ( module Graphics.Image.IO.Formats.JuicyPixels
+  , module Graphics.Image.IO.Formats.Netpbm
     -- * General
   , ImageFormat(..)
   , InputFormat(..)
@@ -27,8 +27,8 @@ module Graphics.Image.IO.Formats
 
 import           Graphics.Image.Interface
 import           Graphics.Image.IO.Base
-import           Graphics.Image.IO.Formats.JuicyPixels as JuicyPixels
-import           Graphics.Image.IO.Formats.Netpbm as Netpbm
+import           Graphics.Image.IO.Formats.JuicyPixels
+import           Graphics.Image.IO.Formats.Netpbm
 
 
 

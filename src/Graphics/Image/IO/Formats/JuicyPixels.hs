@@ -13,7 +13,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Formats.JuicyPixels
-  ( -- * JuicyPixels formats.
+  ( -- * JuicyPixels formats
     SaveOption(..)
     -- ** BMP
   , BMP(..)
