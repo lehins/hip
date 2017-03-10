@@ -466,7 +466,16 @@ getDelayedP (PScalar px)  = R.fromFunction (Z :. 1 :. 1) (const px)
 {-# INLINE getDelayedP #-}
 
 
-instance R.Elt e => R.Elt (C.Complex e)
+instance (Num e, R.Elt e) => R.Elt (C.Complex e) where
+  touch (r :+ i) = R.touch r >> R.touch i
+  {-# INLINE touch #-}
+
+  zero     = 0 :+ 0
+  {-# INLINE zero #-}
+
+  one      = 1 :+ 0
+  {-# INLINE one #-}
+
 
 
 instance R.Elt Bit where

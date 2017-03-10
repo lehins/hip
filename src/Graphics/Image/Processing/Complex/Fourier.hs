@@ -83,14 +83,18 @@ fft2d !mode !img =
 {-# INLINE fft2d #-}
 
 
-fftGeneral :: (Applicative (Pixel cs),
-               Array arr cs (Complex e), ColorSpace cs e,
-               Floating (Pixel cs e), RealFloat e) =>
-              Pixel cs e
-           -> Image arr cs (Complex e)
-           -> Image arr cs (Complex e)
+fftGeneral
+  :: forall arr cs e.
+     ( Applicative (Pixel cs)
+     , Array arr cs (Complex e)
+     , ColorSpace cs e
+     , Floating (Pixel cs e)
+     , RealFloat e
+     )
+  => Pixel cs e -> Image arr cs (Complex e) -> Image arr cs (Complex e)
 fftGeneral !sign !img = transpose $ go n 0 1
   where
+    imgM :: Image (Manifest arr) cs (Complex e)
     !imgM = toManifest img
     !(m, n) = dims img
     go !len !offset !stride
