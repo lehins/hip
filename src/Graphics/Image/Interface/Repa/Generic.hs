@@ -1,14 +1,14 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE ViewPatterns          #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 #if __GLASGOW_HASKELL__ >= 800
     {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
@@ -23,17 +23,17 @@
 --
 module Graphics.Image.Interface.Repa.Generic where
 
-import Prelude as P
-import Data.Array.Repa.Index
-import qualified Data.Array.Repa as R
-import qualified Data.Array.Repa.Eval as R
-import qualified Data.Vector.Generic as VG
-import Data.Typeable (Typeable)
-
-import Graphics.Image.ColorSpace.Binary (Bit(..))
-import Graphics.Image.Interface as I
+import qualified Data.Array.Repa                         as R
+import qualified Data.Array.Repa.Eval                    as R
+import           Data.Array.Repa.Index
+import           Data.Complex                            as C
+import           Data.Typeable                           (Typeable)
+import qualified Data.Vector.Generic                     as VG
+import           Graphics.Image.ColorSpace.Binary        (Bit (..))
+import           Graphics.Image.Interface                as I
+import           Graphics.Image.Interface.Repa.Helpers
 import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
-import Graphics.Image.Interface.Repa.Helpers
+import           Prelude                                 as P
 
 
 type family Repr arr :: *
@@ -42,12 +42,12 @@ type family Repr arr :: *
 -- | Repa Array representation, which is computed in parallel.
 data RP r = RP r deriving Typeable
 
--- | Repa Array representation, which is computed sequentially. 
+-- | Repa Array representation, which is computed sequentially.
 data RS r = RS r deriving Typeable
 
 instance Show r => Show (RP r) where
   show (RP r) = "RepaParallel " ++ show r
-  
+
 instance Show r => Show (RS r) where
   show (RS r) = "RepaSequential " ++ show r
 
@@ -58,14 +58,14 @@ instance Show r => Show (RS r) where
 
 instance SuperClass (RS r) cs e => BaseArray (RS r) cs e where
   type SuperClass (RS r) cs e =
-    (Typeable r, ColorSpace cs e, R.Elt (Pixel cs e), R.Elt e, 
+    (Typeable r, ColorSpace cs e, R.Elt (Pixel cs e), R.Elt e,
      R.Target (Repr r) (Pixel cs e), R.Source (Repr r) (Pixel cs e),
      BaseArray r cs e)
-  
+
   data Image (RS r) cs e = SScalar !(Pixel cs e)
                          | STImage !(R.Array (Repr r) R.DIM2 (Pixel cs e))
                          | SDImage !(R.Array R.D R.DIM2 (Pixel cs e))
-                       
+
   dims (SScalar _                          ) = (1, 1)
   dims (STImage (R.extent -> (Z :. m :. n))) = (m, n)
   dims (SDImage (R.extent -> (Z :. m :. n))) = (m, n)
@@ -76,18 +76,18 @@ instance (VG.Vector (Vector r) (Pixel cs e),
           MArray (Manifest r) cs e, BaseArray (RS r) cs e) => Array (RS r) cs e where
 
   type Manifest (RS r) = Manifest r
-  
+
   type Vector (RS r) = Vector r
-  
+
   makeImage !(checkDims "RS.makeImage" -> (m, n)) f =
     SDImage $ R.fromFunction (Z :. m :. n) (f . sh2ix)
   {-# INLINE makeImage #-}
-  
+
   makeImageWindowed !(checkDims "RS.makeImage" -> (m, n)) !window getWindowPx getBorderPx  =
     SDImage $ R.delay $ makeWindowed (Z :. m :. n) window
     (R.fromFunction (Z :. m :. n) (getWindowPx . sh2ix))
      (R.fromFunction (Z :. m :. n) (getBorderPx . sh2ix))
-    
+
   scalar = SScalar
   {-# INLINE scalar #-}
 
@@ -119,7 +119,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   izipWith f !img1         !img2         =
     SDImage (izipWithR f (getDelayedS img1) (getDelayedS img2))
   {-# INLINE izipWith #-}
-  
+
   traverse !img getNewDims getNewPx =
     SDImage (traverseR (getDelayedS img) getNewDims getNewPx)
   {-# INLINE traverse #-}
@@ -190,11 +190,11 @@ instance SuperClass (RP r) cs e => BaseArray (RP r) cs e where
     R.Target (Repr r) (Pixel cs e), R.Source (Repr r) (Pixel cs e),
     BaseArray r cs e,
     R.Elt e, R.Elt (Pixel cs e))
-  
+
   data Image (RP r) cs e = PScalar !(Pixel cs e)
                          | PTImage !(R.Array (Repr r) R.DIM2 (Pixel cs e))
                          | PDImage !(R.Array R.D R.DIM2 (Pixel cs e))
-                       
+
   dims (PScalar _                          ) = (1, 1)
   dims (PTImage (R.extent -> (Z :. m :. n))) = (m, n)
   dims (PDImage (R.extent -> (Z :. m :. n))) = (m, n)
@@ -211,12 +211,12 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   makeImage !(checkDims "RP.makeImage" -> (m, n)) f =
     PDImage $ R.fromFunction (Z :. m :. n) (f . sh2ix)
   {-# INLINE makeImage #-}
-  
+
   makeImageWindowed !(checkDims "RP.makeImage" -> (m, n)) !window getWindowPx getBorderPx  =
     PDImage $ R.delay $ makeWindowed (Z :. m :. n) window
     (R.fromFunction (Z :. m :. n) (getWindowPx . sh2ix))
      (R.fromFunction (Z :. m :. n) (getBorderPx . sh2ix))
-    
+
   scalar = PScalar
   {-# INLINE scalar #-}
 
@@ -248,7 +248,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   izipWith f !img1         !img2         =
     PDImage (izipWithR f (getDelayedP img1) (getDelayedP img2))
   {-# INLINE izipWith #-}
-  
+
   traverse !img getNewDims getNewPx =
     PDImage (traverseR (getDelayedP img) getNewDims getNewPx)
   {-# INLINE traverse #-}
@@ -316,7 +316,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
                         "from a generic Vector."
   {-# INLINE fromVector #-}
 
- 
+
 
 ----------------------
 -- Helper functions --
@@ -327,7 +327,7 @@ sh2ix (Z :. i :. j) = (i, j)
 {-# INLINE sh2ix #-}
 
 ix2sh :: (Int, Int) -> DIM2
-ix2sh !(i, j) = Z :. i :. j 
+ix2sh !(i, j) = Z :. i :. j
 {-# INLINE ix2sh #-}
 
 
@@ -345,7 +345,15 @@ toRP (STImage img) = PTImage img
 imapR
   :: R.Source r2 b =>
      ((Int, Int) -> b -> c) -> R.Array r2 DIM2 b -> R.Array R.D DIM2 c
-imapR f !arr = R.zipWith f (R.fromFunction (R.extent arr) sh2ix) arr
+imapR f !arr = R.traverse arr id getNewPx where
+  getNewPx getPx !sh = f (sh2ix sh) (getPx sh)
+  {-# INLINE getNewPx #-}
+{-# INLINE imapR #-}
+
+-- imapR
+--   :: R.Source r2 b =>
+--      ((Int, Int) -> b -> c) -> R.Array r2 DIM2 b -> R.Array R.D DIM2 c
+-- imapR f !arr = R.zipWith f (R.fromFunction (R.extent arr) sh2ix) arr
 
 
 -- | Combine two arrays, element-wise, with index aware operator. If the extent of
@@ -458,24 +466,27 @@ getDelayedP (PScalar px)  = R.fromFunction (Z :. 1 :. 1) (const px)
 {-# INLINE getDelayedP #-}
 
 
+instance R.Elt e => R.Elt (C.Complex e)
+
+
 instance R.Elt Bit where
   touch (Bit w) = R.touch w
   {-# INLINE touch #-}
-  
+
   zero     = 0
   {-# INLINE zero #-}
-  
+
   one      = 1
   {-# INLINE one #-}
 
 
 instance (ColorSpace cs e, R.Elt e, Num (Pixel cs e)) => R.Elt (Pixel cs e) where
-  touch !px = P.mapM_ (R.touch . getPxC px) (enumFrom (toEnum 0)) 
+  touch !px = P.mapM_ (R.touch . getPxC px) (enumFrom (toEnum 0))
   {-# INLINE touch #-}
-  
+
   zero     = 0
   {-# INLINE zero #-}
-  
+
   one      = 1
   {-# INLINE one #-}
 

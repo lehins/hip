@@ -34,6 +34,35 @@ module Graphics.Image.IO.Formats.JuicyPixels
   , TGA(..)
   -- ** TIF
   , TIF(..)
+  -- * JuciyPixels conversion
+  -- ** To JuicyPixels
+  , toJPImageY8
+  , toJPImageYA8
+  , toJPImageY16
+  , toJPImageYA16
+  , toJPImageYF
+  , toJPImageRGB8
+  , toJPImageRGBA8
+  , toJPImageRGB16
+  , toJPImageRGBA16
+  , toJPImageRGBF
+  , toJPImageYCbCr8
+  , toJPImageCMYK8
+  , toJPImageCMYK16
+  -- ** From JuicyPixels
+  , fromJPImageY8
+  , fromJPImageYA8
+  , fromJPImageY16
+  , fromJPImageYA16
+  , fromJPImageYF
+  , fromJPImageRGB8
+  , fromJPImageRGBA8
+  , fromJPImageRGB16
+  , fromJPImageRGBA16
+  , fromJPImageRGBF
+  , fromJPImageYCbCr8
+  , fromJPImageCMYK8
+  , fromJPImageCMYK16
   ) where
 
 import           Prelude                         as P
@@ -42,18 +71,15 @@ import qualified Codec.Picture                   as JP
 import qualified Codec.Picture.ColorQuant        as JP
 import qualified Codec.Picture.Gif               as JP
 import qualified Codec.Picture.Jpg               as JP
+import           Control.Monad                   ((<=<))
 import qualified Data.ByteString                 as B (ByteString)
 import qualified Data.ByteString.Lazy            as BL (ByteString)
+import qualified Data.Monoid                     as M (mempty)
 import qualified Data.Vector.Storable            as V
 import           Graphics.Image.ColorSpace
 import           Graphics.Image.Interface        as I
 import           Graphics.Image.Interface.Vector (VS)
 import           Graphics.Image.IO.Base
-
-
-
-
-import qualified Data.Monoid                     as M (mempty)
 
 
 
@@ -83,6 +109,10 @@ toJPImageYA8 = imageToJPImageUnsafe
 toJPImageYA16 :: Image VS YA Word16 -> JP.Image JP.PixelYA16
 toJPImageYA16 = imageToJPImageUnsafe
 {-# INLINE toJPImageYA16 #-}
+
+toJPImageYF :: Image VS Y Float -> JP.Image JP.PixelF
+toJPImageYF = imageToJPImageUnsafe
+{-# INLINE toJPImageYF #-}
 
 toJPImageRGB8 :: Image VS RGB Word8 -> JP.Image JP.PixelRGB8
 toJPImageRGB8 = imageToJPImageUnsafe
@@ -121,123 +151,144 @@ toJPImageCMYK16 = imageToJPImageUnsafe
 
 -- General decoding and helper functions
 
+
 jpImageToImageUnsafe :: (Array VS cs e, JP.Pixel jpx) =>
                         JP.Image jpx -> Image VS cs e
 jpImageToImageUnsafe (JP.Image n m !v) = fromVector (m, n) $ V.unsafeCast v
-
-jpImageY8ToImage :: Either String JP.DynamicImage -> Either String (Image VS Y Word8)
-jpImageY8ToImage (Right (JP.ImageY8 jimg)) = Right (jpImageToImageUnsafe jimg)
-jpImageY8ToImage jimg = jpCSError "Y8 (Pixel Y Word8)" jimg
-{-# NOINLINE jpImageY8ToImage #-}
+{-# INLINE jpImageToImageUnsafe #-}
 
 
-jpImageY16ToImage :: Either String JP.DynamicImage -> Either String (Image VS Y Word16)
-jpImageY16ToImage (Right (JP.ImageY16 jimg)) = Right (jpImageToImageUnsafe jimg)
-jpImageY16ToImage jimg = jpCSError "Y16 (Pixel Y Word16)" jimg
-{-# NOINLINE jpImageY16ToImage #-}
+fromJPImageY8 :: JP.Image JP.Pixel8 -> Image VS Y Word8
+fromJPImageY8 = jpImageToImageUnsafe
+{-# INLINE fromJPImageY8 #-}
 
-{- -- No JuicyPixels images are actually read in this type
-jpImageYFToImage :: Either String JP.DynamicImage -> Either String (Image VS Y Float)
-jpImageYFToImage (Right (JP.ImageYF jimg)) = Right (jpImageToImage jimg)
-jpImageYFToImage jimg = jpCSError "YF (Pixel Y Float)" jimg
--}
+fromJPImageY16 :: JP.Image JP.Pixel16 -> Image VS Y Word16
+fromJPImageY16 = jpImageToImageUnsafe
+{-# INLINE fromJPImageY16 #-}
 
-jpImageYA8ToImage :: Either String JP.DynamicImage -> Either String (Image VS YA Word8)
-jpImageYA8ToImage (Right (JP.ImageYA8 jimg)) = Right (jpImageToImageUnsafe jimg)
-jpImageYA8ToImage jimg = jpCSError "YA8 (Pixel YA Word8)" jimg
-{-# NOINLINE jpImageYA8ToImage #-}
+fromJPImageYA8 :: JP.Image JP.PixelYA8 -> Image VS YA Word8
+fromJPImageYA8 = jpImageToImageUnsafe
+{-# INLINE fromJPImageYA8 #-}
+
+fromJPImageYA16 :: JP.Image JP.PixelYA16 -> Image VS YA Word16
+fromJPImageYA16 = jpImageToImageUnsafe
+{-# INLINE fromJPImageYA16 #-}
+
+fromJPImageRGB8 :: JP.Image JP.PixelRGB8 -> Image VS RGB Word8
+fromJPImageRGB8 = jpImageToImageUnsafe
+{-# INLINE fromJPImageRGB8 #-}
+
+fromJPImageYF :: JP.Image JP.PixelF -> Image VS Y Float
+fromJPImageYF = jpImageToImageUnsafe
+{-# INLINE fromJPImageYF #-}
+
+fromJPImageRGBA8 :: JP.Image JP.PixelRGBA8 -> Image VS RGBA Word8
+fromJPImageRGBA8 = jpImageToImageUnsafe
+{-# INLINE fromJPImageRGBA8 #-}
+
+fromJPImageRGB16 :: JP.Image JP.PixelRGB16 -> Image VS RGB Word16
+fromJPImageRGB16 = jpImageToImageUnsafe
+{-# INLINE fromJPImageRGB16 #-}
+
+fromJPImageRGBA16 :: JP.Image JP.PixelRGBA16 -> Image VS RGBA Word16
+fromJPImageRGBA16 = jpImageToImageUnsafe
+{-# INLINE fromJPImageRGBA16 #-}
+
+fromJPImageRGBF :: JP.Image JP.PixelRGBF -> Image VS RGB Float
+fromJPImageRGBF = jpImageToImageUnsafe
+{-# INLINE fromJPImageRGBF #-}
+
+fromJPImageYCbCr8 :: JP.Image JP.PixelYCbCr8 -> Image VS YCbCr Word8
+fromJPImageYCbCr8 = jpImageToImageUnsafe
+{-# INLINE fromJPImageYCbCr8 #-}
+
+fromJPImageCMYK8 :: JP.Image JP.PixelCMYK8 -> Image VS CMYK Word8
+fromJPImageCMYK8 = jpImageToImageUnsafe
+{-# INLINE fromJPImageCMYK8 #-}
+
+fromJPImageCMYK16 :: JP.Image JP.PixelCMYK16 -> Image VS CMYK Word16
+fromJPImageCMYK16 = jpImageToImageUnsafe
+{-# INLINE fromJPImageCMYK16 #-}
 
 
-jpImageYA16ToImage :: Either String JP.DynamicImage -> Either String (Image VS YA Word16)
-jpImageYA16ToImage (Right (JP.ImageYA16 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageY8ToImage :: JP.DynamicImage -> Either String (Image VS Y Word8)
+jpImageY8ToImage (JP.ImageY8 jimg) = Right (fromJPImageY8 jimg)
+jpImageY8ToImage jimg              = jpCSError "Y8 (Pixel Y Word8)" jimg
+{-# INLINE jpImageY8ToImage #-}
+
+jpImageY16ToImage :: JP.DynamicImage -> Either String (Image VS Y Word16)
+jpImageY16ToImage (JP.ImageY16 jimg) = Right (fromJPImageY16 jimg)
+jpImageY16ToImage jimg               = jpCSError "Y16 (Pixel Y Word16)" jimg
+{-# INLINE jpImageY16ToImage #-}
+
+jpImageYA8ToImage :: JP.DynamicImage -> Either String (Image VS YA Word8)
+jpImageYA8ToImage (JP.ImageYA8 jimg) = Right (fromJPImageYA8 jimg)
+jpImageYA8ToImage jimg               = jpCSError "YA8 (Pixel YA Word8)" jimg
+{-# INLINE jpImageYA8ToImage #-}
+
+jpImageYA16ToImage :: JP.DynamicImage -> Either String (Image VS YA Word16)
+jpImageYA16ToImage (JP.ImageYA16 jimg) = Right (fromJPImageYA16 jimg)
 jpImageYA16ToImage jimg = jpCSError "YA16 (Pixel YA Word16)" jimg
-{-# NOINLINE jpImageYA16ToImage #-}
+{-# INLINE jpImageYA16ToImage #-}
 
-
-jpImageRGB8ToImage :: Either String JP.DynamicImage -> Either String (Image VS RGB Word8)
-jpImageRGB8ToImage (Right (JP.ImageRGB8 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageRGB8ToImage :: JP.DynamicImage -> Either String (Image VS RGB Word8)
+jpImageRGB8ToImage (JP.ImageRGB8 jimg) = Right (fromJPImageRGB8 jimg)
 jpImageRGB8ToImage jimg = jpCSError "RGB8 (Pixel RGB Word8)" jimg
-{-# NOINLINE jpImageRGB8ToImage #-}
+{-# INLINE jpImageRGB8ToImage #-}
 
-
-jpImageRGB16ToImage :: Either String JP.DynamicImage -> Either String (Image VS RGB Word16)
-jpImageRGB16ToImage (Right (JP.ImageRGB16 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageRGB16ToImage :: JP.DynamicImage -> Either String (Image VS RGB Word16)
+jpImageRGB16ToImage (JP.ImageRGB16 jimg) = Right (fromJPImageRGB16 jimg)
 jpImageRGB16ToImage jimg = jpCSError "RGB16 (Pixel RGB Word16)" jimg
-{-# NOINLINE jpImageRGB16ToImage #-}
+{-# INLINE jpImageRGB16ToImage #-}
 
-
-jpImageRGBFToImage :: Either String JP.DynamicImage -> Either String (Image VS RGB Float)
-jpImageRGBFToImage (Right (JP.ImageRGBF jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageRGBFToImage :: JP.DynamicImage -> Either String (Image VS RGB Float)
+jpImageRGBFToImage (JP.ImageRGBF jimg) = Right (fromJPImageRGBF jimg)
 jpImageRGBFToImage jimg = jpCSError "RGBF (Pixel RGB Float)" jimg
-{-# NOINLINE jpImageRGBFToImage #-}
+{-# INLINE jpImageRGBFToImage #-}
 
-
-jpImageRGBA8ToImage :: Either String JP.DynamicImage -> Either String (Image VS RGBA Word8)
-jpImageRGBA8ToImage (Right (JP.ImageRGBA8 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageRGBA8ToImage :: JP.DynamicImage -> Either String (Image VS RGBA Word8)
+jpImageRGBA8ToImage (JP.ImageRGBA8 jimg) = Right (fromJPImageRGBA8 jimg)
 jpImageRGBA8ToImage jimg = jpCSError "RGBA8 (Pixel RGBA Word8)" jimg
-{-# NOINLINE jpImageRGBA8ToImage #-}
+{-# INLINE jpImageRGBA8ToImage #-}
 
-
-jpImageRGBA16ToImage :: Either String JP.DynamicImage -> Either String (Image VS RGBA Word16)
-jpImageRGBA16ToImage (Right (JP.ImageRGBA16 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageRGBA16ToImage :: JP.DynamicImage -> Either String (Image VS RGBA Word16)
+jpImageRGBA16ToImage (JP.ImageRGBA16 jimg) = Right (fromJPImageRGBA16 jimg)
 jpImageRGBA16ToImage jimg = jpCSError "RGBA16 (Pixel RGBA Word16)" jimg
-{-# NOINLINE jpImageRGBA16ToImage #-}
+{-# INLINE jpImageRGBA16ToImage #-}
 
-
-jpImageYCbCr8ToImage :: Either String JP.DynamicImage -> Either String (Image VS YCbCr Word8)
-jpImageYCbCr8ToImage (Right (JP.ImageYCbCr8 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageYCbCr8ToImage :: JP.DynamicImage -> Either String (Image VS YCbCr Word8)
+jpImageYCbCr8ToImage (JP.ImageYCbCr8 jimg) = Right (fromJPImageYCbCr8 jimg)
 jpImageYCbCr8ToImage jimg = jpCSError "YCbCr8 (Pixel YCbCr Word8)" jimg
-{-# NOINLINE jpImageYCbCr8ToImage #-}
+{-# INLINE jpImageYCbCr8ToImage #-}
 
-
-jpImageCMYK8ToImage :: Either String JP.DynamicImage -> Either String (Image VS CMYK Word8)
-jpImageCMYK8ToImage (Right (JP.ImageCMYK8 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageCMYK8ToImage :: JP.DynamicImage -> Either String (Image VS CMYK Word8)
+jpImageCMYK8ToImage (JP.ImageCMYK8 jimg) = Right (fromJPImageCMYK8 jimg)
 jpImageCMYK8ToImage jimg = jpCSError "CMYK8 (Pixel CMYK Word8)" jimg
-{-# NOINLINE jpImageCMYK8ToImage #-}
+{-# INLINE jpImageCMYK8ToImage #-}
 
-
-jpImageCMYK16ToImage :: Either String JP.DynamicImage -> Either String (Image VS CMYK Word16)
-jpImageCMYK16ToImage (Right (JP.ImageCMYK16 jimg)) = Right (jpImageToImageUnsafe jimg)
+jpImageCMYK16ToImage :: JP.DynamicImage -> Either String (Image VS CMYK Word16)
+jpImageCMYK16ToImage (JP.ImageCMYK16 jimg) = Right (fromJPImageCMYK16 jimg)
 jpImageCMYK16ToImage jimg = jpCSError "CMYK16 (Pixel CMYK Word16)" jimg
-{-# NOINLINE jpImageCMYK16ToImage #-}
-
-
-jpDynamicImageToImage'
-  :: (Convertible cs e, ColorSpace cs e, V.Storable (Pixel cs e)) =>
-     JP.DynamicImage -> Image VS cs e
-jpDynamicImageToImage' (JP.ImageY8 jimg)     =
-  convert (jpImageToImageUnsafe jimg :: Image VS Y Word8)
-jpDynamicImageToImage' (JP.ImageYA8 jimg)    =
-  convert (jpImageToImageUnsafe jimg :: Image VS YA Word8)
-jpDynamicImageToImage' (JP.ImageY16 jimg)    =
-  convert (jpImageToImageUnsafe jimg :: Image VS Y Word16)
-jpDynamicImageToImage' (JP.ImageYA16 jimg)   =
-  convert (jpImageToImageUnsafe jimg :: Image VS YA Word16)
-jpDynamicImageToImage' (JP.ImageYF jimg)     =
-  convert (jpImageToImageUnsafe jimg :: Image VS Y Float)
-jpDynamicImageToImage' (JP.ImageRGB8 jimg)   =
-  convert (jpImageToImageUnsafe jimg :: Image VS RGB Word8)
-jpDynamicImageToImage' (JP.ImageRGBA8 jimg)  =
-  convert (jpImageToImageUnsafe jimg :: Image VS RGBA Word8)
-jpDynamicImageToImage' (JP.ImageRGB16 jimg)  =
-  convert (jpImageToImageUnsafe jimg :: Image VS RGB Word16)
-jpDynamicImageToImage' (JP.ImageRGBA16 jimg) =
-  convert (jpImageToImageUnsafe jimg :: Image VS RGBA Word16)
-jpDynamicImageToImage' (JP.ImageRGBF jimg)   =
-  convert (jpImageToImageUnsafe jimg :: Image VS RGB Float)
-jpDynamicImageToImage' (JP.ImageYCbCr8 jimg) =
-  convert (jpImageToImageUnsafe jimg :: Image VS YCbCr Word8)
-jpDynamicImageToImage' (JP.ImageCMYK8 jimg)  =
-  convert (jpImageToImageUnsafe jimg :: Image VS CMYK Word8)
-jpDynamicImageToImage' (JP.ImageCMYK16 jimg) =
-  convert (jpImageToImageUnsafe jimg :: Image VS CMYK Word16)
+{-# INLINE jpImageCMYK16ToImage #-}
 
 
 jpDynamicImageToImage
-  :: (Convertible cs e, ColorSpace cs e, V.Storable (Pixel cs e))
-  => Either String JP.DynamicImage -> Either String (Image VS cs e)
-jpDynamicImageToImage = either jpError (Right . jpDynamicImageToImage')
-{-# NOINLINE jpDynamicImageToImage #-}
+  :: (Convertible cs e, ColorSpace cs e, V.Storable (Pixel cs e)) =>
+     JP.DynamicImage -> Image VS cs e
+jpDynamicImageToImage (JP.ImageY8 jimg)     = convert $ fromJPImageY8 jimg
+jpDynamicImageToImage (JP.ImageYA8 jimg)    = convert $ fromJPImageYA8 jimg
+jpDynamicImageToImage (JP.ImageY16 jimg)    = convert $ fromJPImageY16 jimg
+jpDynamicImageToImage (JP.ImageYA16 jimg)   = convert $ fromJPImageYA16 jimg
+jpDynamicImageToImage (JP.ImageYF jimg)     = convert $ fromJPImageYF jimg
+jpDynamicImageToImage (JP.ImageRGB8 jimg)   = convert $ fromJPImageRGB8 jimg
+jpDynamicImageToImage (JP.ImageRGBA8 jimg)  = convert $ fromJPImageRGBA8 jimg
+jpDynamicImageToImage (JP.ImageRGB16 jimg)  = convert $ fromJPImageRGB16 jimg
+jpDynamicImageToImage (JP.ImageRGBA16 jimg) = convert $ fromJPImageRGBA16 jimg
+jpDynamicImageToImage (JP.ImageRGBF jimg)   = convert $ fromJPImageRGBF jimg
+jpDynamicImageToImage (JP.ImageYCbCr8 jimg) = convert $ fromJPImageYCbCr8 jimg
+jpDynamicImageToImage (JP.ImageCMYK8 jimg)  = convert $ fromJPImageCMYK8 jimg
+jpDynamicImageToImage (JP.ImageCMYK16 jimg) = convert $ fromJPImageCMYK16 jimg
+{-# INLINE jpDynamicImageToImage #-}
 
 
 jpImageShowCS :: JP.DynamicImage -> String
@@ -260,9 +311,8 @@ jpError :: String -> Either String a
 jpError err = Left $ "JuicyPixel decoding error: " ++ err
 
 
-jpCSError :: String -> Either String JP.DynamicImage -> Either String a
-jpCSError _  (Left err)   = jpError err
-jpCSError cs (Right jimg) =
+jpCSError :: String -> JP.DynamicImage -> Either String a
+jpCSError cs jimg =
   jpError $
   "Input image is in " ++
   jpImageShowCS jimg ++ ", cannot convert it to " ++ cs ++ " colorspace."
@@ -283,37 +333,29 @@ instance ImageFormat BMP where
 --------------------------------------------------------------------------------
 
 instance Readable (Image VS Binary Bit) BMP where
-  decode _ = fmap toImageBinary . jpImageY8ToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodeBitmap
 
 instance Readable (Image VS Y Word8) BMP where
-  decode _ = jpImageY8ToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = jpImageY8ToImage <=< JP.decodeBitmap
 
 instance Readable (Image VS RGB Word8) BMP where
-  decode _ = jpImageRGB8ToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = jpImageRGB8ToImage <=< JP.decodeBitmap
 
 instance Readable (Image VS RGBA Word8) BMP where
-  decode _ = jpImageRGBA8ToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = jpImageRGBA8ToImage <=< JP.decodeBitmap
 
 
 instance Readable (Image VS Y Double) BMP where
-  decode _ = jpDynamicImageToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = fmap jpDynamicImageToImage . JP.decodeBitmap
 
 instance Readable (Image VS YA Double) BMP where
-  decode _ = jpDynamicImageToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = fmap jpDynamicImageToImage . JP.decodeBitmap
 
 instance Readable (Image VS RGB Double) BMP where
-  decode _ = jpDynamicImageToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = fmap jpDynamicImageToImage . JP.decodeBitmap
 
 instance Readable (Image VS RGBA Double) BMP where
-  decode _ = jpDynamicImageToImage . JP.decodeBitmap
-  --decode = undefined
+  decode _ = fmap jpDynamicImageToImage . JP.decodeBitmap
 
 
 --------------------------------------------------------------------------------
@@ -322,37 +364,28 @@ instance Readable (Image VS RGBA Double) BMP where
 
 instance Writable (Image VS Y Word8) BMP where
   encode _ _ = JP.encodeBitmap . toJPImageY8
-  --encode = undefined
 
 instance Writable (Image VS RGB Word8) BMP where
   encode _ _ = JP.encodeBitmap . toJPImageRGB8
-  --encode = undefined
 
 instance Writable (Image VS RGBA Word8) BMP where
-  --encode = undefined
   encode _ _ = JP.encodeBitmap . toJPImageRGBA8
 
 instance Writable (Image VS Binary Bit) BMP where
-  --encode = undefined
   encode _ _ = JP.encodeBitmap . toJPImageY8 . fromImageBinary
 
 
 instance Writable (Image VS Y Double) BMP where
-  --encode = undefined
   encode _ _ = JP.encodeBitmap . toJPImageY8 . toWord8I
 
 instance Writable (Image VS YA Double) BMP where
-  --encode = undefined
   encode _ _ = JP.encodeBitmap . toJPImageY8 . toWord8I . toImageY
 
 instance Writable (Image VS RGB Double) BMP where
-  --encode = undefined
   encode _ _ = JP.encodeBitmap . toJPImageRGB8 . toWord8I
 
 instance Writable (Image VS RGBA Double) BMP where
-  --encode = undefined
   encode _ _ = JP.encodeBitmap . toJPImageRGBA8 . toWord8I
-
 
 
 
@@ -381,40 +414,40 @@ instance ImageFormat GIFA where
 --------------------------------------------------------------------------------
 
 instance Readable (Image VS RGB Word8) GIF where
-  decode _ = jpImageRGB8ToImage . JP.decodeGif
+  decode _ = jpImageRGB8ToImage <=< JP.decodeGif
 
 instance Readable (Image VS RGBA Word8) GIF where
-  decode _ = jpImageRGBA8ToImage . JP.decodeGif
+  decode _ = jpImageRGBA8ToImage <=< JP.decodeGif
 
 
 instance Readable (Image VS Y Double) GIF where
-  decode _ = jpDynamicImageToImage . JP.decodeGif
+  decode _ = fmap jpDynamicImageToImage . JP.decodeGif
 
 instance Readable (Image VS YA Double) GIF where
-  decode _ = jpDynamicImageToImage . JP.decodeGif
+  decode _ = fmap jpDynamicImageToImage . JP.decodeGif
 
 instance Readable (Image VS RGB Double) GIF where
-  decode _ = jpDynamicImageToImage . JP.decodeGif
+  decode _ = fmap jpDynamicImageToImage . JP.decodeGif
 
 instance Readable (Image VS RGBA Double) GIF where
-  decode _ = jpDynamicImageToImage . JP.decodeGif
+  decode _ = fmap jpDynamicImageToImage . JP.decodeGif
 
 
 -- Animated GIF Format frames reading into a list
 
-decodeGifs :: (Either String JP.DynamicImage -> Either String img)
+decodeGifs :: (JP.DynamicImage -> Either String img)
            -> B.ByteString -> Either String [img]
 decodeGifs decoder bs = do
   imgs <- JP.decodeGifImages bs
-  sequence $ fmap (decoder . Right) imgs
+  sequence $ fmap decoder imgs
 
 
-decodeGifsDelays :: (Either String JP.DynamicImage -> Either String img)
+decodeGifsDelays :: (JP.DynamicImage -> Either String img)
                  -> B.ByteString -> Either String [(JP.GifDelay, img)]
 decodeGifsDelays decoder bs = do
   imgs <- JP.decodeGifImages bs
   delays <- JP.getDelaysGifImages bs
-  gifs <- sequence $ fmap (decoder . Right) imgs
+  gifs <- sequence $ fmap decoder imgs
   return $ zip delays gifs
 
 
@@ -434,16 +467,16 @@ instance Readable [(JP.GifDelay, Image VS RGBA Word8)] GIFA where
 
 
 instance Readable [Image VS Y Double] GIFA where
-  decode _ = decodeGifs jpDynamicImageToImage
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
 
 instance Readable [Image VS YA Double] GIFA where
-  decode _ = decodeGifs jpDynamicImageToImage
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
 
 instance Readable [Image VS RGB Double] GIFA where
-  decode _ = decodeGifs jpDynamicImageToImage
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
 
 instance Readable [Image VS RGBA Double] GIFA where
-  decode _ = decodeGifs jpDynamicImageToImage
+  decode _ = decodeGifs (Right . jpDynamicImageToImage)
 
 
 
@@ -519,20 +552,20 @@ instance ImageFormat HDR where
 --------------------------------------------------------------------------------
 
 instance Readable (Image VS RGB Float) HDR where
-  decode _ = jpImageRGBFToImage . JP.decodeHDR
+  decode _ = jpImageRGBFToImage <=< JP.decodeHDR
 
 
 instance Readable (Image VS Y Double) HDR where
-  decode _ = jpDynamicImageToImage . JP.decodeHDR
+  decode _ = fmap jpDynamicImageToImage . JP.decodeHDR
 
 instance Readable (Image VS YA Double) HDR where
-  decode _ = jpDynamicImageToImage . JP.decodeHDR
+  decode _ = fmap jpDynamicImageToImage . JP.decodeHDR
 
 instance Readable (Image VS RGB Double) HDR where
-  decode _ = jpDynamicImageToImage . JP.decodeHDR
+  decode _ = fmap jpDynamicImageToImage . JP.decodeHDR
 
 instance Readable (Image VS RGBA Double) HDR where
-  decode _ = jpDynamicImageToImage . JP.decodeHDR
+  decode _ = fmap jpDynamicImageToImage . JP.decodeHDR
 
 
 --------------------------------------------------------------------------------
@@ -571,32 +604,32 @@ instance ImageFormat JPG where
 --------------------------------------------------------------------------------
 
 instance Readable (Image VS Y Word8) JPG where
-  decode _ = jpImageY8ToImage . JP.decodeJpeg
+  decode _ = jpImageY8ToImage <=< JP.decodeJpeg
 
 instance Readable (Image VS YA Word8) JPG where
-  decode _ = jpImageYA8ToImage . JP.decodeJpeg
+  decode _ = jpImageYA8ToImage <=< JP.decodeJpeg
 
 instance Readable (Image VS RGB Word8) JPG where
-  decode _ = jpImageRGB8ToImage . JP.decodeJpeg
+  decode _ = jpImageRGB8ToImage <=< JP.decodeJpeg
 
 instance Readable (Image VS CMYK Word8) JPG where
-  decode _ = jpImageCMYK8ToImage . JP.decodeJpeg
+  decode _ = jpImageCMYK8ToImage <=< JP.decodeJpeg
 
 instance Readable (Image VS YCbCr Word8) JPG where
-  decode _ = jpImageYCbCr8ToImage . JP.decodeJpeg
+  decode _ = jpImageYCbCr8ToImage <=< JP.decodeJpeg
 
 
 instance Readable (Image VS Y Double) JPG where
-  decode _ = jpDynamicImageToImage . JP.decodeJpeg
+  decode _ = fmap jpDynamicImageToImage . JP.decodeJpeg
 
 instance Readable (Image VS YA Double) JPG where
-  decode _ = jpDynamicImageToImage . JP.decodeJpeg
+  decode _ = fmap jpDynamicImageToImage . JP.decodeJpeg
 
 instance Readable (Image VS RGB Double) JPG where
-  decode _ = jpDynamicImageToImage . JP.decodeJpeg
+  decode _ = fmap jpDynamicImageToImage . JP.decodeJpeg
 
 instance Readable (Image VS RGBA Double) JPG where
-  decode _ = jpDynamicImageToImage . JP.decodeJpeg
+  decode _ = fmap jpDynamicImageToImage . JP.decodeJpeg
 
 
 --------------------------------------------------------------------------------
@@ -659,44 +692,44 @@ instance ImageFormat PNG where
 --------------------------------------------------------------------------------
 
 instance Readable (Image VS Binary Bit) PNG where
-  decode _ = fmap toImageBinary . jpImageY8ToImage . JP.decodePng
+  decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodePng
 
 instance Readable (Image VS Y Word8) PNG where
-  decode _ = jpImageY8ToImage . JP.decodePng
+  decode _ = jpImageY8ToImage <=< JP.decodePng
 
 instance Readable (Image VS Y Word16) PNG where
-  decode _ = jpImageY16ToImage . JP.decodePng
+  decode _ = jpImageY16ToImage <=< JP.decodePng
 
 instance Readable (Image VS YA Word8) PNG where
-  decode _ = jpImageYA8ToImage . JP.decodePng
+  decode _ = jpImageYA8ToImage <=< JP.decodePng
 
 instance Readable (Image VS YA Word16) PNG where
-  decode _ = jpImageYA16ToImage . JP.decodePng
+  decode _ = jpImageYA16ToImage <=< JP.decodePng
 
 instance Readable (Image VS RGB Word8) PNG where
-  decode _ = jpImageRGB8ToImage . JP.decodePng
+  decode _ = jpImageRGB8ToImage <=< JP.decodePng
 
 instance Readable (Image VS RGB Word16) PNG where
-  decode _ = jpImageRGB16ToImage . JP.decodePng
+  decode _ = jpImageRGB16ToImage <=< JP.decodePng
 
 instance Readable (Image VS RGBA Word8) PNG where
-  decode _ = jpImageRGBA8ToImage . JP.decodePng
+  decode _ = jpImageRGBA8ToImage <=< JP.decodePng
 
 instance Readable (Image VS RGBA Word16) PNG where
-  decode _ = jpImageRGBA16ToImage . JP.decodePng
+  decode _ = jpImageRGBA16ToImage <=< JP.decodePng
 
 
 instance Readable (Image VS Y Double) PNG where
-  decode _ = jpDynamicImageToImage . JP.decodePng
+  decode _ = fmap jpDynamicImageToImage . JP.decodePng
 
 instance Readable (Image VS YA Double) PNG where
-  decode _ = jpDynamicImageToImage . JP.decodePng
+  decode _ = fmap jpDynamicImageToImage . JP.decodePng
 
 instance Readable (Image VS RGB Double) PNG where
-  decode _ = jpDynamicImageToImage . JP.decodePng
+  decode _ = fmap jpDynamicImageToImage . JP.decodePng
 
 instance Readable (Image VS RGBA Double) PNG where
-  decode _ = jpDynamicImageToImage . JP.decodePng
+  decode _ = fmap jpDynamicImageToImage . JP.decodePng
 
 
 --------------------------------------------------------------------------------
@@ -762,29 +795,29 @@ instance ImageFormat TGA where
 --------------------------------------------------------------------------------
 
 instance Readable (Image VS Binary Bit) TGA where
-  decode _ = fmap toImageBinary . jpImageY8ToImage . JP.decodeTga
+  decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodeTga
 
 instance Readable (Image VS Y Word8) TGA where
-  decode _ = jpImageY8ToImage . JP.decodeTga
+  decode _ = jpImageY8ToImage <=< JP.decodeTga
 
 instance Readable (Image VS RGB Word8) TGA where
-  decode _ = jpImageRGB8ToImage . JP.decodeTga
+  decode _ = jpImageRGB8ToImage <=< JP.decodeTga
 
 instance Readable (Image VS RGBA Word8) TGA where
-  decode _ = jpImageRGBA8ToImage . JP.decodeTga
+  decode _ = jpImageRGBA8ToImage <=< JP.decodeTga
 
 
 instance Readable (Image VS Y Double) TGA where
-  decode _ = jpDynamicImageToImage . JP.decodeTga
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTga
 
 instance Readable (Image VS YA Double) TGA where
-  decode _ = jpDynamicImageToImage . JP.decodeTga
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTga
 
 instance Readable (Image VS RGB Double) TGA where
-  decode _ = jpDynamicImageToImage . JP.decodeTga
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTga
 
 instance Readable (Image VS RGBA Double) TGA where
-  decode _ = jpDynamicImageToImage . JP.decodeTga
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTga
 
 
 --------------------------------------------------------------------------------
@@ -834,50 +867,50 @@ instance ImageFormat TIF where
 --------------------------------------------------------------------------------
 
 instance Readable (Image VS Binary Bit) TIF where
-  decode _ = fmap toImageBinary . jpImageY8ToImage . JP.decodeTiff
+  decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS Y Word8) TIF where
-  decode _ = jpImageY8ToImage . JP.decodeTiff
+  decode _ = jpImageY8ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS Y Word16) TIF where
-  decode _ = jpImageY16ToImage . JP.decodeTiff
+  decode _ = jpImageY16ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS YA Word8) TIF where
-  decode _ = jpImageYA8ToImage . JP.decodeTiff
+  decode _ = jpImageYA8ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS YA Word16) TIF where
-  decode _ = jpImageYA16ToImage . JP.decodeTiff
+  decode _ = jpImageYA16ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS RGB Word8) TIF where
-  decode _ = jpImageRGB8ToImage . JP.decodeTiff
+  decode _ = jpImageRGB8ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS RGB Word16) TIF where
-  decode _ = jpImageRGB16ToImage . JP.decodeTiff
+  decode _ = jpImageRGB16ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS RGBA Word8) TIF where
-  decode _ = jpImageRGBA8ToImage . JP.decodeTiff
+  decode _ = jpImageRGBA8ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS RGBA Word16) TIF where
-  decode _ = jpImageRGBA16ToImage . JP.decodeTiff
+  decode _ = jpImageRGBA16ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS CMYK Word8) TIF where
-  decode _ = jpImageCMYK8ToImage . JP.decodeTiff
+  decode _ = jpImageCMYK8ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS CMYK Word16) TIF where
-  decode _ = jpImageCMYK16ToImage . JP.decodeTiff
+  decode _ = jpImageCMYK16ToImage <=< JP.decodeTiff
 
 
 instance Readable (Image VS Y Double) TIF where
-  decode _ = jpDynamicImageToImage . JP.decodeTiff
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTiff
 
 instance Readable (Image VS YA Double) TIF where
-  decode _ = jpDynamicImageToImage . JP.decodeTiff
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTiff
 
 instance Readable (Image VS RGB Double) TIF where
-  decode _ = jpDynamicImageToImage . JP.decodeTiff
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTiff
 
 instance Readable (Image VS RGBA Double) TIF where
-  decode _ = jpDynamicImageToImage . JP.decodeTiff
+  decode _ = fmap jpDynamicImageToImage . JP.decodeTiff
 
 
 --------------------------------------------------------------------------------

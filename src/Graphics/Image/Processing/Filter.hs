@@ -14,15 +14,22 @@
 --
 module Graphics.Image.Processing.Filter where
 
-import Graphics.Image.Interface as I
-import Graphics.Image.Processing.Convolution
+import           Graphics.Image.Interface              as I
+import           Graphics.Image.Processing.Convolution
 
 
-gaussianVector :: (Array arr cs e, Floating e) =>
+data Filter arr cs e = Filter
+  { applyFilter :: Image arr cs e -> Image arr cs e
+  }
+
+
+-- | Create a Gaussian Blur filter
+gaussianFilter :: (Array arr cs e, Floating e, RealFrac e) =>
                   Int -- ^ Radius
-               -> Image arr cs e
-gaussianVector !r = gauss / scalar weight
+               -> Filter arr cs e
+gaussianFilter !r = Filter (correlate Edge (transpose gV) . correlate Edge gV)
   where
+    !gV = compute $ (gauss / scalar weight)
     !gauss = makeImage (1, n) getPx
     !weight = I.fold (+) 0 gauss
     !n = 2 * r + 1
@@ -31,10 +38,4 @@ gaussianVector !r = gauss / scalar weight
     getPx (_, j) =
       promote $ exp (fromIntegral (-((j - r) ^ (2 :: Int))) / sigma2sq)
     {-# INLINE getPx #-}
-{-# INLINE gaussianVector #-}
-
-
-gaussian :: (Array arr cs t, Floating t, RealFrac t) =>
-                 Int -> Image arr cs t -> Image arr cs t
-gaussian !r = convolve Edge (transpose gV) . convolve Edge gV where
-  !gV = compute $ gaussianVector r
+{-# INLINE gaussianFilter #-}

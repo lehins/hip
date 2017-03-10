@@ -101,7 +101,7 @@ makeFilter :: (Array arr cs e, RealFloat e) =>
               -- ^ Dimensions of the filter. Both @m@ and @n@ have to be powers
               -- of @2@, i.e. @m == 2^k@, where @k@ is some integer.
            -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
-makeFilter !(m, n) !getPx 
+makeFilter !(m, n) getPx
   | isPowerOfTwo m && isPowerOfTwo n = makeImage (m, n) getPx'
   | otherwise = error " "
   where getPx' (i, j) = getPx (if i < (m `div` 2) then i else i - m,
