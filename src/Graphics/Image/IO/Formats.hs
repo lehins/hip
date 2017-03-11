@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds       #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -23,6 +24,9 @@ module Graphics.Image.IO.Formats
   , Writable(..)
   , Convertible(..)
   , Seq(..)
+  , AllReadable
+  , AllWritable
+  , ComplexWritable
   ) where
 
 
@@ -67,15 +71,18 @@ instance ImageFormat InputFormat where
   exts InputPNM = [ext PBM, ext PGM, ext PPM]
 
 
-instance (Readable (Image arr cs Double) BMP,
-          Readable (Image arr cs Double) GIF,
-          Readable (Image arr cs Double) HDR,
-          Readable (Image arr cs Double) JPG,
-          Readable (Image arr cs Double) PNG,
-          Readable (Image arr cs Double) TGA,
-          Readable (Image arr cs Double) TIF,
-          Readable (Image arr cs Double) PPM) =>
-         Readable (Image arr cs Double) InputFormat where
+-- | Constraint type synonym for all readable formats.
+type AllReadable arr cs = ( Readable (Image arr cs Double) BMP
+                          , Readable (Image arr cs Double) GIF
+                          , Readable (Image arr cs Double) HDR
+                          , Readable (Image arr cs Double) JPG
+                          , Readable (Image arr cs Double) PNG
+                          , Readable (Image arr cs Double) TGA
+                          , Readable (Image arr cs Double) TIF
+                          , Readable (Image arr cs Double) PPM )
+
+
+instance AllReadable arr cs => Readable (Image arr cs Double) InputFormat where
   decode InputBMP = decode BMP
   decode InputGIF = decode GIF
   decode InputHDR = decode HDR
@@ -117,14 +124,17 @@ instance ImageFormat OutputFormat where
   exts OutputTIF = exts TIF
 
 
-instance (Writable (Image arr cs Double) BMP,
-          Writable (Image arr cs Double) GIF,
-          Writable (Image arr cs Double) HDR,
-          Writable (Image arr cs Double) JPG,
-          Writable (Image arr cs Double) PNG,
-          Writable (Image arr cs Double) TGA,
-          Writable (Image arr cs Double) TIF) =>
-         Writable (Image arr cs Double) OutputFormat where
+-- | Constraint type synonym for all writable formats.
+type AllWritable arr cs = ( Writable (Image arr cs Double) BMP
+                          , Writable (Image arr cs Double) GIF
+                          , Writable (Image arr cs Double) HDR
+                          , Writable (Image arr cs Double) JPG
+                          , Writable (Image arr cs Double) PNG
+                          , Writable (Image arr cs Double) TGA
+                          , Writable (Image arr cs Double) TIF )
+
+
+instance AllWritable arr cs => Writable (Image arr cs Double) OutputFormat where
   encode OutputBMP _ = encode BMP []
   encode OutputGIF _ = encode GIF []
   encode OutputHDR _ = encode HDR []

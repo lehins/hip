@@ -84,9 +84,9 @@ matrix:
   #   compiler: ": #stack nightly"
   #   addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-7"
-    compiler: ": #stack 8.0.1 osx"
-    os: osx
+  # - env: BUILD=stack ARGS="--resolver lts-8"
+  #   compiler: ": #stack 8.0.2 osx"
+  #   os: osx
 
   allow_failures:
   - env: BUILD=cabal GHCVER=head  CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7

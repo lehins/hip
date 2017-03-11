@@ -15,8 +15,6 @@ module Graphics.Image.Processing.Complex (
   mkPolarI, cisI, polarI, magnitudeI, phaseI,
   -- * Conjugate
   conjugateI,
-  -- * Processing
-  makeFilter, applyFilter,
   -- ** Fourier Transform
   fft, ifft
   ) where
@@ -92,30 +90,3 @@ conjugateI :: (Applicative (Pixel cs), Array arr cs (Complex e), RealFloat e) =>
               Image arr cs (Complex e) -> Image arr cs (Complex e)
 conjugateI = map conjugate
 {-# INLINE conjugateI #-}
-
-
--- | Make a filter by using a function that works around a regular @(x, y)@
--- coordinate system.
-makeFilter :: (Array arr cs e, RealFloat e) =>
-              (Int, Int)
-              -- ^ Dimensions of the filter. Both @m@ and @n@ have to be powers
-              -- of @2@, i.e. @m == 2^k@, where @k@ is some integer.
-           -> ((Int, Int) -> Pixel cs e) -> Image arr cs e
-makeFilter !(m, n) getPx
-  | isPowerOfTwo m && isPowerOfTwo n = makeImage (m, n) getPx'
-  | otherwise = error " "
-  where getPx' (i, j) = getPx (if i < (m `div` 2) then i else i - m,
-                               if j < (n `div` 2) then j else j - n)
-        {-# INLINE getPx' #-}
-{-# INLINE makeFilter #-}
-
-
--- | Apply a filter to an image created by 'makeFilter'.
-applyFilter :: (Applicative (Pixel cs), Array arr cs e, Array arr cs (Complex e),
-                Fractional (Pixel cs (Complex e)), Floating (Pixel cs e), RealFloat e) =>
-               Image arr cs e -- ^ Source image.
-            -> Image arr cs e -- ^ Filter.
-            -> Image arr cs e
-applyFilter img filt = realPartI . ifft $ (fft (img !+! 0) * (filt !+! filt))
-{-# INLINE applyFilter #-}
-

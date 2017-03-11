@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -12,7 +13,7 @@
 -- Portability : non-portable
 --
 module Graphics.Image.IO.Base (
-  ImageFormat(..), Readable(..), Writable(..), Convertible(..), Seq(..)
+  ImageFormat(..), Readable(..), Writable(..), Convertible(..), Seq(..), ComplexWritable
   ) where
 
 import qualified Data.ByteString                     as B (ByteString)
@@ -74,14 +75,16 @@ class ImageFormat format => Readable img format where
 -- | Image formats that can be written to file.
 class ImageFormat format => Writable img format where
 
-  -- | Encode an image to `BL.ByteString`.
+  -- | Encode an image into `BL.ByteString`.
   encode :: format -> [SaveOption format] -> img -> BL.ByteString
+
+-- | Constraint type synonym for encoding a Complex image.
+type ComplexWritable format arr cs e = ( Array arr cs e, Array arr cs (Complex e)
+                                       , RealFloat e, Applicative (Pixel cs)
+                                       , Writable (Image arr cs e) format )
 
 
 -- | Writing Complex images: places real part on the left side of imaginary part.
-instance (Array arr cs e, Array arr cs (Complex e),
-          RealFloat e, Applicative (Pixel cs),
-          Writable (Image arr cs e) format) =>
-         Writable (Image arr cs (Complex e)) format where
+instance ComplexWritable format arr cs e => Writable (Image arr cs (Complex e)) format where
   encode format opts !imgC =
     encode format opts (leftToRight (realPartI imgC) (imagPartI imgC))

@@ -36,6 +36,7 @@ module Graphics.Image.IO.Formats.JuicyPixels
   , TIF(..)
   -- * JuciyPixels conversion
   -- ** To JuicyPixels
+  -- O(1) Conversion to JuicyPixels images
   , toJPImageY8
   , toJPImageYA8
   , toJPImageY16
@@ -50,6 +51,7 @@ module Graphics.Image.IO.Formats.JuicyPixels
   , toJPImageCMYK8
   , toJPImageCMYK16
   -- ** From JuicyPixels
+  -- O(1) Conversion from JuicyPixels images
   , fromJPImageY8
   , fromJPImageYA8
   , fromJPImageY16
@@ -716,22 +718,21 @@ instance Writable (Image VS CMYK Word8) JPG where
 instance Writable (Image VS YCbCr Word8) JPG where
   encode _ opts = encodeJPG opts . toJPImageYCbCr8
 
+-- | Image is converted `YCbCr` color space prior to encoding.
 instance Writable (Image VS Y Double) JPG where
-  encode _ opts = encodeJPG opts . toJPImageY8 . toWord8I
+  encode _ opts = encodeJPG opts . toJPImageYCbCr8 . toWord8I . toImageYCbCr
 
+-- | Image is converted `YCbCr` color space prior to encoding.
 instance Writable (Image VS YA Double) JPG where
-  encode f opts = encode f opts . toImageY
+  encode _ opts = encodeJPG opts . toJPImageYCbCr8 . toWord8I . toImageYCbCr
 
--- | Writing JPG images in RGB colorspace can produce false colors:
--- <https://github.com/lehins/hip/issues/11>, therefore this instance contains
--- conversion to `YCbCr` colorspace.
+-- | Image is converted `YCbCr` color space prior to encoding.
 instance Writable (Image VS RGB Double) JPG where
   encode _ opts = encodeJPG opts . toJPImageYCbCr8 . toWord8I . toImageYCbCr
 
--- | Just as with @`Writable` (`Image` `VS` `RGB` `Double`) `JPG`@ instance,
--- `JPG is saved in `YCbCr` color space.
+-- | Image is converted `YCbCr` color space prior to encoding.
 instance Writable (Image VS RGBA Double) JPG where
-  encode f opts = encode f opts . toImageRGB
+  encode _ opts = encodeJPG opts . toJPImageYCbCr8 . toWord8I . toImageYCbCr
 
 
 
