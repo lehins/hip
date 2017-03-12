@@ -83,8 +83,8 @@ instance (VG.Vector (Vector r) (Pixel cs e),
     SDImage $ R.fromFunction (Z :. m :. n) (f . sh2ix)
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !(checkDims "RS.makeImage" -> (m, n)) !window getWindowPx getBorderPx  =
-    SDImage $ R.delay $ makeWindowed (Z :. m :. n) window
+  makeImageWindowed !(checkDims "RS.makeImage" -> (m, n)) !wIx !wSz getWindowPx getBorderPx  =
+    SDImage $ R.delay $ makeWindowed (Z :. m :. n) wIx wSz
     (R.fromFunction (Z :. m :. n) (getWindowPx . sh2ix))
      (R.fromFunction (Z :. m :. n) (getBorderPx . sh2ix))
 
@@ -212,8 +212,8 @@ instance (VG.Vector (Vector r) (Pixel cs e),
     PDImage $ R.fromFunction (Z :. m :. n) (f . sh2ix)
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !(checkDims "RP.makeImage" -> (m, n)) !window getWindowPx getBorderPx  =
-    PDImage $ R.delay $ makeWindowed (Z :. m :. n) window
+  makeImageWindowed !(checkDims "RP.makeImage" -> (m, n)) !wIx wSz getWindowPx getBorderPx  =
+    PDImage $ R.delay $ makeWindowed (Z :. m :. n) wIx wSz
     (R.fromFunction (Z :. m :. n) (getWindowPx . sh2ix))
      (R.fromFunction (Z :. m :. n) (getBorderPx . sh2ix))
 
@@ -335,11 +335,13 @@ toRS :: Image (RP r) cs e -> Image (RS r) cs e
 toRS (PScalar px)  = SScalar px
 toRS (PDImage img) = SDImage img
 toRS (PTImage img) = STImage img
+{-# INLINE toRS #-}
 
 toRP :: Image (RS r) cs e -> Image (RP r) cs e
 toRP (SScalar px)  = PScalar px
 toRP (SDImage img) = PDImage img
 toRP (STImage img) = PTImage img
+{-# INLINE toRP #-}
 
 
 imapR

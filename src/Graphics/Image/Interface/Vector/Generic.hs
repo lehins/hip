@@ -1,15 +1,15 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE Rank2Types            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE ViewPatterns          #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector.Generic
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -22,20 +22,19 @@ module Graphics.Image.Interface.Vector.Generic (
   G(..), Image(..), fromVector
   ) where
 
-import Prelude hiding (map, zipWith)
-import qualified Prelude as P (map)
-import Control.DeepSeq (NFData, deepseq)
-import Control.Monad
-import Control.Monad.ST
+import           Control.DeepSeq             (NFData, deepseq)
+import           Control.Monad
+import           Control.Monad.ST
+import           Prelude                     hiding (map, zipWith)
+import qualified Prelude                     as P (map)
 #if !MIN_VERSION_base(4,8,0)
-import Data.Functor
+import           Data.Functor
 #endif
-import Data.Primitive.MutVar
-import Data.Typeable (Typeable)
-import qualified Data.Vector.Unboxed as VU
-import qualified Data.Vector.Generic as VG
+import           Data.Primitive.MutVar
+import           Data.Typeable               (Typeable)
+import qualified Data.Vector.Generic         as VG
 import qualified Data.Vector.Generic.Mutable as MVG
-import Graphics.Image.Interface as I
+import           Graphics.Image.Interface    as I
 
 -- | Generic 'Vector' representation.
 data G r = G r deriving Typeable
@@ -71,38 +70,42 @@ instance (VG.Vector (Vector r) (Pixel cs e),
     VImage m n $ VG.generate (m * n) (f . toIx n)
   {-# INLINE makeImage #-}
 
-  -- TODO: add checkWithin
-  makeImageWindowed !sz !((it, jt), (ib, jb)) getWindowPx getBorderPx =
-    VImage m n $ VG.create generate where
-      !(m, n) = checkDims "(G r).makeImageWindowed" sz
-      nestedLoop :: (VG.Mutable (Vector r)) s (Pixel cs e)
-                 -> ((Int, Int) -> Pixel cs e)
-                 -> Int -> Int -> Int -> Int
-                 -> ST s ()
-      nestedLoop !mv !getPx !fi !fj !ti !tj = do
-        VU.forM_ (VU.enumFromN fi (ti-fi)) $ \i ->
-          VU.forM_ (VU.enumFromN fj (tj-fj)) $ \j ->
-            MVG.unsafeWrite mv (fromIx n (i, j)) (getPx (i, j))
-      {-# INLINE nestedLoop #-}
+  makeImageWindowed !sz !(it, jt) !(wm, wn) getWindowPx getBorderPx =
+    fromVector (m, n) $ VG.create generate
+    where
+      !(ib, jb) = (wm + it, wn + jt)
+      !(m, n) = checkDims "(G r).makeImageWindowed - image size: " sz
+      !_ = checkDims "(G r).makeImageWindowed - window size: " (wm, wn)
       generate :: ST s ((VG.Mutable (Vector (G r))) s (Pixel cs e))
       generate = do
-        mv <- MVG.unsafeNew (m*n)
-        nestedLoop mv getBorderPx 0 0 ib n
-        nestedLoop mv getBorderPx it 0 ib jt
-        nestedLoop mv getWindowPx it jt ib jb
-        nestedLoop mv getBorderPx it jb ib n
-        nestedLoop mv getBorderPx ib 0 m n
+        when (it < 0 || it >= ib || jt < 0 || jt >= jb || ib > m || jb > n) $
+          error ("Window index is outside the image dimensions. window start: " ++
+                 show (it, jt) ++ " window size: " ++
+                 show (wm, wn) ++ " image dimensions: " ++ show (m, n))
+        mv <- MVG.unsafeNew (m * n)
+        loopM_ 0 (< n) (+ 1) $ \ !j -> do
+          loopM_ 0 (< it) (+ 1) $ \ !i -> do
+            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+          loopM_ ib (< m) (+ 1) $ \ !i -> do
+            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+        loopM_ it (< ib) (+ 1) $ \ !i -> do
+          loopM_ 0 (< jt) (+ 1) $ \ !j -> do
+            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+          loopM_ jt (< jb) (+ 1) $ \ !j -> do
+            MVG.unsafeWrite mv (fromIx n (i, j)) (getWindowPx (i, j))
+          loopM_ jb (< n) (+ 1) $ \ !j -> do
+            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
         return mv
       {-# INLINE generate #-}
   {-# INLINE makeImageWindowed #-}
-  
+
   scalar = VScalar
   {-# INLINE scalar #-}
 
-  index00 (VScalar px) = px
+  index00 (VScalar px)   = px
   index00 (VImage _ _ v) = v VG.! 0
   {-# INLINE index00 #-}
-  
+
   map f (VScalar px)   = VScalar (f px)
   map f (VImage m n v) = VImage m n (VG.map f v)
   {-# INLINE map #-}
@@ -110,7 +113,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   imap f (VScalar px)   = VScalar (f (0, 0) px)
   imap f (VImage m n v) = VImage m n (VG.imap (\ !k !px -> f (toIx n k) px) v)
   {-# INLINE imap #-}
-  
+
   zipWith f (VScalar px1) (VScalar px2)    = VScalar (f px1 px2)
   zipWith f (VScalar px1) (VImage m n v2) = VImage m n (VG.map (f px1) v2)
   zipWith f (VImage m n v1) (VScalar px2) = VImage m n (VG.map (`f` px2) v1)
@@ -152,7 +155,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
     VImage m n $ VG.backpermute v $ VG.generate (m*n) (fromIx n' . f . toIx n)
   backpermute !sz _ (VScalar px) = makeImage sz (const px)
   {-# INLINE backpermute #-}
-  
+
   fromLists !ls = if all (== n) (P.map length ls)
                   then VImage m n . VG.fromList . concat $ ls
                   else error "fromLists: Inner lists are of different lengths."
@@ -161,7 +164,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   {-# INLINE fromLists #-}
 
   fold !f !px0 (VImage _ _ v) = VG.foldl' f px0 v
-  fold !f !px0 (VScalar px)    = f px0 px
+  fold !f !px0 (VScalar px)   = f px0 px
   {-# INLINE fold #-}
 
   foldIx !f !px0 (VImage _ n v) = VG.ifoldl' f' px0 v where
@@ -170,7 +173,7 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   {-# INLINE foldIx #-}
 
   (|*|) img1@(VImage m1 n1 v1) !img2@VImage {} =
-    if n1 /= m2 
+    if n1 /= m2
     then error ("Inner dimensions of multiplying images must be the same, but received: "++
                 show img1 ++" X "++ show img2)
     else
@@ -210,10 +213,10 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   {-# INLINE fromVector #-}
 
 instance (BaseArray (G r) cs e) => MArray (G r) cs e where
-  
+
   data MImage s (G r) cs e = MVImage !Int !Int ((VG.Mutable (Vector (G r))) s (Pixel cs e))
                             | MVScalar (MutVar s (Pixel cs e))
-  
+
   unsafeIndex (VImage _ n v) !ix = VG.unsafeIndex v (fromIx n ix)
   unsafeIndex (VScalar px)     _ = px
   {-# INLINE unsafeIndex #-}
@@ -238,15 +241,15 @@ instance (BaseArray (G r) cs e) => MArray (G r) cs e where
   {-# INLINE mapM #-}
 
   mapM_ f (VImage _ _ v) = VG.mapM_ f v
-  mapM_ f (VScalar px)    = void $ f px
+  mapM_ f (VScalar px)   = void $ f px
   {-# INLINE mapM_ #-}
 
   foldM f !a (VImage _ _ v) = VG.foldM' f a v
-  foldM f !a (VScalar px)    = f a px
+  foldM f !a (VScalar px)   = f a px
   {-# INLINE foldM #-}
 
   foldM_ f !a (VImage _ _ v) = VG.foldM'_ f a v
-  foldM_ f !a (VScalar px)    = void $ f a px
+  foldM_ f !a (VScalar px)   = void $ f a px
   {-# INLINE foldM_ #-}
 
 
@@ -259,7 +262,7 @@ instance (BaseArray (G r) cs e) => MArray (G r) cs e where
   {-# INLINE thaw #-}
 
   freeze (MVImage m n mv) = VImage m n <$> VG.freeze mv
-  freeze (MVScalar mpx)    = VScalar <$> readMutVar mpx
+  freeze (MVScalar mpx)   = VScalar <$> readMutVar mpx
   {-# INLINE freeze #-}
 
   new (m, n) = MVImage m n <$> MVG.new (m*n)

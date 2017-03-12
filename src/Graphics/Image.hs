@@ -120,21 +120,6 @@ import Graphics.Image.Processing.Complex as IP
 import Graphics.Image.Processing.Geometric as IP
 import Graphics.Image.IO.Histogram as IP
 
-gaussianKernel :: (Array arr cs e, Floating e) =>
-                  Int -- ^ Radius
-               -> Int
-               -> e -- ^ Sigma
-               -> Image arr cs e
-gaussianKernel r c sigma = gauss / scalar weight
-  where
-    gauss = makeImage (m, n) getGaussianPx
-    weight = sum gauss
-    m = 2 * r + 1
-    n = 2 * c + 1
-    sigma2sq = 2 * sigma ** 2
-    getGaussianPx (i, j) =
-      promote $ exp (fromIntegral (-((i - r) ^ 2 + (j - c) ^ 2)) / sigma2sq)
-
 
 -- | Create an image with a specified representation and pixels of 'Double'
 -- precision. Note, that it is essential for 'Double' precision pixels to keep values

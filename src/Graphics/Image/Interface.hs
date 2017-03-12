@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE UndecidableInstances #-}
 #if __GLASGOW_HASKELL__ >= 800
     {-# OPTIONS_GHC -Wno-redundant-constraints #-}
@@ -21,11 +22,18 @@
 -- Portability : non-portable
 --
 module Graphics.Image.Interface (
+  -- * Pixel and ColorSpace
   Pixel, ColorSpace(..), AlphaSpace(..), Elevator(..),
-  BaseArray(..), Array(..), MArray(..),
+  -- * Array and Image
+  BaseArray(..), Array(..),
+  -- * MArray and MImage
+  MArray(..), createImage,
+  -- * Exchanging Representation
   exchange,
+  -- * Indexing
   index, defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
-  fromIx, toIx, checkDims
+  -- * Tools
+  fromIx, toIx, loopM_, checkDims
 #if !MIN_VERSION_base(4,8,0)
   , module Control.Applicative
   , Foldable
@@ -36,6 +44,7 @@ import Prelude hiding (and, map, zipWith, sum, product)
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
 #endif
+import Control.Monad.ST
 import Control.Monad.Primitive (PrimMonad (..))
 import Data.Maybe (fromMaybe)
 import Data.Foldable
@@ -164,7 +173,8 @@ class (VG.Vector (Vector arr) (Pixel cs e),
             -> Image arr cs e
 
   makeImageWindowed :: (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
-                    -> ((Int, Int), (Int, Int))
+                    -> (Int, Int) -- ^ Starting index
+                    -> (Int, Int) -- ^ Size of the window
                     -> ((Int, Int) -> Pixel cs e)
                        -- ^ Function that generates inner pixels.
                     -> ((Int, Int) -> Pixel cs e)
@@ -371,6 +381,13 @@ class BaseArray arr cs e => MArray arr cs e  where
           MImage (PrimState m) arr cs e -> (Int, Int) -> (Int, Int) -> m ()
 
 
+-- | Run a stateful monadic computation that generates an image.
+createImage
+  :: MArray arr cs e
+  => (forall s. ST s (MImage s arr cs e)) -> Image arr cs e
+createImage create = runST (create >>= freeze)
+
+
 -- | Exchange the underlying array representation of an image.
 exchange :: (Array arr' cs e, Array arr cs e) =>
             arr -- ^ New representation of an image.
@@ -512,6 +529,15 @@ toIx :: Int -- ^ @n@ columns
      -> (Int, Int) -- ^ @(i, j)@ row, column index
 toIx !n !k = divMod k n
 {-# INLINE toIx #-}
+
+
+loopM_ :: Monad m => t -> (t -> Bool) -> (t -> t) -> (t -> m a) -> m ()
+loopM_ !init' condition increment f = go init' where
+  go !step =
+    case condition step of
+      False -> return ()
+      True  -> f step >> go (increment step)
+{-# INLINE loopM_ #-}
 
 
 checkDims :: String -> (Int, Int) -> (Int, Int)

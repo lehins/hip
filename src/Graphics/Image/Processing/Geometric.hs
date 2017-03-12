@@ -1,6 +1,7 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ViewPatterns          #-}
 -- |
 -- Module      : Graphics.Image.Processing.Geometric
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -26,12 +27,11 @@ module Graphics.Image.Processing.Geometric (
   ) where
 
 #if MIN_VERSION_base(4,8,0)
-import Prelude hiding (traverse)
+import           Prelude                                 hiding (traverse)
 #endif
-
-import Graphics.Image.Interface
-import Graphics.Image.Processing.Interpolation
-import qualified Data.Vector as V
+import qualified Data.Vector                             as V
+import           Graphics.Image.Interface
+import           Graphics.Image.Processing.Interpolation
 
 
 
@@ -71,7 +71,7 @@ downsample mPred nPred !img =
 --
 upsample :: Array arr cs e =>
              (Int -> (Int, Int))
-          -> (Int -> (Int, Int))             
+          -> (Int -> (Int, Int))
           -> Image arr cs e
           -> Image arr cs e
 upsample mAdd nAdd !img = traverse img (const (newM, newN)) getNewPx where
@@ -135,7 +135,7 @@ leftToRight :: Array arr cs e => Image arr cs e -> Image arr cs e -> Image arr c
 leftToRight !img1@(dims -> (_, n1)) !img2 = traverse2 img1 img2 newDims newPx where
   newDims !(m1, _) !(m2, n2)
     | m1 == m2  = (m1, n1 + n2)
-    | otherwise = error ("leftToRight: Images must agree in numer of rows, but received: " 
+    | otherwise = error ("leftToRight: Images must agree in numer of rows, but received: "
                          ++ show img1 ++ " and " ++ show img2)
   {-# INLINE newDims #-}
   newPx !getPx1 !getPx2 !(i, j) = if j < n1 then getPx1 (i, j) else getPx2 (i, j-n1)
@@ -165,7 +165,7 @@ topToBottom !img1@(dims -> (m1, _)) !img2 = traverse2 img1 img2 newDims newPx wh
 -- >>> writeImage "images/frog_translate_edge.jpg" $ translate Edge (50, 100) frog
 --
 -- <<images/frog.jpg>> <<images/frog_translate_wrap.jpg>> <<images/frog_translate_edge.jpg>>
--- 
+--
 -- @since 1.2.0.0
 --
 translate
@@ -218,7 +218,7 @@ crop :: Array arr cs e =>
         (Int, Int)     -- ^ @(i, j)@ starting index from within a source image.
      -> (Int, Int)     -- ^ @(m, n)@ dimensions of a new image.
      -> Image arr cs e -- ^ Source image.
-     -> Image arr cs e              
+     -> Image arr cs e
 crop !(i0, j0) !sz@(m', n') !img
   | i0 < 0 || j0 < 0 || i0 >= m || j0 >= n =
     error $
@@ -242,7 +242,7 @@ superimpose :: Array arr cs e =>
               (Int, Int)     -- ^ @(i, j)@ starting index from within a source image.
            -> Image arr cs e -- ^ Image to be positioned above the source image.
            -> Image arr cs e -- ^ Source image.
-           -> Image arr cs e              
+           -> Image arr cs e
 superimpose !(i0, j0) !imgA !imgB = traverse2 imgB imgA const newPx where
   !(m, n) = dims imgA
   newPx getPxB getPxA (i, j) = let !(i', j') = (i - i0, j - j0) in

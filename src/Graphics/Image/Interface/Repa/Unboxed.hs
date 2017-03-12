@@ -1,13 +1,12 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 -- |
 -- Module      : Graphics.Image.Interface.Repa.Unboxed
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -20,17 +19,17 @@ module Graphics.Image.Interface.Repa.Unboxed (
   RSU(..), RPU(..), Image(..)
   ) where
 
-import Prelude as P
-import qualified Data.Array.Repa as R 
-import qualified Data.Array.Repa.Eval as R
-import Data.Typeable (Typeable)
+import qualified Data.Array.Repa                         as R
+import qualified Data.Array.Repa.Eval                    as R
+import           Data.Typeable                           (Typeable)
+import           Prelude                                 as P
 
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Repa.Generic
+import           Graphics.Image.Interface                as I
+import           Graphics.Image.Interface.Repa.Generic
 import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
 
 
--- | Repa Array representation backed by Unboxed Vector, which is computed sequentially. 
+-- | Repa Array representation backed by Unboxed Vector, which is computed sequentially.
 data RSU = RSU deriving Typeable
 
 -- | Repa Array representation backed by Unboxed Vector, which is computed in parallel.
@@ -41,7 +40,7 @@ instance Show RSU where
 
 instance Show RPU where
   show _ = "RepaParallelUnboxed"
-  
+
 
 type instance Repr IVU.VU = R.U
 
@@ -50,9 +49,9 @@ instance SuperClass RSU cs e => BaseArray RSU cs e where
   type SuperClass RSU cs e =
     (ColorSpace cs e,
      R.Elt e, R.Elt (Pixel cs e))
-  
+
   newtype Image RSU cs e = SUImage (Image (RS IVU.VU) cs e)
-                       
+
   dims (SUImage img) = dims img
   {-# INLINE dims #-}
 
@@ -62,13 +61,13 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
   type Manifest RSU = IVU.VU
 
   type Vector RSU = Vector IVU.VU
-  
+
   makeImage !sz f = SUImage (makeImage sz f)
   {-# INLINE makeImage #-}
- 
-  makeImageWindowed !sz !w f = SUImage . makeImageWindowed sz w f
+
+  makeImageWindowed !sz !wIx !wSz f = SUImage . makeImageWindowed sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
- 
+
   scalar = SUImage . scalar
   {-# INLINE scalar #-}
 
@@ -133,9 +132,9 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
 instance SuperClass RPU cs e => BaseArray RPU cs e where
   type SuperClass RPU cs e =
     (ColorSpace cs e, R.Elt e, R.Elt (Pixel cs e))
-  
+
   newtype Image RPU cs e = PUImage (Image (RP IVU.VU) cs e)
-                       
+
   dims (PUImage img) = dims img
   {-# INLINE dims #-}
 
@@ -143,15 +142,15 @@ instance SuperClass RPU cs e => BaseArray RPU cs e where
 instance BaseArray RPU cs e => Array RPU cs e where
 
   type Manifest RPU = IVU.VU
-  
+
   type Vector RPU = Vector IVU.VU
-  
+
   makeImage !sz f = PUImage (makeImage sz f)
   {-# INLINE makeImage #-}
- 
-  makeImageWindowed !sz !w f = PUImage . makeImageWindowed sz w f
+
+  makeImageWindowed !sz !wIx !wSz f = PUImage . makeImageWindowed sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
- 
+
   scalar = PUImage . scalar
   {-# INLINE scalar #-}
 

@@ -1,15 +1,14 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector.Unboxed
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -22,15 +21,15 @@ module Graphics.Image.Interface.Vector.Unboxed (
   VU(..), VU.Unbox, Image(..)
   ) where
 
-import Prelude hiding (map, zipWith)
+import           Prelude                                  hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
-import Data.Functor
+import           Data.Functor
 #endif
-import Data.Typeable (Typeable)
-import qualified Data.Vector.Unboxed as VU
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Vector.Generic
-import Graphics.Image.Interface.Vector.Unboxing()
+import           Data.Typeable                            (Typeable)
+import qualified Data.Vector.Unboxed                      as VU
+import           Graphics.Image.Interface                 as I
+import           Graphics.Image.Interface.Vector.Generic
+import           Graphics.Image.Interface.Vector.Unboxing ()
 
 
 
@@ -60,21 +59,21 @@ instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
   makeImage !sh = VUImage . makeImage sh
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sh !window f g = VUImage $ makeImageWindowed sh window f g
+  makeImageWindowed !sh !wIx !wSz f g = VUImage $ makeImageWindowed sh wIx wSz f g
   {-# INLINE makeImageWindowed #-}
-  
+
   scalar = VUImage . scalar
   {-# INLINE scalar #-}
 
   index00 (VUImage img) = index00 img
   {-# INLINE index00 #-}
-  
+
   map f (VUImage img) = VUImage $ I.map f img
   {-# INLINE map #-}
 
   imap f (VUImage img) = VUImage $ I.imap f img
   {-# INLINE imap #-}
-  
+
   zipWith f (VUImage img1) (VUImage img2) = VUImage $ I.zipWith f img1 img2
   {-# INLINE zipWith #-}
 
@@ -92,7 +91,7 @@ instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
 
   backpermute !sz f (VUImage img) = VUImage $ I.backpermute sz f img
   {-# INLINE backpermute #-}
-  
+
   fromLists = VUImage . I.fromLists
   {-# INLINE fromLists #-}
 
@@ -123,9 +122,9 @@ instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
 
 
 instance BaseArray VU cs e => MArray VU cs e where
-  
+
   newtype MImage s VU cs e = MVUImage (MImage s (G VU) cs e)
-                              
+
   unsafeIndex (VUImage img) = unsafeIndex img
   {-# INLINE unsafeIndex #-}
 

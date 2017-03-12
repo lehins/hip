@@ -1,13 +1,12 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 -- |
 -- Module      : Graphics.Image.Interface.Repa.Storable
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -20,23 +19,23 @@ module Graphics.Image.Interface.Repa.Storable (
   RSS(..), RPS(..), Image(..)
   ) where
 
-import Prelude as P
-import Data.Array.Repa.Index
-import qualified Data.Array.Repa as R 
-import qualified Data.Array.Repa.Eval as R
-import qualified Data.Array.Repa.Repr.ForeignPtr as R
-import qualified Data.Vector.Storable as VS
-import Foreign.Storable
-import Data.Typeable (Typeable)
+import qualified Data.Array.Repa                          as R
+import qualified Data.Array.Repa.Eval                     as R
+import           Data.Array.Repa.Index
+import qualified Data.Array.Repa.Repr.ForeignPtr          as R
+import           Data.Typeable                            (Typeable)
+import qualified Data.Vector.Storable                     as VS
+import           Foreign.Storable
+import           Prelude                                  as P
 
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Repa.Generic
+import           Graphics.Image.Interface                 as I
+import           Graphics.Image.Interface.Repa.Generic
 import qualified Graphics.Image.Interface.Vector.Storable as IVS
 
 
 
 
--- | Repa Array representation backed by Storable Vector, which is computed sequentially. 
+-- | Repa Array representation backed by Storable Vector, which is computed sequentially.
 data RSS = RSS deriving Typeable
 
 -- | Repa Array representation backed by Storable Vector, which is computed in parallel.
@@ -47,7 +46,7 @@ instance Show RSS where
 
 instance Show RPS where
   show _ = "RepaParallelStorable"
-  
+
 
 type instance Repr IVS.VS = R.F
 
@@ -57,9 +56,9 @@ instance SuperClass RSS cs e => BaseArray RSS cs e where
     (ColorSpace cs e,
      Storable e, Storable (Pixel cs e),
      R.Elt e, R.Elt (Pixel cs e))
-  
+
   newtype Image RSS cs e = SSImage (Image (RS IVS.VS) cs e)
-                       
+
   dims (SSImage img) = dims img
   {-# INLINE dims #-}
 
@@ -69,13 +68,13 @@ instance BaseArray RSS cs e => Array RSS cs e where
   type Manifest RSS = IVS.VS
 
   type Vector RSS = Vector IVS.VS
-  
+
   makeImage !sz f = SSImage (makeImage sz f)
   {-# INLINE makeImage #-}
- 
-  makeImageWindowed !sz !w f = SSImage . makeImageWindowed sz w f
+
+  makeImageWindowed !sz !wIx !wSz f = SSImage . makeImageWindowed sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
- 
+
   scalar = SSImage . I.scalar
   {-# INLINE scalar #-}
 
@@ -124,9 +123,9 @@ instance BaseArray RSS cs e => Array RSS cs e where
   (|*|) (SSImage img1) (SSImage img2) = SSImage (img1 |*| img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (SSImage (SScalar px)) = I.scalar px
+  toManifest (SSImage (SScalar px))  = I.scalar px
   toManifest (SSImage (STImage arr)) = fromRepaArrayStorable arr
-  toManifest !img = toManifest (compute img)
+  toManifest !img                    = toManifest (compute img)
   {-# INLINE toManifest #-}
 
   toVector = I.toVector . toManifest
@@ -141,9 +140,9 @@ instance SuperClass RPS cs e => BaseArray RPS cs e where
     (ColorSpace cs e,
      Storable e, Storable (Pixel cs e),
      R.Elt e, R.Elt (Pixel cs e))
-  
+
   newtype Image RPS cs e = PSImage (Image (RP IVS.VS) cs e)
-                       
+
   dims (PSImage img) = dims img
   {-# INLINE dims #-}
 
@@ -153,13 +152,13 @@ instance BaseArray RPS cs e => Array RPS cs e where
   type Manifest RPS = IVS.VS
 
   type Vector RPS = Vector IVS.VS
-  
+
   makeImage !sz f = PSImage (makeImage sz f)
   {-# INLINE makeImage #-}
- 
-  makeImageWindowed !sz !w f = PSImage . makeImageWindowed sz w f
+
+  makeImageWindowed !sz !wIx !wSz f = PSImage . makeImageWindowed sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
- 
+
   scalar = PSImage . scalar
   {-# INLINE scalar #-}
 
@@ -210,7 +209,7 @@ instance BaseArray RPS cs e => Array RPS cs e where
 
   toManifest (PSImage (PScalar px))  = scalar px
   toManifest (PSImage (PTImage arr)) = fromRepaArrayStorable arr
-  toManifest !img = toManifest (compute img)
+  toManifest !img                    = toManifest (compute img)
   {-# INLINE toManifest #-}
 
   toVector = I.toVector . toManifest

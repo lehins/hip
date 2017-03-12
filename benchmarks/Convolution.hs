@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
 import Prelude as P
@@ -8,7 +9,6 @@ import Control.Monad
 import Graphics.Image as I
 import Graphics.Image.Interface as I
 import Graphics.Image.Interface.Repa
-
 import Data.Array.Repa as R
 import Data.Array.Repa.Eval as R
 import Data.Array.Repa.Repr.Unboxed as R
@@ -70,24 +70,34 @@ force arr = do
 
 main :: IO ()
 main = do
-  let !imgU = compute $ makeImage (1024, 768)
+  let !imgU = compute $ makeImage (600, 600)
               (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j )))
               :: Image RPU Y Double
-  let sobelU = sobelGx imgU
+  let !imgU' =
+        compute $
+        makeImage
+          (600, 600)
+          (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Double
   let sobelSepU = sobelGxSep imgU
+  let !sobelF' = applyFilter (sobelFilter Horizontal Edge)
+  let !sobelF'' = applyFilter (sobelFilter Horizontal Edge)
   let !imgR = toRepaArray imgU
   let sobelR = sobelGxR imgR
-  let sobelRAlg = sobelGxRAlg imgR
   let sobelRAlgSep = sobelGxRAlgSep imgR
   defaultMain
     [ bgroup
-        "Convolution"
+        -- "Gaussian"
+        -- [ bench "Native VU" $ whnf (applyFilter gb) imgU
+        -- , bench "Custom VU" $ whnf (applyFilter gb') imgU
+        -- , bench "Custom VU 2" $ whnf (applyFilter gb'') imgU
+        -- ]
+        "Sobel"
         [
-          bench "naive U" $ whnf compute sobelU
-        , bench "separated U" $ whnf compute sobelSepU
-        , bench "repa U Agorithms" $ whnfIO sobelRAlg
+        --   bench "naive U" $ whnf compute sobelU
+        bench "separated U" $ whnf compute sobelSepU
+        , bench "Filter U" $ whnf compute (sobelF' imgU)
+        , bench "Filter VU" $ whnf sobelF'' imgU'
         , bench "repa U Agorithms Separated" $ whnfIO sobelRAlgSep
         , bench "repa U Stencil" $ whnfIO (force sobelR)
         ]
     ]
-

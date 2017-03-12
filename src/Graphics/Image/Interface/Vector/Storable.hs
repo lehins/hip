@@ -1,15 +1,14 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector.Storable
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -22,14 +21,14 @@ module Graphics.Image.Interface.Vector.Storable (
   VS(..), Image(..)
   ) where
 
-import Prelude hiding (map, zipWith)
+import           Prelude                                 hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
-import Data.Functor
+import           Data.Functor
 #endif
-import Data.Typeable (Typeable)
-import qualified Data.Vector.Storable as VS
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Vector.Generic
+import           Data.Typeable                           (Typeable)
+import qualified Data.Vector.Storable                    as VS
+import           Graphics.Image.Interface                as I
+import           Graphics.Image.Interface.Vector.Generic
 
 
 
@@ -53,27 +52,27 @@ instance SuperClass VS cs e => BaseArray VS cs e where
 instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
 
   type Manifest VS = VS
-  
+
   type Vector VS = VS.Vector
 
   makeImage !sh = VSImage . makeImage sh
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sh !window f g = VSImage $ makeImageWindowed sh window f g
+  makeImageWindowed !sh !wIx !wSz f g = VSImage $ makeImageWindowed sh wIx wSz f g
   {-# INLINE makeImageWindowed #-}
-  
+
   scalar = VSImage . scalar
   {-# INLINE scalar #-}
 
   index00 (VSImage img) = index00 img
   {-# INLINE index00 #-}
-  
+
   map f (VSImage img) = VSImage $ I.map f img
   {-# INLINE map #-}
 
   imap f (VSImage img) = VSImage $ I.imap f img
   {-# INLINE imap #-}
-  
+
   zipWith f (VSImage img1) (VSImage img2) = VSImage $ I.zipWith f img1 img2
   {-# INLINE zipWith #-}
 
@@ -91,7 +90,7 @@ instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
 
   backpermute !sz f (VSImage img) = VSImage $ I.backpermute sz f img
   {-# INLINE backpermute #-}
-  
+
   fromLists = VSImage . I.fromLists
   {-# INLINE fromLists #-}
 
@@ -122,9 +121,9 @@ instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
 
 
 instance BaseArray VS cs e => MArray VS cs e where
-  
+
   newtype MImage s VS cs e = MVSImage (MImage s (G VS) cs e)
-                              
+
   unsafeIndex (VSImage img) = unsafeIndex img
   {-# INLINE unsafeIndex #-}
 
