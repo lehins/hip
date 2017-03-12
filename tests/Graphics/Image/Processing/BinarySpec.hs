@@ -1,9 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.Processing.BinarySpec (spec, struct) where
 
-import Test.Hspec
+import           Test.Hspec
 
-import Graphics.Image as I
+import           Graphics.Image as I
 
 
 figure :: Image VU Binary Bit
@@ -29,7 +29,7 @@ figure =
     ]
 
 
-struct :: Image VU Binary Bit
+struct :: Image VU X Bit
 struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 
 
@@ -131,4 +131,4 @@ spec = do
     do it "erode" (erode struct figure `shouldBe` eroded)
        it "dialate" (dialate struct figure `shouldBe` dialated)
        it "open" (open struct figure `shouldBe` opened)
-       it "close" (close struct figure `shouldBe` closed)       
+       it "close" (close struct figure `shouldBe` closed)
