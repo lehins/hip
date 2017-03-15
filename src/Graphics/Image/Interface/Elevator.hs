@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 #if __GLASGOW_HASKELL__ >= 800
   {-# OPTIONS_GHC -Wno-redundant-constraints #-}
@@ -18,12 +18,12 @@ module Graphics.Image.Interface.Elevator (
   , clamp01
   ) where
 
-import qualified Data.Complex as C
-import Data.Int
-import Data.Word
-import GHC.Float
-import Data.Typeable
-import Data.Vector.Unboxed (Unbox)
+import qualified Data.Complex        as C
+import           Data.Int
+import           Data.Typeable
+import           Data.Vector.Unboxed (Unbox)
+import           Data.Word
+import           GHC.Float
 
 
 -- | A class with a set of convenient functions that allow for changing precision of
@@ -62,7 +62,7 @@ class (Eq e, Num e, Typeable e, Unbox e) => Elevator e where
 -- | Lower the precision
 dropDown :: forall a b. (Integral a, Bounded a, Integral b, Bounded b) => a -> b
 dropDown !e = fromIntegral $ fromIntegral e `div` ((maxBound :: a) `div`
-                                                   fromIntegral (maxBound :: b)) 
+                                                   fromIntegral (maxBound :: b))
 {-# INLINE dropDown #-}
 
 -- | Increase the precision

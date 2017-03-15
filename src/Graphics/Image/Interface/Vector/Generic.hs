@@ -26,7 +26,6 @@ import           Control.DeepSeq             (NFData, deepseq)
 import           Control.Monad
 import           Control.Monad.ST
 import           Prelude                     hiding (map, zipWith)
-import qualified Prelude                     as P (map)
 #if !MIN_VERSION_base(4,8,0)
 import           Data.Functor
 #endif
@@ -35,6 +34,7 @@ import           Data.Typeable               (Typeable)
 import qualified Data.Vector.Generic         as VG
 import qualified Data.Vector.Generic.Mutable as MVG
 import           Graphics.Image.Interface    as I
+import           Graphics.Image.Utils        (loopM_)
 
 -- | Generic 'Vector' representation.
 data G r = G r deriving Typeable
@@ -156,12 +156,12 @@ instance (VG.Vector (Vector r) (Pixel cs e),
   backpermute !sz _ (VScalar px) = makeImage sz (const px)
   {-# INLINE backpermute #-}
 
-  fromLists !ls = if all (== n) (P.map length ls)
+  fromLists !ls = if all (== n) (fmap length ls)
                   then VImage m n . VG.fromList . concat $ ls
                   else error "fromLists: Inner lists are of different lengths."
     where
       !(m, n) = checkDims "(G r).fromLists" (length ls, length $ head ls)
-  {-# INLINE fromLists #-}
+  {-# NOINLINE fromLists #-}
 
   fold !f !px0 (VImage _ _ v) = VG.foldl' f px0 v
   fold !f !px0 (VScalar px)   = f px0 px

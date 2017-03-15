@@ -21,9 +21,9 @@
 module Graphics.Image.ColorSpace (
   -- * Pixels
   -- ** Family of Pixels
-  -- | Pixel is a type family for all available color spaces. Below will be
-  -- listed all class instances pixels are installed in, as well as all pixel
-  -- constructors.
+  -- | Pixel is a type family for all available color spaces. Below is the
+  -- listed of all class instances, that pixels are installed in, as well as all
+  -- pixel constructors.
   --
   -- >>> :t (PixelY 0) -- Black pixel in Luma
   -- (PixelY 0) :: Num e => Pixel Y e
@@ -78,11 +78,12 @@ module Graphics.Image.ColorSpace (
   -- >>> (on + on) - on
   -- <Binary:(0)>
   --
-  on, off, isOn, isOff, one, zero, fromBool, complement,
   toPixelBinary, fromPixelBinary, toImageBinary, fromImageBinary,
+  module Graphics.Image.ColorSpace.Binary,
   -- ** Complex
   module Graphics.Image.ColorSpace.Complex,
   -- ** X
+  squashWith, squashWith2,
   toPixelsX, fromPixelsX,
   toImagesX, fromImagesX,
   -- * ColorSpace
@@ -103,8 +104,6 @@ module Graphics.Image.ColorSpace (
   -- ** YCbCr
   YCbCr(..), YCbCrA(..),
   ToYCbCr, ToYCbCrA,
-  -- ** Binary
-  Binary(..), Bit,
   -- ** X
   X(..),
   -- * Precision
@@ -120,7 +119,6 @@ module Graphics.Image.ColorSpace (
   Word8, Word16, Word32, Word64
   ) where
 
-import           Data.Bits                         (complement)
 import           Data.Word
 import           Graphics.Image.ColorSpace.Binary
 import           Graphics.Image.ColorSpace.CMYK
@@ -134,24 +132,29 @@ import           Graphics.Image.Interface          as I
 import           Graphics.Image.Interface.Elevator
 
 
--- Binary:
+-- -- Binary:
 
--- | Convert to a `Binary` image.
-toImageBinary :: (Array arr cs e, Array arr Binary Bit) =>
-                 Image arr cs e
-              -> Image arr Binary Bit
-toImageBinary = I.map toPixelBinary
-{-# INLINE toImageBinary #-}
+-- | Convert to a `Binary` pixel.
+toPixelBinary :: ColorSpace cs e => Pixel cs e -> Pixel X Bit
+toPixelBinary px = if px == 0 then on else off
+
 
 -- | Convert a Binary pixel to Luma pixel
-fromPixelBinary :: Pixel Binary Bit -> Pixel Y Word8
+fromPixelBinary :: Pixel X Bit -> Pixel Y Word8
 fromPixelBinary b = PixelY $ if isOn b then minBound else maxBound
 {-# INLINE fromPixelBinary #-}
 
+-- | Convert to a `Binary` image.
+toImageBinary :: (Array arr cs e, Array arr X Bit) =>
+                 Image arr cs e
+              -> Image arr X Bit
+toImageBinary = I.map toPixelBinary
+{-# INLINE toImageBinary #-}
+
 
 -- | Convert a Binary image to Luma image
-fromImageBinary :: (Array arr Binary Bit, Array arr Y Word8) =>
-                   Image arr Binary Bit
+fromImageBinary :: (Array arr X Bit, Array arr Y Word8) =>
+                   Image arr X Bit
                 -> Image arr Y Word8
 fromImageBinary = I.map fromPixelBinary
 {-# INLINE fromImageBinary #-}
@@ -184,10 +187,6 @@ toImageY = I.map toPixelY
 
 instance Elevator e => ToY X e where
   toPixelY (PixelX y) = PixelY $ toDouble y
-  {-# INLINE toPixelY #-}
-
-instance ToY Binary Bit where
-  toPixelY (PixelBinary b) = PixelY $ toDouble b
   {-# INLINE toPixelY #-}
 
 instance Elevator e => ToY Y e where
@@ -250,11 +249,12 @@ toImageYA = I.map toPixelYA
 {-# INLINE toImageYA #-}
 
 
-instance ToY Y e => ToYA Y e
-
-instance ToYA Binary Bit where
-  toPixelYA(PixelBinary b) = PixelYA (toDouble b) 1
+instance ToYA X Bit where
+  toPixelYA (PixelX y) = PixelYA (toDouble y) 1
   {-# INLINE toPixelYA #-}
+
+
+instance ToY Y e => ToYA Y e
 
 instance Elevator e => ToYA YA e where
   toPixelYA = fmap toDouble
@@ -301,8 +301,8 @@ toImageRGB = I.map toPixelRGB
 {-# INLINE toImageRGB #-}
 
 
-instance ToRGB Binary Bit where
-  toPixelRGB (PixelBinary b) = pure $ toDouble b
+instance ToRGB X Bit where
+  toPixelRGB (PixelX b) = pure $ toDouble b
   {-# INLINE toPixelRGB #-}
 
 instance Elevator e => ToRGB Y e where
@@ -393,7 +393,7 @@ toImageRGBA = I.map toPixelRGBA
 {-# INLINE toImageRGBA #-}
 
 
-instance ToRGBA Binary Bit
+instance ToRGBA X Bit
 
 instance ToRGB Y e => ToRGBA Y e
 

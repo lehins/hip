@@ -99,7 +99,7 @@ instance Readable (Image VS RGBA Double) PPM where
   decode _ = fmap (ppmToImageUsing pnmDataToImage . head) . decodePnm
 
 
-instance Readable (Image VS Binary Bit) PBM where
+instance Readable (Image VS X Bit) PBM where
   decode _ = either Left (ppmToImageUsing pnmDataPBMToImage . head) . decodePnm
 
 instance Readable (Image VS Y Word8) PGM where
@@ -115,7 +115,7 @@ instance Readable (Image VS RGB Word16) PPM where
   decode _ = either Left (ppmToImageUsing pnmDataPPM16ToImage . head) . decodePnm
 
 
-instance Readable [Image VS Binary Bit] (Seq PBM) where
+instance Readable [Image VS X Bit] (Seq PBM) where
   decode _ = pnmToImagesUsing pnmDataPBMToImage
 
 instance Readable [Image VS Y Word8] (Seq PGM) where
@@ -141,7 +141,7 @@ pnmDataToImage
   :: (Convertible cs e, ColorSpace cs e, V.Storable (Pixel cs e)) =>
      Int -> Int -> PNM.PpmPixelData -> Image VS cs e
 pnmDataToImage w h (PNM.PbmPixelData v)      =
-  convert (makeImageUnsafe (h, w) v :: Image VS Binary Bit)
+  convert (makeImageUnsafe (h, w) v :: Image VS X Bit)
 pnmDataToImage w h (PNM.PgmPixelData8 v)     =
   convert (makeImageUnsafe (h, w) v :: Image VS Y Word8)
 pnmDataToImage w h (PNM.PgmPixelData16 v)    =
@@ -158,9 +158,9 @@ makeImageUnsafe
 makeImageUnsafe sz = fromVector sz . V.unsafeCast
 
 
-pnmDataPBMToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS Binary Bit)
+pnmDataPBMToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS X Bit)
 pnmDataPBMToImage w h (PNM.PbmPixelData v) = Right $ makeImageUnsafe (h, w) v
-pnmDataPBMToImage _ _ d                    = pnmCSError "Binary (Pixel Binary Bit)" d
+pnmDataPBMToImage _ _ d                    = pnmCSError "Binary (Pixel X Bit)" d
 
 pnmDataPGM8ToImage :: Int -> Int -> PNM.PpmPixelData -> Either String (Image VS Y Word8)
 pnmDataPGM8ToImage w h (PNM.PgmPixelData8 v) = Right $ makeImageUnsafe (h, w) v
@@ -203,7 +203,7 @@ pnmCSError cs ppmData =
   pnmShowData ppmData ++ ", cannot convert it to " ++ cs ++ " colorspace."
 
 pnmShowData :: PNM.PpmPixelData -> String
-pnmShowData (PNM.PbmPixelData _)      = "Binary (Pixel Binary Bit)"
+pnmShowData (PNM.PbmPixelData _)      = "Binary (Pixel X Bit)"
 pnmShowData (PNM.PgmPixelData8 _)     = "Y8 (Pixel Y Word8)"
 pnmShowData (PNM.PgmPixelData16 _)    = "Y16 (Pixel Y Word16)"
 pnmShowData (PNM.PpmPixelDataRGB8 _)  = "RGB8 (Pixel RGB Word8)"

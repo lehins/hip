@@ -334,7 +334,7 @@ instance ImageFormat BMP where
 -- Decoding BMP Format ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-instance Readable (Image VS Binary Bit) BMP where
+instance Readable (Image VS X Bit) BMP where
   decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodeBitmap
 
 instance Readable (Image VS Y Word8) BMP where
@@ -373,7 +373,7 @@ instance Writable (Image VS RGB Word8) BMP where
 instance Writable (Image VS RGBA Word8) BMP where
   encode _ _ = JP.encodeBitmap . toJPImageRGBA8
 
-instance Writable (Image VS Binary Bit) BMP where
+instance Writable (Image VS X Bit) BMP where
   encode _ _ = JP.encodeBitmap . toJPImageY8 . fromImageBinary
 
 
@@ -553,9 +553,9 @@ encodeGIFA :: [SaveOption GIFA]
            -> [(JP.GifDelay, Image VS RGB Word8)] -> BL.ByteString
 encodeGIFA !opts =
   either error id . JP.encodeGifImages (getGIFALoop opts) . P.map palletizeGif where
-    getGIFALoop []                   = JP.LoopingNever
-    getGIFALoop (GIFALooping loop:_) = loop
-    getGIFALoop (_:xs)               = getGIFALoop xs
+    getGIFALoop []                = JP.LoopingNever
+    getGIFALoop (GIFALooping l:_) = l
+    getGIFALoop (_:xs)            = getGIFALoop xs
     getGIFAPal []                      = JP.defaultPaletteOptions
     getGIFAPal (GIFAPalette palOpts:_) = palOpts
     getGIFAPal (_:xs)                  = getGIFAPal xs
@@ -570,14 +570,13 @@ instance Writable [(JP.GifDelay, Image VS RGB Double)] GIFA where
   encode _ opts = encodeGIFA opts . fmap (\ !(d, i) -> (d, toWord8I i))
 
 
-
 encodeGIFSeq :: [SaveOption (Seq GIF)]
            -> [(JP.GifDelay, Image VS RGB Word8)] -> BL.ByteString
 encodeGIFSeq !opts =
   either error id . JP.encodeGifImages (getGIFSeqLoop opts) . P.map palletizeGif where
-    getGIFSeqLoop []                     = JP.LoopingNever
-    getGIFSeqLoop (GIFSeqLooping loop:_) = loop
-    getGIFSeqLoop (_:xs)                 = getGIFSeqLoop xs
+    getGIFSeqLoop []                  = JP.LoopingNever
+    getGIFSeqLoop (GIFSeqLooping l:_) = l
+    getGIFSeqLoop (_:xs)              = getGIFSeqLoop xs
     getGIFSeqPal []                        = JP.defaultPaletteOptions
     getGIFSeqPal (GIFSeqPalette palOpts:_) = palOpts
     getGIFSeqPal (_:xs)                    = getGIFSeqPal xs
@@ -751,7 +750,7 @@ instance ImageFormat PNG where
 -- Decoding PNG Format ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-instance Readable (Image VS Binary Bit) PNG where
+instance Readable (Image VS X Bit) PNG where
   decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodePng
 
 instance Readable (Image VS Y Word8) PNG where
@@ -796,7 +795,7 @@ instance Readable (Image VS RGBA Double) PNG where
 -- Encoding PNG Format ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-instance Writable (Image VS Binary Bit) PNG where
+instance Writable (Image VS X Bit) PNG where
   encode _ _ = JP.encodePng . toJPImageY8 . fromImageBinary
 
 instance Writable (Image VS Y Word8) PNG where
@@ -854,7 +853,7 @@ instance ImageFormat TGA where
 -- Decoding TGA Format ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-instance Readable (Image VS Binary Bit) TGA where
+instance Readable (Image VS X Bit) TGA where
   decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodeTga
 
 instance Readable (Image VS Y Word8) TGA where
@@ -884,7 +883,7 @@ instance Readable (Image VS RGBA Double) TGA where
 -- Encoding TGA Format ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-instance Writable (Image VS Binary Bit) TGA where
+instance Writable (Image VS X Bit) TGA where
   encode _ _ = JP.encodeTga . toJPImageY8 . fromImageBinary
 
 instance Writable (Image VS Y Word8) TGA where
@@ -926,7 +925,7 @@ instance ImageFormat TIF where
 -- Decoding TIF Format ---------------------------------------------------------
 --------------------------------------------------------------------------------
 
-instance Readable (Image VS Binary Bit) TIF where
+instance Readable (Image VS X Bit) TIF where
   decode _ = fmap toImageBinary . jpImageY8ToImage <=< JP.decodeTiff
 
 instance Readable (Image VS Y Word8) TIF where
@@ -1011,7 +1010,7 @@ instance Writable (Image VS CMYK Word16) TIF where
   encode _ _ = JP.encodeTiff . toJPImageCMYK16
 
 
-instance Writable (Image VS Binary Bit) TIF where
+instance Writable (Image VS X Bit) TIF where
   encode _ _ = JP.encodeTiff . toJPImageY8 . fromImageBinary
 
 instance Writable (Image VS Y Double) TIF where

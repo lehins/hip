@@ -8,7 +8,7 @@ import Test.QuickCheck
 import Graphics.Image as I
 
 import Graphics.Image.InterfaceSpec (translateWrap, dummyImage10x20)
-import Graphics.Image.Processing.BinarySpec (struct)
+
 
 data Interpol
   = I1 Nearest
@@ -64,7 +64,7 @@ prop_cropSuperimpose (Positive (Small iA), Positive (Small jA)) (Positive (Small
     (m, n) = I.dims img
     (i0, j0) = (iA `mod` m, jA `mod` n)
     (m', n') = (1 + mA `mod` (m - i0), 1 + nA `mod` (n - j0))
-    
+
 prop_concatRotate :: Image VU Y Word8 -> Bool
 prop_concatRotate img =
   topToBottom (rotate90 img) (rotate270 img) ==
@@ -86,6 +86,10 @@ prop_rotate270 (I2 i) border img = rotate270 img == rotate i border (3*pi/2) img
 prop_rotate360 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
 prop_rotate360 (I1 i) border img = (rotate270 . rotate90) img == rotate i border (2*pi) img
 prop_rotate360 (I2 i) border img = (rotate270 . rotate90) img == rotate i border (2*pi) img
+
+
+struct :: Image VS X Bit
+struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 
 
 spec :: Spec

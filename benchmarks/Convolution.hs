@@ -1,20 +1,22 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 module Main where
 
-import Prelude as P
-import Criterion.Main
-import Control.Monad
-import Graphics.Image as I
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Repa
-import Data.Array.Repa as R
-import Data.Array.Repa.Eval as R
-import Data.Array.Repa.Repr.Unboxed as R
-import Data.Array.Repa.Stencil as R
-import Data.Array.Repa.Stencil.Dim2 as R
-import Data.Array.Repa.Algorithms.Convolve as R
+import           Control.Monad
+import           Criterion.Main
+import           Data.Array.Repa                     as R
+import           Data.Array.Repa.Algorithms.Convolve as R
+import           Data.Array.Repa.Eval                as R
+import           Data.Array.Repa.Repr.Unboxed        as R
+import           Data.Array.Repa.Stencil             as R
+import           Data.Array.Repa.Stencil.Dim2        as R
+
+import           Graphics.Image                      as I
+import           Graphics.Image.Interface            as I
+import           Graphics.Image.Interface.Repa
+import           Prelude                             as P
 
 -- | Convolution
 sobelGx :: I.Array arr cs e => Image arr cs e -> Image arr cs e
@@ -51,13 +53,13 @@ sobelGxR
 sobelGxR = mapStencil2 BoundClamp stencil
   where stencil = makeStencil2 3 3
                   (\ix -> case ix of
-                      Z :. -1 :. -1  -> Just (-1)
-                      Z :.  0 :. -1  -> Just (-2)
-                      Z :.  1 :. -1  -> Just (-1)
-                      Z :. -1 :.  1  -> Just 1
-                      Z :.  0 :.  1  -> Just 2
-                      Z :.  1 :.  1  -> Just 1
-                      _              -> Nothing)
+                      Z :. -1 :. -1 -> Just (-1)
+                      Z :.  0 :. -1 -> Just (-2)
+                      Z :.  1 :. -1 -> Just (-1)
+                      Z :. -1 :.  1 -> Just 1
+                      Z :.  0 :.  1 -> Just 2
+                      Z :.  1 :.  1 -> Just 1
+                      _             -> Nothing)
 
 force
   :: (Load r1 sh e, Unbox e, Monad m)
@@ -78,26 +80,22 @@ main = do
         makeImage
           (600, 600)
           (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Double
-  let sobelSepU = sobelGxSep imgU
-  let !sobelF' = applyFilter (sobelFilter Horizontal Edge)
-  let !sobelF'' = applyFilter (sobelFilter Horizontal Edge)
+  let !sobelFSep = applyFilter (sobelFilter Horizontal Edge) imgU
+  let !sobelFSep' = applyFilter (sobelFilter Horizontal Edge)
   let !imgR = toRepaArray imgU
   let sobelR = sobelGxR imgR
   let sobelRAlgSep = sobelGxRAlgSep imgR
   defaultMain
     [ bgroup
         -- "Gaussian"
-        -- [ bench "Native VU" $ whnf (applyFilter gb) imgU
-        -- , bench "Custom VU" $ whnf (applyFilter gb') imgU
-        -- , bench "Custom VU 2" $ whnf (applyFilter gb'') imgU
+        -- [ bench "Native VU" $ whnf (applyFilter gb) imgU'
         -- ]
         "Sobel"
         [
         --   bench "naive U" $ whnf compute sobelU
-        bench "separated U" $ whnf compute sobelSepU
-        , bench "Filter U" $ whnf compute (sobelF' imgU)
-        , bench "Filter VU" $ whnf sobelF'' imgU'
-        , bench "repa U Agorithms Separated" $ whnfIO sobelRAlgSep
+          bench "separated U" $ whnf compute sobelFSep
         , bench "repa U Stencil" $ whnfIO (force sobelR)
+        , bench "Filter Sep VU" $ whnf sobelFSep' imgU'
+        , bench "repa U Agorithms Separated" $ whnfIO sobelRAlgSep
         ]
     ]

@@ -93,7 +93,7 @@ instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
   {-# INLINE backpermute #-}
 
   fromLists = VUImage . I.fromLists
-  {-# INLINE fromLists #-}
+  {-# NOINLINE fromLists #-}
 
   fold f !px0 (VUImage img) = fold f px0 img
   {-# INLINE fold #-}

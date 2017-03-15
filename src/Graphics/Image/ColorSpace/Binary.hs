@@ -8,15 +8,14 @@
 {-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.ColorSpace.Binary
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
 module Graphics.Image.ColorSpace.Binary (
-  Binary(..), Bit(..), Pixel(..), on, off, isOn, isOff, fromBool, zero, one,
-  toPixelBinary
+  Bit(..), on, off, isOn, isOff, fromBool, zero, one, bit2bool, bool2bit, toNum, fromNum
   ) where
 
 import           Control.Monad
@@ -28,101 +27,102 @@ import qualified Data.Vector.Unboxed         as U
 import           Data.Word                   (Word8)
 import           Foreign.Ptr
 import           Foreign.Storable
+import           Graphics.Image.ColorSpace.X
 import           Graphics.Image.Interface
 import           Prelude                     hiding (map)
 
 
--- | Binary Color Space, also known as bi-tonal.
-data Binary = Binary deriving (Eq, Enum, Bounded, Show, Typeable)
-
-
--- | Under the hood, Binary pixels are represented as 'Word8', but can only take
--- values of @0@ or @1@.
+-- | Under the hood, binary pixels are represented as `Word8`, but can only take
+-- values of @0@ or @1@. Use `zero`\/`one` to construct a bit and `on`\/`off` to
+-- construct a binary pixel.
 newtype Bit = Bit Word8 deriving (Ord, Eq, Typeable)
 
-newtype instance Pixel Binary Bit = PixelBinary Bit deriving (Ord, Eq)
 
-
--- | Convert to a `Binary` pixel.
-toPixelBinary :: ColorSpace cs e => Pixel cs e -> Pixel Binary Bit
-toPixelBinary px = if px == 0 then on else off
-
-
-instance Show (Pixel Binary Bit) where
-  show (PixelBinary (Bit 0)) = "<Binary:(0)>"
-  show _                     = "<Binary:(1)>"
+instance Show Bit where
+  show (Bit 0) = "0"
+  show _       = "1"
 
 
 instance Bits Bit where
-  (.&.) = (*)
+  (Bit 0) .&. _       = Bit 0
+  (Bit 1) .&. (Bit 1) = Bit 1
+  _       .&. (Bit 0) = Bit 0
+  _       .&. _       = Bit 1
   {-# INLINE (.&.) #-}
-
-  (.|.) = (+)
+  (Bit 1) .|. _       = Bit 1
+  (Bit 0) .|. (Bit 0) = Bit 0
+  _       .|. _       = Bit 1
   {-# INLINE (.|.) #-}
-
   (Bit 0) `xor` (Bit 0) = Bit 0
   (Bit 1) `xor` (Bit 1) = Bit 0
   _       `xor` _       = Bit 1
   {-# INLINE xor #-}
-
   complement (Bit 0) = Bit 1
   complement       _ = Bit 0
-
+  {-# INLINE complement #-}
   shift !b 0 = b
   shift  _ _ = Bit 0
-
+  {-# INLINE shift #-}
   rotate !b _ = b
-
+  {-# INLINE rotate #-}
   zeroBits = Bit 0
-
+  {-# INLINE zeroBits #-}
   bit 0 = Bit 1
   bit _ = Bit 0
-
+  {-# INLINE bit #-}
   testBit (Bit 1) 0 = True
   testBit _       _ = False
-
+  {-# INLINE testBit #-}
   bitSizeMaybe _ = Just 1
-
+  {-# INLINE bitSizeMaybe #-}
   bitSize _ = 1
-
+  {-# INLINE bitSize #-}
   isSigned _ = False
-
+  {-# INLINE isSigned #-}
   popCount (Bit 0) = 0
   popCount _       = 1
+  {-# INLINE popCount #-}
 
 
-
-instance Bits (Pixel Binary Bit) where
+instance Bits (Pixel X Bit) where
   (.&.) = liftPx2 (.&.)
   {-# INLINE (.&.) #-}
-
   (.|.) = liftPx2 (.|.)
   {-# INLINE (.|.) #-}
-
   xor = liftPx2 xor
   {-# INLINE xor #-}
-
   complement = liftPx complement
-
+  {-# INLINE complement #-}
   shift !b !n = liftPx (`shift` n) b
-
+  {-# INLINE shift #-}
   rotate !b !n = liftPx (`rotate` n) b
-
+  {-# INLINE rotate #-}
   zeroBits = promote zeroBits
-
+  {-# INLINE zeroBits #-}
   bit = promote . bit
-
-  testBit (PixelBinary (Bit 1)) 0 = True
-  testBit _                     _ = False
-
+  {-# INLINE bit #-}
+  testBit (PixelX (Bit 1)) 0 = True
+  testBit _                _ = False
+  {-# INLINE testBit #-}
   bitSizeMaybe _ = Just 1
-
+  {-# INLINE bitSizeMaybe #-}
   bitSize _ = 1
-
+  {-# INLINE bitSize #-}
   isSigned _ = False
+  {-# INLINE isSigned #-}
+  popCount (PixelX (Bit 0)) = 0
+  popCount _                = 1
+  {-# INLINE popCount #-}
 
-  popCount (PixelBinary (Bit 0)) = 0
-  popCount _                     = 1
+toNum :: Num a => Bit -> a
+toNum (Bit 0) = 0
+toNum _       = 1
+{-# INLINE toNum #-}
+
+fromNum :: (Eq a, Num a) => a -> Bit
+fromNum 0 = zero
+fromNum _ = one
+{-# INLINE fromNum #-}
 
 
 zero :: Bit
@@ -133,68 +133,53 @@ one :: Bit
 one = Bit 1
 {-# INLINE one #-}
 
+bool2bit :: Bool -> Bit
+bool2bit False = zero
+bool2bit True = one
+{-# INLINE bool2bit #-}
+
+bit2bool :: Bit -> Bool
+bit2bool (Bit 0) = False
+bit2bool _       = True
+{-# INLINE bit2bool #-}
+
 -- | Represents value 'True' or @1@ in binary. Often also called a foreground
 -- pixel of an object.
-on :: Pixel Binary Bit
-on = PixelBinary one
+on :: Pixel X Bit
+on = PixelX one
 {-# INLINE on #-}
 
 
 -- | Represents value 'False' or @0@ in binary. Often also called a background
 -- pixel.
-off :: Pixel Binary Bit
-off = PixelBinary zero
+off :: Pixel X Bit
+off = PixelX zero
 {-# INLINE off #-}
 
 
--- | Convert a 'Bool' to a 'PixelBin' pixel.
+-- | Convert a 'Bool' to a binary pixel.
 --
 -- >>> isOn (fromBool True)
 -- True
 --
-fromBool :: Bool -> Pixel Binary Bit
+fromBool :: Bool -> Pixel X Bit
 fromBool False = off
 fromBool True  = on
 {-# INLINE fromBool #-}
 
 
 -- | Test if Pixel's value is 'on'.
-isOn :: Pixel Binary Bit -> Bool
-isOn (PixelBinary (Bit 0)) = False
-isOn _                     = True
+isOn :: Pixel X Bit -> Bool
+isOn (PixelX (Bit 0)) = False
+isOn _                = True
 {-# INLINE isOn #-}
 
 
 -- | Test if Pixel's value is 'off'.
-isOff :: Pixel Binary Bit -> Bool
+isOff :: Pixel X Bit -> Bool
 isOff = not . isOn
 {-# INLINE isOff #-}
 
-
-
-instance ColorSpace Binary Bit where
-  type Components Binary Bit = Bit
-
-  promote = PixelBinary
-  {-# INLINE promote #-}
-  fromComponents = PixelBinary
-  {-# INLINE fromComponents #-}
-  toComponents (PixelBinary b) = b
-  {-# INLINE toComponents #-}
-  getPxC (PixelBinary b) _ = b
-  {-# INLINE getPxC #-}
-  setPxC (PixelBinary _) _ b = PixelBinary b
-  {-# INLINE setPxC #-}
-  mapPxC f (PixelBinary b) = PixelBinary (f Binary b)
-  {-# INLINE mapPxC #-}
-  liftPx f (PixelBinary b) = PixelBinary (f b)
-  {-# INLINE liftPx #-}
-  liftPx2 f (PixelBinary b1) (PixelBinary b2) = PixelBinary (f b1 b2)
-  {-# INLINE liftPx2 #-}
-  foldrPx f z (PixelBinary b) = f b z
-  {-# INLINE foldrPx #-}
-  foldlPx2 f !z (PixelBinary b1) (PixelBinary b2) = f z b1 b2
-  {-# INLINE foldlPx2 #-}
 
 -- | Values: @0@ and @1@
 instance Elevator Bit where
@@ -221,21 +206,18 @@ instance Elevator Bit where
   {-# INLINE fromDouble #-}
 
 
-
 instance Num Bit where
-  (Bit 0) + (Bit 0) = Bit 0
-  _       + _       = Bit 1
+  (+) = (.|.)
   {-# INLINE (+) #-}
   -- 0 - 0 = 0
   -- 0 - 1 = 0
   -- 1 - 0 = 1
   -- 1 - 1 = 0
-  _ - (Bit 1) = Bit 0
-  _ - _       = Bit 1
+  (Bit 0) - (Bit 0) = Bit 0
+  _       - (Bit 0) = Bit 1
+  _       - _       = Bit 0
   {-# INLINE (-) #-}
-  _       * (Bit 0) = Bit 0
-  (Bit 0) * _       = Bit 0
-  _       * _       = Bit 1
+  (*) = (.&.)
   {-# INLINE (*) #-}
   abs         = id
   {-# INLINE abs #-}
@@ -261,24 +243,6 @@ instance Storable Bit where
     q <- return $ castPtr p
     poke q b
   {-# INLINE poke #-}
-
-
-instance Storable (Pixel Binary Bit) where
-
-  sizeOf _ = sizeOf (undefined :: Bit)
-  {-# INLINE sizeOf #-}
-  alignment _ = alignment (undefined :: Bit)
-  {-# INLINE alignment #-}
-  peek !p = do
-    q <- return $ castPtr p
-    b <- peek q
-    return (PixelBinary b)
-  {-# INLINE peek #-}
-  poke !p (PixelBinary b) = do
-    q <- return $ castPtr p
-    poke q b
-  {-# INLINE poke #-}
-
 
 
 -- | Unboxing of a `Bit`.

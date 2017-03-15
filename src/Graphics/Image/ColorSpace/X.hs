@@ -16,7 +16,8 @@
 module Graphics.Image.ColorSpace.X (
   X(..), Pixel(..),
   toPixelsX, toImagesX,
-  fromPixelsX, fromImagesX
+  fromPixelsX, fromImagesX,
+  squashWith, squashWith2
   ) where
 
 import           Control.Applicative
@@ -26,6 +27,7 @@ import           Foreign.Ptr
 import           Foreign.Storable
 import           Graphics.Image.Interface as I
 import           Prelude                  as P
+import           Graphics.Image.Utils ((.:!))
 
 -- ^ This is a single channel colorspace, that is designed to separate Gray
 -- level values from other types of colorspace, hence it is not convertible to
@@ -131,6 +133,21 @@ toPixelsX = foldrPx ((:) . PixelX) []
 fromPixelsX :: ColorSpace cs e => [(cs, Pixel X e)] -> Pixel cs e
 fromPixelsX = foldl' f (promote 0) where
   f !px (c, PixelX x) = setPxC px c x
+
+
+
+-- | Apply a left fold to each of the pixels in the image.
+squashWith :: (Array arr cs e, Array arr X b) =>
+              (b -> e -> b) -> b -> Image arr cs e -> Image arr X b
+squashWith f !a = I.map (PixelX . foldlPx f a) where
+{-# INLINE squashWith #-}
+
+
+-- | Combination of zipWith and simultanious left fold on two pixels at the same time.
+squashWith2 :: (Array arr cs e, Array arr X b) =>
+               (b -> e -> e -> b) -> b -> Image arr cs e -> Image arr cs e -> Image arr X b
+squashWith2 f !a = I.zipWith (PixelX .:! foldlPx2 f a) where
+{-# INLINE squashWith2 #-}
 
 
 -- | Separate an image into a list of images with 'X' pixels containing every

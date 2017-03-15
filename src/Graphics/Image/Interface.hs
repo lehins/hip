@@ -33,7 +33,7 @@ module Graphics.Image.Interface (
   -- * Indexing
   index, defaultIndex, borderIndex, maybeIndex, Border(..), handleBorderIndex,
   -- * Tools
-  fromIx, toIx, loopM_, checkDims
+  fromIx, toIx, checkDims
 #if !MIN_VERSION_base(4,8,0)
   , module Control.Applicative
   , Foldable
@@ -91,6 +91,7 @@ class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e,
   -- | Zip two Pixels with a function.
   liftPx2 :: (e -> e -> e) -> Pixel cs e -> Pixel cs e -> Pixel cs e
 
+  -- | Left fold on two pixels a the same time.
   foldlPx2 :: (b -> e -> e -> b) -> b -> Pixel cs e -> Pixel cs e -> b
 
   -- | Right fold over all Pixel's components.
@@ -398,9 +399,9 @@ exchange _ img = fromVector (dims img) $ VG.convert $ toVector img
 {-# INLINE[0] exchange #-}
 
 
-{-# RULES
-"exchange/id" forall arr. exchange arr = id
- #-}
+--{-# RULES
+--"exchange/id" forall arr. exchange arr = id
+-- #-}
 
 
 -- | Approach to be used near the borders during various transformations.
@@ -529,16 +530,6 @@ toIx :: Int -- ^ @n@ columns
      -> (Int, Int) -- ^ @(i, j)@ row, column index
 toIx !n !k = divMod k n
 {-# INLINE toIx #-}
-
-
-loopM_ :: Monad m => t -> (t -> Bool) -> (t -> t) -> (t -> m a) -> m ()
-loopM_ !init' condition increment f = go init' where
-  go !step =
-    case condition step of
-      False -> return ()
-      True  -> f step >> go (increment step)
-{-# INLINE loopM_ #-}
-
 
 checkDims :: String -> (Int, Int) -> (Int, Int)
 checkDims err !ds@(m, n)

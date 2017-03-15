@@ -239,7 +239,7 @@ normalize !img = if l == s
 -- | Check weather two images are equal within a tolerance. Useful for comparing
 -- images with `Float` or `Double` precision.
 eqTol
-  :: (Array arr Binary Bit, Array arr cs e, Ord e) =>
+  :: (Array arr X Bit, Array arr cs e, Ord e) =>
      e -> Image arr cs e -> Image arr cs e -> Bool
 eqTol !tol !img1 = IP.and . toImageBinaryUsing2 (eqTolPx tol) img1
 {-# INLINE eqTol #-}
@@ -273,9 +273,9 @@ toLists img = [[index img (i, j) | j <- [0..cols img - 1]] | i <- [0..rows img -
 --     * __'Pixel' 'YCbCr' e  = PixelYCbCr y cb cr__    - Luma, blue-difference and red-difference chromas.
 --     * __'Pixel' 'YCbCrA' e = PixelYCbCrA y cb cr a__ - YCbCr with alpha.
 --       ------------------------------------------------------------------------------------------
---     * __'Pixel' 'Binary' 'Bit'     = 'on' | 'off'__ - Bi-tonal.
+--     * __'Pixel' 'X' 'Bit'          = 'on' | 'off'__ - Bi-tonal.
 --     * __'Pixel' cs ('Complex' e) = ('Pixel' cs e) '+:' ('Pixel' cs e)__ - Complex pixels with any color space.
---     * __'Pixel' 'X' e         = PixelX g__ - Used for separating channels from other color spaces.
+--     * __'Pixel' 'X' e         = PixelX g__ - Used to represent binary images as well as any other single channel colorspace, for instance to separate channels from other color spaces into standalone images.
 -- @
 --
 -- Every 'Pixel' is an instance of 'Functor', 'Applicative', 'F.Foldable' and

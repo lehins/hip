@@ -14,9 +14,9 @@
 --
 module Graphics.Image.Processing.Filter
   ( -- * Filter
-    Filter(Filter)
-  , Direction(..)
+    Filter
   , applyFilter
+  , Direction(..)
     -- * Gaussian
   , gaussianLowPass
   , gaussianBlur
@@ -32,17 +32,18 @@ module Graphics.Image.Processing.Filter
 import           Graphics.Image.Interface              as I
 import           Graphics.Image.Processing.Convolution
 
--- | Filter that can be applied to an image.
+-- | Filter that can be applied to an image using `applyFilter`.
 --
 -- @since 1.5.3
 data Filter arr cs e = Filter
   { applyFilter :: Image arr cs e -> Image arr cs e -- ^ Apply a filter to an image
   }
 
-
+-- | Used to specify direction for some filters.
 data Direction
   = Vertical
   | Horizontal
+
 
 
 -- | Create a Gaussian Filter.
@@ -69,9 +70,9 @@ gaussianLowPass !r !sigma border =
 
 
 -- | Create a Gaussian Blur filter. Radius will be derived from standard
--- deviation: @ceiling (2*sigma)@. `Edge` border resolution will be utilized. If
--- custom radius and/or border resolution is desired, `gaussianLowPass` can be
--- used instead.
+-- deviation: @ceiling (2*sigma)@ and `Edge` border resolution will be
+-- utilized. If custom radius and/or border resolution is desired,
+-- `gaussianLowPass` can be used instead.
 --
 -- @since 1.5.3
 gaussianBlur :: (Array arr cs e, Floating e, RealFrac e) =>
@@ -93,7 +94,6 @@ sobelFilter dir !border =
 {-# INLINE sobelFilter #-}
 
 
-
 sobelOperator :: (Array arr cs e, Floating e) => Image arr cs e -> Image arr cs e
 sobelOperator !img = sqrt (sobelX ^ (2 :: Int) + sobelY ^ (2 :: Int))
   where !sobelX = applyFilter (sobelFilter Horizontal Edge) img
@@ -104,7 +104,7 @@ sobelOperator !img = sqrt (sobelX ^ (2 :: Int) + sobelY ^ (2 :: Int))
 
 
 prewittFilter :: Array arr cs e =>
-               Direction -> Border (Pixel cs e) -> Filter arr cs e
+                 Direction -> Border (Pixel cs e) -> Filter arr cs e
 prewittFilter dir !border =
   Filter (convolveCols border cV . convolveRows border rV)
   where
@@ -113,6 +113,7 @@ prewittFilter dir !border =
         Vertical   -> ([1, 1, 1], [1, 0, -1])
         Horizontal -> ([1, 0, -1], [1, 1, 1])
 {-# INLINE prewittFilter #-}
+
 
 
 prewittOperator :: (Array arr cs e, Floating e) => Image arr cs e -> Image arr cs e

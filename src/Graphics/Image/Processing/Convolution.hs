@@ -4,69 +4,72 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 -- |
 -- Module      : Graphics.Image.Processing.Convolution
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
 module Graphics.Image.Processing.Convolution (
-  -- * Kernel
-  Kernel(..), toKernel, fromKernel,
   -- * Convolution
   convolve, convolveRows, convolveCols,
   -- * Correlation
   correlate
+  , toKernel, Kernel(..)
   ) where
 
-import           Control.Monad.ST
 import qualified Data.Vector.Unboxed                     as VU
 import           Graphics.Image.ColorSpace
 import           Graphics.Image.Interface                as I
 import           Graphics.Image.Interface.Vector.Unboxed (VU)
 import           Graphics.Image.Processing.Geometric
+import           Graphics.Image.Utils                    (loop)
 import           Prelude                                 as P
 
-data Kernel e = Kernel !Int !Int !(VU.Vector (Int, Int, e))
 
+data Orientation
+  = Vertical
+  | Horizontal deriving Show
 
-toKernel :: Array VU X e => Image VU X e -> Kernel e
-toKernel img =
-  Kernel m n $ VU.filter (\(_, _, x) -> x /= 0) $ VU.imap addIx $ toVector img
+data Kernel e
+  = Kernel1D Orientation
+             {-# UNPACK #-} !Int
+             !(VU.Vector (Int, e))
+  | Kernel2D {-# UNPACK #-} !Int
+             {-# UNPACK #-} !Int
+             !(VU.Vector (Int, Int, e)) deriving Show
+
+toKernel :: I.Array VU X e => Image VU X e -> Kernel e
+toKernel !img =
+  case dims img of
+    (1, n) ->
+      let !n2 = n `div` 2
+      in Kernel1D Horizontal n2 $ mkKernel1d n2
+    (m, 1) ->
+      let !m2 = m `div` 2
+      in Kernel1D Vertical m2 $ mkKernel1d m2
+    (m, n) ->
+      let !(m2, n2) = (m `div` 2, n `div` 2)
+      in Kernel2D m2 n2 $
+         VU.filter (\(_, _, x) -> x /= 0) $
+         VU.imap (addIx m2 n2 n) $ toVector img
   where
-    !(m, n) = dims img
-    !(m2, n2) = (m `div` 2, n `div` 2)
-    addIx !k (PixelX x) =
-      let !(i, j) = toIx n k
+    mkKernel1d !l2 =
+      VU.filter ((/= 0) . snd) $
+      VU.imap (\ !k (PixelX x) -> (k - l2, x)) $ toVector img
+    {-# INLINE mkKernel1d #-}
+    addIx !m2 !n2 !n' !k (PixelX x) =
+      let !(i, j) = toIx n' k
       in (i - m2, j - n2, x)
     {-# INLINE addIx #-}
-{-# INLINEABLE toKernel #-}
+{-# INLINE toKernel #-}
 
-
-fromKernel :: MArray VU X e => Kernel e -> Image VU X e
-fromKernel = fromKernel'
-{-# INLINEABLE fromKernel #-}
-
-
-fromKernel' :: forall e . MArray VU X e => Kernel e -> Image VU X e
-fromKernel' (Kernel m n v) = createImage create where
-  !(m2, n2) = (m `div` 2, n `div` 2)
-  create :: ST s (MImage s VU X e)
-  create = do
-    mImg <- new (m, n)
-    loopM_ 0 (<m) (+1) $ \ !i -> do
-      loopM_ 0 (<n) (+1) $ \ !j -> do
-        write mImg (i, j) 0
-    VU.forM_ v $ \ (i, j, x) -> write mImg (i + m2, j + n2) (PixelX x)
-    return mImg
-  {-# INLINEABLE create #-}
-{-# INLINE fromKernel' #-}
 
 
 -- | Correlate an image with a kernel. Border resolution technique is required.
-correlate :: Array arr cs e
+correlate :: I.Array arr cs e
           => Border (Pixel cs e) -> Image VU X e -> Image arr cs e -> Image arr cs e
-correlate !border !kernel !img =
+correlate !border !kernelImg !img =
   makeImageWindowed
     sz
     (kM2, kN2)
@@ -76,21 +79,34 @@ correlate !border !kernel !img =
   where
     !imgM = toManifest img
     !sz@(m, n) = dims img
-    (Kernel kM kN kernelV) = toKernel kernel
-    !(kM2, kN2) = (kM `div` 2, kN `div` 2)
-    !kLen = VU.length kernelV
-    getPxB = handleBorderIndex border sz (I.index imgM)
+    !kernel = ({-# CORE "toKernelFunc" #-} toKernel kernelImg)
+    !(kLen, kM2, kN2) =
+      case kernel of
+        Kernel1D Horizontal n2 v -> (VU.length v, 0, n2)
+        Kernel1D Vertical m2 v   -> (VU.length v, m2, 0)
+        Kernel2D m2 n2 v         -> (VU.length v, m2, n2)
+    getPxB = handleBorderIndex border sz (I.unsafeIndex imgM)
     {-# INLINE getPxB #-}
-    stencil getImgPx !(i, j) = integrate 0 0
-      where
-        integrate !k !acc
-          | k == kLen = acc
-          | otherwise =
-            let !(iDelta, jDelta, x) = VU.unsafeIndex kernelV k
-                !imgPx = getImgPx (i + iDelta, j + jDelta)
-            in integrate (k + 1) (acc + liftPx (x *) imgPx)
+    stencil = ({-# CORE "getStencilFunc" #-} getStencil kernel)
     {-# INLINE stencil #-}
+    getStencil (Kernel1D Horizontal _ kernelV) getImgPx !(i, j) =
+      loop 0 (/= kLen) (+ 1) 0 $ \ !k !acc ->
+        let !(jDelta, x) = VU.unsafeIndex kernelV k
+            !imgPx = getImgPx (i, j + jDelta)
+        in acc + liftPx (x *) imgPx
+    getStencil (Kernel1D Vertical _ kernelV) getImgPx !(i, j) =
+      loop 0 (/= kLen) (+ 1) 0 $ \ !k !acc ->
+        let !(iDelta, x) = VU.unsafeIndex kernelV k
+            !imgPx = getImgPx (i + iDelta, j)
+        in acc + liftPx (x *) imgPx
+    getStencil (Kernel2D _ _ kernelV) getImgPx !(i, j) =
+      loop 0 (/= kLen) (+ 1) 0 $ \ !k !acc ->
+        let !(iDelta, jDelta, x) = VU.unsafeIndex kernelV k
+            !imgPx = getImgPx (i + iDelta, j + jDelta)
+        in acc + liftPx (x *) imgPx
+    {-# INLINE getStencil #-}
 {-# INLINE correlate #-}
+
 
 
 -- | Convolution of an image using a kernel. Border resolution technique is required.

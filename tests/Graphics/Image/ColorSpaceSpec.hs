@@ -10,7 +10,7 @@ import           Test.Hspec
 import           Test.QuickCheck
 
 
-instance Arbitrary (Pixel Binary Bit) where
+instance Arbitrary (Pixel X Bit) where
   arbitrary = elements [on, off]
 
 -- | Generator for values in range @[0, 1]@
