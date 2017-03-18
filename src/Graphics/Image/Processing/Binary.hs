@@ -365,7 +365,7 @@ open :: Array arr X Bit =>
         Image VU X Bit -- ^ Structuring element.
      -> Image arr X Bit -- ^ Binary source image.
      -> Image arr X Bit
-open struc = dialate struc . erode struc
+open !struc = dialate struc . erode struc
 {-# INLINE open #-}
 
 
@@ -379,7 +379,6 @@ close :: Array arr X Bit =>
          Image VU X Bit -- ^ Structuring element.
       -> Image arr X Bit -- ^ Binary source image.
       -> Image arr X Bit
-close struc = erode struc . dialate struc
+close !struc = erode struc . dialate struc
 {-# INLINE close #-}
-
 

@@ -21,6 +21,7 @@ module Graphics.Image.Interface.Vector.Unboxed (
   VU(..), VU.Unbox, Image(..)
   ) where
 
+import           Control.DeepSeq                          (deepseq)
 import           Prelude                                  hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import           Data.Functor
@@ -43,9 +44,9 @@ instance SuperClass VU cs e => BaseArray VU cs e where
   type SuperClass VU cs e =
     (ColorSpace cs e, VU.Unbox (Components cs e))
 
-  newtype Image VU cs e = VUImage (Image (G VU) cs e)
+  newtype Image VU cs e = VUImage (VGImage VU.Vector (Pixel cs e))
 
-  dims (VUImage img) = dims img
+  dims (VUImage img) = dimsVG img
   {-# INLINE dims #-}
 
 
@@ -56,120 +57,119 @@ instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
 
   type Vector VU = VU.Vector
 
-  makeImage !sh = VUImage . makeImage sh
+  makeImage !sh = VUImage . makeImageVG sh
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sh !wIx !wSz f g = VUImage $ makeImageWindowed sh wIx wSz f g
+  makeImageWindowed !sh !wIx !wSz f g = VUImage $ makeImageWindowedVG sh wIx wSz f g
   {-# INLINE makeImageWindowed #-}
 
-  scalar = VUImage . scalar
+  scalar = VUImage . scalarVG
   {-# INLINE scalar #-}
 
-  index00 (VUImage img) = index00 img
+  index00 (VUImage img) = index00VG img
   {-# INLINE index00 #-}
 
-  map f (VUImage img) = VUImage $ I.map f img
+  map f (VUImage img) = VUImage $ mapVG f img
   {-# INLINE map #-}
 
-  imap f (VUImage img) = VUImage $ I.imap f img
+  imap f (VUImage img) = VUImage $ imapVG f img
   {-# INLINE imap #-}
 
-  zipWith f (VUImage img1) (VUImage img2) = VUImage $ I.zipWith f img1 img2
+  zipWith f (VUImage img1) (VUImage img2) = VUImage $ zipWithVG f img1 img2
   {-# INLINE zipWith #-}
 
-  izipWith f (VUImage img1) (VUImage img2) = VUImage $ I.izipWith f img1 img2
+  izipWith f (VUImage img1) (VUImage img2) = VUImage $ izipWithVG f img1 img2
   {-# INLINE izipWith #-}
 
-  traverse (VUImage img) f g = VUImage $ I.traverse img f g
+  traverse (VUImage img) f g = VUImage $ traverseVG img f g
   {-# INLINE traverse #-}
 
-  traverse2 (VUImage img1) (VUImage img2) f g = VUImage $ I.traverse2 img1 img2 f g
+  traverse2 (VUImage img1) (VUImage img2) f g = VUImage $ traverse2VG img1 img2 f g
   {-# INLINE traverse2 #-}
 
-  transpose (VUImage img) = VUImage $ I.transpose img
+  transpose (VUImage img) = VUImage $ transposeVG img
   {-# INLINE transpose #-}
 
-  backpermute !sz f (VUImage img) = VUImage $ I.backpermute sz f img
+  backpermute !sz f (VUImage img) = VUImage $ backpermuteVG sz f img
   {-# INLINE backpermute #-}
 
-  fromLists = VUImage . I.fromLists
+  fromLists = VUImage . fromListsVG
   {-# NOINLINE fromLists #-}
 
-  fold f !px0 (VUImage img) = fold f px0 img
+  fold f !px0 (VUImage img) = foldlVG f px0 img
   {-# INLINE fold #-}
 
-  foldIx f !px0 (VUImage img) = foldIx f px0 img
+  foldIx f !px0 (VUImage img) = ifoldlVG f px0 img
   {-# INLINE foldIx #-}
 
-  (|*|) (VUImage img1) (VUImage img2) = VUImage (img1 |*| img2)
+  (|*|) (VUImage img1) (VUImage img2) = VUImage (multVG img1 img2)
   {-# INLINE (|*|) #-}
 
   eq (VUImage img1) (VUImage img2) = img1 == img2
   {-# INLINE eq #-}
 
-  compute (VUImage img) = VUImage (compute img)
+  compute (VUImage img) = img `deepseq` VUImage img
   {-# INLINE compute #-}
 
   toManifest = id
   {-# INLINE toManifest #-}
 
-  toVector (VUImage (VImage _ _ v)) = v
-  toVector (VUImage (VScalar px))   = VU.singleton px
+  toVector (VUImage img) = toVectorVG img
   {-# INLINE toVector #-}
 
-  fromVector !sz = VUImage . fromVector sz
+  fromVector !sz = VUImage . fromVectorVG sz
   {-# INLINE fromVector #-}
 
 
 instance BaseArray VU cs e => MArray VU cs e where
 
-  newtype MImage s VU cs e = MVUImage (MImage s (G VU) cs e)
+  newtype MImage s VU cs e = MVUImage (MVGImage s VU.Vector (Pixel cs e))
 
-  unsafeIndex (VUImage img) = unsafeIndex img
+  unsafeIndex (VUImage img) = unsafeIndexVG img
   {-# INLINE unsafeIndex #-}
 
-  deepSeqImage (VUImage img) = deepSeqImage img
+  deepSeqImage (VUImage img) = deepseq img
   {-# INLINE deepSeqImage #-}
 
-  foldl f !px0 (VUImage img) = I.foldl f px0 img
+  foldl f !px0 (VUImage img) = foldlVG f px0 img
   {-# INLINE foldl #-}
 
-  foldr f !px0 (VUImage img) = I.foldr f px0 img
+  foldr f !px0 (VUImage img) = foldrVG f px0 img
   {-# INLINE foldr #-}
 
-  makeImageM !sh f = VUImage <$> makeImageM sh f
+  makeImageM !sh f = VUImage <$> makeImageMVG sh f
   {-# INLINE makeImageM #-}
 
-  mapM f (VUImage img) = VUImage <$> I.mapM f img
+  mapM f (VUImage img) = VUImage <$> mapMVG f img
   {-# INLINE mapM #-}
 
-  mapM_ f (VUImage img) = I.mapM_ f img
+  mapM_ f (VUImage img) = mapM_VG f img
   {-# INLINE mapM_ #-}
 
-  foldM f !px0 (VUImage img) = I.foldM f px0 img
+  foldM f !px0 (VUImage img) = foldMVG f px0 img
   {-# INLINE foldM #-}
 
-  foldM_ f !px0 (VUImage img) = I.foldM_ f px0 img
+  foldM_ f !px0 (VUImage img) = foldM_VG f px0 img
   {-# INLINE foldM_ #-}
 
-  mdims (MVUImage mimg) = mdims mimg
+  mdims (MVUImage mimg) = mdimsVG mimg
   {-# INLINE mdims #-}
 
-  thaw (VUImage img) = MVUImage <$> I.thaw img
+  thaw (VUImage img) = MVUImage <$> thawVG img
   {-# INLINE thaw #-}
 
-  freeze (MVUImage img) = VUImage <$> I.freeze img
+  freeze (MVUImage img) = VUImage <$> freezeVG img
   {-# INLINE freeze #-}
 
-  new !ix = MVUImage <$> I.new ix
+  new !ix = MVUImage <$> newVG ix
   {-# INLINE new #-}
 
-  read (MVUImage img) = I.read img
+  read (MVUImage img) = readVG img
   {-# INLINE read #-}
 
-  write (MVUImage img) = I.write img
+  write (MVUImage img) = writeVG img
   {-# INLINE write #-}
 
-  swap (MVUImage img) = I.swap img
+  swap (MVUImage img) = swapVG img
   {-# INLINE swap #-}
 

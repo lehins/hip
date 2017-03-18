@@ -85,13 +85,28 @@ gaussianBlur !sigma = gaussianLowPass (ceiling (2*sigma)) sigma Edge
 sobelFilter :: Array arr cs e =>
                Direction -> Border (Pixel cs e) -> Filter arr cs e
 sobelFilter dir !border =
-  Filter (convolveCols border cV . convolveRows border rV)
+  Filter (correlate border kernel)
   where
-    !(rV, cV) =
+    !kernel =
       case dir of
-        Vertical   -> ([1, 2, 1], [1, 0, -1])
-        Horizontal -> ([1, 0, -1], [1, 2, 1])
+        Vertical   -> fromLists $ [ [ -1, -2, -1 ]
+                                  , [  0,  0,  0 ]
+                                  , [  1,  2,  1 ] ]
+        Horizontal -> fromLists $ [ [ -1, 0, 1 ]
+                                  , [ -2, 0, 1 ]
+                                  , [ -1, 0, 1 ] ]
 {-# INLINE sobelFilter #-}
+
+-- sobelFilter :: Array arr cs e =>
+--                Direction -> Border (Pixel cs e) -> Filter arr cs e
+-- sobelFilter dir !border =
+--   Filter (convolveCols border cV . convolveRows border rV)
+--   where
+--     !(rV, cV) =
+--       case dir of
+--         Vertical   -> ([1, 2, 1], [1, 0, -1])
+--         Horizontal -> ([1, 0, -1], [1, 2, 1])
+-- {-# INLINE sobelFilter #-}
 
 
 sobelOperator :: (Array arr cs e, Floating e) => Image arr cs e -> Image arr cs e

@@ -61,24 +61,31 @@ sobelGxR = mapStencil2 BoundClamp stencil
                       Z :.  1 :.  1 -> Just 1
                       _             -> Nothing)
 
-force
+forceP
   :: (Load r1 sh e, Unbox e, Monad m)
   => R.Array r1 sh e -> m (R.Array U sh e)
-force arr = do
+forceP !arr = do
     forcedArr <- computeUnboxedP arr
+    forcedArr `deepSeqArray` return forcedArr
+
+forceS
+  :: (Load r1 sh e, Unbox e, Monad m)
+  => R.Array r1 sh e -> m (R.Array U sh e)
+forceS !arr = do
+    forcedArr <- return $ computeS arr
     forcedArr `deepSeqArray` return forcedArr
 
 
 
 main :: IO ()
 main = do
-  let !imgU = compute $ makeImage (600, 600)
+  let !imgU = compute $ makeImage (1600, 1600)
               (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j )))
               :: Image RPU Y Double
   let !imgU' =
         compute $
         makeImage
-          (600, 600)
+          (1600, 1600)
           (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Double
   let !sobelFSep = applyFilter (sobelFilter Horizontal Edge) imgU
   let !sobelFSep' = applyFilter (sobelFilter Horizontal Edge)
@@ -93,9 +100,9 @@ main = do
         "Sobel"
         [
         --   bench "naive U" $ whnf compute sobelU
-          bench "separated U" $ whnf compute sobelFSep
-        , bench "repa U Stencil" $ whnfIO (force sobelR)
-        , bench "Filter Sep VU" $ whnf sobelFSep' imgU'
-        , bench "repa U Agorithms Separated" $ whnfIO sobelRAlgSep
+          bench "repa R Stencil" $ whnfIO (forceP sobelR)
+        , bench "Filter R" $ whnf compute sobelFSep
+        , bench "Filter VU" $ whnf sobelFSep' imgU'
+        , bench "repa R Agorithms Separated" $ whnfIO sobelRAlgSep
         ]
     ]

@@ -12,8 +12,8 @@ module Graphics.Image.Utils
   , loopM_
   , (.:)
   , (.:!)
+  , swapIx
   ) where
-
 
 -- | Boob operator: @((.).(.))@
 (.:) :: (a -> b) -> (c -> d -> a) -> (c -> d -> b)
@@ -45,4 +45,8 @@ loopM_ !init' condition increment f = go init' where
       True  -> f step >> go (increment step)
 {-# INLINE loopM_ #-}
 
+
+swapIx :: (a, b) -> (b, a)
+swapIx !(i, j) = (j, i)
+{-# INLINE swapIx #-}
 

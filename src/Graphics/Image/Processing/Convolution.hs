@@ -39,7 +39,7 @@ data Kernel e
              {-# UNPACK #-} !Int
              !(VU.Vector (Int, Int, e)) deriving Show
 
-toKernel :: I.Array VU X e => Image VU X e -> Kernel e
+toKernel :: Elevator e => Image VU X e -> Kernel e
 toKernel !img =
   case dims img of
     (1, n) ->
@@ -67,28 +67,24 @@ toKernel !img =
 
 
 -- | Correlate an image with a kernel. Border resolution technique is required.
-correlate :: I.Array arr cs e
+correlate :: Array arr cs e
           => Border (Pixel cs e) -> Image VU X e -> Image arr cs e -> Image arr cs e
 correlate !border !kernelImg !img =
   makeImageWindowed
     sz
     (kM2, kN2)
     (m - kM2 * 2, n - kN2 * 2)
-    (stencil (I.unsafeIndex imgM))
-    (stencil getPxB)
+    (getStencil kernel (I.unsafeIndex imgM))
+    (getStencil kernel (borderIndex border imgM))
   where
     !imgM = toManifest img
     !sz@(m, n) = dims img
-    !kernel = ({-# CORE "toKernelFunc" #-} toKernel kernelImg)
+    !kernel = toKernel kernelImg
     !(kLen, kM2, kN2) =
       case kernel of
         Kernel1D Horizontal n2 v -> (VU.length v, 0, n2)
         Kernel1D Vertical m2 v   -> (VU.length v, m2, 0)
         Kernel2D m2 n2 v         -> (VU.length v, m2, n2)
-    getPxB = handleBorderIndex border sz (I.unsafeIndex imgM)
-    {-# INLINE getPxB #-}
-    stencil = ({-# CORE "getStencilFunc" #-} getStencil kernel)
-    {-# INLINE stencil #-}
     getStencil (Kernel1D Horizontal _ kernelV) getImgPx !(i, j) =
       loop 0 (/= kLen) (+ 1) 0 $ \ !k !acc ->
         let !(jDelta, x) = VU.unsafeIndex kernelV k
@@ -106,7 +102,6 @@ correlate !border !kernelImg !img =
         in acc + liftPx (x *) imgPx
     {-# INLINE getStencil #-}
 {-# INLINE correlate #-}
-
 
 
 -- | Convolution of an image using a kernel. Border resolution technique is required.

@@ -1,15 +1,11 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE CPP                   #-}
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE ViewPatterns          #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector.Generic
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -18,268 +14,482 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Vector.Generic (
-  G(..), Image(..), fromVector
-  ) where
+module Graphics.Image.Interface.Vector.Generic
+  ( VGImage
+  , MVGImage
+  , makeImageVG
+  , dimsVG
+  , scalarVG
+  , index00VG
+  , makeImageWindowedVG
+  , mapVG
+  , imapVG
+  , zipWithVG
+  , izipWithVG
+  , unsafeTraverseVG
+  , traverseVG
+  , unsafeTraverse2VG
+  , traverse2VG
+  , transposeVG
+  , unsafeBackpermuteVG
+  , backpermuteVG
+  , fromListsVG
+  , foldlVG
+  , foldrVG
+  , ifoldlVG
+  , toVectorVG
+  , fromVectorVG
+  , multVG
+  , unsafeIndexVG
+  , makeImageMVG
+  , mapMVG
+  , mapM_VG
+  , foldMVG
+  , foldM_VG
+  , mdimsVG
+  , thawVG
+  , freezeVG
+  , newVG
+  , readVG
+  , writeVG
+  , swapVG
+  )
+where
 
-import           Control.DeepSeq             (NFData, deepseq)
-import           Control.Monad
-import           Control.Monad.ST
+import           Control.DeepSeq             (NFData (rnf))
+import           Control.Monad               (when)
+import           Control.Monad.Primitive     (PrimMonad, PrimState)
+import           Control.Monad.ST            (ST)
 import           Prelude                     hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import           Data.Functor
 #endif
-import           Data.Primitive.MutVar
-import           Data.Typeable               (Typeable)
+import           Data.Maybe                  (listToMaybe)
 import qualified Data.Vector.Generic         as VG
 import qualified Data.Vector.Generic.Mutable as MVG
-import           Graphics.Image.Interface    as I
-import           Graphics.Image.Utils        (loopM_)
-
--- | Generic 'Vector' representation.
-data G r = G r deriving Typeable
+import           Graphics.Image.Interface    (checkDims, fromIx,
+                                              handleBorderIndex, toIx)
+import           Graphics.Image.Utils        (loopM_, swapIx)
 
 
-instance Show r => Show (G r) where
-  show (G r) = "Vector " ++ show r
+data VGImage v p =
+  VGImage {-# UNPACK #-}!Int
+          {-# UNPACK #-}!Int
+          !(v p)
 
-instance SuperClass (G r) cs e => BaseArray (G r) cs e where
-  type SuperClass (G r) cs e =
-    (Typeable r, ColorSpace cs e,
-     VG.Vector (Vector r) Int, VG.Vector (Vector r) Bool,
-     VG.Vector (Vector r) (Pixel cs e), NFData ((Vector r) (Pixel cs e)))
+instance NFData (v p) => NFData (VGImage v p) where
+  rnf (VGImage _ _ v) = rnf v
+  {-# INLINE rnf #-}
 
-  data Image (G r) cs e = VScalar !(Pixel cs e)
-                        | VImage {-# UNPACK #-} !Int
-                                 {-# UNPACK #-} !Int
-                                 !((Vector (G r)) (Pixel cs e))
+instance Eq (v p) => Eq (VGImage v p) where
+  (VGImage _ _ v1) == (VGImage _ _ v2) = v1 == v2
+  {-# INLINE (==) #-}
 
-  dims (VImage m n _) = (m, n)
-  dims (VScalar _)    = (1, 1)
-  {-# INLINE dims #-}
+makeImageVG :: VG.Vector v p =>
+               (Int, Int) -> ((Int, Int) -> p) -> VGImage v p
+makeImageVG !sz f =
+  let !(m, n) = checkDimsVG "makeImageVGM" sz in
+    VGImage m n $ VG.generate (m * n) (f . toIx n)
+{-# INLINE makeImageVG #-}
 
-
-instance (VG.Vector (Vector r) (Pixel cs e),
-          MArray (G r) cs e, BaseArray (G r) cs e) => Array (G r) cs e where
-
-  type Manifest (G r) = G r
-
-  type Vector (G r) = Vector r
-
-  makeImage !(checkDims "(G r).makeImage" -> (m, n)) f =
-    VImage m n $ VG.generate (m * n) (f . toIx n)
-  {-# INLINE makeImage #-}
-
-  makeImageWindowed !sz !(it, jt) !(wm, wn) getWindowPx getBorderPx =
-    fromVector (m, n) $ VG.create generate
-    where
-      !(ib, jb) = (wm + it, wn + jt)
-      !(m, n) = checkDims "(G r).makeImageWindowed - image size: " sz
-      !_ = checkDims "(G r).makeImageWindowed - window size: " (wm, wn)
-      generate :: ST s ((VG.Mutable (Vector (G r))) s (Pixel cs e))
-      generate = do
-        when (it < 0 || it >= ib || jt < 0 || jt >= jb || ib > m || jb > n) $
-          error ("Window index is outside the image dimensions. window start: " ++
-                 show (it, jt) ++ " window size: " ++
-                 show (wm, wn) ++ " image dimensions: " ++ show (m, n))
-        mv <- MVG.unsafeNew (m * n)
-        loopM_ 0 (< n) (+ 1) $ \ !j -> do
-          loopM_ 0 (< it) (+ 1) $ \ !i -> do
-            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-          loopM_ ib (< m) (+ 1) $ \ !i -> do
-            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-        loopM_ it (< ib) (+ 1) $ \ !i -> do
-          loopM_ 0 (< jt) (+ 1) $ \ !j -> do
-            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-          loopM_ jt (< jb) (+ 1) $ \ !j -> do
-            MVG.unsafeWrite mv (fromIx n (i, j)) (getWindowPx (i, j))
-          loopM_ jb (< n) (+ 1) $ \ !j -> do
-            MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-        return mv
-      {-# INLINE generate #-}
-  {-# INLINE makeImageWindowed #-}
-
-  scalar = VScalar
-  {-# INLINE scalar #-}
-
-  index00 (VScalar px)   = px
-  index00 (VImage _ _ v) = v VG.! 0
-  {-# INLINE index00 #-}
-
-  map f (VScalar px)   = VScalar (f px)
-  map f (VImage m n v) = VImage m n (VG.map f v)
-  {-# INLINE map #-}
-
-  imap f (VScalar px)   = VScalar (f (0, 0) px)
-  imap f (VImage m n v) = VImage m n (VG.imap (\ !k !px -> f (toIx n k) px) v)
-  {-# INLINE imap #-}
-
-  zipWith f (VScalar px1) (VScalar px2)    = VScalar (f px1 px2)
-  zipWith f (VScalar px1) (VImage m n v2) = VImage m n (VG.map (f px1) v2)
-  zipWith f (VImage m n v1) (VScalar px2) = VImage m n (VG.map (`f` px2) v1)
-  zipWith f img1@(VImage m1 n1 v1) img2@(VImage m2 n2 v2) =
-    if m1 /= m2 || n1 /= n2
-    then error ("zipWith: Images must be of the same dimensions, received: "++
-                show img1++" and "++show img2++".")
-    else VImage m1 n1 (VG.zipWith f v1 v2)
-  {-# INLINE zipWith #-}
-
-  izipWith f (VScalar px1) (VScalar px2)    = VScalar (f (0, 0) px1 px2)
-  izipWith f (VScalar px1) (VImage m n v2) =
-    VImage m n (VG.imap (\ !k !px2 -> f (toIx n k) px1 px2) v2)
-  izipWith f (VImage m n v1) (VScalar px2) =
-    VImage m n (VG.imap (\ !k !px1 -> f (toIx n k) px1 px2) v1)
-  izipWith f img1@(VImage m1 n1 v1) img2@(VImage m2 n2 v2) =
-    if m1 /= m2 || n1 /= n2
-    then error ("izipWith: Images must be of the same dimensions, received: "++
-                show img1++" and "++show img2++".")
-    else VImage m1 n1 (VG.izipWith (\ !k !px1 !px2 -> f (toIx n1 k) px1 px2) v1 v2)
-  {-# INLINE izipWith #-}
-
-  traverse !img getNewDims getNewPx = makeImage (getNewDims (dims img)) (getNewPx (index img))
-  {-# INLINE traverse #-}
-
-  traverse2 !img1 !img2 getNewDims getNewPx =
-    makeImage (getNewDims (dims img1) (dims img2)) (getNewPx (index img1) (index img2))
-  {-# INLINE traverse2 #-}
-
-  -- TODO: switch directly to VG.unsafeBackpermute (no need to check ixs)
-  transpose !img = backpermute (n, m) movePx img where
-    !(m, n) = dims img
-    movePx !(i, j) = (j, i)
-    {-# INLINE movePx #-}
-  {-# INLINE transpose #-}
-
-  -- TODO: add index verification and switch to VG.unsafeBackpermute
-  backpermute !(checkDims "(G r).backpermute" -> (m, n)) !f (VImage _ n' v) =
-    VImage m n $ VG.backpermute v $ VG.generate (m*n) (fromIx n' . f . toIx n)
-  backpermute !sz _ (VScalar px) = makeImage sz (const px)
-  {-# INLINE backpermute #-}
-
-  fromLists !ls = if all (== n) (fmap length ls)
-                  then VImage m n . VG.fromList . concat $ ls
-                  else error "fromLists: Inner lists are of different lengths."
-    where
-      !(m, n) = checkDims "(G r).fromLists" (length ls, length $ head ls)
-  {-# NOINLINE fromLists #-}
-
-  fold !f !px0 (VImage _ _ v) = VG.foldl' f px0 v
-  fold !f !px0 (VScalar px)   = f px0 px
-  {-# INLINE fold #-}
-
-  foldIx !f !px0 (VImage _ n v) = VG.ifoldl' f' px0 v where
-    f' !acc !k !px = f acc (toIx n k) px
-  foldIx !f !px0 (VScalar px)    = f px0 (0,0) px
-  {-# INLINE foldIx #-}
-
-  (|*|) img1@(VImage m1 n1 v1) !img2@VImage {} =
-    if n1 /= m2
-    then error ("Inner dimensions of multiplying images must be the same, but received: "++
-                show img1 ++" X "++ show img2)
-    else
-      makeImage (m1, n2) getPx where
-        VImage n2 m2 v2 = transpose img2
-        getPx !(i, j) = VG.sum $ VG.zipWith (*) (VG.slice (i*n1) n1 v1) (VG.slice (j*m2) m2 v2)
-        {-# INLINE getPx #-}
-  (|*|) (VScalar px1) (VScalar px2) = VScalar (px1 * px2)
-  (|*|) _ _ = error "Scalar Images cannot be multiplied."
-  {-# INLINE (|*|) #-}
-
-  eq (VImage m1 n1 v1) (VImage m2 n2 v2) =
-    m1 == m2 && n1 == n2 && VG.all id (VG.zipWith (==) v1 v2)
-  eq (VScalar px1)           (VScalar px2) = px1 == px2
-  eq (VImage 1 1 v1) (VScalar px2) = v1 VG.! 0 == px2
-  eq (VScalar px1) (VImage 1 1 v2) = v2 VG.! 0 == px1
-  eq _ _ = False
-  {-# INLINE eq #-}
-
-  compute (VImage m n v) = v `deepseq` (VImage m n v)
-  compute (VScalar px)   = px `seq` (VScalar px)
-  {-# INLINE compute #-}
-
-  toManifest = id
-  {-# INLINE toManifest #-}
-
-  toVector (VImage _ _ v) = VG.convert v
-  toVector (VScalar px)   = VG.singleton px
-  {-# INLINE[1] toVector #-}
-
-  fromVector !(m, n) !v
-    | m * n /= VG.length v =
-       error $ "fromVector: m * n doesn't equal the length of a Vector: " ++
-               show m ++ " * " ++ show n ++ " /= " ++ show (VG.length v)
-    | m == 1 && n == 1     = VScalar (VG.unsafeIndex v 0)
-    | otherwise            = VImage m n v
-  {-# INLINE fromVector #-}
-
-instance (BaseArray (G r) cs e) => MArray (G r) cs e where
-
-  data MImage s (G r) cs e = MVImage !Int !Int ((VG.Mutable (Vector (G r))) s (Pixel cs e))
-                            | MVScalar (MutVar s (Pixel cs e))
-
-  unsafeIndex (VImage _ n v) !ix = VG.unsafeIndex v (fromIx n ix)
-  unsafeIndex (VScalar px)     _ = px
-  {-# INLINE unsafeIndex #-}
-
-  deepSeqImage (VImage _ _ v) = deepseq v
-  deepSeqImage (VScalar px)   = seq px
-  {-# INLINE deepSeqImage #-}
-
-  foldl f !a (VImage _ _ v) = VG.foldl' f a v
-  foldl f !a (VScalar px)   = f a px
-
-  foldr f !a (VImage _ _ v) = VG.foldr' f a v
-  foldr f !a (VScalar px)   = f px a
-  {-# INLINE foldr #-}
-
-  makeImageM !(checkDims "(G r).makeImageM" -> (m, n)) !f =
-    VImage m n <$> VG.generateM (m * n) (f . toIx n)
-  {-# INLINE makeImageM #-}
-
-  mapM f (VImage m n v) = VImage m n <$> VG.mapM f v
-  mapM f (VScalar px)   = VScalar <$> f px
-  {-# INLINE mapM #-}
-
-  mapM_ f (VImage _ _ v) = VG.mapM_ f v
-  mapM_ f (VScalar px)   = void $ f px
-  {-# INLINE mapM_ #-}
-
-  foldM f !a (VImage _ _ v) = VG.foldM' f a v
-  foldM f !a (VScalar px)   = f a px
-  {-# INLINE foldM #-}
-
-  foldM_ f !a (VImage _ _ v) = VG.foldM'_ f a v
-  foldM_ f !a (VScalar px)   = void $ f a px
-  {-# INLINE foldM_ #-}
+dimsVG :: VGImage v p -> (Int, Int)
+dimsVG (VGImage m n _) = (m, n)
+{-# INLINE dimsVG #-}
 
 
-  mdims (MVImage m n _) = (m, n)
-  mdims (MVScalar _)    = (1, 1)
-  {-# INLINE mdims #-}
+scalarVG :: VG.Vector v p => p -> VGImage v p
+scalarVG = makeImageVG (1,1) . const
+{-# INLINE scalarVG #-}
 
-  thaw (VImage m n v) = MVImage m n <$> VG.thaw v
-  thaw (VScalar px)   = MVScalar <$> newMutVar px
-  {-# INLINE thaw #-}
+index00VG :: VG.Vector v p => VGImage v p -> p
+index00VG (VGImage _ _ v) = v VG.! 0
+{-# INLINE index00VG #-}
 
-  freeze (MVImage m n mv) = VImage m n <$> VG.freeze mv
-  freeze (MVScalar mpx)   = VScalar <$> readMutVar mpx
-  {-# INLINE freeze #-}
+-- makeImageVG
+--   :: forall v p.
+--      VG.Vector v p
+--   => (Int, Int)
+--   -> ((Int, Int) -> p)
+--   -> VGImage v p
+-- makeImageVG !sz getPx =
+--   VGImage m n $ VG.create generateImage
+--   where
+--     !(m, n) = checkDimsVG "makeImageVG" sz
+--     generateImage :: ST s ((VG.Mutable v) s p)
+--     generateImage = do
+--       mv <- MVG.unsafeNew (m * n)
+--       loopM_ 0 (< m) (+ 1) $ \ !i -> do
+--         loopM_ 0 (< n) (+ 1) $ \ !j -> do
+--           MVG.unsafeWrite mv (fromIx n (i, j)) (getPx (i, j))
+--       return mv
+--     {-# INLINE generateImage #-}
+-- {-# INLINE makeImageVG #-}
 
-  new (m, n) = MVImage m n <$> MVG.new (m*n)
-  {-# INLINE new #-}
 
-  read (MVImage _ n mv) !ix = MVG.read mv (fromIx n ix)
-  read (MVScalar mpx)   !ix = do
-    unless ((0, 0) == ix) $ error $ "Index out of bounds: " ++ show ix
-    readMutVar mpx
-  {-# INLINE read #-}
+makeImageWindowedVG
+  :: forall v p.
+     VG.Vector v p
+  => (Int, Int)
+  -> (Int, Int)
+  -> (Int, Int)
+  -> ((Int, Int) -> p)
+  -> ((Int, Int) -> p)
+  -> VGImage v p
+makeImageWindowedVG !sz !(it, jt) !(wm, wn) getWindowPx getBorderPx =
+  VGImage m n $ VG.create generate
+  where
+    !(ib, jb) = (wm + it, wn + jt)
+    !(m, n) = checkDimsVG "makeImageWindowedVG" sz
+    !_ = checkDimsVG "makeImageWindowedVG (window size)" (wm, wn)
+    generate :: ST s ((VG.Mutable v) s p)
+    generate = do
+      when (it < 0 || it >= ib || jt < 0 || jt >= jb || ib > m || jb > n) $
+        error
+          ("Window index is outside the image dimensions. window start: " ++
+           show (it, jt) ++
+           " window size: " ++
+           show (wm, wn) ++ " image dimensions: " ++ show (m, n))
+      mv <- MVG.unsafeNew (m * n)
+      loopM_ 0 (< n) (+ 1) $ \ !j -> do
+        loopM_ 0 (< it) (+ 1) $ \ !i -> do
+          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+        loopM_ ib (< m) (+ 1) $ \ !i -> do
+          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+      loopM_ it (< ib) (+ 1) $ \ !i -> do
+        loopM_ 0 (< jt) (+ 1) $ \ !j -> do
+          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+        loopM_ jt (< jb) (+ 1) $ \ !j -> do
+          MVG.unsafeWrite mv (fromIx n (i, j)) (getWindowPx (i, j))
+        loopM_ jb (< n) (+ 1) $ \ !j -> do
+          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+      return mv
+    {-# INLINE generate #-}
+{-# INLINE makeImageWindowedVG #-}
 
-  write (MVImage _ n mv) !ix !px = MVG.write mv (fromIx n ix) px
-  write (MVScalar mv)    !ix !px = do
-    unless ((0, 0) == ix) $ error $ "Index out of bounds: " ++ show ix
-    writeMutVar mv px
-  {-# INLINE write #-}
 
-  swap (MVImage _ n mv) !ix1 !ix2 = MVG.swap mv (fromIx n ix1) (fromIx n ix2)
-  swap _                _    _    = return ()
-  {-# INLINE swap #-}
+
+
+mapVG :: (VG.Vector v p1, VG.Vector v p)
+      => (p1 -> p) -> VGImage v p1 -> VGImage v p
+mapVG f (VGImage m n v) = VGImage m n (VG.map f v)
+{-# INLINE mapVG #-}
+
+imapVG :: (VG.Vector v p1, VG.Vector v p)
+       => ((Int, Int) -> p1 -> p) -> VGImage v p1 -> VGImage v p
+imapVG f (VGImage m n v) = VGImage m n (VG.imap (\ !k !px -> f (toIx n k) px) v)
+{-# INLINE imapVG #-}
+
+zipWithVG
+  :: ( VG.Vector v p1
+     , VG.Vector v p2
+     , VG.Vector v p
+     )
+  => (p1 -> p2 -> p)
+  -> VGImage v p1
+  -> VGImage v p2
+  -> VGImage v p
+zipWithVG f (VGImage 1 1 v1) (VGImage m n v2) =
+  let !px1 = VG.unsafeIndex v1 0
+  in VGImage m n (VG.map (f px1) v2)
+zipWithVG f (VGImage m n v1) (VGImage 1 1 v2) =
+  let !px2 = VG.unsafeIndex v2 0
+  in VGImage m n (VG.map (`f` px2) v1)
+zipWithVG f (VGImage m1 n1 v1) (VGImage m2 n2 v2) =
+  if m1 == m2 || n1 == n2
+    then VGImage m1 n1 (VG.zipWith f v1 v2)
+    else let !(m, n) = (min m1 m2, min n1 n2)
+             getPx !k =
+               let !ix = toIx n k
+                   !px1 = VG.unsafeIndex v1 (fromIx n1 ix)
+                   !px2 = VG.unsafeIndex v2 (fromIx n2 ix)
+               in f px1 px2
+         in VGImage m n $ VG.generate (m * n) getPx
+{-# INLINE zipWithVG #-}
+
+
+izipWithVG
+  :: (VG.Vector v p1, VG.Vector v p2, VG.Vector v p)
+  => ((Int, Int) -> p1 -> p2 -> p)
+  -> VGImage v p1
+  -> VGImage v p2
+  -> VGImage v p
+izipWithVG f (VGImage 1 1 v1) (VGImage m n v2) =
+  let !px1 = VG.unsafeIndex v1 0
+  in VGImage m n (VG.imap (\ !k !px2 -> f (toIx n k) px1 px2) v2)
+izipWithVG f (VGImage m n v1) (VGImage 1 1 v2) =
+  let !px2 = VG.unsafeIndex v2 0
+  in VGImage m n (VG.imap (\ !k !px1 -> f (toIx n k) px1 px2) v1)
+izipWithVG f (VGImage m1 n1 v1) (VGImage m2 n2 v2) =
+  if m1 == m2 || n1 == n2
+    then VGImage m1 n1 (VG.izipWith (\ !k !px1 !px2 -> f (toIx n1 k) px1 px2) v1 v2)
+    else let !(m, n) = (min m1 m2, min n1 n2)
+             getPx !k =
+               let !ix = toIx n k
+                   !px1 = VG.unsafeIndex v1 (fromIx n1 ix)
+                   !px2 = VG.unsafeIndex v2 (fromIx n2 ix)
+               in f ix px1 px2
+         in VGImage m n $ VG.generate (m * n) getPx
+{-# INLINE izipWithVG #-}
+
+
+unsafeIndexV :: VG.Vector v a => Int -> v a -> (Int, Int) -> a
+unsafeIndexV !n !v !ix = let !k = fromIx n ix in VG.unsafeIndex v k
+{-# INLINE unsafeIndexV #-}
+
+indexV :: VG.Vector v p => (Int, Int) -> v p -> (Int, Int) -> p
+indexV !sz@(_, n) !v !ix =
+  handleBorderIndex
+    (errorVG "indexV" ("Index out of bounds <" ++ show sz ++ ">: " ++ show ix))
+    sz
+    (unsafeIndexV n v)
+    ix
+{-# INLINE indexV #-}
+
+
+
+unsafeTraverseVG
+  :: (VG.Vector v p1, VG.Vector v p)
+  => VGImage v p1
+  -> ((Int, Int) -> (Int, Int))
+  -> (((Int, Int) -> p1) -> (Int, Int) -> p)
+  -> VGImage v p
+unsafeTraverseVG (VGImage m n v) getNewDims getNewPx =
+  makeImageVG (getNewDims (m, n)) (getNewPx (unsafeIndexV n v))
+{-# INLINE unsafeTraverseVG #-}
+
+
+traverseVG
+  :: (VG.Vector v p1, VG.Vector v p)
+  => VGImage v p1
+  -> ((Int, Int) -> (Int, Int))
+  -> (((Int, Int) -> p1) -> (Int, Int) -> p)
+  -> VGImage v p
+traverseVG (VGImage m n v) getNewDims getNewPx =
+  makeImageVG (getNewDims (m, n)) (getNewPx (indexV (m, n) v))
+{-# INLINE traverseVG #-}
+
+
+unsafeTraverse2VG
+  :: (VG.Vector v p1, VG.Vector v p2, VG.Vector v p)
+  => VGImage v p1
+  -> VGImage v p2
+  -> ((Int, Int) -> (Int, Int) -> (Int, Int))
+  -> (((Int, Int) -> p1) -> ((Int, Int) -> p2) -> (Int, Int) -> p)
+  -> VGImage v p
+unsafeTraverse2VG (VGImage m1 n1 v1) (VGImage m2 n2 v2) getNewDims getNewPx =
+  makeImageVG
+    (getNewDims (m1, n1) (m2, n2))
+    (getNewPx (unsafeIndexV n1 v1) (unsafeIndexV n2 v2))
+{-# INLINE unsafeTraverse2VG #-}
+
+
+traverse2VG
+  :: (VG.Vector v p1, VG.Vector v p2, VG.Vector v p)
+  => VGImage v p1
+  -> VGImage v p2
+  -> ((Int, Int) -> (Int, Int) -> (Int, Int))
+  -> (((Int, Int) -> p1) -> ((Int, Int) -> p2) -> (Int, Int) -> p)
+  -> VGImage v p
+traverse2VG (VGImage m1 n1 v1) (VGImage m2 n2 v2) getNewDims getNewPx =
+  makeImageVG
+    (getNewDims (m1, n1) (m2, n2))
+    (getNewPx (indexV (m1, n1) v1) (indexV (m2, n2) v2))
+{-# INLINE traverse2VG #-}
+
+
+transposeVG :: (VG.Vector v Int, VG.Vector v p) =>
+               VGImage v p -> VGImage v p
+transposeVG (VGImage m n v) =
+  VGImage n m $ VG.unsafeBackpermute v $ VG.generate (m * n) (fromIx n . swapIx . toIx m)
+{-# INLINE transposeVG #-}
+
+backpermuteWithCheckVG
+  :: (VG.Vector v Int, VG.Vector v p)
+  => ((Int, Int) -> (Int, Int) -> (Int, Int))
+  -> (Int, Int)
+  -> ((Int, Int) -> (Int, Int))
+  -> VGImage v p
+  -> VGImage v p
+backpermuteWithCheckVG checkIx !sz f (VGImage m' n' v) =
+  let !(m, n) = checkDimsVG "backpermuteWithCheckVG" sz
+  in VGImage m n $
+     VG.unsafeBackpermute v $
+     VG.generate (m * n) (fromIx n' . checkIx (m', n') . f . toIx n)
+{-# INLINE backpermuteWithCheckVG #-}
+
+
+unsafeBackpermuteVG
+  :: (VG.Vector v Int, VG.Vector v p)
+  => (Int, Int)
+  -> ((Int, Int) -> (Int, Int))
+  -> VGImage v p
+  -> VGImage v p
+unsafeBackpermuteVG = backpermuteWithCheckVG (const id)
+{-# INLINE unsafeBackpermuteVG #-}
+
+
+backpermuteVG
+  :: (VG.Vector v Int, VG.Vector v p)
+  => (Int, Int)
+  -> ((Int, Int) -> (Int, Int))
+  -> VGImage v p
+  -> VGImage v p
+backpermuteVG =
+  backpermuteWithCheckVG $ \ !sz !ix ->
+    let err =
+          errorVG
+            "backpermuteVG"
+            ("Index out of bounds <" ++ show sz ++ ">: " ++ show ix)
+    in handleBorderIndex err sz id ix
+{-# INLINE backpermuteVG #-}
+
+
+fromListsVG :: VG.Vector v p => [[p]] -> VGImage v p
+fromListsVG !ls =
+  if all (== n) (fmap length ls)
+    then VGImage m n . VG.fromList . concat $ ls
+    else errorVG "fromListsVG" "Inner lists are of different lengths."
+  where
+    (m, n) =
+      checkDimsVG "fromListsVG" (length ls, maybe 0 length $ listToMaybe ls)
+{-# NOINLINE fromListsVG #-}
+
+foldlVG :: VG.Vector v p =>
+           (a -> p -> a) -> a -> VGImage v p -> a
+foldlVG !f !px0 (VGImage _ _ v) = VG.foldl' f px0 v
+{-# INLINE foldlVG #-}
+
+foldrVG :: VG.Vector v p =>
+           (p -> a -> a) -> a -> VGImage v p -> a
+foldrVG !f !px0 (VGImage _ _ v) = VG.foldr' f px0 v
+{-# INLINE foldrVG #-}
+
+
+ifoldlVG :: VG.Vector v p =>
+            (a -> (Int, Int) -> p -> a) -> a -> VGImage v p -> a
+ifoldlVG !f !px0 (VGImage _ n v) =
+  VG.ifoldl' (\ !acc !k -> f acc (toIx n k)) px0 v
+{-# INLINE ifoldlVG #-}
+
+
+toVectorVG :: (VG.Vector v p)
+           => VGImage v p -> v p
+toVectorVG (VGImage _ _ v) = v
+{-# INLINE toVectorVG #-}
+
+fromVectorVG :: VG.Vector v p =>
+                (Int, Int) -> v p -> VGImage v p
+fromVectorVG !(m, n) !v
+  | m * n == VG.length v = VGImage m n v
+  | otherwise =
+    errorVG "fromVectorVG" $
+    " image dimensions do not match the length of a vector: " ++
+    show m ++ " * " ++ show n ++ " /= " ++ show (VG.length v)
+{-# INLINE fromVectorVG #-}
+
+multVG :: ( VG.Vector v Int
+          , VG.Vector v p
+          , Num p
+          ) => VGImage v p -> VGImage v p -> VGImage v p
+multVG (VGImage m1 n1 v1) img2 =
+  if n1 /= m2
+    then errorVG "multVG" $
+         "Inner dimensions of images must agree, but received: " ++
+         show (m1, n1) ++ " X " ++ show (m2, n2)
+    else makeImageVG (m1, n2) getPx
+  where
+    VGImage n2 m2 v2 = transposeVG img2
+    getPx !(i, j) =
+      VG.sum $
+      VG.zipWith (*) (VG.slice (i * n1) n1 v1) (VG.slice (j * m2) m2 v2)
+    {-# INLINE getPx #-}
+{-# INLINE multVG #-}
+
+
+
+------ Manifest
+
+
+data MVGImage s v p = MVGImage !Int !Int (VG.Mutable v s p)
+
+
+unsafeIndexVG :: VG.Vector v p => VGImage v p -> (Int, Int) -> p
+unsafeIndexVG (VGImage _ n v) = VG.unsafeIndex v . fromIx n
+{-# INLINE unsafeIndexVG #-}
+
+
+makeImageMVG :: (Monad m, VG.Vector v p) =>
+                (Int, Int) -> ((Int, Int) -> m p) -> m (VGImage v p)
+makeImageMVG !sz !f =
+  let !(m, n) = checkDimsVG "makeImageMVG" sz in
+    VGImage m n <$> VG.generateM (m * n) (f . toIx n)
+{-# INLINE makeImageMVG #-}
+
+mapMVG
+  :: (Monad m, VG.Vector v a, VG.Vector v p) =>
+     (a -> m p) -> VGImage v a -> m (VGImage v p)
+mapMVG f (VGImage m n v) = VGImage m n <$> VG.mapM f v
+{-# INLINE mapMVG #-}
+
+mapM_VG
+  :: (Monad m, VG.Vector v a) => (a -> m b) -> VGImage v a -> m ()
+mapM_VG f (VGImage _ _ v) = VG.mapM_ f v
+{-# INLINE mapM_VG #-}
+
+foldMVG
+  :: (Monad m, VG.Vector v b) =>
+     (a -> b -> m a) -> a -> VGImage v b -> m a
+foldMVG f !a (VGImage _ _ v) = VG.foldM' f a v
+{-# INLINE foldMVG #-}
+
+foldM_VG
+  :: (Monad m, VG.Vector v b) =>
+     (a -> b -> m a) -> a -> VGImage v b -> m ()
+foldM_VG f !a (VGImage _ _ v) = VG.foldM'_ f a v
+{-# INLINE foldM_VG #-}
+
+
+mdimsVG :: MVGImage t2 t1 t -> (Int, Int)
+mdimsVG (MVGImage m n _) = (m, n)
+{-# INLINE mdimsVG #-}
+
+thawVG :: (VG.Mutable v1 ~ VG.Mutable v, PrimMonad f, VG.Vector v1 p) =>
+     VGImage v1 p -> f (MVGImage (PrimState f) v p)
+thawVG (VGImage m n v) = MVGImage m n <$> VG.thaw v
+{-# INLINE thawVG #-}
+
+freezeVG :: (VG.Mutable t ~ VG.Mutable v, PrimMonad f, VG.Vector v p) =>
+     MVGImage (PrimState f) t p -> f (VGImage v p)
+freezeVG (MVGImage m n mv) = VGImage m n <$> VG.freeze mv
+{-# INLINE freezeVG #-}
+
+newVG :: (PrimMonad f, MVG.MVector (VG.Mutable v) p) =>
+     (Int, Int) -> f (MVGImage (PrimState f) v p)
+newVG (m, n) = MVGImage m n <$> MVG.new (m*n)
+{-# INLINE newVG #-}
+
+readVG :: (PrimMonad m, MVG.MVector (VG.Mutable t) a) =>
+     MVGImage (PrimState m) t a -> (Int, Int) -> m a
+readVG (MVGImage _ n mv) !ix = MVG.read mv (fromIx n ix)
+{-# INLINE readVG #-}
+
+writeVG :: (PrimMonad m, MVG.MVector (VG.Mutable t) a) =>
+     MVGImage (PrimState m) t a -> (Int, Int) -> a -> m ()
+writeVG (MVGImage _ n mv) !ix !px = MVG.write mv (fromIx n ix) px
+{-# INLINE writeVG #-}
+
+swapVG :: (PrimMonad m, MVG.MVector (VG.Mutable v) p) =>
+           MVGImage (PrimState m) v p -> (Int, Int) -> (Int, Int) -> m ()
+swapVG (MVGImage _ n mv) !ix1 !ix2 = MVG.swap mv (fromIx n ix1) (fromIx n ix2)
+{-# INLINE swapVG #-}
+
+
+errorVG :: String -> String -> a
+errorVG fName errMsg =
+  error $ "Graphics.Image.Interface.Vector.Generic." ++ fName ++ ": " ++ errMsg
+
+
+
+checkDimsVG :: String -> (Int, Int) -> (Int, Int)
+checkDimsVG fName = checkDims ("Graphics.Image.Interface.Vector.Generic." ++ fName)
+{-# INLINE checkDimsVG #-}

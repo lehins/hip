@@ -83,7 +83,6 @@ Library
                  , Graphics.Image.Interface.Repa.Generic
                  , Graphics.Image.Interface.Repa.Storable
                  , Graphics.Image.Interface.Repa.Unboxed
-                 , Graphics.Image.Interface.Repa.Helpers
                  , Graphics.Image.Interface.Vector.Generic
                  , Graphics.Image.Interface.Vector.Storable
                  , Graphics.Image.Interface.Vector.Unboxed
@@ -127,8 +126,9 @@ benchmark convolution
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmarks
   main-is:             Convolution.hs
-  --ghc-options:         -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3 -rtsopts -with-rtsopts=-N6
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
+  ghc-options:         -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3 -rtsopts -with-rtsopts=-N6
+  --ghc-options:         -threaded -rtsopts -with-rtsopts=-N6 -O2
+  --ghc-options:         -threaded -O2
   build-depends:       base
                      , criterion
                      , deepseq

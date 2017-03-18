@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- |
@@ -30,12 +29,12 @@ import Graphics.Image.Interface.Repa.Unboxed
 
 -- | Create a sequential unboxed image from a 2D Repa delayed array.
 fromRepaArrayS :: R.Source r (Pixel cs e) => R.Array r DIM2 (Pixel cs e) -> Image RSU cs e
-fromRepaArrayS = SUImage . SDImage . R.delay
+fromRepaArrayS = SUImage . fromRepaArrayR
 
 
 -- | Create a parallel unboxed image from a 2D Repa delayed array.
 fromRepaArrayP :: R.Source r (Pixel cs e) => R.Array r DIM2 (Pixel cs e) -> Image RPU cs e
-fromRepaArrayP = PUImage . PDImage . R.delay
+fromRepaArrayP = PUImage . fromRepaArrayR
 
 
 -- | Convert into Repa Unboxed array from an image.

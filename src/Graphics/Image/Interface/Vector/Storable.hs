@@ -25,6 +25,7 @@ import           Prelude                                 hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import           Data.Functor
 #endif
+import           Control.DeepSeq                         (deepseq)
 import           Data.Typeable                           (Typeable)
 import qualified Data.Vector.Storable                    as VS
 import           Graphics.Image.Interface                as I
@@ -42,9 +43,9 @@ instance SuperClass VS cs e => BaseArray VS cs e where
   type SuperClass VS cs e =
     (ColorSpace cs e, VS.Storable (Pixel cs e))
 
-  newtype Image VS cs e = VSImage (Image (G VS) cs e)
+  newtype Image VS cs e = VSImage (VGImage VS.Vector (Pixel cs e))
 
-  dims (VSImage img) = dims img
+  dims (VSImage img) = dimsVG img
   {-# INLINE dims #-}
 
 
@@ -55,119 +56,118 @@ instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
 
   type Vector VS = VS.Vector
 
-  makeImage !sh = VSImage . makeImage sh
+  makeImage !sh = VSImage . makeImageVG sh
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sh !wIx !wSz f g = VSImage $ makeImageWindowed sh wIx wSz f g
+  makeImageWindowed !sh !wIx !wSz f g = VSImage $ makeImageWindowedVG sh wIx wSz f g
   {-# INLINE makeImageWindowed #-}
 
-  scalar = VSImage . scalar
+  scalar = VSImage . scalarVG
   {-# INLINE scalar #-}
 
-  index00 (VSImage img) = index00 img
+  index00 (VSImage img) = index00VG img
   {-# INLINE index00 #-}
 
-  map f (VSImage img) = VSImage $ I.map f img
+  map f (VSImage img) = VSImage $ mapVG f img
   {-# INLINE map #-}
 
-  imap f (VSImage img) = VSImage $ I.imap f img
+  imap f (VSImage img) = VSImage $ imapVG f img
   {-# INLINE imap #-}
 
-  zipWith f (VSImage img1) (VSImage img2) = VSImage $ I.zipWith f img1 img2
+  zipWith f (VSImage img1) (VSImage img2) = VSImage $ zipWithVG f img1 img2
   {-# INLINE zipWith #-}
 
-  izipWith f (VSImage img1) (VSImage img2) = VSImage $ I.izipWith f img1 img2
+  izipWith f (VSImage img1) (VSImage img2) = VSImage $ izipWithVG f img1 img2
   {-# INLINE izipWith #-}
 
-  traverse (VSImage img) f g = VSImage $ I.traverse img f g
+  traverse (VSImage img) f g = VSImage $ traverseVG img f g
   {-# INLINE traverse #-}
 
-  traverse2 (VSImage img1) (VSImage img2) f g = VSImage $ I.traverse2 img1 img2 f g
+  traverse2 (VSImage img1) (VSImage img2) f g = VSImage $ traverse2VG img1 img2 f g
   {-# INLINE traverse2 #-}
 
-  transpose (VSImage img) = VSImage $ I.transpose img
+  transpose (VSImage img) = VSImage $ transposeVG img
   {-# INLINE transpose #-}
 
-  backpermute !sz f (VSImage img) = VSImage $ I.backpermute sz f img
+  backpermute !sz f (VSImage img) = VSImage $ backpermuteVG sz f img
   {-# INLINE backpermute #-}
 
-  fromLists = VSImage . I.fromLists
+  fromLists = VSImage . fromListsVG
   {-# INLINE fromLists #-}
 
-  fold f !px0 (VSImage img) = fold f px0 img
+  fold f !px0 (VSImage img) = foldlVG f px0 img
   {-# INLINE fold #-}
 
-  foldIx f !px0 (VSImage img) = foldIx f px0 img
+  foldIx f !px0 (VSImage img) = ifoldlVG f px0 img
   {-# INLINE foldIx #-}
 
-  (|*|) (VSImage img1) (VSImage img2) = VSImage (img1 |*| img2)
+  (|*|) (VSImage img1) (VSImage img2) = VSImage (multVG img1 img2)
   {-# INLINE (|*|) #-}
 
   eq (VSImage img1) (VSImage img2) = img1 == img2
   {-# INLINE eq #-}
 
-  compute (VSImage img) = VSImage (compute img)
+  compute (VSImage img) = img `deepseq` VSImage img
   {-# INLINE compute #-}
 
   toManifest = id
   {-# INLINE toManifest #-}
 
-  toVector (VSImage (VImage _ _ v)) = v
-  toVector (VSImage (VScalar px))   = VS.singleton px
+  toVector (VSImage img) = toVectorVG img
   {-# INLINE toVector #-}
 
-  fromVector !sz = VSImage . fromVector sz
+  fromVector !sz = VSImage . fromVectorVG sz
   {-# INLINE fromVector #-}
 
 
 instance BaseArray VS cs e => MArray VS cs e where
 
-  newtype MImage s VS cs e = MVSImage (MImage s (G VS) cs e)
+  newtype MImage s VS cs e = MVSImage (MVGImage s VS.Vector (Pixel cs e))
 
-  unsafeIndex (VSImage img) = unsafeIndex img
+  unsafeIndex (VSImage img) = unsafeIndexVG img
   {-# INLINE unsafeIndex #-}
 
-  deepSeqImage (VSImage img) = deepSeqImage img
+  deepSeqImage (VSImage img) = deepseq img
   {-# INLINE deepSeqImage #-}
 
-  foldl f !px0 (VSImage img) = I.foldl f px0 img
+  foldl f !px0 (VSImage img) = foldlVG f px0 img
   {-# INLINE foldl #-}
 
-  foldr f !px0 (VSImage img) = I.foldr f px0 img
+  foldr f !px0 (VSImage img) = foldrVG f px0 img
   {-# INLINE foldr #-}
 
-  makeImageM !sh f = VSImage <$> makeImageM sh f
+  makeImageM !sh f = VSImage <$> makeImageMVG sh f
   {-# INLINE makeImageM #-}
 
-  mapM f (VSImage img) = VSImage <$> I.mapM f img
+  mapM f (VSImage img) = VSImage <$> mapMVG f img
   {-# INLINE mapM #-}
 
-  mapM_ f (VSImage img) = I.mapM_ f img
+  mapM_ f (VSImage img) = mapM_VG f img
   {-# INLINE mapM_ #-}
 
-  foldM f !px0 (VSImage img) = I.foldM f px0 img
+  foldM f !px0 (VSImage img) = foldMVG f px0 img
   {-# INLINE foldM #-}
 
-  foldM_ f !px0 (VSImage img) = I.foldM_ f px0 img
+  foldM_ f !px0 (VSImage img) = foldM_VG f px0 img
   {-# INLINE foldM_ #-}
 
-  mdims (MVSImage mimg) = mdims mimg
+  mdims (MVSImage mimg) = mdimsVG mimg
   {-# INLINE mdims #-}
 
-  thaw (VSImage img) = MVSImage <$> I.thaw img
+  thaw (VSImage img) = MVSImage <$> thawVG img
   {-# INLINE thaw #-}
 
-  freeze (MVSImage img) = VSImage <$> I.freeze img
+  freeze (MVSImage img) = VSImage <$> freezeVG img
   {-# INLINE freeze #-}
 
-  new !ix = MVSImage <$> I.new ix
+  new !ix = MVSImage <$> newVG ix
   {-# INLINE new #-}
 
-  read (MVSImage img) = I.read img
+  read (MVSImage img) = readVG img
   {-# INLINE read #-}
 
-  write (MVSImage img) = I.write img
+  write (MVSImage img) = writeVG img
   {-# INLINE write #-}
 
-  swap (MVSImage img) = I.swap img
+  swap (MVSImage img) = swapVG img
   {-# INLINE swap #-}

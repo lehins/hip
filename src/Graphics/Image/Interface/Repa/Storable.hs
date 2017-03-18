@@ -19,18 +19,15 @@ module Graphics.Image.Interface.Repa.Storable (
   RSS(..), RPS(..), Image(..)
   ) where
 
-import qualified Data.Array.Repa                          as R
 import qualified Data.Array.Repa.Eval                     as R
-import           Data.Array.Repa.Index
 import qualified Data.Array.Repa.Repr.ForeignPtr          as R
 import           Data.Typeable                            (Typeable)
-import qualified Data.Vector.Storable                     as VS
+import           Data.Vector.Unboxed                      (Unbox)
 import           Foreign.Storable
-import           Prelude                                  as P
-
 import           Graphics.Image.Interface                 as I
 import           Graphics.Image.Interface.Repa.Generic
 import qualified Graphics.Image.Interface.Vector.Storable as IVS
+import           Prelude                                  as P
 
 
 
@@ -48,18 +45,15 @@ instance Show RPS where
   show _ = "RepaParallelStorable"
 
 
-type instance Repr IVS.VS = R.F
-
-
 instance SuperClass RSS cs e => BaseArray RSS cs e where
   type SuperClass RSS cs e =
-    (ColorSpace cs e,
+    (ColorSpace cs e, Unbox (Pixel cs e),
      Storable e, Storable (Pixel cs e),
      R.Elt e, R.Elt (Pixel cs e))
 
-  newtype Image RSS cs e = SSImage (Image (RS IVS.VS) cs e)
+  newtype Image RSS cs e = SSImage (RImage R.F (Pixel cs e))
 
-  dims (SSImage img) = dims img
+  dims (SSImage img) = dimsR img
   {-# INLINE dims #-}
 
 
@@ -69,81 +63,79 @@ instance BaseArray RSS cs e => Array RSS cs e where
 
   type Vector RSS = Vector IVS.VS
 
-  makeImage !sz f = SSImage (makeImage sz f)
+  makeImage !sz f = SSImage (makeImageR sz f)
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sz !wIx !wSz f = SSImage . makeImageWindowed sz wIx wSz f
+  makeImageWindowed !sz !wIx !wSz f = SSImage . makeImageWindowedR sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
 
-  scalar = SSImage . I.scalar
+  scalar = SSImage . scalarR
   {-# INLINE scalar #-}
 
-  index00 (SSImage img) = index00 img
+  index00 (SSImage img) = index00R img
   {-# INLINE index00 #-}
 
-  map f (SSImage img) = SSImage (I.map f img)
+  map f (SSImage img) = SSImage (mapR f img)
   {-# INLINE map #-}
 
-  imap f (SSImage img) = SSImage (I.imap f img)
+  imap f (SSImage img) = SSImage (imapR f img)
   {-# INLINE imap #-}
 
-  zipWith f (SSImage img1) (SSImage img2) = SSImage (I.zipWith f img1 img2)
+  zipWith f (SSImage img1) (SSImage img2) = SSImage (zipWithR f img1 img2)
   {-# INLINE zipWith #-}
 
-  izipWith f (SSImage img1) (SSImage img2) = SSImage (I.izipWith f img1 img2)
+  izipWith f (SSImage img1) (SSImage img2) = SSImage (izipWithR f img1 img2)
   {-# INLINE izipWith #-}
 
-  traverse (SSImage img) f g = SSImage (I.traverse img f g)
+  traverse (SSImage img) f g = SSImage (traverseR img f g)
   {-# INLINE traverse #-}
 
-  traverse2 (SSImage img1) (SSImage img2) f g = SSImage (I.traverse2 img1 img2 f g)
+  traverse2 (SSImage img1) (SSImage img2) f g = SSImage (traverse2R img1 img2 f g)
   {-# INLINE traverse2 #-}
 
-  transpose (SSImage img) = SSImage (I.transpose img)
+  transpose (SSImage img) = SSImage (transposeR img)
   {-# INLINE transpose #-}
 
-  backpermute !sz g (SSImage img) = SSImage (I.backpermute sz g img)
+  backpermute !sz g (SSImage img) = SSImage (backpermuteR sz g img)
   {-# INLINE backpermute #-}
 
-  fromLists = SSImage . fromLists
+  fromLists = SSImage . fromListsR
   {-# INLINE fromLists #-}
 
-  fold f !px0 (SSImage img) = fold f px0 img
+  fold f !px0 (SSImage img) = foldR Sequential f px0 img
   {-# INLINE fold #-}
 
-  foldIx f !px0 (SSImage img) = foldIx f px0 img
+  foldIx f !px0 (SSImage img) = foldIxR Sequential f px0 img
   {-# INLINE foldIx #-}
 
-  eq (SSImage img1) (SSImage img2) = img1 == img2
+  eq (SSImage img1) (SSImage img2) = eqR Sequential img1 img2
   {-# INLINE eq #-}
 
-  compute (SSImage img) = SSImage (compute img)
+  compute (SSImage img) = SSImage (computeR Sequential img)
   {-# INLINE compute #-}
 
-  (|*|) (SSImage img1) (SSImage img2) = SSImage (img1 |*| img2)
+  (|*|) (SSImage img1) (SSImage img2) = SSImage (multR Sequential img1 img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (SSImage (SScalar px))  = I.scalar px
-  toManifest (SSImage (STImage arr)) = fromRepaArrayStorable arr
-  toManifest !img                    = toManifest (compute img)
+  toManifest (SSImage img) = fromVector (dimsR img) $ toVectorStorableR Sequential img
   {-# INLINE toManifest #-}
 
-  toVector = I.toVector . toManifest
+  toVector (SSImage img) = toVectorStorableR Sequential img
   {-# INLINE toVector #-}
 
-  fromVector !sz = SSImage . STImage . fromVectorStorable sz
+  fromVector !sz = SSImage . fromVectorStorableR sz
   {-# INLINE fromVector #-}
 
 
 instance SuperClass RPS cs e => BaseArray RPS cs e where
   type SuperClass RPS cs e =
     (ColorSpace cs e,
-     Storable e, Storable (Pixel cs e),
+     Storable e, Storable (Pixel cs e), Unbox (Pixel cs e),
      R.Elt e, R.Elt (Pixel cs e))
 
-  newtype Image RPS cs e = PSImage (Image (RP IVS.VS) cs e)
+  newtype Image RPS cs e = PSImage (RImage R.F (Pixel cs e))
 
-  dims (PSImage img) = dims img
+  dims (PSImage img) = dimsR img
   {-# INLINE dims #-}
 
 
@@ -153,91 +145,65 @@ instance BaseArray RPS cs e => Array RPS cs e where
 
   type Vector RPS = Vector IVS.VS
 
-  makeImage !sz f = PSImage (makeImage sz f)
+  makeImage !sz f = PSImage (makeImageR sz f)
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sz !wIx !wSz f = PSImage . makeImageWindowed sz wIx wSz f
+  makeImageWindowed !sz !wIx !wSz f = PSImage . makeImageWindowedR sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
 
-  scalar = PSImage . scalar
+  scalar = PSImage . scalarR
   {-# INLINE scalar #-}
 
-  index00 (PSImage img) = index00 img
+  index00 (PSImage img) = index00R img
   {-# INLINE index00 #-}
 
-  map f (PSImage img) = PSImage (I.map f img)
+  map f (PSImage img) = PSImage (mapR f img)
   {-# INLINE map #-}
 
-  imap f (PSImage img) = PSImage (I.imap f img)
+  imap f (PSImage img) = PSImage (imapR f img)
   {-# INLINE imap #-}
 
-  zipWith f (PSImage img1) (PSImage img2) = PSImage (I.zipWith f img1 img2)
+  zipWith f (PSImage img1) (PSImage img2) = PSImage (zipWithR f img1 img2)
   {-# INLINE zipWith #-}
 
-  izipWith f (PSImage img1) (PSImage img2) = PSImage (I.izipWith f img1 img2)
+  izipWith f (PSImage img1) (PSImage img2) = PSImage (izipWithR f img1 img2)
   {-# INLINE izipWith #-}
 
-  traverse (PSImage img) f g = PSImage (I.traverse img f g)
+  traverse (PSImage img) f g = PSImage (traverseR img f g)
   {-# INLINE traverse #-}
 
-  traverse2 (PSImage img1) (PSImage img2) f g = PSImage (I.traverse2 img1 img2 f g)
+  traverse2 (PSImage img1) (PSImage img2) f g = PSImage (traverse2R img1 img2 f g)
   {-# INLINE traverse2 #-}
 
-  transpose (PSImage img) = PSImage (I.transpose img)
+  transpose (PSImage img) = PSImage (transposeR img)
   {-# INLINE transpose #-}
 
-  backpermute !sz g (PSImage img) = PSImage (backpermute sz g img)
+  backpermute !sz g (PSImage img) = PSImage (backpermuteR sz g img)
   {-# INLINE backpermute #-}
 
-  fromLists = PSImage . fromLists
+  fromLists = PSImage . fromListsR
   {-# INLINE fromLists #-}
 
-  fold f !px0 (PSImage img) = I.fold f px0 img
+  fold f !px0 (PSImage img) = foldR Parallel f px0 img
   {-# INLINE fold #-}
 
-  foldIx f !px0 (PSImage img) = I.foldIx f px0 img
+  foldIx f !px0 (PSImage img) = foldIxR Parallel f px0 img
   {-# INLINE foldIx #-}
 
-  eq (PSImage img1) (PSImage img2) = img1 == img2
+  eq (PSImage img1) (PSImage img2) = eqR Parallel img1 img2
   {-# INLINE eq #-}
 
-  compute (PSImage img) = PSImage (compute img)
+  compute (PSImage img) = PSImage (computeR Parallel img)
   {-# INLINE compute #-}
 
-  (|*|) (PSImage img1) (PSImage img2) = PSImage (img1 |*| img2)
+  (|*|) (PSImage img1) (PSImage img2) = PSImage (multR Parallel img1 img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (PSImage (PScalar px))  = scalar px
-  toManifest (PSImage (PTImage arr)) = fromRepaArrayStorable arr
-  toManifest !img                    = toManifest (compute img)
+  toManifest (PSImage img) = fromVector (dimsR img) $ toVectorStorableR Parallel img
   {-# INLINE toManifest #-}
 
-  toVector = I.toVector . toManifest
+  toVector (PSImage img) = toVectorStorableR Parallel img
   {-# INLINE toVector #-}
 
-  fromVector !sz = PSImage . PTImage . fromVectorStorable sz
+  fromVector !sz = PSImage . fromVectorStorableR sz
   {-# INLINE fromVector #-}
-
-
-fromRepaArrayStorable
-  :: forall cs e.
-     Array IVS.VS cs e
-  => R.Array R.F DIM2 (Pixel cs e) -> Image IVS.VS cs e
-fromRepaArrayStorable !arr =
-  fromVector (sh2ix (R.extent arr)) $
-  VS.unsafeFromForeignPtr0 (R.toForeignPtr arr) (m * n)
-  where
-    (Z :. m :. n) = R.extent arr
-
-
-fromVectorStorable
-  :: forall cs e.
-     Storable (Pixel cs e)
-  => (Int, Int) -> VS.Vector (Pixel cs e) -> R.Array R.F DIM2 (Pixel cs e)
-fromVectorStorable !(m, n) !v
-  | sz == sz' = R.fromForeignPtr (ix2sh (m, n)) fp
-  | otherwise = error $ "fromVectorStorable: (impossible) Vector size mismatch: " ++
-                show sz ++ " vs " ++ show sz'
-  where
-    !(fp, sz) = VS.unsafeToForeignPtr0 v
-    !sz' = m * n

@@ -1,18 +1,18 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE BangPatterns            #-}
+{-# LANGUAGE CPP                     #-}
+{-# LANGUAGE ConstraintKinds         #-}
+{-# LANGUAGE FlexibleContexts        #-}
+{-# LANGUAGE FlexibleInstances       #-}
+{-# LANGUAGE MultiParamTypeClasses   #-}
+{-# LANGUAGE Rank2Types              #-}
+{-# LANGUAGE ScopedTypeVariables     #-}
+{-# LANGUAGE TypeFamilies            #-}
+{-# LANGUAGE UndecidableInstances    #-}
+{-# LANGUAGE ViewPatterns            #-}
 #if __GLASGOW_HASKELL__ >= 800
     {-# OPTIONS_GHC -Wno-redundant-constraints #-}
-    {-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 #endif
-{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Interface
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -40,28 +40,31 @@ module Graphics.Image.Interface (
 #endif
   ) where
 
-import Prelude hiding (and, map, zipWith, sum, product)
+import           Prelude                           hiding (and, map, product,
+                                                    sum, zipWith)
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
+import           Control.Applicative
 #endif
-import Control.Monad.ST
-import Control.Monad.Primitive (PrimMonad (..))
-import Data.Maybe (fromMaybe)
-import Data.Foldable
-import GHC.Exts (Constraint)
-import Data.Typeable (Typeable, showsTypeRep, typeOf)
-import Control.DeepSeq (NFData(rnf), deepseq)
-import qualified Data.Vector.Generic as VG
-import qualified Data.Vector.Unboxed as VU
+import           Control.DeepSeq                   (NFData (rnf), deepseq)
+import           Control.Monad.Primitive           (PrimMonad (..))
+import           Control.Monad.ST
+import           Data.Foldable
+import           Data.Maybe                        (fromMaybe)
+import           Data.Proxy                        (Proxy (..))
+import           Data.Typeable                     (Typeable, showsTypeRep,
+                                                    typeRep)
+import qualified Data.Vector.Generic               as VG
+import qualified Data.Vector.Unboxed               as VU
+import           GHC.Exts                          (Constraint)
 
-import Graphics.Image.Interface.Elevator
+import           Graphics.Image.Interface.Elevator
 
 -- | A Pixel family with a color space and a precision of elements.
 data family Pixel cs e :: *
 
 
-class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs, Elevator e,
-      Eq (Pixel cs e), VU.Unbox (Components cs e))
+class (Eq cs, Enum cs, Show cs, Bounded cs, Typeable cs,
+      Eq (Pixel cs e), VU.Unbox (Components cs e), Elevator e)
       => ColorSpace cs e where
 
   type Components cs e
@@ -285,7 +288,7 @@ class (VG.Vector (Vector arr) (Pixel cs e),
   -- considered distinct if either images' dimensions or at least one pair of
   -- corresponding pixels are not the same. Used in defining an in instance for
   -- the 'Eq' typeclass.
-  eq :: Eq (Pixel cs e) => Image arr cs e -> Image arr cs e -> Bool
+  eq :: Image arr cs e -> Image arr cs e -> Bool
 
   -- | `Array` class does not enforce an image to be represented as concrete
   -- array of pixels in memory, but if at any time it is desired for the image
@@ -396,7 +399,7 @@ exchange :: (Array arr' cs e, Array arr cs e) =>
          -> Image arr cs e
 exchange _ img@(dims -> (1, 1)) = scalar $ index00 img
 exchange _ img = fromVector (dims img) $ VG.convert $ toVector img
-{-# INLINE[0] exchange #-}
+{-# INLINE exchange #-}
 
 
 --{-# RULES
@@ -455,7 +458,7 @@ handleBorderIndex :: Border px -- ^ Border handling strategy.
                    -> ((Int, Int) -> px) -- ^ Image's indexing function.
                    -> (Int, Int) -- ^ @(i, j)@ location of a pixel lookup.
                    -> px
-handleBorderIndex border !(m, n) getPx !(i, j) =
+handleBorderIndex ~border !(m, n) getPx !(i, j) =
   if north || east || south || west
   then case border of
     Fill px  -> px
@@ -501,7 +504,7 @@ defaultIndex !px !img = handleBorderIndex (Fill px) (dims img) (index img)
 -- out of bounds pixels.
 borderIndex :: MArray arr cs e =>
                Border (Pixel cs e) -> Image arr cs e -> (Int, Int) -> Pixel cs e
-borderIndex atBorder !img = handleBorderIndex atBorder (dims img) (unsafeIndex img)
+borderIndex ~atBorder !img = handleBorderIndex atBorder (dims img) (unsafeIndex img)
 {-# INLINE borderIndex #-}
 
 
@@ -510,7 +513,7 @@ borderIndex atBorder !img = handleBorderIndex atBorder (dims img) (unsafeIndex i
 maybeIndex :: MArray arr cs e =>
               Image arr cs e -> (Int, Int) -> Maybe (Pixel cs e)
 maybeIndex !img@(dims -> (m, n)) !(i, j) =
-  if i >= 0 && j >= 0 && i < m && j < n then Just $ index img (i, j) else Nothing
+  if i >= 0 && j >= 0 && i < m && j < n then Just $ unsafeIndex img (i, j) else Nothing
 {-# INLINE maybeIndex #-}
 
 
@@ -532,15 +535,15 @@ toIx !n !k = divMod k n
 {-# INLINE toIx #-}
 
 checkDims :: String -> (Int, Int) -> (Int, Int)
-checkDims err !ds@(m, n)
+checkDims err !sz@(m, n)
   | m <= 0 || n <= 0 =
     error $
-    show err ++ ": Image dimensions are expected to be positive: " ++ show ds
-  | otherwise = ds
+    show err ++ ": dimensions are expected to be positive: " ++ show sz
+  | otherwise = sz
 {-# INLINE checkDims #-}
 
 
-instance (ColorSpace cs e, Num e) => Num (Pixel cs e) where
+instance ColorSpace cs e => Num (Pixel cs e) where
   (+)         = liftPx2 (+)
   {-# INLINE (+) #-}
   (-)         = liftPx2 (-)
@@ -603,7 +606,7 @@ instance (Foldable (Pixel cs), NFData e) => NFData (Pixel cs e) where
   rnf = foldr' deepseq ()
   {-# INLINE rnf #-}
 
-instance (Array arr cs e, Eq (Pixel cs e)) => Eq (Image arr cs e) where
+instance Array arr cs e => Eq (Image arr cs e) where
   (==) = eq
   {-# INLINE (==) #-}
 
@@ -668,9 +671,9 @@ instance BaseArray arr cs e =>
          Show (Image arr cs e) where
   show (dims -> (m, n)) =
     "<Image " ++
-    showsTypeRep (typeOf (undefined :: arr)) " " ++
-    showsTypeRep (typeOf (undefined :: cs)) " (" ++
-    showsTypeRep (typeOf (undefined :: e)) "): " ++
+    showsTypeRep (typeRep (Proxy :: Proxy arr)) " " ++
+    showsTypeRep (typeRep (Proxy :: Proxy cs)) " (" ++
+    showsTypeRep (typeRep (Proxy :: Proxy e)) "): " ++
      show m ++ "x" ++ show n ++ ">"
 
 
@@ -678,7 +681,7 @@ instance MArray arr cs e =>
          Show (MImage st arr cs e) where
   show (mdims -> (m, n)) =
     "<MutableImage " ++
-    showsTypeRep (typeOf (undefined :: arr)) " " ++
-    showsTypeRep (typeOf (undefined :: cs)) " (" ++
-    showsTypeRep (typeOf (undefined :: e)) "): " ++
+    showsTypeRep (typeRep (Proxy :: Proxy arr)) " " ++
+    showsTypeRep (typeRep (Proxy :: Proxy cs)) " (" ++
+    showsTypeRep (typeRep (Proxy :: Proxy e)) "): " ++
      show m ++ "x" ++ show n ++ ">"

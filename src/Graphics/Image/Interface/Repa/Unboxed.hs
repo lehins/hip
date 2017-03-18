@@ -42,17 +42,14 @@ instance Show RPU where
   show _ = "RepaParallelUnboxed"
 
 
-type instance Repr IVU.VU = R.U
-
-
 instance SuperClass RSU cs e => BaseArray RSU cs e where
   type SuperClass RSU cs e =
     (ColorSpace cs e,
      R.Elt e, R.Elt (Pixel cs e))
 
-  newtype Image RSU cs e = SUImage (Image (RS IVU.VU) cs e)
+  newtype Image RSU cs e = SUImage (RImage R.U (Pixel cs e))
 
-  dims (SUImage img) = dims img
+  dims (SUImage img) = dimsR img
   {-# INLINE dims #-}
 
 
@@ -62,80 +59,78 @@ instance (BaseArray RSU cs e) => Array RSU cs e where
 
   type Vector RSU = Vector IVU.VU
 
-  makeImage !sz f = SUImage (makeImage sz f)
+  makeImage !sz f = SUImage (makeImageR sz f)
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sz !wIx !wSz f = SUImage . makeImageWindowed sz wIx wSz f
+  makeImageWindowed !sz !wIx !wSz f = SUImage . makeImageWindowedR sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
 
-  scalar = SUImage . scalar
+  scalar = SUImage . scalarR
   {-# INLINE scalar #-}
 
-  index00 (SUImage img) = index00 img
+  index00 (SUImage img) = index00R img
   {-# INLINE index00 #-}
 
-  map f (SUImage img) = SUImage (I.map f img)
+  map f (SUImage img) = SUImage (mapR f img)
   {-# INLINE map #-}
 
-  imap f (SUImage img) = SUImage (I.imap f img)
+  imap f (SUImage img) = SUImage (imapR f img)
   {-# INLINE imap #-}
 
-  zipWith f (SUImage img1) (SUImage img2) = SUImage (I.zipWith f img1 img2)
+  zipWith f (SUImage img1) (SUImage img2) = SUImage (zipWithR f img1 img2)
   {-# INLINE zipWith #-}
 
-  izipWith f (SUImage img1) (SUImage img2) = SUImage (I.izipWith f img1 img2)
+  izipWith f (SUImage img1) (SUImage img2) = SUImage (izipWithR f img1 img2)
   {-# INLINE izipWith #-}
 
-  traverse (SUImage img) f g = SUImage (I.traverse img f g)
+  traverse (SUImage img) f g = SUImage (traverseR img f g)
   {-# INLINE traverse #-}
 
-  traverse2 (SUImage img1) (SUImage img2) f g = SUImage (I.traverse2 img1 img2 f g)
+  traverse2 (SUImage img1) (SUImage img2) f g = SUImage (traverse2R img1 img2 f g)
   {-# INLINE traverse2 #-}
 
-  transpose (SUImage img) = SUImage (I.transpose img)
+  transpose (SUImage img) = SUImage (transposeR img)
   {-# INLINE transpose #-}
 
-  backpermute !sz g (SUImage img) = SUImage (backpermute sz g img)
+  backpermute !sz g (SUImage img) = SUImage (backpermuteR sz g img)
   {-# INLINE backpermute #-}
 
-  fromLists = SUImage . fromLists
+  fromLists = SUImage . fromListsR
   {-# INLINE fromLists #-}
 
-  fold f !px0 (SUImage img) = fold f px0 img
+  fold f !px0 (SUImage img) = foldR Sequential f px0 img
   {-# INLINE fold #-}
 
-  foldIx f !px0 (SUImage img) = foldIx f px0 img
+  foldIx f !px0 (SUImage img) = foldIxR Sequential f px0 img
   {-# INLINE foldIx #-}
 
-  eq (SUImage img1) (SUImage img2) = img1 == img2
+  eq (SUImage img1) (SUImage img2) = eqR Sequential img1 img2
   {-# INLINE eq #-}
 
-  compute (SUImage img) = SUImage (compute img)
+  compute (SUImage img) = SUImage (computeR Sequential img)
   {-# INLINE compute #-}
 
-  (|*|) (SUImage img1) (SUImage img2) = SUImage (img1 |*| img2)
+  (|*|) (SUImage img1) (SUImage img2) = SUImage (multR Sequential img1 img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (SUImage (SScalar px)) = scalar px
-  toManifest (SUImage (STImage arr)) =
-    fromVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
-  toManifest !img = toManifest (compute img)
+  toManifest (SUImage img) = fromVector (dimsR img) (toVectorUnboxedR Sequential img)
   {-# INLINE toManifest #-}
 
-  toVector = I.toVector . toManifest
+  toVector (SUImage img) = toVectorUnboxedR Sequential img
   {-# INLINE toVector #-}
 
-  fromVector sz = SUImage . STImage . R.fromUnboxed (ix2sh sz)
+  fromVector !sz = SUImage . fromVectorUnboxedR sz
   {-# INLINE fromVector #-}
+
 
 
 instance SuperClass RPU cs e => BaseArray RPU cs e where
   type SuperClass RPU cs e =
     (ColorSpace cs e, R.Elt e, R.Elt (Pixel cs e))
 
-  newtype Image RPU cs e = PUImage (Image (RP IVU.VU) cs e)
+  newtype Image RPU cs e = PUImage (RImage R.U (Pixel cs e))
 
-  dims (PUImage img) = dims img
+  dims (PUImage img) = dimsR img
   {-# INLINE dims #-}
 
 
@@ -145,68 +140,66 @@ instance BaseArray RPU cs e => Array RPU cs e where
 
   type Vector RPU = Vector IVU.VU
 
-  makeImage !sz f = PUImage (makeImage sz f)
+  makeImage !sz f = PUImage (makeImageR sz f)
   {-# INLINE makeImage #-}
 
-  makeImageWindowed !sz !wIx !wSz f = PUImage . makeImageWindowed sz wIx wSz f
+  makeImageWindowed !sz !wIx !wSz f = PUImage . makeImageWindowedR sz wIx wSz f
   {-# INLINE makeImageWindowed #-}
 
-  scalar = PUImage . scalar
+  scalar = PUImage . scalarR
   {-# INLINE scalar #-}
 
-  index00 (PUImage img) = index00 img
+  index00 (PUImage img) = index00R img
   {-# INLINE index00 #-}
 
-  map f (PUImage img) = PUImage (I.map f img)
+  map f (PUImage img) = PUImage (mapR f img)
   {-# INLINE map #-}
 
-  imap f (PUImage img) = PUImage (I.imap f img)
+  imap f (PUImage img) = PUImage (imapR f img)
   {-# INLINE imap #-}
 
-  zipWith f (PUImage img1) (PUImage img2) = PUImage (I.zipWith f img1 img2)
+  zipWith f (PUImage img1) (PUImage img2) = PUImage (zipWithR f img1 img2)
   {-# INLINE zipWith #-}
 
-  izipWith f (PUImage img1) (PUImage img2) = PUImage (I.izipWith f img1 img2)
+  izipWith f (PUImage img1) (PUImage img2) = PUImage (izipWithR f img1 img2)
   {-# INLINE izipWith #-}
 
-  traverse (PUImage img) f g = PUImage (I.traverse img f g)
+  traverse (PUImage img) f g = PUImage (traverseR img f g)
   {-# INLINE traverse #-}
 
-  traverse2 (PUImage img1) (PUImage img2) f g = PUImage (I.traverse2 img1 img2 f g)
+  traverse2 (PUImage img1) (PUImage img2) f g = PUImage (traverse2R img1 img2 f g)
   {-# INLINE traverse2 #-}
 
-  transpose (PUImage img) = PUImage (I.transpose img)
+  transpose (PUImage img) = PUImage (transposeR img)
   {-# INLINE transpose #-}
 
-  backpermute !sz g (PUImage img) = PUImage (backpermute sz g img)
+  backpermute !sz g (PUImage img) = PUImage (backpermuteR sz g img)
   {-# INLINE backpermute #-}
 
-  fromLists = PUImage . fromLists
+  fromLists = PUImage . fromListsR
   {-# INLINE fromLists #-}
 
-  fold f !px0 (PUImage img) = I.fold f px0 img
+  fold f !px0 (PUImage img) = foldR Parallel f px0 img
   {-# INLINE fold #-}
 
-  foldIx f !px0 (PUImage img) = I.foldIx f px0 img
+  foldIx f !px0 (PUImage img) = foldIxR Parallel f px0 img
   {-# INLINE foldIx #-}
 
-  eq (PUImage img1) (PUImage img2) = img1 == img2
+  eq (PUImage img1) (PUImage img2) = eqR Parallel img1 img2
   {-# INLINE eq #-}
 
-  compute (PUImage img) = PUImage (compute img)
+  compute (PUImage img) = PUImage (computeR Parallel img)
   {-# INLINE compute #-}
 
-  (|*|) (PUImage img1) (PUImage img2) = PUImage (img1 |*| img2)
+  (|*|) (PUImage img1) (PUImage img2) = PUImage (multR Parallel img1 img2)
   {-# INLINE (|*|) #-}
 
-  toManifest (PUImage (PScalar px)) = scalar px
-  toManifest (PUImage (PTImage arr)) =
-    fromVector (sh2ix (R.extent arr)) (R.toUnboxed arr)
-  toManifest !img = toManifest (compute img)
+
+  toManifest (PUImage img) = fromVector (dimsR img) (toVectorUnboxedR Parallel img)
   {-# INLINE toManifest #-}
 
-  toVector = I.toVector . toManifest
+  toVector (PUImage img) = toVectorUnboxedR Parallel img
   {-# INLINE toVector #-}
 
-  fromVector sz = PUImage . PTImage . R.fromUnboxed (ix2sh sz)
+  fromVector !sz = PUImage . fromVectorUnboxedR sz
   {-# INLINE fromVector #-}
