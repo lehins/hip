@@ -20,6 +20,7 @@ import qualified Data.ByteString                     as B (ByteString)
 import qualified Data.ByteString.Lazy                as BL (ByteString)
 import           Graphics.Image.ColorSpace
 import           Graphics.Image.Interface            as I
+import           Graphics.Image.Internal             as I
 import           Graphics.Image.Processing.Complex   (imagPartI, realPartI)
 import           Graphics.Image.Processing.Geometric (leftToRight)
 

@@ -28,6 +28,7 @@ import           System.IO.Temp                            (createTempDirectory)
 
 import           Graphics.Image.ColorSpace
 import           Graphics.Image.Interface                  as I
+import           Graphics.Image.Internal                   as I
 import           Graphics.Image.IO
 import           Graphics.Rendering.Chart.Backend.Diagrams
 import           Graphics.Rendering.Chart.Easy

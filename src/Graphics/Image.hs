@@ -112,6 +112,7 @@ import qualified Data.Foldable as F
 import Graphics.Image.ColorSpace
 import Graphics.Image.IO
 import Graphics.Image.Interface as I hiding (Pixel)
+import Graphics.Image.Internal as I
 import Graphics.Image.Types as IP
 
 import Graphics.Image.Processing as IP
@@ -121,10 +122,7 @@ import Graphics.Image.Processing.Geometric as IP
 import Graphics.Image.IO.Histogram as IP
 
 
--- | Create an image with a specified representation and pixels of 'Double'
--- precision. Note, that it is essential for 'Double' precision pixels to keep values
--- normalized in the @[0, 1]@ range in order for an image to be written to file
--- properly.
+-- | Create an image by supplying representation, dimensions and generating function.
 --
 -- >>> let grad_gray = makeImageR VU (200, 200) (\(i, j) -> PixelY (fromIntegral i) / 200 * (fromIntegral j) / 200)
 --
@@ -141,7 +139,7 @@ import Graphics.Image.IO.Histogram as IP
 -- <<images/grad_gray.png>> <<images/grad_color.png>>
 --
 makeImageR :: Array arr cs e =>
-              arr -- ^ Underlying image representation.
+              Repr arr -- ^ Underlying image representation.
            -> (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
            -> ((Int, Int) -> Pixel cs e)
            -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
@@ -151,25 +149,25 @@ makeImageR _ = I.makeImage
 {-# INLINE makeImageR #-}
 
 -- | Read image as luma (brightness).
-readImageY :: Array arr Y Double => arr -> FilePath -> IO (Image arr Y Double)
+readImageY :: Array arr Y Double => Repr arr -> FilePath -> IO (Image arr Y Double)
 readImageY _ = readImage'
 {-# INLINE readImageY #-}
 
 
 -- | Read image as luma with 'Alpha' channel.
-readImageYA :: Array arr YA Double => arr -> FilePath -> IO (Image arr YA Double)
+readImageYA :: Array arr YA Double => Repr arr -> FilePath -> IO (Image arr YA Double)
 readImageYA _ = readImage'
 {-# INLINE readImageYA #-}
 
 
 -- | Read image in RGB colorspace.
-readImageRGB :: Array arr RGB Double => arr -> FilePath -> IO (Image arr RGB Double)
+readImageRGB :: Array arr RGB Double => Repr arr -> FilePath -> IO (Image arr RGB Double)
 readImageRGB _ = readImage'
 {-# INLINE readImageRGB #-}
 
 
 -- | Read image in RGB colorspace with 'Alpha' channel.
-readImageRGBA :: Array arr RGBA Double => arr -> FilePath -> IO (Image arr RGBA Double)
+readImageRGBA :: Array arr RGBA Double => Repr arr -> FilePath -> IO (Image arr RGBA Double)
 readImageRGBA _ = readImage'
 {-# INLINE readImageRGBA #-}
 
@@ -182,7 +180,7 @@ readImageRGBA _ = readImage'
 -- >>> rows frog
 -- 200
 --
-rows :: BaseArray arr cs e => Image arr cs e -> Int
+rows :: BaseArray arr (Int, Int) (Pixel cs e) => Image arr cs e -> Int
 rows = fst . dims
 {-# INLINE rows #-}
 
@@ -195,7 +193,7 @@ rows = fst . dims
 -- >>> cols frog
 -- 320
 --
-cols :: BaseArray arr cs e => Image arr cs e -> Int
+cols :: BaseArray arr (Int, Int) (Pixel cs e) => Image arr cs e -> Int
 cols = snd . dims
 {-# INLINE cols #-}
 
@@ -245,10 +243,17 @@ eqTol !tol !img1 = IP.and . toImageBinaryUsing2 (eqTolPx tol) img1
 {-# INLINE eqTol #-}
 
 
--- | Type restricted version of `fromLists` that constructs an image using
--- supplied representation.
-fromListsR :: Array arr cs e => arr -> [[Pixel cs e]] -> Image arr cs e
-fromListsR _ = fromLists
+-- | Construct an image from a nested rectangular shaped list of pixels.
+-- Length of an outer list will constitute @m@ rows, while the length of inner lists -
+-- @n@ columns. All of the inner lists must be the same length and greater than @0@.
+--
+-- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [1..300]] | i <- [1..200]]
+-- <Image VectorUnboxed Y (Double): 200x300>
+--
+-- <<images/grad_fromLists.png>>
+--
+fromListsR :: Array arr cs e => Repr arr -> [[Pixel cs e]] -> Image arr cs e
+fromListsR _ = Image . fromListsA
 {-# INLINE fromListsR #-}
 
 -- | Generates a nested list of pixels from an image.

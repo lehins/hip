@@ -29,8 +29,7 @@ module Graphics.Image.IO.Formats
   , ComplexWritable
   ) where
 
-
-import           Graphics.Image.Interface
+import           Graphics.Image.Internal
 import           Graphics.Image.IO.Base
 import           Graphics.Image.IO.Formats.JuicyPixels
 import           Graphics.Image.IO.Formats.Netpbm

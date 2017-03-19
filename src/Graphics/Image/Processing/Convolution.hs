@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module      : Graphics.Image.Processing.Convolution
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -18,13 +19,14 @@ module Graphics.Image.Processing.Convolution (
   , toKernel, Kernel(..)
   ) where
 
-import qualified Data.Vector.Unboxed                     as VU
+import qualified Data.Vector.Unboxed                 as VU
 import           Graphics.Image.ColorSpace
-import           Graphics.Image.Interface                as I
-import           Graphics.Image.Interface.Vector.Unboxed (VU)
+import           Graphics.Image.Interface            as I
+-- import           Graphics.Image.Interface.Vector     (VU)
+import           Graphics.Image.Internal             as I
 import           Graphics.Image.Processing.Geometric
-import           Graphics.Image.Utils                    (loop)
-import           Prelude                                 as P
+import           Graphics.Image.Utils                (loop, toIx)
+import           Prelude                             as P
 
 
 data Orientation
@@ -34,14 +36,14 @@ data Orientation
 data Kernel e
   = Kernel1D Orientation
              {-# UNPACK #-} !Int
-             !(VU.Vector (Int, e))
+             (VU.Vector (Int, e))
   | Kernel2D {-# UNPACK #-} !Int
              {-# UNPACK #-} !Int
-             !(VU.Vector (Int, Int, e)) deriving Show
+             (VU.Vector (Int, Int, e)) deriving Show
 
-toKernel :: Elevator e => Image VU X e -> Kernel e
-toKernel !img =
-  case dims img of
+toKernel :: (Eq e, Num e, VU.Unbox e) => (Int, Int) -> VU.Vector e -> Kernel e
+toKernel !sz !v =
+  case sz of
     (1, n) ->
       let !n2 = n `div` 2
       in Kernel1D Horizontal n2 $ mkKernel1d n2
@@ -52,13 +54,13 @@ toKernel !img =
       let !(m2, n2) = (m `div` 2, n `div` 2)
       in Kernel2D m2 n2 $
          VU.filter (\(_, _, x) -> x /= 0) $
-         VU.imap (addIx m2 n2 n) $ toVector img
+         VU.imap (addIx m2 n2 n) v
   where
     mkKernel1d !l2 =
       VU.filter ((/= 0) . snd) $
-      VU.imap (\ !k (PixelX x) -> (k - l2, x)) $ toVector img
+      VU.imap (\ !k x -> (k - l2, x)) v
     {-# INLINE mkKernel1d #-}
-    addIx !m2 !n2 !n' !k (PixelX x) =
+    addIx !m2 !n2 !n' !k x =
       let !(i, j) = toIx n' k
       in (i - m2, j - n2, x)
     {-# INLINE addIx #-}
@@ -67,19 +69,22 @@ toKernel !img =
 
 
 -- | Correlate an image with a kernel. Border resolution technique is required.
-correlate :: Array arr cs e
-          => Border (Pixel cs e) -> Image VU X e -> Image arr cs e -> Image arr cs e
+correlate :: (Array arr X e, Array arr cs e)
+          => Border (Pixel cs e) -> Image arr X e -> Image arr cs e -> Image arr cs e
 correlate !border !kernelImg !img =
   makeImageWindowed
     sz
     (kM2, kN2)
     (m - kM2 * 2, n - kN2 * 2)
-    (getStencil kernel (I.unsafeIndex imgM))
-    (getStencil kernel (borderIndex border imgM))
+    (getStencil kernel (I.unsafeIndexA arr))
+    (getStencil kernel (handleBorderIndex border (m, n) (I.unsafeIndexA arr)))
   where
-    !imgM = toManifest img
+    !(Image arr) = compute img
     !sz@(m, n) = dims img
-    !kernel = toKernel kernelImg
+    dropX (PixelX x) = x
+    (Image kernelArr) = compute kernelImg
+    !(kM, kN) = shapeA kernelArr
+    !kernel = toKernel (kM, kN) $ VU.generate (kM*kN) $ (dropX . unsafeIndexA kernelArr . toIx kN)
     !(kLen, kM2, kN2) =
       case kernel of
         Kernel1D Horizontal n2 v -> (VU.length v, 0, n2)
@@ -115,9 +120,9 @@ correlate !border !kernelImg !img =
 --
 -- <<images/frogY.jpg>> <<images/frog_sobel.jpg>>
 --
-convolve :: Array arr cs e =>
+convolve :: (Array arr X e, Array arr cs e) =>
             Border (Pixel cs e) -- ^ Approach to be used near the borders.
-         -> Image VU X e -- ^ Kernel image.
+         -> Image arr X e -- ^ Kernel image.
          -> Image arr cs e -- ^ Source image.
          -> Image arr cs e
 convolve !out = correlate out . rotate180
@@ -125,14 +130,14 @@ convolve !out = correlate out . rotate180
 
 
 -- | Convolve image's rows with a vector kernel represented by a list of pixels.
-convolveRows :: Array arr cs e =>
+convolveRows :: (Array arr X e, Array arr cs e) =>
                 Border (Pixel cs e) -> [Pixel X e] -> Image arr cs e -> Image arr cs e
 convolveRows !out = convolve out . fromLists . (:[]) . reverse
 {-# INLINE convolveRows #-}
 
 
 -- | Convolve image's columns with a vector kernel represented by a list of pixels.
-convolveCols :: Array arr cs e =>
+convolveCols :: (Array arr X e, Array arr cs e) =>
                 Border (Pixel cs e) -> [Pixel X e] -> Image arr cs e -> Image arr cs e
 convolveCols !out = convolve out . fromLists . P.map (:[]) . reverse
 {-# INLINE convolveCols #-}

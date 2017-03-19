@@ -26,6 +26,7 @@ import           Foreign.Storable                (Storable)
 import           Graphics.Image.ColorSpace
 import           Graphics.Image.Interface        as I
 import           Graphics.Image.Interface.Vector (VS)
+import           Graphics.Image.Internal         as I
 import           Graphics.Image.IO.Base
 import qualified Graphics.Netpbm                 as PNM
 

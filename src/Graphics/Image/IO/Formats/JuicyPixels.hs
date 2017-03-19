@@ -81,6 +81,7 @@ import qualified Data.Vector.Storable            as V
 import           Graphics.Image.ColorSpace
 import           Graphics.Image.Interface        as I
 import           Graphics.Image.Interface.Vector (VS)
+import           Graphics.Image.Internal         as I
 import           Graphics.Image.IO.Base
 
 

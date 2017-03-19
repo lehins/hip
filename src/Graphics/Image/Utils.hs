@@ -13,6 +13,9 @@ module Graphics.Image.Utils
   , (.:)
   , (.:!)
   , swapIx
+  , fromIx
+  , toIx
+  , checkDims
   ) where
 
 -- | Boob operator: @((.).(.))@
@@ -49,4 +52,27 @@ loopM_ !init' condition increment f = go init' where
 swapIx :: (a, b) -> (b, a)
 swapIx !(i, j) = (j, i)
 {-# INLINE swapIx #-}
+
+
+fromIx :: Int -- ^ @n@ columns
+       -> (Int, Int) -- ^ @(i, j)@ row, column index
+       -> Int -- ^ Flat vector index
+fromIx !n !(i, j) = n * i + j
+{-# INLINE fromIx #-}
+
+toIx :: Int -- ^ @n@ columns
+     -> Int -- ^ Flat vector index
+     -> (Int, Int) -- ^ @(i, j)@ row, column index
+toIx !n !k = divMod k n
+{-# INLINE toIx #-}
+
+
+
+checkDims :: String -> (Int, Int) -> (Int, Int)
+checkDims err !sz@(m, n)
+  | m <= 0 || n <= 0 =
+    error $
+    show err ++ ": dimensions are expected to be positive: " ++ show sz
+  | otherwise = sz
+{-# INLINE checkDims #-}
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- |
 -- Module      : Graphics.Image.Interface.Repa
@@ -8,33 +8,39 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Repa (
+module Graphics.Image.Interface.Repa
   -- * Conversion
-  fromRepaArrayS, fromRepaArrayP,
-  toRepaArray,
+  ( fromRepaArrayS
+  , fromRepaArrayP
+  , toRepaArray
   -- * Representation
-  RSU(..), RPU(..), RSS(..), RPS(..)
+  , RSU
+  , RPU
+  , RSS
+  , RPS
+  , Repr(..)
   ) where
 
-import Data.Array.Repa.Index
-import qualified Data.Array.Repa as R
-import qualified Data.Vector.Generic as VG
+import qualified Data.Array.Repa                        as R
+import           Data.Array.Repa.Index
+import qualified Data.Vector.Generic                    as VG
 
-import Graphics.Image.Interface
-import Graphics.Image.Interface.Repa.Generic
-import Graphics.Image.Interface.Repa.Storable
-import Graphics.Image.Interface.Repa.Unboxed
+import           Graphics.Image.Interface
+import           Graphics.Image.Interface.Repa.Generic
+import           Graphics.Image.Interface.Repa.Storable
+import           Graphics.Image.Interface.Repa.Unboxed
+import           Graphics.Image.Internal
 
 
 
 -- | Create a sequential unboxed image from a 2D Repa delayed array.
 fromRepaArrayS :: R.Source r (Pixel cs e) => R.Array r DIM2 (Pixel cs e) -> Image RSU cs e
-fromRepaArrayS = SUImage . fromRepaArrayR
+fromRepaArrayS = Image . RSUArray . fromRepaArrayR
 
 
 -- | Create a parallel unboxed image from a 2D Repa delayed array.
 fromRepaArrayP :: R.Source r (Pixel cs e) => R.Array r DIM2 (Pixel cs e) -> Image RPU cs e
-fromRepaArrayP = PUImage . fromRepaArrayR
+fromRepaArrayP = Image . RPUArray . fromRepaArrayR
 
 
 -- | Convert into Repa Unboxed array from an image.

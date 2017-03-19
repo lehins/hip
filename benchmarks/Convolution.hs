@@ -15,6 +15,7 @@ import           Data.Array.Repa.Stencil.Dim2        as R
 
 import           Graphics.Image                      as I
 import           Graphics.Image.Interface            as I
+import           Graphics.Image.Internal             as I
 import           Graphics.Image.Interface.Repa
 import           Prelude                             as P
 
@@ -79,13 +80,13 @@ forceS !arr = do
 
 main :: IO ()
 main = do
-  let !imgU = compute $ makeImage (1600, 1600)
+  let !imgU = compute $ makeImage (600, 600)
               (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j )))
               :: Image RPU Y Double
   let !imgU' =
         compute $
         makeImage
-          (1600, 1600)
+          (600, 600)
           (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Double
   let !sobelFSep = applyFilter (sobelFilter Horizontal Edge) imgU
   let !sobelFSep' = applyFilter (sobelFilter Horizontal Edge)

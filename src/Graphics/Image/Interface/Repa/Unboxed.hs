@@ -15,191 +15,190 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Repa.Unboxed (
-  RSU(..), RPU(..), Image(..)
+module Graphics.Image.Interface.Repa.Unboxed
+  ( RSU(..)
+  , RPU(..)
+  , Repr(..)
   ) where
 
-import qualified Data.Array.Repa                         as R
-import qualified Data.Array.Repa.Eval                    as R
+import qualified Data.Array.Repa.Repr.Unboxed            as R (U)
+import qualified Data.Array.Repa.Eval                    as R (Elt)
 import           Data.Typeable                           (Typeable)
-import           Prelude                                 as P
-
+import qualified Data.Vector.Generic                     as VG (Vector)
+import qualified Data.Vector.Unboxed                     as VU (Unbox, Vector)
 import           Graphics.Image.Interface                as I
 import           Graphics.Image.Interface.Repa.Generic
-import qualified Graphics.Image.Interface.Vector.Unboxed as IVU
+import           Graphics.Image.Interface.Vector.Unboxed ()
+import           Prelude                                 as P
 
 
--- | Repa Array representation backed by Unboxed Vector, which is computed sequentially.
-data RSU = RSU deriving Typeable
+-- | Repa Array representation, which is computed sequentially.
+newtype RSU ix px = RSUArray (RArray R.U px) deriving Typeable
 
--- | Repa Array representation backed by Unboxed Vector, which is computed in parallel.
-data RPU = RPU deriving Typeable
+data instance Repr RSU = RSU
 
-instance Show RSU where
-  show _ = "RepaSequentialUnboxed"
+type instance Vector RSU = VU.Vector
 
-instance Show RPU where
-  show _ = "RepaParallelUnboxed"
 
+instance (R.Elt e, VU.Unbox e) => BaseArray RSU (Int, Int) e where
 
-instance SuperClass RSU cs e => BaseArray RSU cs e where
-  type SuperClass RSU cs e =
-    (ColorSpace cs e,
-     R.Elt e, R.Elt (Pixel cs e))
+  type SuperClass RSU (Int, Int) e = (VG.Vector VU.Vector e, VU.Unbox e, R.Elt e)
 
-  newtype Image RSU cs e = SUImage (RImage R.U (Pixel cs e))
+  unsafeIndexA (RSUArray v) = unsafeIndexR v
+  {-# INLINE unsafeIndexA #-}
 
-  dims (SUImage img) = dimsR img
-  {-# INLINE dims #-}
+  shapeA (RSUArray v) = dimsR v
+  {-# INLINE shapeA #-}
 
+  makeA !sz = RSUArray . makeArrayR sz
+  {-# INLINE makeA #-}
 
-instance (BaseArray RSU cs e) => Array RSU cs e where
+instance BaseArray RSU (Int, Int) e => IArray RSU (Int, Int) e where
 
-  type Manifest RSU = IVU.VU
+  makeWindowedA !sh !wIx !wSz f g = RSUArray $ makeArrayWindowedR sh wIx wSz f g
+  {-# INLINE makeWindowedA #-}
 
-  type Vector RSU = Vector IVU.VU
+  scalarA = RSUArray . scalarR
+  {-# INLINE scalarA #-}
 
-  makeImage !sz f = SUImage (makeImageR sz f)
-  {-# INLINE makeImage #-}
+  mapA f (RSUArray v) = RSUArray $ mapR f v
+  {-# INLINE mapA #-}
 
-  makeImageWindowed !sz !wIx !wSz f = SUImage . makeImageWindowedR sz wIx wSz f
-  {-# INLINE makeImageWindowed #-}
+  imapA f (RSUArray v) = RSUArray $ imapR f v
+  {-# INLINE imapA #-}
 
-  scalar = SUImage . scalarR
-  {-# INLINE scalar #-}
+  zipWithA f (RSUArray v1) (RSUArray v2) = RSUArray $ zipWithR f v1 v2
+  {-# INLINE zipWithA #-}
 
-  index00 (SUImage img) = index00R img
-  {-# INLINE index00 #-}
+  izipWithA f (RSUArray v1) (RSUArray v2) = RSUArray $ izipWithR f v1 v2
+  {-# INLINE izipWithA #-}
 
-  map f (SUImage img) = SUImage (mapR f img)
-  {-# INLINE map #-}
+  traverseA (RSUArray v) f g = RSUArray $ traverseR v f g
+  {-# INLINE traverseA #-}
 
-  imap f (SUImage img) = SUImage (imapR f img)
-  {-# INLINE imap #-}
+  traverse2A (RSUArray v1) (RSUArray v2) f g = RSUArray $ traverse2R v1 v2 f g
+  {-# INLINE traverse2A #-}
 
-  zipWith f (SUImage img1) (SUImage img2) = SUImage (zipWithR f img1 img2)
-  {-# INLINE zipWith #-}
+  transposeA (RSUArray v) = RSUArray $ transposeR v
+  {-# INLINE transposeA #-}
 
-  izipWith f (SUImage img1) (SUImage img2) = SUImage (izipWithR f img1 img2)
-  {-# INLINE izipWith #-}
+  backpermuteA !sz f (RSUArray v) = RSUArray $ backpermuteR sz f v
+  {-# INLINE backpermuteA #-}
 
-  traverse (SUImage img) f g = SUImage (traverseR img f g)
-  {-# INLINE traverse #-}
+  fromListsA = RSUArray . fromListsR
+  {-# NOINLINE fromListsA #-}
 
-  traverse2 (SUImage img1) (SUImage img2) f g = SUImage (traverse2R img1 img2 f g)
-  {-# INLINE traverse2 #-}
+  foldA f !px0 (RSUArray v) = foldR Sequential f px0 v
+  {-# INLINE foldA #-}
 
-  transpose (SUImage img) = SUImage (transposeR img)
-  {-# INLINE transpose #-}
+  foldIxA f !px0 (RSUArray v) = foldIxR Sequential f px0 v
+  {-# INLINE foldIxA #-}
 
-  backpermute !sz g (SUImage img) = SUImage (backpermuteR sz g img)
-  {-# INLINE backpermute #-}
+  multA (RSUArray v1) (RSUArray v2) = RSUArray (multR Sequential v1 v2)
+  {-# INLINE multA #-}
 
-  fromLists = SUImage . fromListsR
-  {-# INLINE fromLists #-}
+  computeA (RSUArray arr) = RSUArray (computeR Sequential arr)
+  {-# INLINE computeA #-}
 
-  fold f !px0 (SUImage img) = foldR Sequential f px0 img
-  {-# INLINE fold #-}
 
-  foldIx f !px0 (SUImage img) = foldIxR Sequential f px0 img
-  {-# INLINE foldIx #-}
 
-  eq (SUImage img1) (SUImage img2) = eqR Sequential img1 img2
-  {-# INLINE eq #-}
+instance ColorSpace cs e => Eq (RSU (Int,Int) (Pixel cs e)) where
+  (RSUArray arr1) == (RSUArray arr2) = eqR Parallel arr1 arr2
 
-  compute (SUImage img) = SUImage (computeR Sequential img)
-  {-# INLINE compute #-}
 
-  (|*|) (SUImage img1) (SUImage img2) = SUImage (multR Sequential img1 img2)
-  {-# INLINE (|*|) #-}
+instance (R.Elt e, ColorSpace cs e) => Array RSU cs e where
 
-  toManifest (SUImage img) = fromVector (dimsR img) (toVectorUnboxedR Sequential img)
-  {-# INLINE toManifest #-}
+  toVectorA (RSUArray v) = toVectorUnboxedR Sequential v
+  {-# INLINE toVectorA #-}
 
-  toVector (SUImage img) = toVectorUnboxedR Sequential img
-  {-# INLINE toVector #-}
+  fromVectorA !sz = RSUArray . fromVectorUnboxedR sz
+  {-# INLINE fromVectorA #-}
 
-  fromVector !sz = SUImage . fromVectorUnboxedR sz
-  {-# INLINE fromVector #-}
 
 
 
-instance SuperClass RPU cs e => BaseArray RPU cs e where
-  type SuperClass RPU cs e =
-    (ColorSpace cs e, R.Elt e, R.Elt (Pixel cs e))
 
-  newtype Image RPU cs e = PUImage (RImage R.U (Pixel cs e))
+-- | Repa Array representation, which is computed in parallel.
+newtype RPU ix px = RPUArray (RArray R.U px) deriving Typeable
 
-  dims (PUImage img) = dimsR img
-  {-# INLINE dims #-}
+data instance Repr RPU = RPU
 
+type instance Vector RPU = VU.Vector
 
-instance BaseArray RPU cs e => Array RPU cs e where
 
-  type Manifest RPU = IVU.VU
+instance (R.Elt e, VU.Unbox e) => BaseArray RPU (Int, Int) e where
 
-  type Vector RPU = Vector IVU.VU
+  type SuperClass RPU (Int, Int) e = (VG.Vector VU.Vector e, VU.Unbox e, R.Elt e)
 
-  makeImage !sz f = PUImage (makeImageR sz f)
-  {-# INLINE makeImage #-}
+  unsafeIndexA (RPUArray v) = unsafeIndexR v
+  {-# INLINE unsafeIndexA #-}
 
-  makeImageWindowed !sz !wIx !wSz f = PUImage . makeImageWindowedR sz wIx wSz f
-  {-# INLINE makeImageWindowed #-}
+  shapeA (RPUArray v) = dimsR v
+  {-# INLINE shapeA #-}
 
-  scalar = PUImage . scalarR
-  {-# INLINE scalar #-}
+  makeA !sz = RPUArray . makeArrayR sz
+  {-# INLINE makeA #-}
 
-  index00 (PUImage img) = index00R img
-  {-# INLINE index00 #-}
+instance BaseArray RPU (Int, Int) e => IArray RPU (Int, Int) e where
 
-  map f (PUImage img) = PUImage (mapR f img)
-  {-# INLINE map #-}
+  makeWindowedA !sh !wIx !wSz f g = RPUArray $ makeArrayWindowedR sh wIx wSz f g
+  {-# INLINE makeWindowedA #-}
 
-  imap f (PUImage img) = PUImage (imapR f img)
-  {-# INLINE imap #-}
+  scalarA = RPUArray . scalarR
+  {-# INLINE scalarA #-}
 
-  zipWith f (PUImage img1) (PUImage img2) = PUImage (zipWithR f img1 img2)
-  {-# INLINE zipWith #-}
+  mapA f (RPUArray v) = RPUArray $ mapR f v
+  {-# INLINE mapA #-}
 
-  izipWith f (PUImage img1) (PUImage img2) = PUImage (izipWithR f img1 img2)
-  {-# INLINE izipWith #-}
+  imapA f (RPUArray v) = RPUArray $ imapR f v
+  {-# INLINE imapA #-}
 
-  traverse (PUImage img) f g = PUImage (traverseR img f g)
-  {-# INLINE traverse #-}
+  zipWithA f (RPUArray v1) (RPUArray v2) = RPUArray $ zipWithR f v1 v2
+  {-# INLINE zipWithA #-}
 
-  traverse2 (PUImage img1) (PUImage img2) f g = PUImage (traverse2R img1 img2 f g)
-  {-# INLINE traverse2 #-}
+  izipWithA f (RPUArray v1) (RPUArray v2) = RPUArray $ izipWithR f v1 v2
+  {-# INLINE izipWithA #-}
 
-  transpose (PUImage img) = PUImage (transposeR img)
-  {-# INLINE transpose #-}
+  traverseA (RPUArray v) f g = RPUArray $ traverseR v f g
+  {-# INLINE traverseA #-}
 
-  backpermute !sz g (PUImage img) = PUImage (backpermuteR sz g img)
-  {-# INLINE backpermute #-}
+  traverse2A (RPUArray v1) (RPUArray v2) f g = RPUArray $ traverse2R v1 v2 f g
+  {-# INLINE traverse2A #-}
 
-  fromLists = PUImage . fromListsR
-  {-# INLINE fromLists #-}
+  transposeA (RPUArray v) = RPUArray $ transposeR v
+  {-# INLINE transposeA #-}
 
-  fold f !px0 (PUImage img) = foldR Parallel f px0 img
-  {-# INLINE fold #-}
+  backpermuteA !sz f (RPUArray v) = RPUArray $ backpermuteR sz f v
+  {-# INLINE backpermuteA #-}
 
-  foldIx f !px0 (PUImage img) = foldIxR Parallel f px0 img
-  {-# INLINE foldIx #-}
+  fromListsA = RPUArray . fromListsR
+  {-# NOINLINE fromListsA #-}
 
-  eq (PUImage img1) (PUImage img2) = eqR Parallel img1 img2
-  {-# INLINE eq #-}
+  foldA f !px0 (RPUArray v) = foldR Parallel f px0 v
+  {-# INLINE foldA #-}
 
-  compute (PUImage img) = PUImage (computeR Parallel img)
-  {-# INLINE compute #-}
+  foldIxA f !px0 (RPUArray v) = foldIxR Parallel f px0 v
+  {-# INLINE foldIxA #-}
 
-  (|*|) (PUImage img1) (PUImage img2) = PUImage (multR Parallel img1 img2)
-  {-# INLINE (|*|) #-}
+  multA (RPUArray v1) (RPUArray v2) = RPUArray (multR Parallel v1 v2)
+  {-# INLINE multA #-}
 
+  computeA (RPUArray arr) = RPUArray (computeR Parallel arr)
+  {-# INLINE computeA #-}
 
-  toManifest (PUImage img) = fromVector (dimsR img) (toVectorUnboxedR Parallel img)
-  {-# INLINE toManifest #-}
 
-  toVector (PUImage img) = toVectorUnboxedR Parallel img
-  {-# INLINE toVector #-}
 
-  fromVector !sz = PUImage . fromVectorUnboxedR sz
-  {-# INLINE fromVector #-}
+
+instance ColorSpace cs e => Eq (RPU (Int,Int) (Pixel cs e)) where
+  (RPUArray arr1) == (RPUArray arr2) = eqR Parallel arr1 arr2
+
+
+instance (R.Elt e, ColorSpace cs e) => Array RPU cs e where
+
+  toVectorA (RPUArray v) = toVectorUnboxedR Parallel v
+  {-# INLINE toVectorA #-}
+
+  fromVectorA !sz = RPUArray . fromVectorUnboxedR sz
+  {-# INLINE fromVectorA #-}
+
+

@@ -130,6 +130,7 @@ import           Graphics.Image.ColorSpace.Y
 import           Graphics.Image.ColorSpace.YCbCr
 import           Graphics.Image.Interface          as I
 import           Graphics.Image.Interface.Elevator
+import           Graphics.Image.Internal           as I
 
 
 -- -- Binary:

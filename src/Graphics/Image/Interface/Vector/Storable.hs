@@ -1,14 +1,10 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector.Storable
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -17,157 +13,159 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Vector.Storable (
-  VS(..), Image(..)
+module Graphics.Image.Interface.Vector.Storable
+  ( VS(..)
+  , Repr(VS)
   ) where
 
-import           Prelude                                 hiding (map, zipWith)
-#if !MIN_VERSION_base(4,8,0)
-import           Data.Functor
-#endif
-import           Control.DeepSeq                         (deepseq)
-import           Data.Typeable                           (Typeable)
-import qualified Data.Vector.Storable                    as VS
-import           Graphics.Image.Interface                as I
+import           Control.DeepSeq                          (NFData (..), deepseq)
+import           Prelude                                  hiding (map, zipWith)
+-- import           Data.Typeable                            (Typeable)
+import qualified Data.Vector.Storable                     as VS
+import qualified Data.Vector.Generic                      as VG
+import           Graphics.Image.Interface                 as I
 import           Graphics.Image.Interface.Vector.Generic
 
 
 
--- | Storable 'Vector' representation.
-data VS = VS deriving Typeable
+-- | Unboxed 'Vector' representation.
+newtype VS ix px = VSArray (VGArray VS.Vector px)
 
-instance Show VS where
-  show _ = "VectorStorable"
+data instance Repr VS = VS
 
-instance SuperClass VS cs e => BaseArray VS cs e where
-  type SuperClass VS cs e =
-    (ColorSpace cs e, VS.Storable (Pixel cs e))
 
-  newtype Image VS cs e = VSImage (VGImage VS.Vector (Pixel cs e))
+instance NFData px => NFData (VS (Int, Int) px) where
+  rnf (VSArray arr) = rnf arr
 
-  dims (VSImage img) = dimsVG img
-  {-# INLINE dims #-}
+type instance Vector VS = VS.Vector
 
 
 
-instance (MArray VS cs e, BaseArray VS cs e) => Array VS cs e where
+instance VS.Storable e => BaseArray VS (Int, Int) e where
 
-  type Manifest VS = VS
+  type SuperClass VS (Int, Int) e = (VG.Vector VS.Vector e, VS.Storable e)
 
-  type Vector VS = VS.Vector
+  unsafeIndexA (VSArray arr) = unsafeIndexVG arr
+  {-# INLINE unsafeIndexA #-}
 
-  makeImage !sh = VSImage . makeImageVG sh
-  {-# INLINE makeImage #-}
+  shapeA (VSArray v) = dimsVG v
+  {-# INLINE shapeA #-}
 
-  makeImageWindowed !sh !wIx !wSz f g = VSImage $ makeImageWindowedVG sh wIx wSz f g
-  {-# INLINE makeImageWindowed #-}
-
-  scalar = VSImage . scalarVG
-  {-# INLINE scalar #-}
-
-  index00 (VSImage img) = index00VG img
-  {-# INLINE index00 #-}
-
-  map f (VSImage img) = VSImage $ mapVG f img
-  {-# INLINE map #-}
-
-  imap f (VSImage img) = VSImage $ imapVG f img
-  {-# INLINE imap #-}
-
-  zipWith f (VSImage img1) (VSImage img2) = VSImage $ zipWithVG f img1 img2
-  {-# INLINE zipWith #-}
-
-  izipWith f (VSImage img1) (VSImage img2) = VSImage $ izipWithVG f img1 img2
-  {-# INLINE izipWith #-}
-
-  traverse (VSImage img) f g = VSImage $ traverseVG img f g
-  {-# INLINE traverse #-}
-
-  traverse2 (VSImage img1) (VSImage img2) f g = VSImage $ traverse2VG img1 img2 f g
-  {-# INLINE traverse2 #-}
-
-  transpose (VSImage img) = VSImage $ transposeVG img
-  {-# INLINE transpose #-}
-
-  backpermute !sz f (VSImage img) = VSImage $ backpermuteVG sz f img
-  {-# INLINE backpermute #-}
-
-  fromLists = VSImage . fromListsVG
-  {-# INLINE fromLists #-}
-
-  fold f !px0 (VSImage img) = foldlVG f px0 img
-  {-# INLINE fold #-}
-
-  foldIx f !px0 (VSImage img) = ifoldlVG f px0 img
-  {-# INLINE foldIx #-}
-
-  (|*|) (VSImage img1) (VSImage img2) = VSImage (multVG img1 img2)
-  {-# INLINE (|*|) #-}
-
-  eq (VSImage img1) (VSImage img2) = img1 == img2
-  {-# INLINE eq #-}
-
-  compute (VSImage img) = img `deepseq` VSImage img
-  {-# INLINE compute #-}
-
-  toManifest = id
-  {-# INLINE toManifest #-}
-
-  toVector (VSImage img) = toVectorVG img
-  {-# INLINE toVector #-}
-
-  fromVector !sz = VSImage . fromVectorVG sz
-  {-# INLINE fromVector #-}
+  makeA !sz = VSArray . makeImageVG sz
+  {-# INLINE makeA #-}
 
 
-instance BaseArray VS cs e => MArray VS cs e where
+instance BaseArray VS (Int, Int) e => IArray VS (Int, Int) e where
 
-  newtype MImage s VS cs e = MVSImage (MVGImage s VS.Vector (Pixel cs e))
+  makeWindowedA !sh !wIx !wSz f g = VSArray $ makeImageWindowedVG sh wIx wSz f g
+  {-# INLINE makeWindowedA #-}
 
-  unsafeIndex (VSImage img) = unsafeIndexVG img
-  {-# INLINE unsafeIndex #-}
+  scalarA = VSArray . scalarVG
+  {-# INLINE scalarA #-}
 
-  deepSeqImage (VSImage img) = deepseq img
-  {-# INLINE deepSeqImage #-}
+  mapA f (VSArray v) = VSArray $ mapVG f v
+  {-# INLINE mapA #-}
 
-  foldl f !px0 (VSImage img) = foldlVG f px0 img
-  {-# INLINE foldl #-}
+  imapA f (VSArray v) = VSArray $ imapVG f v
+  {-# INLINE imapA #-}
 
-  foldr f !px0 (VSImage img) = foldrVG f px0 img
-  {-# INLINE foldr #-}
+  zipWithA f (VSArray v1) (VSArray v2) = VSArray $ zipWithVG f v1 v2
+  {-# INLINE zipWithA #-}
 
-  makeImageM !sh f = VSImage <$> makeImageMVG sh f
-  {-# INLINE makeImageM #-}
+  izipWithA f (VSArray v1) (VSArray v2) = VSArray $ izipWithVG f v1 v2
+  {-# INLINE izipWithA #-}
 
-  mapM f (VSImage img) = VSImage <$> mapMVG f img
-  {-# INLINE mapM #-}
+  traverseA (VSArray v) f g = VSArray $ traverseVG v f g
+  {-# INLINE traverseA #-}
 
-  mapM_ f (VSImage img) = mapM_VG f img
-  {-# INLINE mapM_ #-}
+  traverse2A (VSArray v1) (VSArray v2) f g = VSArray $ traverse2VG v1 v2 f g
+  {-# INLINE traverse2A #-}
 
-  foldM f !px0 (VSImage img) = foldMVG f px0 img
-  {-# INLINE foldM #-}
+  transposeA (VSArray v) = VSArray $ transposeVG v
+  {-# INLINE transposeA #-}
 
-  foldM_ f !px0 (VSImage img) = foldM_VG f px0 img
-  {-# INLINE foldM_ #-}
+  backpermuteA !sz f (VSArray v) = VSArray $ backpermuteVG sz f v
+  {-# INLINE backpermuteA #-}
 
-  mdims (MVSImage mimg) = mdimsVG mimg
-  {-# INLINE mdims #-}
+  fromListsA = VSArray . fromListsVG
+  {-# NOINLINE fromListsA #-}
 
-  thaw (VSImage img) = MVSImage <$> thawVG img
-  {-# INLINE thaw #-}
+  foldA f !px0 (VSArray v) = foldlVG f px0 v
+  {-# INLINE foldA #-}
 
-  freeze (MVSImage img) = VSImage <$> freezeVG img
-  {-# INLINE freeze #-}
+  foldIxA f !px0 (VSArray v) = ifoldlVG f px0 v
+  {-# INLINE foldIxA #-}
 
-  new !ix = MVSImage <$> newVG ix
-  {-# INLINE new #-}
+  multA (VSArray v1) (VSArray v2) = VSArray (multVG v1 v2)
+  {-# INLINE multA #-}
 
-  read (MVSImage img) = readVG img
-  {-# INLINE read #-}
+  computeA (VSArray v) = v `deepseq` VSArray v
+  {-# INLINE computeA #-}
 
-  write (MVSImage img) = writeVG img
-  {-# INLINE write #-}
+instance BaseArray VS (Int, Int) e => ManifestArray VS (Int, Int) e where
 
-  swap (MVSImage img) = swapVG img
-  {-# INLINE swap #-}
+  foldlA f !px0 (VSArray arr) = foldlVG f px0 arr
+  {-# INLINE foldlA #-}
+
+  foldrA f !px0 (VSArray arr) = foldrVG f px0 arr
+  {-# INLINE foldrA #-}
+
+  makeArrayMA !sh f = VSArray <$> makeImageMVG sh f
+  {-# INLINE makeArrayMA #-}
+
+  mapMA f (VSArray arr) = VSArray <$> mapMVG f arr
+  {-# INLINE mapMA #-}
+
+  mapM_A f (VSArray arr) = mapM_VG f arr
+  {-# INLINE mapM_A #-}
+
+  foldMA f !px0 (VSArray arr) = foldMVG f px0 arr
+  {-# INLINE foldMA #-}
+
+  foldM_A f !px0 (VSArray arr) = foldM_VG f px0 arr
+  {-# INLINE foldM_A #-}
+
+
+-- data MVS s ix px = MVSArray !(MVGArray s VS.Vector px)
+
+-- type instance MA VS = MVS
+
+-- instance VS.Unbox e => MutableArray MVS (Int, Int) e where
+
+--   thawA (VSArray arr) = MVSArray <$> thawVG arr
+--   {-# INLINE thawA #-}
+
+--   freezeA (MVSArray arr) = VSArray <$> freezeVG arr
+--   {-# INLINE freezeA #-}
+
+--   mshapeA (MVSArray marr) = mdimsVG marr
+--   {-# INLINE mshapeA #-}
+
+--   newA !ix = MVSArray <$> newVG ix
+--   {-# INLINE newA #-}
+
+--   readA (MVSArray arr) = readVG arr
+--   {-# INLINE readA #-}
+
+--   writeA (MVSArray arr) = writeVG arr
+--   {-# INLINE writeA #-}
+
+--   swapA (MVSArray arr) = swapVG arr
+--   {-# INLINE swapA #-}
+
+
+
+instance (VS.Storable (Pixel cs e), ColorSpace cs e) => Eq (VS (Int,Int) (Pixel cs e)) where
+  (VSArray arr1) == (VSArray arr2) = arr1 == arr2
+
+
+instance (VS.Storable (Pixel cs e), ColorSpace cs e) => Array VS cs e where
+
+  toVectorA (VSArray v) = toVectorVG v
+  {-# INLINE toVectorA #-}
+
+  fromVectorA !sz = VSArray . fromVectorVG sz
+  {-# INLINE fromVectorA #-}
+
+
+instance (VS.Storable (Pixel cs e), ColorSpace cs e) => MArray VS cs e

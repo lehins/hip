@@ -21,6 +21,7 @@ module Graphics.Image.Processing.Complex (
 
 import Prelude hiding (map, zipWith)
 import Graphics.Image.Interface
+import Graphics.Image.Internal
 import Graphics.Image.ColorSpace.Complex
 import Graphics.Image.Processing.Complex.Fourier
 

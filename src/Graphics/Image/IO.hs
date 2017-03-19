@@ -56,6 +56,7 @@ import Control.Exception (bracket)
 
 import Graphics.Image.ColorSpace
 import Graphics.Image.Interface
+import Graphics.Image.Internal
 import Graphics.Image.Interface.Vector
 import Graphics.Image.IO.Base
 import Graphics.Image.IO.Formats
@@ -103,7 +104,7 @@ readImage path = do
         return $ either (Left . ((err++"\n")++)) Right (decode format imgstr)
       reader img         _     = return img
   imgE <- M.foldM reader (Left "") orderedFormats
-  return $ fmap (exchange (undefined :: arr)) imgE
+  return $ fmap (exchange (undefined :: Repr arr)) imgE
 
 
 -- | Just like `readImage`, but will throw an exception if incorrect format is

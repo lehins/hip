@@ -7,20 +7,30 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Types (
-  module Graphics.Image.ColorSpace,
-  module Graphics.Image.IO.Formats,
-  Array, Image, MArray, MImage,
-  Border(..),
-  VU(..), VS(..), RSU(..), RPU(..), RSS(..), RPS(..)
+module Graphics.Image.Types
+  ( module Graphics.Image.ColorSpace
+  , module Graphics.Image.IO.Formats
+  , Array
+  , Image
+  , MArray
+  --, MImage
+  , Border(..)
+  , VU
+  , VS
+  , RSU
+  , RPU
+  , RSS
+  , RPS
+  , Repr(..)
   ) where
 
 
-import Graphics.Image.ColorSpace
-import Graphics.Image.Interface as I
-import Graphics.Image.Interface.Vector (VU(..), VS(..))
-import Graphics.Image.Interface.Repa (RSU(..), RPU(..), RSS(..), RPS(..))
-import Graphics.Image.IO.Formats
+import           Graphics.Image.ColorSpace
+import           Graphics.Image.Interface        as I
+import           Graphics.Image.Interface.Repa   (RPS, RPU, RSS, RSU, Repr(..))
+import           Graphics.Image.Interface.Vector (VS, VU, Repr(..))
+import           Graphics.Image.Internal         as I
+import           Graphics.Image.IO.Formats
 
 
 

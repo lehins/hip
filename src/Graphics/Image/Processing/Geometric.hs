@@ -31,6 +31,7 @@ import           Prelude                                 hiding (traverse)
 #endif
 import qualified Data.Vector                             as V
 import           Graphics.Image.Interface
+import           Graphics.Image.Internal
 import           Graphics.Image.Processing.Interpolation
 
 

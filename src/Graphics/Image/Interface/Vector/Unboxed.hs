@@ -1,14 +1,10 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
 -- |
 -- Module      : Graphics.Image.Interface.Vector.Unboxed
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -17,16 +13,16 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Vector.Unboxed (
-  VU(..), VU.Unbox, Image(..)
+module Graphics.Image.Interface.Vector.Unboxed
+  ( VU(..)
+  , Repr(VU)
+  , VU.Unbox
   ) where
 
-import           Control.DeepSeq                          (deepseq)
+import           Control.DeepSeq                          (NFData(..), deepseq)
 import           Prelude                                  hiding (map, zipWith)
-#if !MIN_VERSION_base(4,8,0)
-import           Data.Functor
-#endif
-import           Data.Typeable                            (Typeable)
+-- import           Data.Typeable                            (Typeable)
+import qualified Data.Vector.Generic                      as VG
 import qualified Data.Vector.Unboxed                      as VU
 import           Graphics.Image.Interface                 as I
 import           Graphics.Image.Interface.Vector.Generic
@@ -35,141 +31,143 @@ import           Graphics.Image.Interface.Vector.Unboxing ()
 
 
 -- | Unboxed 'Vector' representation.
-data VU = VU deriving Typeable
+newtype VU ix px = VUArray (VGArray VU.Vector px)
 
-instance Show VU where
-  show _ = "VectorUnboxed"
+data instance Repr VU = VU
 
-instance SuperClass VU cs e => BaseArray VU cs e where
-  type SuperClass VU cs e =
-    (ColorSpace cs e, VU.Unbox (Components cs e))
 
-  newtype Image VU cs e = VUImage (VGImage VU.Vector (Pixel cs e))
+instance NFData px => NFData (VU (Int, Int) px) where
+  rnf (VUArray arr) = rnf arr
 
-  dims (VUImage img) = dimsVG img
-  {-# INLINE dims #-}
+type instance Vector VU = VU.Vector
 
 
 
-instance (MArray VU cs e, BaseArray VU cs e) => Array VU cs e where
+instance VU.Unbox e => BaseArray VU (Int, Int) e where
 
-  type Manifest VU = VU
+  type SuperClass VU (Int, Int) e = (VG.Vector VU.Vector e, VU.Unbox e)
 
-  type Vector VU = VU.Vector
+  shapeA (VUArray v) = dimsVG v
+  {-# INLINE shapeA #-}
 
-  makeImage !sh = VUImage . makeImageVG sh
-  {-# INLINE makeImage #-}
+  makeA !sz = VUArray . makeImageVG sz
+  {-# INLINE makeA #-}
 
-  makeImageWindowed !sh !wIx !wSz f g = VUImage $ makeImageWindowedVG sh wIx wSz f g
-  {-# INLINE makeImageWindowed #-}
-
-  scalar = VUImage . scalarVG
-  {-# INLINE scalar #-}
-
-  index00 (VUImage img) = index00VG img
-  {-# INLINE index00 #-}
-
-  map f (VUImage img) = VUImage $ mapVG f img
-  {-# INLINE map #-}
-
-  imap f (VUImage img) = VUImage $ imapVG f img
-  {-# INLINE imap #-}
-
-  zipWith f (VUImage img1) (VUImage img2) = VUImage $ zipWithVG f img1 img2
-  {-# INLINE zipWith #-}
-
-  izipWith f (VUImage img1) (VUImage img2) = VUImage $ izipWithVG f img1 img2
-  {-# INLINE izipWith #-}
-
-  traverse (VUImage img) f g = VUImage $ traverseVG img f g
-  {-# INLINE traverse #-}
-
-  traverse2 (VUImage img1) (VUImage img2) f g = VUImage $ traverse2VG img1 img2 f g
-  {-# INLINE traverse2 #-}
-
-  transpose (VUImage img) = VUImage $ transposeVG img
-  {-# INLINE transpose #-}
-
-  backpermute !sz f (VUImage img) = VUImage $ backpermuteVG sz f img
-  {-# INLINE backpermute #-}
-
-  fromLists = VUImage . fromListsVG
-  {-# NOINLINE fromLists #-}
-
-  fold f !px0 (VUImage img) = foldlVG f px0 img
-  {-# INLINE fold #-}
-
-  foldIx f !px0 (VUImage img) = ifoldlVG f px0 img
-  {-# INLINE foldIx #-}
-
-  (|*|) (VUImage img1) (VUImage img2) = VUImage (multVG img1 img2)
-  {-# INLINE (|*|) #-}
-
-  eq (VUImage img1) (VUImage img2) = img1 == img2
-  {-# INLINE eq #-}
-
-  compute (VUImage img) = img `deepseq` VUImage img
-  {-# INLINE compute #-}
-
-  toManifest = id
-  {-# INLINE toManifest #-}
-
-  toVector (VUImage img) = toVectorVG img
-  {-# INLINE toVector #-}
-
-  fromVector !sz = VUImage . fromVectorVG sz
-  {-# INLINE fromVector #-}
+  unsafeIndexA (VUArray arr) = unsafeIndexVG arr
+  {-# INLINE unsafeIndexA #-}
 
 
-instance BaseArray VU cs e => MArray VU cs e where
+instance BaseArray VU (Int, Int) e => IArray VU (Int, Int) e where
 
-  newtype MImage s VU cs e = MVUImage (MVGImage s VU.Vector (Pixel cs e))
+  makeWindowedA !sh !wIx !wSz f g = VUArray $ makeImageWindowedVG sh wIx wSz f g
+  {-# INLINE makeWindowedA #-}
 
-  unsafeIndex (VUImage img) = unsafeIndexVG img
-  {-# INLINE unsafeIndex #-}
+  scalarA = VUArray . scalarVG
+  {-# INLINE scalarA #-}
 
-  deepSeqImage (VUImage img) = deepseq img
-  {-# INLINE deepSeqImage #-}
+  mapA f (VUArray v) = VUArray $ mapVG f v
+  {-# INLINE mapA #-}
 
-  foldl f !px0 (VUImage img) = foldlVG f px0 img
-  {-# INLINE foldl #-}
+  imapA f (VUArray v) = VUArray $ imapVG f v
+  {-# INLINE imapA #-}
 
-  foldr f !px0 (VUImage img) = foldrVG f px0 img
-  {-# INLINE foldr #-}
+  zipWithA f (VUArray v1) (VUArray v2) = VUArray $ zipWithVG f v1 v2
+  {-# INLINE zipWithA #-}
 
-  makeImageM !sh f = VUImage <$> makeImageMVG sh f
-  {-# INLINE makeImageM #-}
+  izipWithA f (VUArray v1) (VUArray v2) = VUArray $ izipWithVG f v1 v2
+  {-# INLINE izipWithA #-}
 
-  mapM f (VUImage img) = VUImage <$> mapMVG f img
-  {-# INLINE mapM #-}
+  traverseA (VUArray v) f g = VUArray $ traverseVG v f g
+  {-# INLINE traverseA #-}
 
-  mapM_ f (VUImage img) = mapM_VG f img
-  {-# INLINE mapM_ #-}
+  traverse2A (VUArray v1) (VUArray v2) f g = VUArray $ traverse2VG v1 v2 f g
+  {-# INLINE traverse2A #-}
 
-  foldM f !px0 (VUImage img) = foldMVG f px0 img
-  {-# INLINE foldM #-}
+  transposeA (VUArray v) = VUArray $ transposeVG v
+  {-# INLINE transposeA #-}
 
-  foldM_ f !px0 (VUImage img) = foldM_VG f px0 img
-  {-# INLINE foldM_ #-}
+  backpermuteA !sz f (VUArray v) = VUArray $ backpermuteVG sz f v
+  {-# INLINE backpermuteA #-}
 
-  mdims (MVUImage mimg) = mdimsVG mimg
-  {-# INLINE mdims #-}
+  fromListsA = VUArray . fromListsVG
+  {-# NOINLINE fromListsA #-}
 
-  thaw (VUImage img) = MVUImage <$> thawVG img
-  {-# INLINE thaw #-}
+  foldA f !px0 (VUArray v) = foldlVG f px0 v
+  {-# INLINE foldA #-}
 
-  freeze (MVUImage img) = VUImage <$> freezeVG img
-  {-# INLINE freeze #-}
+  foldIxA f !px0 (VUArray v) = ifoldlVG f px0 v
+  {-# INLINE foldIxA #-}
 
-  new !ix = MVUImage <$> newVG ix
-  {-# INLINE new #-}
+  multA (VUArray v1) (VUArray v2) = VUArray (multVG v1 v2)
+  {-# INLINE multA #-}
 
-  read (MVUImage img) = readVG img
-  {-# INLINE read #-}
+  computeA (VUArray v) = v `deepseq` VUArray v
+  {-# INLINE computeA #-}
 
-  write (MVUImage img) = writeVG img
-  {-# INLINE write #-}
 
-  swap (MVUImage img) = swapVG img
-  {-# INLINE swap #-}
+instance BaseArray VU (Int, Int) e => ManifestArray VU (Int, Int) e where
 
+  foldlA f !px0 (VUArray arr) = foldlVG f px0 arr
+  {-# INLINE foldlA #-}
+
+  foldrA f !px0 (VUArray arr) = foldrVG f px0 arr
+  {-# INLINE foldrA #-}
+
+  makeArrayMA !sh f = VUArray <$> makeImageMVG sh f
+  {-# INLINE makeArrayMA #-}
+
+  mapMA f (VUArray arr) = VUArray <$> mapMVG f arr
+  {-# INLINE mapMA #-}
+
+  mapM_A f (VUArray arr) = mapM_VG f arr
+  {-# INLINE mapM_A #-}
+
+  foldMA f !px0 (VUArray arr) = foldMVG f px0 arr
+  {-# INLINE foldMA #-}
+
+  foldM_A f !px0 (VUArray arr) = foldM_VG f px0 arr
+  {-# INLINE foldM_A #-}
+
+
+-- data MVU s ix px = MVUArray !(MVGArray s VU.Vector px)
+
+-- type instance MA VU = MVU
+
+-- instance VU.Unbox e => MutableArray MVU (Int, Int) e where
+
+--   thawA (VUArray arr) = MVUArray <$> thawVG arr
+--   {-# INLINE thawA #-}
+
+--   freezeA (MVUArray arr) = VUArray <$> freezeVG arr
+--   {-# INLINE freezeA #-}
+
+--   mshapeA (MVUArray marr) = mdimsVG marr
+--   {-# INLINE mshapeA #-}
+
+--   newA !ix = MVUArray <$> newVG ix
+--   {-# INLINE newA #-}
+
+--   readA (MVUArray arr) = readVG arr
+--   {-# INLINE readA #-}
+
+--   writeA (MVUArray arr) = writeVG arr
+--   {-# INLINE writeA #-}
+
+--   swapA (MVUArray arr) = swapVG arr
+--   {-# INLINE swapA #-}
+
+
+instance ColorSpace cs e => Eq (VU (Int,Int) (Pixel cs e)) where
+  (VUArray arr1) == (VUArray arr2) = arr1 == arr2
+
+
+instance ColorSpace cs e => Array VU cs e where
+
+  toVectorA (VUArray v) = toVectorVG v
+  {-# INLINE toVectorA #-}
+
+  fromVectorA !sz = VUArray . fromVectorVG sz
+  {-# INLINE fromVectorA #-}
+
+
+instance ColorSpace cs e => MArray VU cs e

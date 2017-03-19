@@ -18,6 +18,7 @@ module Graphics.Image.Processing.Complex.Fourier (
 import           Data.Bits                           ((.&.))
 import           Graphics.Image.ColorSpace.Complex
 import           Graphics.Image.Interface            as I
+import           Graphics.Image.Internal             as I
 import           Graphics.Image.Processing.Geometric (leftToRight)
 import           Prelude                             as P
 
@@ -94,8 +95,7 @@ fftGeneral
   => Pixel cs e -> Image arr cs (Complex e) -> Image arr cs (Complex e)
 fftGeneral !sign !img = transpose $ go n 0 1
   where
-    imgM :: Image (Manifest arr) cs (Complex e)
-    !imgM = toManifest img
+    !(Image arr) = compute img
     !(m, n) = dims img
     go !len !offset !stride
       | len == 2 = compute $ makeImage (m, 2) swivel
@@ -109,11 +109,11 @@ fftGeneral !sign !img = transpose $ go n 0 1
         swivel !(i, j) =
           case j of
             0 ->
-              unsafeIndex imgM (i, offset) +
-              unsafeIndex imgM (i, offset + stride)
+              unsafeIndexA arr (i, offset) +
+              unsafeIndexA arr (i, offset + stride)
             1 ->
-              unsafeIndex imgM (i, offset) -
-              unsafeIndex imgM (i, offset + stride)
+              unsafeIndexA arr (i, offset) -
+              unsafeIndexA arr (i, offset + stride)
             _ ->
               error
                 "FFT: Image must have exactly 2 columns. Please, report this bug."

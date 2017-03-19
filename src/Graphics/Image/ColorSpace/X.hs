@@ -26,8 +26,9 @@ import           Data.Typeable            (Typeable)
 import           Foreign.Ptr
 import           Foreign.Storable
 import           Graphics.Image.Interface as I
+import           Graphics.Image.Internal  as I
+import           Graphics.Image.Utils     ((.:!))
 import           Prelude                  as P
-import           Graphics.Image.Utils ((.:!))
 
 -- ^ This is a single channel colorspace, that is designed to separate Gray
 -- level values from other types of colorspace, hence it is not convertible to

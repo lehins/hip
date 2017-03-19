@@ -27,6 +27,7 @@ import Prelude hiding (traverse)
 #endif
 import Data.Word (Word8)
 import Graphics.Image.Interface
+import Graphics.Image.Internal
 import Graphics.Image.Processing.Convolution
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation

@@ -2,7 +2,7 @@
 module Graphics.Image.Interface.VectorSpec (spec) where
 
 import           Graphics.Image.ColorSpace
-import           Graphics.Image.Interface        as I
+import           Graphics.Image.Internal         as I
 import           Graphics.Image.Interface.Vector as I
 import           Graphics.Image.InterfaceSpec    ()
 import           Test.Hspec

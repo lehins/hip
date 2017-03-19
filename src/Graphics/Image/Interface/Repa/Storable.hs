@@ -15,195 +15,191 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Repa.Storable (
-  RSS(..), RPS(..), Image(..)
+module Graphics.Image.Interface.Repa.Storable
+  ( RSS
+  , RPS
+  , Repr(..)
   ) where
 
-import qualified Data.Array.Repa.Eval                     as R
-import qualified Data.Array.Repa.Repr.ForeignPtr          as R
+import qualified Data.Array.Repa.Eval                     as R (Elt)
+import           Data.Array.Repa.Repr.ForeignPtr          as R (F)
 import           Data.Typeable                            (Typeable)
-import           Data.Vector.Unboxed                      (Unbox)
-import           Foreign.Storable
+import qualified Data.Vector.Generic                      as VG (Vector)
+import qualified Data.Vector.Storable                     as VS (Storable, Vector)
+import qualified Data.Vector.Unboxed                      as VU (Unbox)
 import           Graphics.Image.Interface                 as I
 import           Graphics.Image.Interface.Repa.Generic
-import qualified Graphics.Image.Interface.Vector.Storable as IVS
+import           Graphics.Image.Interface.Vector.Unboxed ()
 import           Prelude                                  as P
 
 
+-- | Repa Array representation, which is computed sequentially.
+newtype RSS ix px = RSSArray (RArray R.F px) deriving Typeable
+
+data instance Repr RSS = RSS
 
 
--- | Repa Array representation backed by Storable Vector, which is computed sequentially.
-data RSS = RSS deriving Typeable
-
--- | Repa Array representation backed by Storable Vector, which is computed in parallel.
-data RPS = RPS deriving Typeable
-
-instance Show RSS where
-  show _ = "RepaSequentialStorable"
-
-instance Show RPS where
-  show _ = "RepaParallelStorable"
+type instance Vector RSS = VS.Vector
 
 
-instance SuperClass RSS cs e => BaseArray RSS cs e where
-  type SuperClass RSS cs e =
-    (ColorSpace cs e, Unbox (Pixel cs e),
-     Storable e, Storable (Pixel cs e),
-     R.Elt e, R.Elt (Pixel cs e))
+instance (R.Elt e, VU.Unbox e, VS.Storable e) => BaseArray RSS (Int, Int) e where
 
-  newtype Image RSS cs e = SSImage (RImage R.F (Pixel cs e))
+  type SuperClass RSS (Int, Int) e = (VG.Vector VS.Vector e, R.Elt e, VU.Unbox e, VS.Storable e)
 
-  dims (SSImage img) = dimsR img
-  {-# INLINE dims #-}
+  unsafeIndexA (RSSArray v) = unsafeIndexR v
+  {-# INLINE unsafeIndexA #-}
 
+  shapeA (RSSArray v) = dimsR v
+  {-# INLINE shapeA #-}
 
-instance BaseArray RSS cs e => Array RSS cs e where
+  makeA !sz = RSSArray . makeArrayR sz
+  {-# INLINE makeA #-}
 
-  type Manifest RSS = IVS.VS
+instance BaseArray RSS (Int, Int) e => IArray RSS (Int, Int) e where
 
-  type Vector RSS = Vector IVS.VS
+  makeWindowedA !sh !wIx !wSz f g = RSSArray $ makeArrayWindowedR sh wIx wSz f g
+  {-# INLINE makeWindowedA #-}
 
-  makeImage !sz f = SSImage (makeImageR sz f)
-  {-# INLINE makeImage #-}
+  scalarA = RSSArray . scalarR
+  {-# INLINE scalarA #-}
 
-  makeImageWindowed !sz !wIx !wSz f = SSImage . makeImageWindowedR sz wIx wSz f
-  {-# INLINE makeImageWindowed #-}
+  mapA f (RSSArray v) = RSSArray $ mapR f v
+  {-# INLINE mapA #-}
 
-  scalar = SSImage . scalarR
-  {-# INLINE scalar #-}
+  imapA f (RSSArray v) = RSSArray $ imapR f v
+  {-# INLINE imapA #-}
 
-  index00 (SSImage img) = index00R img
-  {-# INLINE index00 #-}
+  zipWithA f (RSSArray v1) (RSSArray v2) = RSSArray $ zipWithR f v1 v2
+  {-# INLINE zipWithA #-}
 
-  map f (SSImage img) = SSImage (mapR f img)
-  {-# INLINE map #-}
+  izipWithA f (RSSArray v1) (RSSArray v2) = RSSArray $ izipWithR f v1 v2
+  {-# INLINE izipWithA #-}
 
-  imap f (SSImage img) = SSImage (imapR f img)
-  {-# INLINE imap #-}
+  traverseA (RSSArray v) f g = RSSArray $ traverseR v f g
+  {-# INLINE traverseA #-}
 
-  zipWith f (SSImage img1) (SSImage img2) = SSImage (zipWithR f img1 img2)
-  {-# INLINE zipWith #-}
+  traverse2A (RSSArray v1) (RSSArray v2) f g = RSSArray $ traverse2R v1 v2 f g
+  {-# INLINE traverse2A #-}
 
-  izipWith f (SSImage img1) (SSImage img2) = SSImage (izipWithR f img1 img2)
-  {-# INLINE izipWith #-}
+  transposeA (RSSArray v) = RSSArray $ transposeR v
+  {-# INLINE transposeA #-}
 
-  traverse (SSImage img) f g = SSImage (traverseR img f g)
-  {-# INLINE traverse #-}
+  backpermuteA !sz f (RSSArray v) = RSSArray $ backpermuteR sz f v
+  {-# INLINE backpermuteA #-}
 
-  traverse2 (SSImage img1) (SSImage img2) f g = SSImage (traverse2R img1 img2 f g)
-  {-# INLINE traverse2 #-}
+  fromListsA = RSSArray . fromListsR
+  {-# NOINLINE fromListsA #-}
 
-  transpose (SSImage img) = SSImage (transposeR img)
-  {-# INLINE transpose #-}
+  foldA f !px0 (RSSArray v) = foldR Sequential f px0 v
+  {-# INLINE foldA #-}
 
-  backpermute !sz g (SSImage img) = SSImage (backpermuteR sz g img)
-  {-# INLINE backpermute #-}
+  foldIxA f !px0 (RSSArray v) = foldIxR Sequential f px0 v
+  {-# INLINE foldIxA #-}
 
-  fromLists = SSImage . fromListsR
-  {-# INLINE fromLists #-}
+  multA (RSSArray v1) (RSSArray v2) = RSSArray (multR Sequential v1 v2)
+  {-# INLINE multA #-}
 
-  fold f !px0 (SSImage img) = foldR Sequential f px0 img
-  {-# INLINE fold #-}
-
-  foldIx f !px0 (SSImage img) = foldIxR Sequential f px0 img
-  {-# INLINE foldIx #-}
-
-  eq (SSImage img1) (SSImage img2) = eqR Sequential img1 img2
-  {-# INLINE eq #-}
-
-  compute (SSImage img) = SSImage (computeR Sequential img)
-  {-# INLINE compute #-}
-
-  (|*|) (SSImage img1) (SSImage img2) = SSImage (multR Sequential img1 img2)
-  {-# INLINE (|*|) #-}
-
-  toManifest (SSImage img) = fromVector (dimsR img) $ toVectorStorableR Sequential img
-  {-# INLINE toManifest #-}
-
-  toVector (SSImage img) = toVectorStorableR Sequential img
-  {-# INLINE toVector #-}
-
-  fromVector !sz = SSImage . fromVectorStorableR sz
-  {-# INLINE fromVector #-}
+  computeA (RSSArray arr) = RSSArray (computeR Sequential arr)
+  {-# INLINE computeA #-}
 
 
-instance SuperClass RPS cs e => BaseArray RPS cs e where
-  type SuperClass RPS cs e =
-    (ColorSpace cs e,
-     Storable e, Storable (Pixel cs e), Unbox (Pixel cs e),
-     R.Elt e, R.Elt (Pixel cs e))
 
-  newtype Image RPS cs e = PSImage (RImage R.F (Pixel cs e))
-
-  dims (PSImage img) = dimsR img
-  {-# INLINE dims #-}
+instance (VS.Storable (Pixel cs e), ColorSpace cs e) => Eq (RSS (Int,Int) (Pixel cs e)) where
+  (RSSArray arr1) == (RSSArray arr2) = eqR Parallel arr1 arr2
 
 
-instance BaseArray RPS cs e => Array RPS cs e where
+instance (R.Elt e, VU.Unbox (Pixel cs e), VS.Storable (Pixel cs e), ColorSpace cs e) =>
+  Array RSS cs e where
 
-  type Manifest RPS = IVS.VS
+  toVectorA (RSSArray v) = toVectorStorableR Sequential v
+  {-# INLINE toVectorA #-}
 
-  type Vector RPS = Vector IVS.VS
+  fromVectorA !sz = RSSArray . fromVectorStorableR sz
+  {-# INLINE fromVectorA #-}
 
-  makeImage !sz f = PSImage (makeImageR sz f)
-  {-# INLINE makeImage #-}
 
-  makeImageWindowed !sz !wIx !wSz f = PSImage . makeImageWindowedR sz wIx wSz f
-  {-# INLINE makeImageWindowed #-}
 
-  scalar = PSImage . scalarR
-  {-# INLINE scalar #-}
 
-  index00 (PSImage img) = index00R img
-  {-# INLINE index00 #-}
 
-  map f (PSImage img) = PSImage (mapR f img)
-  {-# INLINE map #-}
+-- | Repa Array representation, which is computed in parallel.
+newtype RPS ix px = RPSArray (RArray R.F px) deriving Typeable
 
-  imap f (PSImage img) = PSImage (imapR f img)
-  {-# INLINE imap #-}
+data instance Repr RPS = RPS
 
-  zipWith f (PSImage img1) (PSImage img2) = PSImage (zipWithR f img1 img2)
-  {-# INLINE zipWith #-}
+type instance Vector RPS = VS.Vector
 
-  izipWith f (PSImage img1) (PSImage img2) = PSImage (izipWithR f img1 img2)
-  {-# INLINE izipWith #-}
 
-  traverse (PSImage img) f g = PSImage (traverseR img f g)
-  {-# INLINE traverse #-}
+instance (R.Elt e, VU.Unbox e, VS.Storable e) => BaseArray RPS (Int, Int) e where
 
-  traverse2 (PSImage img1) (PSImage img2) f g = PSImage (traverse2R img1 img2 f g)
-  {-# INLINE traverse2 #-}
+  type SuperClass RPS (Int, Int) e = (VG.Vector VS.Vector e, R.Elt e, VU.Unbox e, VS.Storable e)
 
-  transpose (PSImage img) = PSImage (transposeR img)
-  {-# INLINE transpose #-}
+  unsafeIndexA (RPSArray v) = unsafeIndexR v
+  {-# INLINE unsafeIndexA #-}
 
-  backpermute !sz g (PSImage img) = PSImage (backpermuteR sz g img)
-  {-# INLINE backpermute #-}
+  shapeA (RPSArray v) = dimsR v
+  {-# INLINE shapeA #-}
 
-  fromLists = PSImage . fromListsR
-  {-# INLINE fromLists #-}
+  makeA !sz = RPSArray . makeArrayR sz
+  {-# INLINE makeA #-}
 
-  fold f !px0 (PSImage img) = foldR Parallel f px0 img
-  {-# INLINE fold #-}
+instance BaseArray RPS (Int, Int) e => IArray RPS (Int, Int) e where
 
-  foldIx f !px0 (PSImage img) = foldIxR Parallel f px0 img
-  {-# INLINE foldIx #-}
+  makeWindowedA !sh !wIx !wSz f g = RPSArray $ makeArrayWindowedR sh wIx wSz f g
+  {-# INLINE makeWindowedA #-}
 
-  eq (PSImage img1) (PSImage img2) = eqR Parallel img1 img2
-  {-# INLINE eq #-}
+  scalarA = RPSArray . scalarR
+  {-# INLINE scalarA #-}
 
-  compute (PSImage img) = PSImage (computeR Parallel img)
-  {-# INLINE compute #-}
+  mapA f (RPSArray v) = RPSArray $ mapR f v
+  {-# INLINE mapA #-}
 
-  (|*|) (PSImage img1) (PSImage img2) = PSImage (multR Parallel img1 img2)
-  {-# INLINE (|*|) #-}
+  imapA f (RPSArray v) = RPSArray $ imapR f v
+  {-# INLINE imapA #-}
 
-  toManifest (PSImage img) = fromVector (dimsR img) $ toVectorStorableR Parallel img
-  {-# INLINE toManifest #-}
+  zipWithA f (RPSArray v1) (RPSArray v2) = RPSArray $ zipWithR f v1 v2
+  {-# INLINE zipWithA #-}
 
-  toVector (PSImage img) = toVectorStorableR Parallel img
-  {-# INLINE toVector #-}
+  izipWithA f (RPSArray v1) (RPSArray v2) = RPSArray $ izipWithR f v1 v2
+  {-# INLINE izipWithA #-}
 
-  fromVector !sz = PSImage . fromVectorStorableR sz
-  {-# INLINE fromVector #-}
+  traverseA (RPSArray v) f g = RPSArray $ traverseR v f g
+  {-# INLINE traverseA #-}
+
+  traverse2A (RPSArray v1) (RPSArray v2) f g = RPSArray $ traverse2R v1 v2 f g
+  {-# INLINE traverse2A #-}
+
+  transposeA (RPSArray v) = RPSArray $ transposeR v
+  {-# INLINE transposeA #-}
+
+  backpermuteA !sz f (RPSArray v) = RPSArray $ backpermuteR sz f v
+  {-# INLINE backpermuteA #-}
+
+  fromListsA = RPSArray . fromListsR
+  {-# NOINLINE fromListsA #-}
+
+  foldA f !px0 (RPSArray v) = foldR Parallel f px0 v
+  {-# INLINE foldA #-}
+
+  foldIxA f !px0 (RPSArray v) = foldIxR Parallel f px0 v
+  {-# INLINE foldIxA #-}
+
+  multA (RPSArray v1) (RPSArray v2) = RPSArray (multR Parallel v1 v2)
+  {-# INLINE multA #-}
+
+  computeA (RPSArray arr) = RPSArray (computeR Parallel arr)
+  {-# INLINE computeA #-}
+
+
+
+instance (VS.Storable (Pixel cs e), ColorSpace cs e) => Eq (RPS (Int,Int) (Pixel cs e)) where
+  (RPSArray arr1) == (RPSArray arr2) = eqR Parallel arr1 arr2
+
+
+instance (R.Elt e, VU.Unbox (Pixel cs e), VS.Storable (Pixel cs e), ColorSpace cs e) =>
+  Array RPS cs e where
+
+  toVectorA (RPSArray v) = toVectorStorableR Parallel v
+  {-# INLINE toVectorA #-}
+
+  fromVectorA !sz = RPSArray . fromVectorStorableR sz
+  {-# INLINE fromVectorA #-}
