@@ -13,11 +13,15 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.ColorSpace.X (
-  X(..), Pixel(..),
-  toPixelsX, toImagesX,
-  fromPixelsX, fromImagesX,
-  squashWith, squashWith2
+module Graphics.Image.ColorSpace.X
+  ( X(..)
+  , Pixel(..)
+  , toPixelsX
+  , toImagesX
+  , fromPixelsX
+  , fromImagesX
+  , squashWith
+  , squashWith2
   ) where
 
 import           Control.Applicative
@@ -38,7 +42,7 @@ import           Prelude                  as P
 data X = X deriving (Eq, Enum, Bounded, Show, Typeable)
 
 
-newtype instance Pixel X e = PixelX e deriving (Ord, Eq)
+newtype instance Pixel X e = PixelX { getX :: e } deriving (Ord, Eq)
 
 
 instance Show e => Show (Pixel X e) where

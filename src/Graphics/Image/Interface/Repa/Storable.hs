@@ -57,7 +57,7 @@ instance (R.Elt e, VU.Unbox e, VS.Storable e) => BaseArray RSS (Int, Int) e wher
 
 instance BaseArray RSS (Int, Int) e => IArray RSS (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RSSArray $ makeArrayWindowedR sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g = RSSArray $ makeArrayWindowedR Sequential sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RSSArray . scalarR
@@ -144,7 +144,7 @@ instance (R.Elt e, VU.Unbox e, VS.Storable e) => BaseArray RPS (Int, Int) e wher
 
 instance BaseArray RPS (Int, Int) e => IArray RPS (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RPSArray $ makeArrayWindowedR sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g = RPSArray $ makeArrayWindowedR Parallel sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RPSArray . scalarR

@@ -30,6 +30,7 @@ module Graphics.Image.Processing.Filter
 
 import           Graphics.Image.ColorSpace.X
 import           Graphics.Image.Interface              as I
+import           Graphics.Image.Interface.Vector       (VU)
 import           Graphics.Image.Internal               as I
 import           Graphics.Image.Processing.Convolution
 
@@ -50,7 +51,7 @@ data Direction
 -- | Create a Gaussian Filter.
 --
 -- @since 1.5.3
-gaussianLowPass :: (Array arr X e, Array arr cs e, Floating e, Fractional e) =>
+gaussianLowPass :: (Array VU X e, Array VU cs e, Array arr cs e, Floating e, Fractional e) =>
                    Int -- ^ Radius
                 -> e -- ^ Sigma
                 -> Border (Pixel cs e) -- ^ Border resolution technique.
@@ -76,14 +77,14 @@ gaussianLowPass !r !sigma border =
 -- `gaussianLowPass` can be used instead.
 --
 -- @since 1.5.3
-gaussianBlur :: (Array arr X e, Array arr cs e, Floating e, RealFrac e) =>
+gaussianBlur :: (Array VU X e, Array VU cs e, Array arr cs e, Floating e, RealFrac e) =>
                 e -- ^ Sigma
              -> Filter arr cs e
 gaussianBlur !sigma = gaussianLowPass (ceiling (2*sigma)) sigma Edge
 {-# INLINE gaussianBlur #-}
 
 
-sobelFilter :: (Array arr X e, Array arr cs e) =>
+sobelFilter :: (Array VU X e, Array VU cs e, Array arr cs e) =>
                Direction -> Border (Pixel cs e) -> Filter arr cs e
 sobelFilter dir !border =
   Filter (correlate border kernel)
@@ -110,7 +111,7 @@ sobelFilter dir !border =
 -- {-# INLINE sobelFilter #-}
 
 
-sobelOperator :: (Array arr X e, Array arr cs e, Floating e) => Image arr cs e -> Image arr cs e
+sobelOperator :: (Array VU X e, Array arr cs e, Floating e) => Image arr cs e -> Image arr cs e
 sobelOperator !img = sqrt (sobelX ^ (2 :: Int) + sobelY ^ (2 :: Int))
   where !sobelX = applyFilter (sobelFilter Horizontal Edge) img
         !sobelY = applyFilter (sobelFilter Vertical Edge) img
@@ -119,7 +120,7 @@ sobelOperator !img = sqrt (sobelX ^ (2 :: Int) + sobelY ^ (2 :: Int))
 
 
 
-prewittFilter :: (Array arr X e, Array arr cs e) =>
+prewittFilter :: (Array VU X e, Array VU cs e, Array arr cs e) =>
                  Direction -> Border (Pixel cs e) -> Filter arr cs e
 prewittFilter dir !border =
   Filter (convolveCols border cV . convolveRows border rV)
@@ -132,7 +133,7 @@ prewittFilter dir !border =
 
 
 
-prewittOperator :: (Array arr X e, Array arr cs e, Floating e) => Image arr cs e -> Image arr cs e
+prewittOperator :: (Array VU X e, Array VU cs e, Array arr cs e, Floating e) => Image arr cs e -> Image arr cs e
 prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
   where !prewittX = applyFilter (prewittFilter Horizontal Edge) img
         !prewittY = applyFilter (prewittFilter Vertical Edge) img

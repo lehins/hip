@@ -334,8 +334,8 @@ struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 --
 -- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
 --
-erode :: Array arr X Bit =>
-         Image arr X Bit -- ^ Structuring element.
+erode :: (Array VU X Bit, Array arr X Bit) =>
+         Image VU X Bit -- ^ Structuring element.
       -> Image arr X Bit -- ^ Binary source image.
       -> Image arr X Bit
 erode !struc !img = invert $ convolve (Fill on) struc (invert img)
@@ -348,8 +348,8 @@ erode !struc !img = invert $ convolve (Fill on) struc (invert img)
 --
 -- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
 --
-dialate :: Array arr X Bit =>
-           Image arr X Bit -- ^ Structuring element.
+dialate :: (Array VU X Bit, Array arr X Bit) =>
+           Image VU X Bit -- ^ Structuring element.
         -> Image arr X Bit -- ^ Binary source image.
         -> Image arr X Bit
 dialate !struc !img = convolve (Fill off) struc img
@@ -362,8 +362,8 @@ dialate !struc !img = convolve (Fill off) struc img
 --
 -- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
 --
-open :: Array arr X Bit =>
-        Image arr X Bit -- ^ Structuring element.
+open :: (Array VU X Bit, Array arr X Bit) =>
+        Image VU X Bit -- ^ Structuring element.
      -> Image arr X Bit -- ^ Binary source image.
      -> Image arr X Bit
 open !struc = dialate struc . erode struc
@@ -376,8 +376,8 @@ open !struc = dialate struc . erode struc
 --
 -- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
 --
-close :: Array arr X Bit =>
-         Image arr X Bit -- ^ Structuring element.
+close :: (Array VU X Bit, Array arr X Bit) =>
+         Image VU X Bit -- ^ Structuring element.
       -> Image arr X Bit -- ^ Binary source image.
       -> Image arr X Bit
 close !struc = erode struc . dialate struc

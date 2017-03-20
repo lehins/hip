@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ViewPatterns          #-}
 -- |
 -- Module      : Graphics.Image.Interface.Repa
 -- Copyright   : (c) Alexey Kuleshevich 2016
@@ -12,7 +13,9 @@ module Graphics.Image.Interface.Repa
   -- * Conversion
   ( fromRepaArrayS
   , fromRepaArrayP
+  , fromRepaArray
   , toRepaArray
+  , toRepaArrayD
   -- * Representation
   , RSU
   , RPU
@@ -22,9 +25,8 @@ module Graphics.Image.Interface.Repa
   ) where
 
 import qualified Data.Array.Repa                        as R
+import qualified Data.Array.Repa.Eval                   as R
 import           Data.Array.Repa.Index
-import qualified Data.Vector.Generic                    as VG
-
 import           Graphics.Image.Interface
 import           Graphics.Image.Interface.Repa.Generic
 import           Graphics.Image.Interface.Repa.Storable
@@ -43,6 +45,19 @@ fromRepaArrayP :: R.Source r (Pixel cs e) => R.Array r DIM2 (Pixel cs e) -> Imag
 fromRepaArrayP = Image . RPUArray . fromRepaArrayR
 
 
--- | Convert into Repa Unboxed array from an image.
-toRepaArray :: Array arr cs e => Image arr cs e -> R.Array R.U DIM2 (Pixel cs e)
-toRepaArray img = R.fromUnboxed (ix2sh (dims img)) $ VG.convert $ toVector img
+-- | Create am Image from Repa array.
+fromRepaArray :: (Array arr cs e, R.Source r (Pixel cs e)) =>
+                 Repr arr -> R.Array r DIM2 (Pixel cs e) -> Image arr cs e
+fromRepaArray _ arr = makeImage (sh2ix (R.extent arr)) (R.index arr . ix2sh)
+
+
+-- | Convert an image into Repa Unboxed array.
+toRepaArray :: (R.Elt e, Array arr cs e) => Image arr cs e -> R.Array R.U DIM2 (Pixel cs e)
+toRepaArray (exchange RSU -> (Image (RSUArray arr))) = toRepaArrayR arr
+
+
+-- | Convert an image into Repa Delayed array.
+toRepaArrayD :: Array arr cs e => Image arr cs e -> R.Array R.D DIM2 (Pixel cs e)
+toRepaArrayD img =
+  let Image arr = compute img
+  in R.fromFunction (ix2sh (shapeA arr)) (unsafeIndexA arr . sh2ix)

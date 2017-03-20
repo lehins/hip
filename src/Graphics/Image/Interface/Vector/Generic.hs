@@ -17,12 +17,13 @@
 module Graphics.Image.Interface.Vector.Generic
   ( VGArray
   , MVGArray
-  , makeImageVG
+  , makeArrayVG
   , dimsVG
   , scalarVG
   , index00VG
   , indexVG
-  , makeImageWindowedVG
+  , makeArrayWindowedVG
+  , makeArrayWindowedVGPar
   , mapVG
   , imapVG
   , zipWithVG
@@ -42,7 +43,7 @@ module Graphics.Image.Interface.Vector.Generic
   , fromVectorVG
   , multVG
   , unsafeIndexVG
-  , makeImageMVG
+  , makeArrayMVG
   , mapMVG
   , mapM_VG
   , foldMVG
@@ -72,6 +73,8 @@ import           Graphics.Image.Internal     (handleBorderIndex)
 import           Graphics.Image.Utils        (checkDims, fromIx, loopM_, swapIx,
                                               toIx)
 
+import Data.Array.Repa.Eval.Gang
+
 
 data VGArray v p =
   VGArray {-# UNPACK #-}!Int
@@ -86,12 +89,12 @@ instance Eq (v p) => Eq (VGArray v p) where
   (VGArray _ _ v1) == (VGArray _ _ v2) = v1 == v2
   {-# INLINE (==) #-}
 
-makeImageVG :: VG.Vector v p =>
+makeArrayVG :: VG.Vector v p =>
                (Int, Int) -> ((Int, Int) -> p) -> VGArray v p
-makeImageVG !sz f =
-  let !(m, n) = checkDimsVG "makeImageVGM" sz in
+makeArrayVG !sz f =
+  let !(m, n) = checkDimsVG "makeArrayVGM" sz in
     VGArray m n $ VG.generate (m * n) (f . toIx n)
-{-# INLINE makeImageVG #-}
+{-# INLINE makeArrayVG #-}
 
 dimsVG :: VGArray v p -> (Int, Int)
 dimsVG (VGArray m n _) = (m, n)
@@ -99,35 +102,116 @@ dimsVG (VGArray m n _) = (m, n)
 
 
 scalarVG :: VG.Vector v p => p -> VGArray v p
-scalarVG = makeImageVG (1,1) . const
+scalarVG = makeArrayVG (1,1) . const
 {-# INLINE scalarVG #-}
 
 index00VG :: VG.Vector v p => VGArray v p -> p
 index00VG (VGArray _ _ v) = v VG.! 0
 {-# INLINE index00VG #-}
 
--- makeImageVG
+-- makeArrayVG
 --   :: forall v p.
 --      VG.Vector v p
 --   => (Int, Int)
 --   -> ((Int, Int) -> p)
 --   -> VGArray v p
--- makeImageVG !sz getPx =
---   VGArray m n $ VG.create generateImage
+-- makeArrayVG !sz getPx =
+--   VGArray m n $ VG.create generateArray
 --   where
---     !(m, n) = checkDimsVG "makeImageVG" sz
---     generateImage :: ST s ((VG.Mutable v) s p)
---     generateImage = do
+--     !(m, n) = checkDimsVG "makeArrayVG" sz
+--     generateArray :: ST s ((VG.Mutable v) s p)
+--     generateArray = do
 --       mv <- MVG.unsafeNew (m * n)
 --       loopM_ 0 (< m) (+ 1) $ \ !i -> do
 --         loopM_ 0 (< n) (+ 1) $ \ !j -> do
 --           MVG.unsafeWrite mv (fromIx n (i, j)) (getPx (i, j))
 --       return mv
---     {-# INLINE generateImage #-}
--- {-# INLINE makeImageVG #-}
+--     {-# INLINE generateArray #-}
+-- {-# INLINE makeArrayVG #-}
 
 
-makeImageWindowedVG
+makeVectorWindowedPar
+  :: forall v p.
+     VG.Vector v p
+  => (Int, Int)
+  -> (Int, Int)
+  -> (Int, Int)
+  -> ((Int, Int) -> p)
+  -> ((Int, Int) -> p)
+  -> v p
+makeVectorWindowedPar !(m, n) !(it, jt) !(wm, wn) getWindowPx getBorderPx =
+  VG.create generate
+  where
+    !(ib, jb) = checkWindow m n it jt wm wn
+    generate :: ST s ((VG.Mutable v) s p)
+    generate = do
+      mv <- MVG.unsafeNew (m * n)
+      loopM_ 0 (< n) (+ 1) $ \ !j -> do
+        loopM_ 0 (< it) (+ 1) $ \ !i -> do
+          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+        loopM_ ib (< m) (+ 1) $ \ !i -> do
+          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+      let !gSize = gangSize theGang
+          !(chunkHeight, slackHeight) = wm `divMod` gSize
+      let loadRows !it' !ib' = do
+            loopM_ it' (< ib') (+ 1) $ \ !i -> do
+              loopM_ 0 (< jt) (+ 1) $ \ !j -> do
+                MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+              loopM_ jt (< jb) (+ 1) $ \ !j -> do
+                MVG.unsafeWrite mv (fromIx n (i, j)) (getWindowPx (i, j))
+              loopM_ jb (< n) (+ 1) $ \ !j -> do
+                MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+          {-# INLINE loadRows #-}
+      gangST theGang $ \ !cix -> do
+        let !it' = cix * chunkHeight + it
+        loadRows it' (it' + chunkHeight)
+        when (cix == 0) $ do
+          loopM_ 0 (< n) (+ 1) $ \ !j -> do
+            loopM_ 0 (< it) (+ 1) $ \ !i -> do
+              MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+        when (cix == 1 `mod` gSize) $ do
+          loopM_ 0 (< n) (+ 1) $ \ !j -> do
+            loopM_ ib (< m) (+ 1) $ \ !i -> do
+              MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+        when (cix == 2 `mod` gSize && slackHeight > 0) $ do
+          let !itSlack = gSize * chunkHeight + it
+          loadRows itSlack (itSlack + slackHeight)
+      return mv
+    {-# INLINE generate #-}
+{-# INLINE makeVectorWindowedPar #-}
+
+
+makeArrayWindowedVGPar
+  :: VG.Vector v p
+  => (Int, Int)
+  -> (Int, Int)
+  -> (Int, Int)
+  -> ((Int, Int) -> p)
+  -> ((Int, Int) -> p)
+  -> VGArray v p
+makeArrayWindowedVGPar !(m, n) !wIx !wSz getWindowPx getBorderPx =
+  VGArray m n $ makeVectorWindowedPar (m, n) wIx wSz getWindowPx getBorderPx
+{-# INLINE makeArrayWindowedVGPar #-}
+
+
+-- | Checks window and array dimensions and returns index for the bottom right
+-- corner of the window.
+checkWindow :: Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int)
+checkWindow !m !n !it !jt !wm !wn
+  | it < 0 || it >= ib || jt < 0 || jt >= jb || ib > m || jb > n =
+    errorVG
+      "checkWindow"
+      ("Window index is outside the array dimensions. window start: " ++
+       show (it, jt) ++
+       " window size: " ++ show (wm, wn) ++ " array dimensions: " ++ show (m, n))
+  | otherwise = (ib, jb)
+  where
+    !(ib, jb) = (wm + it, wn + jt)
+    !_ = checkDimsVG "checkWindow (array size)" (m, n)
+    !_ = checkDimsVG "checkWindow (window size)" (wm, wn)
+
+
+makeArrayWindowedVG
   :: forall v p.
      VG.Vector v p
   => (Int, Int)
@@ -136,20 +220,12 @@ makeImageWindowedVG
   -> ((Int, Int) -> p)
   -> ((Int, Int) -> p)
   -> VGArray v p
-makeImageWindowedVG !sz !(it, jt) !(wm, wn) getWindowPx getBorderPx =
+makeArrayWindowedVG !(m, n) !(it, jt) !(wm, wn) getWindowPx getBorderPx =
   VGArray m n $ VG.create generate
   where
-    !(ib, jb) = (wm + it, wn + jt)
-    !(m, n) = checkDimsVG "makeImageWindowedVG" sz
-    !_ = checkDimsVG "makeImageWindowedVG (window size)" (wm, wn)
+    !(ib, jb) = checkWindow m n it jt wm wn
     generate :: ST s ((VG.Mutable v) s p)
     generate = do
-      when (it < 0 || it >= ib || jt < 0 || jt >= jb || ib > m || jb > n) $
-        error
-          ("Window index is outside the image dimensions. window start: " ++
-           show (it, jt) ++
-           " window size: " ++
-           show (wm, wn) ++ " image dimensions: " ++ show (m, n))
       mv <- MVG.unsafeNew (m * n)
       loopM_ 0 (< n) (+ 1) $ \ !j -> do
         loopM_ 0 (< it) (+ 1) $ \ !i -> do
@@ -165,7 +241,7 @@ makeImageWindowedVG !sz !(it, jt) !(wm, wn) getWindowPx getBorderPx =
           MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
       return mv
     {-# INLINE generate #-}
-{-# INLINE makeImageWindowedVG #-}
+{-# INLINE makeArrayWindowedVG #-}
 
 
 
@@ -257,7 +333,7 @@ unsafeTraverseVG
   -> (((Int, Int) -> p1) -> (Int, Int) -> p)
   -> VGArray v p
 unsafeTraverseVG (VGArray m n v) getNewDims getNewPx =
-  makeImageVG (getNewDims (m, n)) (getNewPx (unsafeIndexV n v))
+  makeArrayVG (getNewDims (m, n)) (getNewPx (unsafeIndexV n v))
 {-# INLINE unsafeTraverseVG #-}
 
 
@@ -268,7 +344,7 @@ traverseVG
   -> (((Int, Int) -> p1) -> (Int, Int) -> p)
   -> VGArray v p
 traverseVG (VGArray m n v) getNewDims getNewPx =
-  makeImageVG (getNewDims (m, n)) (getNewPx (indexV (m, n) v))
+  makeArrayVG (getNewDims (m, n)) (getNewPx (indexV (m, n) v))
 {-# INLINE traverseVG #-}
 
 
@@ -280,7 +356,7 @@ unsafeTraverse2VG
   -> (((Int, Int) -> p1) -> ((Int, Int) -> p2) -> (Int, Int) -> p)
   -> VGArray v p
 unsafeTraverse2VG (VGArray m1 n1 v1) (VGArray m2 n2 v2) getNewDims getNewPx =
-  makeImageVG
+  makeArrayVG
     (getNewDims (m1, n1) (m2, n2))
     (getNewPx (unsafeIndexV n1 v1) (unsafeIndexV n2 v2))
 {-# INLINE unsafeTraverse2VG #-}
@@ -294,7 +370,7 @@ traverse2VG
   -> (((Int, Int) -> p1) -> ((Int, Int) -> p2) -> (Int, Int) -> p)
   -> VGArray v p
 traverse2VG (VGArray m1 n1 v1) (VGArray m2 n2 v2) getNewDims getNewPx =
-  makeImageVG
+  makeArrayVG
     (getNewDims (m1, n1) (m2, n2))
     (getNewPx (indexV (m1, n1) v1) (indexV (m2, n2) v2))
 {-# INLINE traverse2VG #-}
@@ -386,7 +462,7 @@ fromVectorVG !(m, n) !v
   | m * n == VG.length v = VGArray m n v
   | otherwise =
     errorVG "fromVectorVG" $
-    " image dimensions do not match the length of a vector: " ++
+    " array dimensions do not match the length of a vector: " ++
     show m ++ " * " ++ show n ++ " /= " ++ show (VG.length v)
 {-# INLINE fromVectorVG #-}
 
@@ -397,9 +473,9 @@ multVG :: ( VG.Vector v Int
 multVG (VGArray m1 n1 v1) img2 =
   if n1 /= m2
     then errorVG "multVG" $
-         "Inner dimensions of images must agree, but received: " ++
+         "Inner dimensions of arrays must agree, but received: " ++
          show (m1, n1) ++ " X " ++ show (m2, n2)
-    else makeImageVG (m1, n2) getPx
+    else makeArrayVG (m1, n2) getPx
   where
     VGArray n2 m2 v2 = transposeVG img2
     getPx !(i, j) =
@@ -421,12 +497,12 @@ unsafeIndexVG (VGArray _ n v) = VG.unsafeIndex v . fromIx n
 {-# INLINE unsafeIndexVG #-}
 
 
-makeImageMVG :: (Monad m, VG.Vector v p) =>
+makeArrayMVG :: (Monad m, VG.Vector v p) =>
                 (Int, Int) -> ((Int, Int) -> m p) -> m (VGArray v p)
-makeImageMVG !sz !f =
-  let !(m, n) = checkDimsVG "makeImageMVG" sz in
+makeArrayMVG !sz !f =
+  let !(m, n) = checkDimsVG "makeArrayMVG" sz in
     VGArray m n <$> VG.generateM (m * n) (f . toIx n)
-{-# INLINE makeImageMVG #-}
+{-# INLINE makeArrayMVG #-}
 
 mapMVG
   :: (Monad m, VG.Vector v a, VG.Vector v p) =>

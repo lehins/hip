@@ -149,6 +149,13 @@ benchmark histogram
                      , hip
   default-language:    Haskell2010
 
+-- executable sobel-profile
+--   hs-source-dirs:      app
+--   main-is:             Main.hs
+--   build-depends:       base
+--                      , hip
+--   default-language:    Haskell2010
+--   ghc-options:         -Wall -threaded -prof -fprof-auto
 
 Source-Repository head
   Type:     git

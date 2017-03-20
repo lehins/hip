@@ -6,7 +6,7 @@ import           Test.Hspec
 import           Graphics.Image as I
 
 
-figure :: Image VU X Bit
+figure :: Array VU X Bit => Image VU X Bit
 figure =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -29,11 +29,11 @@ figure =
     ]
 
 
-struct :: Image VU X Bit
+struct :: Array VU X Bit => Image VU X Bit
 struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 
 
-eroded :: Image VU X Bit
+eroded :: Array VU X Bit => Image VU X Bit
 eroded =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -55,7 +55,7 @@ eroded =
     , [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ]
 
-dialated :: Image VU X Bit
+dialated :: Array VU X Bit => Image VU X Bit
 dialated =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -78,7 +78,7 @@ dialated =
     ]
 
 
-opened :: Image VU X Bit
+opened :: Array VU X Bit => Image VU X Bit
 opened =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -101,7 +101,7 @@ opened =
     ]
 
 
-closed :: Image VU X Bit
+closed :: Array VU X Bit => Image VU X Bit
 closed =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

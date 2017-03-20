@@ -47,15 +47,16 @@ module Graphics.Image.Interface.Repa.Generic
   , fromVectorUnboxedR
   , toVectorStorableR
   , fromVectorStorableR
+  , toRepaArrayR
   , fromRepaArrayR
   , multR
-  , ix2sh
   , sh2ix
+  , ix2sh
   )where
 
 import           Data.Array.Repa                     as R
 import           Data.Array.Repa.Eval                as R (Elt (..), Target,
-                                                           fromList,
+                                                           Load, LoadRange, fromList,
                                                            suspendedComputeP)
 import           Data.Array.Repa.Operators.Traversal as R
 import           Data.Array.Repa.Repr.ForeignPtr
@@ -68,15 +69,15 @@ import qualified Data.Vector.Storable                as VS
 import qualified Data.Vector.Unboxed                 as VU
 import           Graphics.Image.ColorSpace.Binary    (Bit (..))
 import           Graphics.Image.Interface            (ColorSpace (..), Pixel)
-import           Graphics.Image.Utils                (checkDims, toIx, fromIx)
+import           Graphics.Image.Utils                (checkDims, toIx, fromIx, (.:))
 import           Prelude                             as P
 
 data Strategy
   = Parallel
   | Sequential
 
-data RArray r p = RTArray !(R.Array r R.DIM2 p)
-                | RDArray !(R.Array R.D R.DIM2 p)
+data RArray r p = RTArray !(R.Array r (Int, Int) p)
+                | RDArray !(R.Array R.D (Int, Int) p)
 
 sh2ix :: DIM2 -> (Int, Int)
 sh2ix (Z :. i :. j) = (i, j)
@@ -86,74 +87,95 @@ ix2sh :: (Int, Int) -> DIM2
 ix2sh !(i, j) = Z :. i :. j
 {-# INLINE ix2sh #-}
 
+sh2ixArr :: Source r1 p => R.Array r1 DIM2 p -> R.Array D (Int, Int) p
+sh2ixArr arr = R.backpermute (sh2ix (extent arr)) ix2sh arr
+{-# INLINE sh2ixArr #-}
+
+
 errorR :: String -> String -> a
 errorR fName errMsg =
   error $ "Graphics.Array.Interface.Repa.Generic." P.++ fName P.++ ": " P.++ errMsg
 
-checkDimsR :: String -> (Int, Int) -> DIM2
-checkDimsR fName = ix2sh . checkDims ("Graphics.Image.Interface.Repa.Generic." P.++ fName)
+checkDimsR :: String -> (Int, Int) -> (Int, Int)
+checkDimsR fName = checkDims ("Graphics.Image.Interface.Repa.Generic." P.++ fName)
 {-# INLINE checkDimsR #-}
 
 
 dimsR :: Source r p => RArray r p -> (Int, Int)
-dimsR (RTArray arr) = sh2ix $ R.extent arr
-dimsR (RDArray arr) = sh2ix $ R.extent arr
+dimsR (RTArray arr) = R.extent arr
+dimsR (RDArray arr) = R.extent arr
 {-# INLINE dimsR #-}
 
 makeArrayR :: (Int, Int) -> ((Int, Int) -> px) -> RArray t px
 makeArrayR sz f =
-  RDArray $ R.fromFunction (checkDimsR "makeArrayR" sz) (f . sh2ix)
+  RDArray $ R.fromFunction (checkDimsR "makeArrayR" sz) f
 {-# INLINE makeArrayR #-}
 
 makeArrayWindowedR
-  :: (Int, Int)
+  :: forall r p . (Target r p, Source r p, Unbox p, Elt p)
+  =>
+  Strategy
+  -> (Int, Int)
   -> (Int, Int)
   -> (Int, Int)
   -> ((Int, Int) -> p)
   -> ((Int, Int) -> p)
   -> RArray r p
-makeArrayWindowedR !sz !wIx !wSz getWindowPx getBorderPx =
-  RDArray $ R.delay $ makeWindowed sh wIx wSz wArr bArr
+makeArrayWindowedR !_strategy !sz !wIx !wSz getWindowPx getBorderPx =
+  RDArray $ sh2ixArr $ arr
   where
+    arr :: Array r DIM2 p
+    arr = makeWindowed sh (ix2sh wIx) (ix2sh wSz) wArr bArr
+    -- compute :: Load r1 DIM2 p => Array r1 DIM2 p -> Array r DIM2 p
+    -- compute = case strategy of
+    --             Parallel -> suspendedComputeP
+    --             Sequential -> computeS
     wArr = R.fromFunction sh (getWindowPx . sh2ix)
     bArr = R.fromFunction sh (getBorderPx . sh2ix)
-    !sh = checkDimsR "makeArrayWindowedR" sz
+    !sh = ix2sh (checkDimsR "makeArrayWindowedR" sz)
 {-# INLINE makeArrayWindowedR #-}
 
 makeWindowed
-  :: (Source r1 p, Source r2 p)
+  :: (Elt p, Unbox p, LoadRange r1 DIM2 p, LoadRange r2 DIM2 p, Source r1 p, Source r2 p, Target r p)
   => DIM2 -- ^ Extent of array.
-  -> (Int, Int) -- ^ Window starting index
-  -> (Int, Int) -- ^ Window size.
+  -> DIM2 -- ^ Window starting index
+  -> DIM2 -- ^ Window size.
   -> Array r1 DIM2 p -- ^ Array for internal elements.
   -> Array r2 DIM2 p -- ^ Array for border elements.
-  -> Array (P r1 (P r2 (P r2 (P r2 (P r2 X))))) DIM2 p
-makeWindowed sh@(Z :. m :. n) !(it, jt) !(wm, wn) arrWindow arrBorder =
-  let inInternal (Z :. i :. j) = i >= it && i < ib && j >= jt && j < jb
+  -> Array r DIM2 p
+makeWindowed sh@(Z :. m :. n) (Z :. it :. jt) (Z :. wm :. wn) arrWindow arrBorder =
+  let inInternal !(Z :. i :. j) = i >= it && i < ib && j >= jt && j < jb
       {-# INLINE inInternal #-}
       inBorder = not . inInternal
       {-# INLINE inBorder #-}
       !(ib, jb) = (wm + it, wn + jt)
-  in APart sh (Range (Z :. it :. jt) (Z :. wm       :. wn      ) inInternal) arrWindow $
-     APart sh (Range (Z :. 0  :. 0 ) (Z :. it       :. n       ) inBorder  ) arrBorder $
-     APart sh (Range (Z :. it :. 0 ) (Z :. wm       :. jt      ) inBorder  ) arrBorder $
-     APart sh (Range (Z :. it :. jb) (Z :. wm       :. (n - jb)) inBorder  ) arrBorder $
-     APart sh (Range (Z :. ib :. 0 ) (Z :. (m - ib) :. n       ) inBorder  ) arrBorder $
+  in suspendedComputeP $
+     APart sh (Range (Z :. it :. jt) (Z :. wm :. wn) inInternal) arrWindow $
+     APart sh (Range (Z :. 0 :. 0) (Z :. it :. n) inBorder) arrBorder $
+     APart sh (Range (Z :. it :. 0) (Z :. wm :. jt) inBorder) arrBorder $
+     APart sh (Range (Z :. it :. jb) (Z :. wm :. n - jb) inBorder) arrBorder $
+     APart sh (Range (Z :. ib :. 0) (Z :. m - ib :. n) inBorder) arrBorder $
      AUndefined sh
 {-# INLINE makeWindowed #-}
 
-fromRepaArrayR :: (Source r1 p) => R.Array r1 DIM2 p -> RArray r p
-fromRepaArrayR = RDArray . R.delay
+toRepaArrayR :: (Unbox e, Source r e) => RArray r e -> Array U DIM2 e
+toRepaArrayR arr =
+  R.computeUnboxedS
+    (R.fromFunction (ix2sh (dimsR arr)) (R.index (getDelayed arr) . sh2ix))
+{-# INLINE toRepaArrayR #-}
+
+fromRepaArrayR :: Source r1 p => R.Array r1 DIM2 p -> RArray r p
+fromRepaArrayR arr = RDArray (R.backpermute (sh2ix (extent arr)) ix2sh arr)
 {-# INLINE fromRepaArrayR #-}
 
 
 scalarR :: p -> RArray t p
-scalarR = RDArray . fromFunction (Z :. 1 :. 1) . const
+scalarR = RDArray . fromFunction (1, 1) . const
 {-# INLINE scalarR #-}
 
 unsafeIndexR :: Source r e => RArray r e -> (Int, Int) -> e
-unsafeIndexR (RTArray arr) !ix = R.unsafeIndex arr (ix2sh ix)
-unsafeIndexR (RDArray arr) !ix = R.unsafeIndex arr (ix2sh ix)
+unsafeIndexR (RTArray arr) = R.unsafeIndex arr
+unsafeIndexR (RDArray arr) = R.unsafeIndex arr
 {-# INLINE unsafeIndexR #-}
 
 mapR :: Source r1 a => (a -> p) -> RArray r1 a -> RArray r p
@@ -164,18 +186,18 @@ mapR f (RDArray arr) = RDArray (R.map f arr)
 
 imapR :: Source r2 b =>
          ((Int, Int) -> b -> p) -> RArray r2 b -> RArray r p
-imapR f (RTArray arr) = RDArray (imapArr (f . sh2ix) arr)
-imapR f (RDArray arr) = RDArray (imapArr (f . sh2ix) arr)
+imapR f (RTArray arr) = RDArray (imapArr f arr)
+imapR f (RDArray arr) = RDArray (imapArr f arr)
 {-# INLINE imapR #-}
 
 
 imapArr :: R.Source r2 b =>
-           (DIM2 -> b -> c) -> R.Array r2 DIM2 b -> R.Array R.D DIM2 c
+           ((Int, Int) -> b -> c) -> R.Array r2 (Int, Int) b -> R.Array R.D (Int, Int) c
 imapArr f !arr = R.traverse arr id (\ getPx !sh -> f sh (getPx sh))
 {-# INLINE imapArr #-}
 
 
-getDelayed :: Source r e => RArray r e -> Array D DIM2 e
+getDelayed :: Source r e => RArray r e -> Array D (Int, Int) e
 getDelayed (RTArray arr) = delay arr
 getDelayed (RDArray arr) = arr
 {-# INLINE getDelayed #-}
@@ -188,13 +210,13 @@ zipWithR f !img1 !img2 = zipWithArr f (getDelayed img1) (getDelayed img2)
 
 zipWithArr
   :: (Source r1 a, Source r2 b)
-  => (a -> b -> c) -> Array r1 DIM2 a -> Array r2 DIM2 b -> RArray r c
+  => (a -> b -> c) -> Array r1 (Int, Int) a -> Array r2 (Int, Int) b -> RArray r c
 zipWithArr f arr1 arr2 =
   RDArray $
   case (extent arr1, extent arr2) of
-    (Z :. 1 :. 1, _) -> R.map (f (unsafeIndex arr1 (Z :. 0 :. 0))) arr2
-    (_, Z :. 1 :. 1) -> R.map (`f` (unsafeIndex arr2 (Z :. 0 :. 0))) arr1
-    _                -> R.zipWith f arr1 arr2
+    ((1, 1), _) -> R.map (f (unsafeIndex arr1 (0, 0))) arr2
+    (_, (1, 1)) -> R.map (`f` (unsafeIndex arr2 (0, 0))) arr1
+    _           -> R.zipWith f arr1 arr2
 {-# INLINE zipWithArr #-}
 
 izipWithR
@@ -207,21 +229,19 @@ izipWithR f !img1 !img2 = izipWithArr f (getDelayed img1) (getDelayed img2)
 izipWithArr
   :: (Source r1 a, Source r2 b)
   => ((Int, Int) -> a -> b -> c)
-  -> Array r1 DIM2 a
-  -> Array r2 DIM2 b
+  -> Array r1 (Int, Int) a
+  -> Array r2 (Int, Int) b
   -> RArray r c
 izipWithArr f arr1 arr2 =
   RDArray $
   case (extent arr1, extent arr2) of
-    (Z :. 1 :. 1, _) ->
-      imapArr (\ !sh -> f (sh2ix sh) (unsafeIndex arr1 (Z :. 0 :. 0))) arr2
-    (_, Z :. 1 :. 1) ->
+    ((1, 1), _) ->
+      imapArr (\ !sh -> f sh (unsafeIndex arr1 (0, 0))) arr2
+    (_, (1,1)) ->
       imapArr
-        (\ !sh !px1 -> f (sh2ix sh) px1 (unsafeIndex arr2 (Z :. 0 :. 0))) arr1
-    (Z :. m1 :. n1, Z :. m2 :. n2) -> traverse2 arr1 arr2 getNewDims getNewPx
-      where getNewDims _ _ = Z :. min m1 m2 :. min n1 n2
-            {-# INLINE getNewDims #-}
-            getNewPx getPx1 getPx2 !sh = f (sh2ix sh) (getPx1 sh) (getPx2 sh)
+        (\ !sh !px1 -> f sh px1 (unsafeIndex arr2 (0, 0))) arr1
+    _          -> traverse2 arr1 arr2 intersectDim getNewPx
+      where getNewPx getPx1 getPx2 !sh = f sh (getPx1 sh) (getPx2 sh)
             {-# INLINE getNewPx #-}
 {-# INLINE izipWithArr #-}
 
@@ -232,12 +252,8 @@ traverseR
   -> ((Int, Int) -> (Int, Int))
   -> (((Int, Int) -> c) -> (Int, Int) -> p)
   -> RArray r p
-traverseR img getNewDims getNewPx =
-  RDArray $
-  R.traverse
-    (getDelayed img)
-    (checkDimsR "traverseR" . getNewDims . sh2ix)
-    (\ getPx -> getNewPx (getPx . ix2sh) . sh2ix)
+traverseR img getNewDims =
+  RDArray . R.traverse (getDelayed img) (checkDimsR "traverseR" . getNewDims)
 {-# INLINE traverseR #-}
 
 unsafeTraverseR
@@ -246,12 +262,8 @@ unsafeTraverseR
   -> ((Int, Int) -> (Int, Int))
   -> (((Int, Int) -> c) -> (Int, Int) -> p)
   -> RArray r p
-unsafeTraverseR img getNewDims getNewPx =
-  RDArray $
-  R.unsafeTraverse
-    (getDelayed img)
-    (checkDimsR "traverseR" . getNewDims . sh2ix)
-    (\ getPx -> getNewPx (getPx . ix2sh) . sh2ix)
+unsafeTraverseR img getNewDims =
+  RDArray . R.unsafeTraverse (getDelayed img) getNewDims
 {-# INLINE unsafeTraverseR #-}
 
 
@@ -262,13 +274,12 @@ traverse2R
   -> ((Int, Int) -> (Int, Int) -> (Int, Int))
   -> (((Int, Int) -> a) -> ((Int, Int) -> b) -> (Int, Int) -> c)
   -> RArray r c
-traverse2R img1 img2 getNewDims getNewPx =
-  RDArray $
+traverse2R img1 img2 getNewDims =
+  RDArray .
   R.traverse2
     (getDelayed img1)
     (getDelayed img2)
-    (\ !sh1 !sh2 -> checkDimsR "traverse2R" (getNewDims (sh2ix sh1) (sh2ix sh2)))
-    (\getPx1 getPx2 -> getNewPx (getPx1 . ix2sh) (getPx2 . ix2sh) . sh2ix)
+    (checkDimsR "traverse2R" .: getNewDims)
 {-# INLINE traverse2R #-}
 
 unsafeTraverse2R
@@ -278,19 +289,15 @@ unsafeTraverse2R
   -> ((Int, Int) -> (Int, Int) -> (Int, Int))
   -> (((Int, Int) -> a) -> ((Int, Int) -> b) -> (Int, Int) -> c)
   -> RArray r c
-unsafeTraverse2R img1 img2 getNewDims getNewPx =
-  RDArray $
-  R.unsafeTraverse2
-    (getDelayed img1)
-    (getDelayed img2)
-    (\ !sh1 !sh2 -> checkDimsR "traverse2R" (getNewDims (sh2ix sh1) (sh2ix sh2)))
-    (\getPx1 getPx2 -> getNewPx (getPx1 . ix2sh) (getPx2 . ix2sh) . sh2ix)
+unsafeTraverse2R img1 img2 getNewDims =
+  RDArray . R.unsafeTraverse2 (getDelayed img1) (getDelayed img2) getNewDims
 {-# INLINE unsafeTraverse2R #-}
 
+transposeR' = undefined
 
 transposeR :: Source r1 p => RArray r1 p -> RArray r p
-transposeR (RDArray arr) = RDArray (R.transpose arr)
-transposeR (RTArray arr) = RDArray (R.transpose arr)
+transposeR (RDArray arr) = RDArray (transposeR' arr)
+transposeR (RTArray arr) = RDArray (transposeR' arr)
 {-# INLINE transposeR #-}
 
 
@@ -298,10 +305,7 @@ backpermuteR
   :: R.Source r e
   => (Int, Int) -> ((Int, Int) -> (Int, Int)) -> RArray r e -> RArray r e
 backpermuteR !newDims g !img =
-  RDArray $ R.backpermute
-    (ix2sh (checkDims "backpermuteR" newDims))
-    (ix2sh . g . sh2ix)
-    (getDelayed img)
+  RDArray $ R.backpermute (checkDims "backpermuteR" newDims) g (getDelayed img)
 {-# INLINE backpermuteR #-}
 
 
@@ -310,36 +314,36 @@ backpermuteR !newDims g !img =
 fromListsR :: Target r p => [[p]] -> RArray r p
 fromListsR ls =
   if all (== n) (P.map length ls)
-    then RTArray $ R.fromList (Z :. m :. n) . concat $ ls
+    then RTArray $ R.fromList (m, n) . concat $ ls
     else error "fromListsRepa: Inner lists do not all have an equal length."
   where
     !(m, n) = checkDims "fromListsRepa" (length ls, maybe 0 length $ listToMaybe ls)
 {-# INLINE fromListsR #-}
 
+multR = undefined
 
-
-multR :: (Num p, Elt p, Unbox p, Source r2 p, Source r1 p, Source r p, Target r p,
-           Target r2 p, Target r1 p) =>
-         Strategy -> RArray r2 p -> RArray r1 p -> RArray r p
-multR strategy (RTArray arr1) (RTArray arr2) =
-  if n1 /= m2
-    then errorR "multR" $
-         "Inner dimensions of multiplied images must be the same, but received: " P.++
-         show (m1, n1) P.++
-         " X " P.++
-         show (m2, n2)
-    else computeR strategy $ RDArray $ fromFunction (Z :. m1 :. n2) getPx
-  where
-    (Z :. m1 :. n1) = R.extent arr1
-    (Z :. m2 :. n2) = R.extent arr2
-    getPx (Z :. i :. j) =
-      R.sumAllS
-        (R.slice arr1 (R.Any :. (i :: Int) :. R.All) R.*^
-         R.slice arr2 (R.Any :. (j :: Int)))
-    {-# INLINE getPx #-}
-multR strategy img1 img2 =
-  multR strategy (computeR strategy img1) (computeR strategy img2)
-{-# INLINE multR #-}
+-- multR :: (Num p, Elt p, Unbox p, Source r2 p, Source r1 p, Source r p, Target r p,
+--            Target r2 p, Target r1 p) =>
+--          Strategy -> RArray r2 p -> RArray r1 p -> RArray r p
+-- multR strategy (RTArray arr1) (RTArray arr2) =
+--   if n1 /= m2
+--     then errorR "multR" $
+--          "Inner dimensions of multiplied images must be the same, but received: " P.++
+--          show (m1, n1) P.++
+--          " X " P.++
+--          show (m2, n2)
+--     else computeR strategy $ RDArray $ fromFunction (m1, n2) getPx
+--   where
+--     (m1, n1) = R.extent arr1
+--     (m2, n2) = R.extent arr2
+--     getPx (i, j) =
+--       R.sumAllS
+--         (R.slice arr1 (R.Any :. (i :: Int) :. R.All) R.*^
+--          R.slice arr2 (R.Any :. (j :: Int)))
+--     {-# INLINE getPx #-}
+-- multR strategy img1 img2 =
+--   multR strategy (computeR strategy img1) (computeR strategy img2)
+-- {-# INLINE multR #-}
 
 
 computeR :: (Target r p, Source r p) => Strategy -> RArray r p -> RArray r p
@@ -365,7 +369,7 @@ foldR Sequential f !px0 img =
 
 addIxArr
   :: Source r2 b =>
-     Array r2 DIM2 b -> Array R.D DIM2 (Int, b)
+     Array r2 (Int, Int) b -> Array R.D (Int, Int) (Int, b)
 addIxArr !arr = R.zipWith (,) arrIx arr
   where
     !sh = extent arr
@@ -383,7 +387,7 @@ foldIxR strategy f !acc' !img =
         Nothing       -> error $ "foldIxPR: impossible happened."
     Sequential -> snd $ R.foldAllS accumWithIx (-1, acc') arr
   where
-    (Z :. _ :. n) = extent arr
+    (_, n) = extent arr
     !arr = addIxArr (getDelayed img)
     accumWithIx !(-1, acc) !(k, px) = (-1, f acc (toIx n k) px)
     accumWithIx !(k, px) (-1, acc) = (-1, f acc (toIx n k) px)
@@ -413,13 +417,13 @@ mCompute fName Nothing = errorR fName "impossible happened"
 
 
 fromVectorUnboxedR :: Unbox e => (Int, Int) -> VU.Vector e -> RArray U e
-fromVectorUnboxedR !sz = RTArray . fromUnboxed (ix2sh sz)
+fromVectorUnboxedR !sz = RTArray . fromUnboxed sz
 {-# INLINE fromVectorUnboxedR #-}
 
 
 
 toVectorR :: (Target r2 e, Source r2 e) =>
-             (R.Array r2 DIM2 e -> t) -> Strategy -> RArray r2 e -> t
+             (R.Array r2 (Int, Int) e -> t) -> Strategy -> RArray r2 e -> t
 toVectorR toVector Parallel (RDArray arr) =
  toVector $ mCompute "toVectorR" (computeP arr)
 toVectorR toVector Sequential (RDArray arr) = toVector $ computeS arr
@@ -437,10 +441,8 @@ toVectorStorableR = toVectorR toStorableR
 
 
 
-toStorableR :: VS.Storable a => Array F DIM2 a -> VS.Vector a
-toStorableR arr = VS.unsafeFromForeignPtr0 (toForeignPtr arr) (m * n)
-  where
-    (Z :. m :. n) = R.extent arr
+toStorableR :: VS.Storable a => Array F (Int, Int) a -> VS.Vector a
+toStorableR arr = VS.unsafeFromForeignPtr0 (toForeignPtr arr) (size (R.extent arr))
 {-# INLINE toStorableR #-}
 
 
@@ -448,7 +450,7 @@ fromVectorStorableR
   :: VS.Storable px
   => (Int, Int) -> VS.Vector px -> RArray F px
 fromVectorStorableR !(m, n) !v
-  | sz == sz' = RTArray $ fromForeignPtr (ix2sh (m, n)) fp
+  | sz == sz' = RTArray $ fromForeignPtr (m, n) fp
   | otherwise =
     errorR "fromVectorStorableR" $
     "(impossible) Vector size mismatch: " P.++ show sz P.++ " vs " P.++ show sz'
@@ -517,10 +519,10 @@ instance Shape (Int, Int) where
   sizeIsValid !(i, j) = i > 0 && j <= (maxBound `div` i)
   {-# INLINE [1] sizeIsValid #-}
 
-  toIndex (_, n) = fromIx n
+  toIndex !(_, n) = fromIx n
   {-# INLINE [1] toIndex #-}
 
-  fromIndex (_, n) = toIx n
+  fromIndex !(_, n) = toIx n
   {-# INLINE [1] fromIndex #-}
 
   inShapeRange !(m, n) !(i1, j1) !(i2, j2) = (j2 >= n) && (j2 < j1) && (i2 >= m) && (i2 < i1)
@@ -534,4 +536,48 @@ instance Shape (Int, Int) where
   {-# NOINLINE shapeOfList #-}
 
   deepSeq (i, j) = seq i (seq j)
+  {-# INLINE deepSeq #-}
+
+
+
+instance Shape Int where
+
+  rank _ = 1
+  {-# INLINE [1] rank #-}
+
+  zeroDim = 0
+  {-# INLINE [1] zeroDim #-}
+
+  unitDim = 1
+  {-# INLINE [1] unitDim #-}
+
+  intersectDim !k1 !k2 = min k1 k2
+  {-# INLINE [1] intersectDim #-}
+
+  addDim !k1 !k2 = k1 + k2
+  {-# INLINE [1] addDim #-}
+
+  size !k = k
+  {-# INLINE [1] size #-}
+
+  sizeIsValid !k = k >= 0
+  {-# INLINE [1] sizeIsValid #-}
+
+  toIndex _ = id
+  {-# INLINE [1] toIndex #-}
+
+  fromIndex _ = id
+  {-# INLINE [1] fromIndex #-}
+
+  inShapeRange !z !k1 !k2 = (z <= k2) && (k2 < k1)
+  {-# INLINE [1] inShapeRange #-}
+
+  listOfShape !k = [k]
+  {-# NOINLINE listOfShape #-}
+
+  shapeOfList [k] = k
+  shapeOfList ls = errorR "Shape.shapeOfList" $ "Unexpected pattern: " P.++ show ls
+  {-# NOINLINE shapeOfList #-}
+
+  deepSeq = seq
   {-# INLINE deepSeq #-}

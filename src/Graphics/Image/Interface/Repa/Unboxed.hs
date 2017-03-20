@@ -55,7 +55,7 @@ instance (R.Elt e, VU.Unbox e) => BaseArray RSU (Int, Int) e where
 
 instance BaseArray RSU (Int, Int) e => IArray RSU (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RSUArray $ makeArrayWindowedR sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g = RSUArray $ makeArrayWindowedR Sequential sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RSUArray . scalarR
@@ -141,7 +141,7 @@ instance (R.Elt e, VU.Unbox e) => BaseArray RPU (Int, Int) e where
 
 instance BaseArray RPU (Int, Int) e => IArray RPU (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RPUArray $ makeArrayWindowedR sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g = RPUArray $ makeArrayWindowedR Parallel sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RPUArray . scalarR

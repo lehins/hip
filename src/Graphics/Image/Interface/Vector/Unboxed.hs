@@ -59,7 +59,7 @@ instance VU.Unbox e => BaseArray VU (Int, Int) e where
 
 instance BaseArray VU (Int, Int) e => IArray VU (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = VUArray $ makeImageWindowedVG sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g = VUArray $ makeImageWindowedVGPar sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = VUArray . scalarVG

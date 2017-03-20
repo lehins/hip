@@ -14,19 +14,18 @@ import           Data.Array.Repa.Stencil             as R
 import           Data.Array.Repa.Stencil.Dim2        as R
 
 import           Graphics.Image                      as I
-import           Graphics.Image.Interface            as I
 import           Graphics.Image.Internal             as I
 import           Graphics.Image.Interface.Repa
 import           Prelude                             as P
 
 -- | Convolution
-sobelGx :: I.Array arr cs e => Image arr cs e -> Image arr cs e
+sobelGx :: (I.Array VU X e, I.Array arr cs e) => Image arr cs e -> Image arr cs e
 sobelGx =
   convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
 
 -- | Same convolution by separable
-sobelGxSep :: I.Array arr cs e => Image arr cs e -> Image arr cs e
+sobelGxSep :: (I.Array VU X e, I.Array arr cs e) => Image arr cs e -> Image arr cs e
 sobelGxSep =
   convolveCols Edge [1, 2, 1] . convolveRows Edge [1, 0, -1]
 
@@ -80,18 +79,21 @@ forceS !arr = do
 
 main :: IO ()
 main = do
-  let !imgU = compute $ makeImage (600, 600)
+  let !imgU = compute $ makeImage (1600, 1600)
               (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j )))
-              :: Image RPU Y Double
+              :: Image RPU Y Word16
   let !imgU' =
         compute $
         makeImage
-          (600, 600)
-          (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Double
+          (1600, 1600)
+          (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Word16
   let !sobelFSep = applyFilter (sobelFilter Horizontal Edge) imgU
   let !sobelFSep' = applyFilter (sobelFilter Horizontal Edge)
   let !imgR = toRepaArray imgU
+      getY (PixelY y) = y
+  imgRD <- R.computeUnboxedP $ R.map getY $ toRepaArray imgU
   let sobelR = sobelGxR imgR
+      sobelRD = sobelGxR imgRD
   let sobelRAlgSep = sobelGxRAlgSep imgR
   defaultMain
     [ bgroup
@@ -102,8 +104,9 @@ main = do
         [
         --   bench "naive U" $ whnf compute sobelU
           bench "repa R Stencil" $ whnfIO (forceP sobelR)
-        , bench "Filter R" $ whnf compute sobelFSep
         , bench "Filter VU" $ whnf sobelFSep' imgU'
+        , bench "repa R Double Stencil" $ whnfIO (forceP sobelRD)
+        , bench "Filter R" $ whnf compute sobelFSep
         , bench "repa R Agorithms Separated" $ whnfIO sobelRAlgSep
         ]
     ]
