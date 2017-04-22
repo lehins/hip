@@ -12,7 +12,7 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Vector.Unboxing where
+module Graphics.Image.ColorSpace.Unboxing where
 
 import Control.Monad
 import qualified Data.Vector.Generic as V

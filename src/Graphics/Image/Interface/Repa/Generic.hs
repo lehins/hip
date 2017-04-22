@@ -28,7 +28,6 @@ module Graphics.Image.Interface.Repa.Generic
   , dimsR
   , scalarR
   , unsafeIndexR
-  , makeArrayWindowedR
   , mapR
   , imapR
   , eqR
@@ -56,13 +55,12 @@ module Graphics.Image.Interface.Repa.Generic
 
 import           Data.Array.Repa                     as R
 import           Data.Array.Repa.Eval                as R (Elt (..), Target,
-                                                           Load, LoadRange, fromList,
+                                                           fromList,
                                                            suspendedComputeP)
 import           Data.Array.Repa.Operators.Traversal as R
 import           Data.Array.Repa.Repr.ForeignPtr
-import           Data.Array.Repa.Repr.Partitioned    (P, Range (..))
 import           Data.Array.Repa.Repr.Unboxed        (Unbox)
-import           Data.Array.Repa.Repr.Undefined      (X)
+
 import           Data.Complex                        as C
 import           Data.Maybe                          (listToMaybe)
 import qualified Data.Vector.Storable                as VS
@@ -111,52 +109,52 @@ makeArrayR sz f =
   RDArray $ R.fromFunction (checkDimsR "makeArrayR" sz) f
 {-# INLINE makeArrayR #-}
 
-makeArrayWindowedR
-  :: forall r p . (Target r p, Source r p, Unbox p, Elt p)
-  =>
-  Strategy
-  -> (Int, Int)
-  -> (Int, Int)
-  -> (Int, Int)
-  -> ((Int, Int) -> p)
-  -> ((Int, Int) -> p)
-  -> RArray r p
-makeArrayWindowedR !_strategy !sz !wIx !wSz getWindowPx getBorderPx =
-  RDArray $ sh2ixArr $ arr
-  where
-    arr :: Array r DIM2 p
-    arr = makeWindowed sh (ix2sh wIx) (ix2sh wSz) wArr bArr
-    -- compute :: Load r1 DIM2 p => Array r1 DIM2 p -> Array r DIM2 p
-    -- compute = case strategy of
-    --             Parallel -> suspendedComputeP
-    --             Sequential -> computeS
-    wArr = R.fromFunction sh (getWindowPx . sh2ix)
-    bArr = R.fromFunction sh (getBorderPx . sh2ix)
-    !sh = ix2sh (checkDimsR "makeArrayWindowedR" sz)
-{-# INLINE makeArrayWindowedR #-}
+-- makeArrayWindowedR
+--   :: forall r p . (Target r p, Source r p, Unbox p, Elt p)
+--   =>
+--   Strategy
+--   -> (Int, Int)
+--   -> (Int, Int)
+--   -> (Int, Int)
+--   -> ((Int, Int) -> p)
+--   -> ((Int, Int) -> p)
+--   -> RArray r p
+-- makeArrayWindowedR !_strategy !sz !wIx !wSz getWindowPx getBorderPx =
+--   RDArray $ sh2ixArr $ arr
+--   where
+--     arr :: Array r DIM2 p
+--     arr = makeWindowed sh (ix2sh wIx) (ix2sh wSz) wArr bArr
+--     -- compute :: Load r1 DIM2 p => Array r1 DIM2 p -> Array r DIM2 p
+--     -- compute = case strategy of
+--     --             Parallel -> suspendedComputeP
+--     --             Sequential -> computeS
+--     wArr = R.fromFunction sh (getWindowPx . sh2ix)
+--     bArr = R.fromFunction sh (getBorderPx . sh2ix)
+--     !sh = ix2sh (checkDimsR "makeArrayWindowedR" sz)
+-- {-# INLINE makeArrayWindowedR #-}
 
-makeWindowed
-  :: (Elt p, Unbox p, LoadRange r1 DIM2 p, LoadRange r2 DIM2 p, Source r1 p, Source r2 p, Target r p)
-  => DIM2 -- ^ Extent of array.
-  -> DIM2 -- ^ Window starting index
-  -> DIM2 -- ^ Window size.
-  -> Array r1 DIM2 p -- ^ Array for internal elements.
-  -> Array r2 DIM2 p -- ^ Array for border elements.
-  -> Array r DIM2 p
-makeWindowed sh@(Z :. m :. n) (Z :. it :. jt) (Z :. wm :. wn) arrWindow arrBorder =
-  let inInternal !(Z :. i :. j) = i >= it && i < ib && j >= jt && j < jb
-      {-# INLINE inInternal #-}
-      inBorder = not . inInternal
-      {-# INLINE inBorder #-}
-      !(ib, jb) = (wm + it, wn + jt)
-  in suspendedComputeP $
-     APart sh (Range (Z :. it :. jt) (Z :. wm :. wn) inInternal) arrWindow $
-     APart sh (Range (Z :. 0 :. 0) (Z :. it :. n) inBorder) arrBorder $
-     APart sh (Range (Z :. it :. 0) (Z :. wm :. jt) inBorder) arrBorder $
-     APart sh (Range (Z :. it :. jb) (Z :. wm :. n - jb) inBorder) arrBorder $
-     APart sh (Range (Z :. ib :. 0) (Z :. m - ib :. n) inBorder) arrBorder $
-     AUndefined sh
-{-# INLINE makeWindowed #-}
+-- makeWindowed
+--   :: (Elt p, Unbox p, LoadRange r1 DIM2 p, LoadRange r2 DIM2 p, Source r1 p, Source r2 p, Target r p)
+--   => DIM2 -- ^ Extent of array.
+--   -> DIM2 -- ^ Window starting index
+--   -> DIM2 -- ^ Window size.
+--   -> Array r1 DIM2 p -- ^ Array for internal elements.
+--   -> Array r2 DIM2 p -- ^ Array for border elements.
+--   -> Array r DIM2 p
+-- makeWindowed sh@(Z :. m :. n) (Z :. it :. jt) (Z :. wm :. wn) arrWindow arrBorder =
+--   let inInternal !(Z :. i :. j) = i >= it && i < ib && j >= jt && j < jb
+--       {-# INLINE inInternal #-}
+--       inBorder = not . inInternal
+--       {-# INLINE inBorder #-}
+--       !(ib, jb) = (wm + it, wn + jt)
+--   in suspendedComputeP $
+--      APart sh (Range (Z :. it :. jt) (Z :. wm :. wn) inInternal) arrWindow $
+--      APart sh (Range (Z :. 0 :. 0) (Z :. it :. n) inBorder) arrBorder $
+--      APart sh (Range (Z :. it :. 0) (Z :. wm :. jt) inBorder) arrBorder $
+--      APart sh (Range (Z :. it :. jb) (Z :. wm :. n - jb) inBorder) arrBorder $
+--      APart sh (Range (Z :. ib :. 0) (Z :. m - ib :. n) inBorder) arrBorder $
+--      AUndefined sh
+-- {-# INLINE makeWindowed #-}
 
 toRepaArrayR :: (Unbox e, Source r e) => RArray r e -> Array U DIM2 e
 toRepaArrayR arr =
@@ -347,8 +345,9 @@ multR = undefined
 
 
 computeR :: (Target r p, Source r p) => Strategy -> RArray r p -> RArray r p
-computeR Parallel (RDArray arr) = arrManifest `deepSeqArray` RTArray arrManifest
-  where arrManifest = suspendedComputeP arr
+-- computeR Parallel (RDArray arr) = arrManifest `deepSeqArray` RTArray arrManifest
+--   where arrManifest = suspendedComputeP arr
+computeR Parallel (RDArray arr) = RTArray $ mCompute "computeR" (computeP arr)
 computeR Sequential (RDArray arr) = RTArray $ computeS arr
 computeR _ img = img
 {-# INLINE computeR #-}
@@ -422,8 +421,8 @@ fromVectorUnboxedR !sz = RTArray . fromUnboxed sz
 
 
 
-toVectorR :: (Target r2 e, Source r2 e) =>
-             (R.Array r2 (Int, Int) e -> t) -> Strategy -> RArray r2 e -> t
+toVectorR :: (Target r e, Source r e) =>
+             (R.Array r (Int, Int) e -> t) -> Strategy -> RArray r e -> t
 toVectorR toVector Parallel (RDArray arr) =
  toVector $ mCompute "toVectorR" (computeP arr)
 toVectorR toVector Sequential (RDArray arr) = toVector $ computeS arr

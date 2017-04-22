@@ -51,13 +51,13 @@ instance VS.Storable e => BaseArray VS (Int, Int) e where
   shapeA (VSArray v) = dimsVG v
   {-# INLINE shapeA #-}
 
-  makeA !sz = VSArray . makeImageVG sz
+  makeA !sz = VSArray . makeArrayVG sz
   {-# INLINE makeA #-}
 
 
 instance BaseArray VS (Int, Int) e => IArray VS (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = VSArray $ makeImageWindowedVG sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g = VSArray $ makeArrayWindowedVG sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = VSArray . scalarVG
@@ -110,7 +110,7 @@ instance BaseArray VS (Int, Int) e => ManifestArray VS (Int, Int) e where
   foldrA f !px0 (VSArray arr) = foldrVG f px0 arr
   {-# INLINE foldrA #-}
 
-  makeArrayMA !sh f = VSArray <$> makeImageMVG sh f
+  makeArrayMA !sh f = VSArray <$> makeArrayMVG sh f
   {-# INLINE makeArrayMA #-}
 
   mapMA f (VSArray arr) = VSArray <$> mapMVG f arr

@@ -50,7 +50,7 @@ instance VU.Unbox e => BaseArray VU (Int, Int) e where
   shapeA (VUArray v) = dimsVG v
   {-# INLINE shapeA #-}
 
-  makeA !sz = VUArray . makeImageVG sz
+  makeA !sz = VUArray . makeArrayVG sz
   {-# INLINE makeA #-}
 
   unsafeIndexA (VUArray arr) = unsafeIndexVG arr
@@ -59,7 +59,7 @@ instance VU.Unbox e => BaseArray VU (Int, Int) e where
 
 instance BaseArray VU (Int, Int) e => IArray VU (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = VUArray $ makeImageWindowedVGPar sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g = VUArray $ makeArrayWindowedVG sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = VUArray . scalarVG
@@ -113,7 +113,7 @@ instance BaseArray VU (Int, Int) e => ManifestArray VU (Int, Int) e where
   foldrA f !px0 (VUArray arr) = foldrVG f px0 arr
   {-# INLINE foldrA #-}
 
-  makeArrayMA !sh f = VUArray <$> makeImageMVG sh f
+  makeArrayMA !sh f = VUArray <$> makeArrayMVG sh f
   {-# INLINE makeArrayMA #-}
 
   mapMA f (VUArray arr) = VUArray <$> mapMVG f arr

@@ -65,8 +65,7 @@ toKernel !kernel@(dims -> (m, n))
 {-# INLINE toKernel #-}
 
 
--- data Symmetry = Assymetric
---               | Symmetric Orientation
+-- data Symmetry px = Symmetric (Maybe (Border px) )
 
 --makeKernel
 
@@ -84,7 +83,7 @@ correlate !border !kernelImg !img =
   where
     unsafeIndexArr = I.unsafeIndexA arr
     borderIndexArr = handleBorderIndex border sz unsafeIndexArr
-    (Image arr) = exchange VU img
+    (Image arr) = compute img
     !sz@(m, n) = dims img
     !kernel = toKernel kernelImg
     !(kLen, kM2, kN2) =

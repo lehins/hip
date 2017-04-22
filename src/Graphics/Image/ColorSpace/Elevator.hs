@@ -6,14 +6,14 @@
   {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 #endif
 -- |
--- Module      : Graphics.Image.Interface.Elevator
+-- Module      : Graphics.Image.ColorSpace.Elevator
 -- Copyright   : (c) Alexey Kuleshevich 2017
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Interface.Elevator (
+module Graphics.Image.ColorSpace.Elevator (
   Elevator(..)
   , clamp01
   ) where

@@ -16,6 +16,7 @@ import           Data.Array.Repa.Stencil.Dim2        as R
 import           Graphics.Image                      as I
 import           Graphics.Image.Internal             as I
 import           Graphics.Image.Interface.Repa
+import           Graphics.Image.Interface.Massiv
 import           Prelude                             as P
 
 -- | Convolution
@@ -79,22 +80,26 @@ forceS !arr = do
 
 main :: IO ()
 main = do
-  let !imgU = compute $ makeImage (1600, 1600)
+  let !imgU = compute $ makeImage (600, 600)
               (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j )))
               :: Image RPU Y Word16
   let !imgU' =
         compute $
         makeImage
-          (1600, 1600)
+          (600, 600)
           (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Word16
-  let !sobelFSep = applyFilter (sobelFilter Horizontal Edge) imgU
+  let !imgPU =
+        compute $
+        makeImage
+          (600, 600)
+          (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image PU Y Word16
+  --let !sobelFSep = applyFilter (sobelFilter Horizontal Edge)
   let !sobelFSep' = applyFilter (sobelFilter Horizontal Edge)
-  let !imgR = toRepaArray imgU
-      getY (PixelY y) = y
-  imgRD <- R.computeUnboxedP $ R.map getY $ toRepaArray imgU
-  let sobelR = sobelGxR imgR
-      sobelRD = sobelGxR imgRD
-  let sobelRAlgSep = sobelGxRAlgSep imgR
+  let !sobelFSepPU = applyFilter (sobelFilter Horizontal Edge)
+  let !imgR = R.computeUnboxedS $ R.delay $ toRepaArray imgU
+      --getY (PixelY y) = y
+  --imgRD <- R.computeUnboxedP $ R.map getY $ toRepaArray imgU
+  --let sobelRAlgSep = sobelGxRAlgSep imgR
   defaultMain
     [ bgroup
         -- "Gaussian"
@@ -103,10 +108,12 @@ main = do
         "Sobel"
         [
         --   bench "naive U" $ whnf compute sobelU
-          bench "repa R Stencil" $ whnfIO (forceP sobelR)
+          bench "repa R Stencil" $ whnf (R.computeUnboxedS . sobelGxR) imgR
         , bench "Filter VU" $ whnf sobelFSep' imgU'
-        , bench "repa R Double Stencil" $ whnfIO (forceP sobelRD)
-        , bench "Filter R" $ whnf compute sobelFSep
-        , bench "repa R Agorithms Separated" $ whnfIO sobelRAlgSep
+        , bench "Filter PU" $ whnf sobelFSepPU imgPU
+        -- , bench "Filter R" $ whnf sobelFSep imgU
+        -- , bench "exchange RSU -> VU" $ whnf (exchange VU) imgU
+        -- , bench "repa R Double Stencil" $ whnfIO (forceP sobelRD)
+        -- , bench "repa R Agorithms Separated" $ whnfIO sobelRAlgSep
         ]
     ]

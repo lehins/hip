@@ -3,7 +3,6 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE ViewPatterns          #-}
 -- |
 -- Module      : Graphics.Image.Interface
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -46,14 +45,20 @@ module Graphics.Image.Internal
   , mapM_
   ) where
 
-import Control.DeepSeq (NFData(rnf))
+import           Control.DeepSeq          (NFData (rnf))
 import           Data.Vector.Generic      as VG (convert)
 import           Graphics.Image.Interface
-import           Prelude                  hiding (map, traverse, zipWith, mapM, mapM_)
+import           Prelude                  hiding (map, mapM, mapM_, traverse,
+                                           zipWith)
+import Data.Array.Massiv
 
 
+data Strat = Par | Seq
 
-newtype Image arr cs e = Image (arr (Int, Int) (Pixel cs e))
+newtype Image arr cs e = DImage Strat arr (Array D (Int, Int) (Pixel cs e))
+                       | MImage Strat (Array arr (Int, Int) (Pixel cs e))
+
+
 
 
 instance Array arr cs e => Eq (Image arr cs e) where

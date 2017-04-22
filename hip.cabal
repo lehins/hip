@@ -38,14 +38,13 @@ Library
                , deepseq         >= 1.1
                , directory       >= 1.2.2.0
                , filepath        >= 1.0
+               , massiv
                , netpbm          >= 1.0.1
                , primitive       >= 0.4
                , process         >= 1.1.0.0
-               , repa            >= 3.2.1.1 && < 4
                , temporary       >= 1.1.1
                , vector          >= 0.10
   Other-Extensions: BangPatterns
-                  , ConstraintKinds
                   , CPP
                   , FlexibleContexts
                   , FlexibleInstances
@@ -55,44 +54,48 @@ Library
                   , TypeFamilies
                   , UndecidableInstances
                   , ViewPatterns
-  Exposed-Modules: Graphics.Image
-                 , Graphics.Image.ColorSpace
-                 , Graphics.Image.IO
-                 , Graphics.Image.IO.Formats
-                 , Graphics.Image.IO.Histogram
-                 , Graphics.Image.Interface
-                 , Graphics.Image.Interface.Repa
-                 , Graphics.Image.Interface.Vector
-                 , Graphics.Image.Internal
-                 , Graphics.Image.Processing
-                 , Graphics.Image.Processing.Binary
-                 , Graphics.Image.Processing.Complex
-                 , Graphics.Image.Processing.Filter
-                 , Graphics.Image.Types
-  Other-Modules:   Graphics.Image.ColorSpace.Binary
-                 , Graphics.Image.ColorSpace.CMYK
-                 , Graphics.Image.ColorSpace.Complex
-                 , Graphics.Image.ColorSpace.HSI
-                 , Graphics.Image.ColorSpace.RGB
-                 , Graphics.Image.ColorSpace.X
-                 , Graphics.Image.ColorSpace.Y
-                 , Graphics.Image.ColorSpace.YCbCr
-                 , Graphics.Image.IO.Base
-                 , Graphics.Image.IO.Formats.JuicyPixels
-                 , Graphics.Image.IO.Formats.Netpbm
-                 , Graphics.Image.Interface.Elevator
-                 , Graphics.Image.Interface.Repa.Generic
-                 , Graphics.Image.Interface.Repa.Storable
-                 , Graphics.Image.Interface.Repa.Unboxed
-                 , Graphics.Image.Interface.Vector.Generic
-                 , Graphics.Image.Interface.Vector.Storable
-                 , Graphics.Image.Interface.Vector.Unboxed
-                 , Graphics.Image.Interface.Vector.Unboxing
-                 , Graphics.Image.Processing.Convolution
-                 , Graphics.Image.Processing.Complex.Fourier
-                 , Graphics.Image.Processing.Geometric
-                 , Graphics.Image.Processing.Interpolation
-                 , Graphics.Image.Utils
+  Exposed-Modules: Graphics.Image.Array
+                 , Graphics.Image.ColorSpace.Internal
+                 , Graphics.Image.ColorSpace.Elevator
+  -- Exposed-Modules: Graphics.Image
+  --                , Graphics.Image.ColorSpace
+  --                , Graphics.Image.IO
+  --                , Graphics.Image.IO.Formats
+  --                , Graphics.Image.IO.Histogram
+  --                , Graphics.Image.Interface
+  --                , Graphics.Image.Interface.Massiv
+  --                , Graphics.Image.Interface.Repa
+  --                , Graphics.Image.Interface.Vector
+  --                , Graphics.Image.Internal
+  --                , Graphics.Image.Processing
+  --                , Graphics.Image.Processing.Binary
+  --                , Graphics.Image.Processing.Complex
+  --                , Graphics.Image.Processing.Filter
+  --                , Graphics.Image.Types
+  -- Other-Modules:   Graphics.Image.ColorSpace.Binary
+  --                , Graphics.Image.ColorSpace.CMYK
+  --                , Graphics.Image.ColorSpace.Complex
+  --                , Graphics.Image.ColorSpace.HSI
+  --                , Graphics.Image.ColorSpace.RGB
+  --                , Graphics.Image.ColorSpace.X
+  --                , Graphics.Image.ColorSpace.Y
+  --                , Graphics.Image.ColorSpace.YCbCr
+  --                , Graphics.Image.IO.Base
+  --                , Graphics.Image.IO.Formats.JuicyPixels
+  --                , Graphics.Image.IO.Formats.Netpbm
+  --                , Graphics.Image.Interface.Elevator
+  --                , Graphics.Image.Interface.Repa.Generic
+  --                , Graphics.Image.Interface.Repa.Storable
+  --                , Graphics.Image.Interface.Repa.Unboxed
+  --                , Graphics.Image.Interface.Vector.Generic
+  --                , Graphics.Image.Interface.Vector.Storable
+  --                , Graphics.Image.Interface.Vector.Unboxed
+  --                , Graphics.Image.Interface.Vector.Unboxing
+  --                , Graphics.Image.Processing.Convolution
+  --                , Graphics.Image.Processing.Complex.Fourier
+  --                , Graphics.Image.Processing.Geometric
+  --                , Graphics.Image.Processing.Interpolation
+  --                , Graphics.Image.Utils
   GHC-Options:     -Wall
   if os(windows)
     CPP-Options:      -DOS_Win32
@@ -103,51 +106,51 @@ Library
       if os(darwin)
         CPP-Options:  -DOS_Mac
 
-Test-Suite hip-tests
-  Type:               exitcode-stdio-1.0
-  HS-Source-Dirs:     tests
-  Main-Is:            Spec.hs
-  Other-Modules:      Graphics.Image.ColorSpaceSpec
-                    , Graphics.Image.ProcessingSpec
-                    , Graphics.Image.Processing.BinarySpec
-                    , Graphics.Image.InterfaceSpec
-                    , Graphics.Image.Interface.VectorSpec
-                    , Graphics.Image.Interface.RepaSpec
-                    , Graphics.Image.IO.FormatsSpec
-  Build-Depends:      base            >= 4.5 && < 5
-                    , bytestring
-                    , hip
-                    , hspec
-                    , QuickCheck
-  Default-Language:   Haskell2010
-  GHC-Options:        -Wall -threaded -with-rtsopts=-N
+-- Test-Suite hip-tests
+--   Type:               exitcode-stdio-1.0
+--   HS-Source-Dirs:     tests
+--   Main-Is:            Spec.hs
+--   Other-Modules:      Graphics.Image.ColorSpaceSpec
+--                     , Graphics.Image.ProcessingSpec
+--                     , Graphics.Image.Processing.BinarySpec
+--                     , Graphics.Image.InterfaceSpec
+--                     , Graphics.Image.Interface.VectorSpec
+--                     , Graphics.Image.Interface.RepaSpec
+--                     , Graphics.Image.IO.FormatsSpec
+--   Build-Depends:      base            >= 4.5 && < 5
+--                     , bytestring
+--                     , hip
+--                     , hspec
+--                     , QuickCheck
+--   Default-Language:   Haskell2010
+--   GHC-Options:        -Wall -threaded -with-rtsopts=-N
 
 
-benchmark convolution
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      benchmarks
-  main-is:             Convolution.hs
-  --ghc-options:         -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3 -rtsopts -with-rtsopts=-N6
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N6 -O2
-  --ghc-options:         -threaded -O2
-  build-depends:       base
-                     , criterion
-                     , deepseq
-                     , repa
-                     , repa-algorithms
-                     , hip
-                     , vector
-  default-language:    Haskell2010
+-- benchmark convolution
+--   type:                exitcode-stdio-1.0
+--   hs-source-dirs:      benchmarks
+--   main-is:             Convolution.hs
+--   --ghc-options:         -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3 -rtsopts -with-rtsopts=-N6
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N6 -O2
+--   --ghc-options:         -threaded -O2
+--   build-depends:       base
+--                      , criterion
+--                      , deepseq
+--                      , repa
+--                      , repa-algorithms
+--                      , hip
+--                      , vector
+--   default-language:    Haskell2010
 
-benchmark histogram
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      benchmarks
-  main-is:             Histogram.hs
-  ghc-options:         -threaded -O2
-  build-depends:       base
-                     , criterion
-                     , hip
-  default-language:    Haskell2010
+-- benchmark histogram
+--   type:                exitcode-stdio-1.0
+--   hs-source-dirs:      benchmarks
+--   main-is:             Histogram.hs
+--   ghc-options:         -threaded -O2
+--   build-depends:       base
+--                      , criterion
+--                      , hip
+--   default-language:    Haskell2010
 
 -- executable sobel-profile
 --   hs-source-dirs:      app
@@ -155,7 +158,7 @@ benchmark histogram
 --   build-depends:       base
 --                      , hip
 --   default-language:    Haskell2010
---   ghc-options:         -Wall -threaded -prof -fprof-auto
+--   ghc-options:         -Wall -O2 -threaded -prof -fprof-auto
 
 Source-Repository head
   Type:     git

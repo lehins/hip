@@ -21,13 +21,15 @@ module Graphics.Image.Interface.Repa.Unboxed
   , Repr(..)
   ) where
 
-import qualified Data.Array.Repa.Repr.Unboxed            as R (U)
 import qualified Data.Array.Repa.Eval                    as R (Elt)
+import qualified Data.Array.Repa.Repr.Unboxed            as R (U)
 import           Data.Typeable                           (Typeable)
 import qualified Data.Vector.Generic                     as VG (Vector)
 import qualified Data.Vector.Unboxed                     as VU (Unbox, Vector)
 import           Graphics.Image.Interface                as I
 import           Graphics.Image.Interface.Repa.Generic
+import           Graphics.Image.Interface.Vector.Generic (makeVectorWindowedVG,
+                                                          makeVectorWindowedVGPar)
 import           Graphics.Image.Interface.Vector.Unboxed ()
 import           Prelude                                 as P
 
@@ -55,7 +57,8 @@ instance (R.Elt e, VU.Unbox e) => BaseArray RSU (Int, Int) e where
 
 instance BaseArray RSU (Int, Int) e => IArray RSU (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RSUArray $ makeArrayWindowedR Sequential sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g =
+    RSUArray $ fromVectorUnboxedR sh $ makeVectorWindowedVG sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RSUArray . scalarR
@@ -141,7 +144,8 @@ instance (R.Elt e, VU.Unbox e) => BaseArray RPU (Int, Int) e where
 
 instance BaseArray RPU (Int, Int) e => IArray RPU (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RPUArray $ makeArrayWindowedR Parallel sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g =
+    RPUArray $ fromVectorUnboxedR sh $ makeVectorWindowedVGPar sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RPUArray . scalarR

@@ -21,16 +21,19 @@ module Graphics.Image.Interface.Repa.Storable
   , Repr(..)
   ) where
 
-import qualified Data.Array.Repa.Eval                     as R (Elt)
-import           Data.Array.Repa.Repr.ForeignPtr          as R (F)
-import           Data.Typeable                            (Typeable)
-import qualified Data.Vector.Generic                      as VG (Vector)
-import qualified Data.Vector.Storable                     as VS (Storable, Vector)
-import qualified Data.Vector.Unboxed                      as VU (Unbox)
-import           Graphics.Image.Interface                 as I
+import qualified Data.Array.Repa.Eval                    as R (Elt)
+import           Data.Array.Repa.Repr.ForeignPtr         as R (F)
+import           Data.Typeable                           (Typeable)
+import qualified Data.Vector.Generic                     as VG (Vector)
+import qualified Data.Vector.Storable                    as VS (Storable,
+                                                                Vector)
+import qualified Data.Vector.Unboxed                     as VU (Unbox)
+import           Graphics.Image.Interface                as I
 import           Graphics.Image.Interface.Repa.Generic
+import           Graphics.Image.Interface.Vector.Generic (makeVectorWindowedVG,
+                                                          makeVectorWindowedVGPar)
 import           Graphics.Image.Interface.Vector.Unboxed ()
-import           Prelude                                  as P
+import           Prelude                                 as P
 
 
 -- | Repa Array representation, which is computed sequentially.
@@ -57,7 +60,8 @@ instance (R.Elt e, VU.Unbox e, VS.Storable e) => BaseArray RSS (Int, Int) e wher
 
 instance BaseArray RSS (Int, Int) e => IArray RSS (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RSSArray $ makeArrayWindowedR Sequential sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g =
+    RSSArray $ fromVectorStorableR sh $ makeVectorWindowedVG sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RSSArray . scalarR
@@ -144,7 +148,8 @@ instance (R.Elt e, VU.Unbox e, VS.Storable e) => BaseArray RPS (Int, Int) e wher
 
 instance BaseArray RPS (Int, Int) e => IArray RPS (Int, Int) e where
 
-  makeWindowedA !sh !wIx !wSz f g = RPSArray $ makeArrayWindowedR Parallel sh wIx wSz f g
+  makeWindowedA !sh !wIx !wSz f g =
+    RPSArray $ fromVectorStorableR sh $ makeVectorWindowedVGPar sh wIx wSz f g
   {-# INLINE makeWindowedA #-}
 
   scalarA = RPSArray . scalarR

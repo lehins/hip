@@ -24,6 +24,8 @@ module Graphics.Image.Interface.Vector.Generic
   , indexVG
   , makeArrayWindowedVG
   , makeArrayWindowedVGPar
+  , makeVectorWindowedVG
+  , makeVectorWindowedVGPar
   , mapVG
   , imapVG
   , zipWithVG
@@ -66,14 +68,14 @@ import           Prelude                     hiding (map, zipWith)
 #if !MIN_VERSION_base(4,8,0)
 import           Data.Functor
 #endif
+import           Data.Array.Repa.Eval.Gang
 import           Data.Maybe                  (listToMaybe)
+import           Data.STRef
 import qualified Data.Vector.Generic         as VG
 import qualified Data.Vector.Generic.Mutable as MVG
 import           Graphics.Image.Internal     (handleBorderIndex)
 import           Graphics.Image.Utils        (checkDims, fromIx, loopM_, swapIx,
                                               toIx)
-
-import Data.Array.Repa.Eval.Gang
 
 
 data VGArray v p =
@@ -130,7 +132,52 @@ index00VG (VGArray _ _ v) = v VG.! 0
 -- {-# INLINE makeArrayVG #-}
 
 
-makeVectorWindowedPar
+-- | Checks window and array dimensions and returns index for the bottom right
+-- corner of the window.
+checkWindow :: Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int)
+checkWindow !m !n !it !jt !wm !wn
+  | it < 0 || it >= ib || jt < 0 || jt >= jb || ib > m || jb > n =
+    errorVG
+      "checkWindow"
+      ("Window index is outside the array dimensions. window start: " ++
+       show (it, jt) ++
+       " window size: " ++ show (wm, wn) ++ " array dimensions: " ++ show (m, n))
+  | otherwise = (ib, jb)
+  where
+    !(ib, jb) = (wm + it, wn + jt)
+    !_ = checkDimsVG "checkWindow (array size)" (m, n)
+    !_ = checkDimsVG "checkWindow (window size)" (wm, wn)
+
+
+makeArrayWindowedVG
+  :: VG.Vector v p
+  => (Int, Int)
+  -> (Int, Int)
+  -> (Int, Int)
+  -> ((Int, Int) -> p)
+  -> ((Int, Int) -> p)
+  -> VGArray v p
+makeArrayWindowedVG !sz@(m, n) wIx wSz getWindowPx getBorderPx =
+  VGArray m n $ makeVectorWindowedVG sz wIx wSz getWindowPx getBorderPx
+{-# INLINE makeArrayWindowedVG #-}
+
+
+iterateLinearM_
+  :: Int
+  -> (Int, Int)
+  -> (Int, Int)
+  -> (Int -> (Int, Int) -> ST s ())
+  -> ST s ()
+iterateLinearM_ n !(m0, n0) !(m1, n1) f = do
+  kRef <- newSTRef (n * m0)
+  loopM_ m0 (< m1) (+ 1) $ \ !i -> do
+    k <- readSTRef kRef
+    loopM_ n0 (< n1) (+ 1) $ \ !j -> f (k + j) (i, j)
+    writeSTRef kRef (k + n)
+{-# INLINE iterateLinearM_ #-}
+
+
+makeVectorWindowedVG
   :: forall v p.
      VG.Vector v p
   => (Int, Int)
@@ -139,12 +186,55 @@ makeVectorWindowedPar
   -> ((Int, Int) -> p)
   -> ((Int, Int) -> p)
   -> v p
-makeVectorWindowedPar !(m, n) !(it, jt) !(wm, wn) getWindowPx getBorderPx =
-  VG.create generate
+makeVectorWindowedVG !(m, n) !(it, jt) !(wm, wn) getWindowPx getBorderPx =
+  VG.create generateArray
   where
     !(ib, jb) = checkWindow m n it jt wm wn
-    generate :: ST s ((VG.Mutable v) s p)
-    generate = do
+    generateArray :: ST s (VG.Mutable v s p)
+    generateArray = do
+      mv <- MVG.unsafeNew (m * n)
+      iterateLinearM_ n (0, 0) (it, n) $ \ !k !ix ->
+        MVG.unsafeWrite mv k (getBorderPx ix)
+      iterateLinearM_ n (ib, 0) (m, n) $ \ !k !ix ->
+        MVG.unsafeWrite mv k (getBorderPx ix)
+      iterateLinearM_ n (it, 0) (ib, jt) $ \ !k !ix ->
+        MVG.unsafeWrite mv k (getBorderPx ix)
+      iterateLinearM_ n (it, jb) (ib, n) $ \ !k !ix ->
+        MVG.unsafeWrite mv k (getBorderPx ix)
+      iterateLinearM_ n (it, jt) (ib, jb) $ \ !k !ix ->
+        MVG.unsafeWrite mv k (getWindowPx ix)
+      -- loopM_ 0 (< n) (+ 1) $ \ !j -> do
+      --   loopM_ 0 (< it) (+ 1) $ \ !i -> do
+      --     MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+      --   loopM_ ib (< m) (+ 1) $ \ !i -> do
+      --     MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+      -- loopM_ it (< ib) (+ 1) $ \ !i -> do
+      --   loopM_ 0 (< jt) (+ 1) $ \ !j -> do
+      --     MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+      --   loopM_ jt (< jb) (+ 1) $ \ !j -> do
+      --     MVG.unsafeWrite mv (fromIx n (i, j)) (getWindowPx (i, j))
+      --   loopM_ jb (< n) (+ 1) $ \ !j -> do
+      --     MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
+      return mv
+    {-# INLINE generateArray #-}
+{-# INLINE makeVectorWindowedVG #-}
+
+
+makeVectorWindowedVGPar
+  :: forall v p.
+     VG.Vector v p
+  => (Int, Int)
+  -> (Int, Int)
+  -> (Int, Int)
+  -> ((Int, Int) -> p)
+  -> ((Int, Int) -> p)
+  -> v p
+makeVectorWindowedVGPar !(m, n) !(it, jt) !(wm, wn) getWindowPx getBorderPx =
+  VG.create generateArray
+  where
+    !(ib, jb) = checkWindow m n it jt wm wn
+    generateArray :: ST s (VG.Mutable v s p)
+    generateArray = do
       mv <- MVG.unsafeNew (m * n)
       loopM_ 0 (< n) (+ 1) $ \ !j -> do
         loopM_ 0 (< it) (+ 1) $ \ !i -> do
@@ -177,8 +267,8 @@ makeVectorWindowedPar !(m, n) !(it, jt) !(wm, wn) getWindowPx getBorderPx =
           let !itSlack = gSize * chunkHeight + it
           loadRows itSlack (itSlack + slackHeight)
       return mv
-    {-# INLINE generate #-}
-{-# INLINE makeVectorWindowedPar #-}
+    {-# INLINE generateArray #-}
+{-# INLINE makeVectorWindowedVGPar #-}
 
 
 makeArrayWindowedVGPar
@@ -189,61 +279,9 @@ makeArrayWindowedVGPar
   -> ((Int, Int) -> p)
   -> ((Int, Int) -> p)
   -> VGArray v p
-makeArrayWindowedVGPar !(m, n) !wIx !wSz getWindowPx getBorderPx =
-  VGArray m n $ makeVectorWindowedPar (m, n) wIx wSz getWindowPx getBorderPx
+makeArrayWindowedVGPar !sz@(m, n) wIx wSz getWindowPx getBorderPx =
+  VGArray m n $ makeVectorWindowedVGPar sz wIx wSz getWindowPx getBorderPx
 {-# INLINE makeArrayWindowedVGPar #-}
-
-
--- | Checks window and array dimensions and returns index for the bottom right
--- corner of the window.
-checkWindow :: Int -> Int -> Int -> Int -> Int -> Int -> (Int, Int)
-checkWindow !m !n !it !jt !wm !wn
-  | it < 0 || it >= ib || jt < 0 || jt >= jb || ib > m || jb > n =
-    errorVG
-      "checkWindow"
-      ("Window index is outside the array dimensions. window start: " ++
-       show (it, jt) ++
-       " window size: " ++ show (wm, wn) ++ " array dimensions: " ++ show (m, n))
-  | otherwise = (ib, jb)
-  where
-    !(ib, jb) = (wm + it, wn + jt)
-    !_ = checkDimsVG "checkWindow (array size)" (m, n)
-    !_ = checkDimsVG "checkWindow (window size)" (wm, wn)
-
-
-makeArrayWindowedVG
-  :: forall v p.
-     VG.Vector v p
-  => (Int, Int)
-  -> (Int, Int)
-  -> (Int, Int)
-  -> ((Int, Int) -> p)
-  -> ((Int, Int) -> p)
-  -> VGArray v p
-makeArrayWindowedVG !(m, n) !(it, jt) !(wm, wn) getWindowPx getBorderPx =
-  VGArray m n $ VG.create generate
-  where
-    !(ib, jb) = checkWindow m n it jt wm wn
-    generate :: ST s ((VG.Mutable v) s p)
-    generate = do
-      mv <- MVG.unsafeNew (m * n)
-      loopM_ 0 (< n) (+ 1) $ \ !j -> do
-        loopM_ 0 (< it) (+ 1) $ \ !i -> do
-          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-        loopM_ ib (< m) (+ 1) $ \ !i -> do
-          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-      loopM_ it (< ib) (+ 1) $ \ !i -> do
-        loopM_ 0 (< jt) (+ 1) $ \ !j -> do
-          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-        loopM_ jt (< jb) (+ 1) $ \ !j -> do
-          MVG.unsafeWrite mv (fromIx n (i, j)) (getWindowPx (i, j))
-        loopM_ jb (< n) (+ 1) $ \ !j -> do
-          MVG.unsafeWrite mv (fromIx n (i, j)) (getBorderPx (i, j))
-      return mv
-    {-# INLINE generate #-}
-{-# INLINE makeArrayWindowedVG #-}
-
-
 
 
 mapVG :: (VG.Vector v p1, VG.Vector v p)
@@ -431,7 +469,7 @@ fromListsVG !ls =
   where
     (m, n) =
       checkDimsVG "fromListsVG" (length ls, maybe 0 length $ listToMaybe ls)
-{-# NOINLINE fromListsVG #-}
+{-# INLINE fromListsVG #-}
 
 foldlVG :: VG.Vector v p =>
            (a -> p -> a) -> a -> VGArray v p -> a

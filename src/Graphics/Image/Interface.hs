@@ -28,17 +28,17 @@ module Graphics.Image.Interface (
   , ColorSpace(..)
   , AlphaSpace(..)
   , Elevator(..)
-  -- * Array and Image
-  , BaseArray(..)
-  , IArray(..)
-  , Array(..)
-  , Repr
-  , Vector
-  -- * MArray and MImage
-  , ManifestArray(..)
-  -- , MutableArray(..)
-  -- , MA
-  , MArray
+  -- -- * Array and Image
+  -- , BaseArray(..)
+  -- , IArray(..)
+  -- , Array(..)
+  -- , Repr
+  -- , Vector
+  -- -- * MArray and MImage
+  -- , ManifestArray(..)
+  -- -- , MutableArray(..)
+  -- -- , MA
+  -- , MArray
   -- createImage,
   -- -- * Exchanging Representation
   -- exchange,
@@ -66,8 +66,8 @@ import           Data.Maybe                        (fromMaybe)
 import           Data.Typeable                     (Typeable)
 -- , showsTypeRep,
 --                                                     typeRep)
-import GHC.Exts (Constraint)
-import qualified Data.Vector.Generic               as VG
+
+
 import qualified Data.Vector.Unboxed               as VU
 
 
@@ -155,75 +155,75 @@ class (ColorSpace (Opaque cs) e, ColorSpace cs e) => AlphaSpace cs e where
   dropAlpha :: Pixel cs e -> Pixel (Opaque cs) e
 
 
-data family Repr (a :: * -> * -> *) :: *
+-- data family Repr (a :: * -> * -> *) :: *
 
-type family Vector (a :: * -> * -> *) :: * -> *
-
-
-class SuperClass a i e => BaseArray (a :: * -> * -> *) i e where
-
-  -- | Required array specific constraints for an array element.
-  type SuperClass a i e :: Constraint
-
-  shapeA :: a i e -> i
-
-  makeA :: i -> (i -> e) -> a i e
-
-  unsafeIndexA :: a i e -> i -> e
+-- type family Vector (a :: * -> * -> *) :: * -> *
 
 
--- | Immutable, shape polymorphic array representation.
-class BaseArray a i e => IArray a i e where
+-- class SuperClass a i e => BaseArray (a :: * -> * -> *) i e where
 
-  makeWindowedA :: i -> i -> i -> (i -> e) -> (i -> e) -> a i e
+--   -- | Required array specific constraints for an array element.
+--   type SuperClass a i e :: Constraint
 
-  scalarA :: e -> a i e
+--   shapeA :: a i e -> i
 
-  mapA :: IArray a i e1 => (e1 -> e) -> a i e1 -> a i e
+--   makeA :: i -> (i -> e) -> a i e
 
-  imapA :: IArray a i e1 => (i -> e1 -> e) -> a i e1 -> a i e
-
-  zipWithA :: (IArray a i e1, IArray a i e2) => (e1 -> e2 -> e) -> a i e1 -> a i e2 -> a i e
-
-  izipWithA :: (IArray a i e1, IArray a i e2) => (i -> e1 -> e2 -> e) -> a i e1 -> a i e2 -> a i e
-
-  traverseA :: IArray a i e1 => a i e1 -> (i -> i) -> ((i -> e1) -> i -> e) -> a i e
-
-  traverse2A :: (IArray a i e1, IArray a i e2) =>
-    a i e1 -> a i e2 -> (i -> i -> i) -> ((i -> e1) -> (i -> e2) -> i -> e) -> a i e
-
-  transposeA :: a i e -> a i e
-
-  backpermuteA :: i -> (i -> i) -> a i e -> a i e
-
-  fromListsA :: [[e]] -> a i e
-
-  foldA :: (e -> e -> e) -> e -> a i e -> e
-
-  foldIxA :: (e -> i -> e -> e) -> e -> a i e -> e
-
-  multA :: Num e => a i e -> a i e -> a i e
-
-  computeA :: a i e -> a i e
+--   unsafeIndexA :: a i e -> i -> e
 
 
+-- -- | Immutable, shape polymorphic array representation.
+-- class BaseArray a i e => IArray a i e where
 
-class BaseArray a i e => ManifestArray a i e where
+--   makeWindowedA :: i -> i -> i -> (i -> e) -> (i -> e) -> a i e
 
-  foldlA :: (b -> e -> b) -> b -> a i e -> b
+--   scalarA :: e -> a i e
 
-  foldrA :: (e -> b -> b) -> b -> a i e -> b
+--   mapA :: IArray a i e1 => (e1 -> e) -> a i e1 -> a i e
 
-  makeArrayMA :: (Functor m, Monad m) => i -> (i -> m e) -> m (a i e)
+--   imapA :: IArray a i e1 => (i -> e1 -> e) -> a i e1 -> a i e
 
-  mapMA :: (ManifestArray a i e1, Functor m, Monad m) =>
-    (e1 -> m e) -> a i e1 -> m (a i e)
+--   zipWithA :: (IArray a i e1, IArray a i e2) => (e1 -> e2 -> e) -> a i e1 -> a i e2 -> a i e
 
-  mapM_A :: (Functor m, Monad m) => (e -> m b) -> a i e -> m ()
+--   izipWithA :: (IArray a i e1, IArray a i e2) => (i -> e1 -> e2 -> e) -> a i e1 -> a i e2 -> a i e
 
-  foldMA :: (Functor m, Monad m) => (b -> e -> m b) -> b -> a i e -> m b
+--   traverseA :: IArray a i e1 => a i e1 -> (i -> i) -> ((i -> e1) -> i -> e) -> a i e
 
-  foldM_A :: (Functor m, Monad m) => (b -> e -> m b) -> b -> a i e -> m ()
+--   traverse2A :: (IArray a i e1, IArray a i e2) =>
+--     a i e1 -> a i e2 -> (i -> i -> i) -> ((i -> e1) -> (i -> e2) -> i -> e) -> a i e
+
+--   transposeA :: a i e -> a i e
+
+--   backpermuteA :: i -> (i -> i) -> a i e -> a i e
+
+--   fromListsA :: [[e]] -> a i e
+
+--   foldA :: (e -> e -> e) -> e -> a i e -> e
+
+--   foldIxA :: (e -> i -> e -> e) -> e -> a i e -> e
+
+--   multA :: Num e => a i e -> a i e -> a i e
+
+--   computeA :: a i e -> a i e
+
+
+
+-- class BaseArray a i e => ManifestArray a i e where
+
+--   foldlA :: (b -> e -> b) -> b -> a i e -> b
+
+--   foldrA :: (e -> b -> b) -> b -> a i e -> b
+
+--   makeArrayMA :: (Functor m, Monad m) => i -> (i -> m e) -> m (a i e)
+
+--   mapMA :: (ManifestArray a i e1, Functor m, Monad m) =>
+--     (e1 -> m e) -> a i e1 -> m (a i e)
+
+--   mapM_A :: (Functor m, Monad m) => (e -> m b) -> a i e -> m ()
+
+--   foldMA :: (Functor m, Monad m) => (b -> e -> m b) -> b -> a i e -> m b
+
+--   foldM_A :: (Functor m, Monad m) => (b -> e -> m b) -> b -> a i e -> m ()
 
 
 -- type family MA (a :: * -> * -> *) :: * -> * -> * -> *
@@ -256,25 +256,25 @@ class BaseArray a i e => ManifestArray a i e where
 
 
 
-class ( ColorSpace cs e
-      , Eq (arr (Int, Int) (Pixel cs e))
-      , IArray arr (Int, Int) (Pixel cs e)
-      , VG.Vector (Vector arr) (Pixel cs e)
-      ) =>
-      Array arr cs e where
+-- class ( ColorSpace cs e
+--       , Eq (arr (Int, Int) (Pixel cs e))
+--       , IArray arr (Int, Int) (Pixel cs e)
+--       , VG.Vector (Vector arr) (Pixel cs e)
+--       ) =>
+--       Array arr cs e where
 
-  toVectorA :: arr (Int, Int) (Pixel cs e) -> (Vector arr) (Pixel cs e)
+--   toVectorA :: arr (Int, Int) (Pixel cs e) -> (Vector arr) (Pixel cs e)
 
-  fromVectorA :: (Int, Int) -> (Vector arr) (Pixel cs e) -> arr (Int, Int) (Pixel cs e)
+--   fromVectorA :: (Int, Int) -> (Vector arr) (Pixel cs e) -> arr (Int, Int) (Pixel cs e)
 
 
 
-class ( ColorSpace cs e
-      , Eq (arr (Int, Int) (Pixel cs e))
-      , ManifestArray arr (Int, Int) (Pixel cs e)
-      , VG.Vector (Vector arr) (Pixel cs e)
-      ) =>
-      MArray arr cs e
+-- class ( ColorSpace cs e
+--       , Eq (arr (Int, Int) (Pixel cs e))
+--       , ManifestArray arr (Int, Int) (Pixel cs e)
+--       , VG.Vector (Vector arr) (Pixel cs e)
+--       ) =>
+--       MArray arr cs e
 
 
 -- data VU ix px = Vector ix (VU.Vector px)
