@@ -67,7 +67,7 @@ matrix:
     compiler: ": #stack 7.10.2 (lts-3.22)"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--stack-yaml stack.lts-6.yaml"
+  - env: BUILD=stack ARGS="--stack-yaml stack.lts-6.yaml --bench --no-run-benchmarks"
     compiler: ": #stack 7.10.3 (lts-6.30)"
     addons: {apt: {packages: [libgmp-dev]}}
 
@@ -75,7 +75,7 @@ matrix:
   #   compiler: ": #stack 8.0.1 (lts-7)"
   #   addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS=""
+  - env: BUILD=stack ARGS="--bench --no-run-benchmarks"
     compiler: ": #stack 8.0.2 (lts-8.3) - default"
     addons: {apt: {packages: [libgmp-dev]}}
 
@@ -132,7 +132,7 @@ install:
   set -ex
   case "$BUILD" in
     stack)
-      stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
+      stack --no-terminal --install-ghc $ARGS test --only-dependencies
       ;;
     cabal)
       cabal --version
@@ -151,7 +151,7 @@ script:
   set -ex
   case "$BUILD" in
     stack)
-      stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
+      stack --no-terminal $ARGS test --haddock --no-haddock-deps
       ;;
     cabal)
       cabal install --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
