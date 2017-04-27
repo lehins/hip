@@ -19,13 +19,13 @@ import           Graphics.Image.Interface.Repa
 import           Prelude                             as P
 
 -- | Convolution
-sobelGx :: I.Array arr cs e => Image arr cs e -> Image arr cs e
+sobelGx :: (I.Array arr X e, I.Array arr cs e) => Image arr cs e -> Image arr cs e
 sobelGx =
   convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
 
 -- | Same convolution by separable
-sobelGxSep :: I.Array arr cs e => Image arr cs e -> Image arr cs e
+sobelGxSep :: (I.Array arr X e, I.Array arr cs e) => Image arr cs e -> Image arr cs e
 sobelGxSep =
   convolveCols Edge [1, 2, 1] . convolveRows Edge [1, 0, -1]
 
