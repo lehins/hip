@@ -418,7 +418,7 @@ unsafeIndexVG (VGImage _ n v) = VG.unsafeIndex v . fromIx n
 {-# INLINE unsafeIndexVG #-}
 
 
-makeImageMVG :: (Monad m, VG.Vector v p) =>
+makeImageMVG :: (Functor m, Monad m, VG.Vector v p) =>
                 (Int, Int) -> ((Int, Int) -> m p) -> m (VGImage v p)
 makeImageMVG !sz !f =
   let !(m, n) = checkDimsVG "makeImageMVG" sz in
@@ -426,7 +426,7 @@ makeImageMVG !sz !f =
 {-# INLINE makeImageMVG #-}
 
 mapMVG
-  :: (Monad m, VG.Vector v a, VG.Vector v p) =>
+  :: (Functor m, Monad m, VG.Vector v a, VG.Vector v p) =>
      (a -> m p) -> VGImage v a -> m (VGImage v p)
 mapMVG f (VGImage m n v) = VGImage m n <$> VG.mapM f v
 {-# INLINE mapMVG #-}
@@ -453,17 +453,17 @@ mdimsVG :: MVGImage t2 t1 t -> (Int, Int)
 mdimsVG (MVGImage m n _) = (m, n)
 {-# INLINE mdimsVG #-}
 
-thawVG :: (VG.Mutable v1 ~ VG.Mutable v, PrimMonad f, VG.Vector v1 p) =>
+thawVG :: (VG.Mutable v1 ~ VG.Mutable v, Functor f, PrimMonad f, VG.Vector v1 p) =>
      VGImage v1 p -> f (MVGImage (PrimState f) v p)
 thawVG (VGImage m n v) = MVGImage m n <$> VG.thaw v
 {-# INLINE thawVG #-}
 
-freezeVG :: (VG.Mutable t ~ VG.Mutable v, PrimMonad f, VG.Vector v p) =>
+freezeVG :: (VG.Mutable t ~ VG.Mutable v, Functor f, PrimMonad f, VG.Vector v p) =>
      MVGImage (PrimState f) t p -> f (VGImage v p)
 freezeVG (MVGImage m n mv) = VGImage m n <$> VG.freeze mv
 {-# INLINE freezeVG #-}
 
-newVG :: (PrimMonad f, MVG.MVector (VG.Mutable v) p) =>
+newVG :: (Functor f, PrimMonad f, MVG.MVector (VG.Mutable v) p) =>
      (Int, Int) -> f (MVGImage (PrimState f) v p)
 newVG (m, n) = MVGImage m n <$> MVG.new (m*n)
 {-# INLINE newVG #-}
