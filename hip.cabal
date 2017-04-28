@@ -126,9 +126,7 @@ benchmark convolution
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmarks
   main-is:             Convolution.hs
-  --ghc-options:         -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3 -rtsopts -with-rtsopts=-N6
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N6 -O2
-  --ghc-options:         -threaded -O2
   build-depends:       base
                      , criterion
                      , deepseq
