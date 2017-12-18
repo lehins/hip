@@ -250,8 +250,8 @@ class (VG.Vector (Vector arr) (Pixel cs e),
   -- | Backwards permutation of an image.
   backpermute :: (Int, Int) -- ^ Dimensions of a result image.
               -> ((Int, Int) -> (Int, Int))
-                 -- ^ Function that maps an index of a source image to an index
-                 -- of a result image.
+                 -- ^ Function that maps an index of a result image to an index
+                 -- of a source image.
               -> Image arr cs e -- ^ Source image.
               -> Image arr cs e -- ^ Result image.
 
