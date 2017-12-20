@@ -103,7 +103,7 @@ before_install:
 
 # We want to always allow newer versions of packages when building on GHC HEAD
 - if [ ! -v "CABALARGS" ]; then CABALARGS=""; fi
-- if [ "x$GHCVER" = "xhead" ]; then CABALARGS="$CABALARGS --allow-newer"; fi
+- if [ "x$GHCVER" = "xhead" ]; then CABALARGS="--allow-newer $CABALARGS"; fi
 
 # Download and unpack the stack executable
 - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:/opt/alex/$ALEXVER/bin:/opt/happy/$HAPPYVER/bin:$HOME/.cabal/bin:$PATH
