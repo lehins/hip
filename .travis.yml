@@ -42,7 +42,7 @@ matrix:
   #- env: BUILD=cabal GHCVER=7.6.3 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
   #  compiler: ": #GHC 7.6.3"
   #  addons: {apt: {packages: [cabal-install-1.24,ghc-7.6.3,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-  - env: BUILD=cabal GHCVER=7.8.4 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7 CABALARGS="--verbose --ghc-options=-v2"
+  - env: BUILD=cabal GHCVER=7.8.4 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7 CABALARGS=--verbose
     compiler: ": #GHC 7.8.4"
     addons: {apt: {packages: [cabal-install-1.24,ghc-7.8.4,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=7.10.3 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7 CABALARGS=--verbose
@@ -158,7 +158,7 @@ script:
       stack --no-terminal $ARGS test --haddock --no-haddock-deps
       ;;
     cabal)
-      cabal install --enable-tests --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
+      cabal install --enable-tests --force-reinstalls --ghc-options="-O0 -v2" --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
 
       ORIGDIR=$(pwd)
       for dir in $PACKAGES
