@@ -127,6 +127,7 @@ before_install:
   fi
 
 install:
+- while [ true ] ; do echo "Prevent death by Travis due to no output"; sleep 540; done &
 - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
 - if [ -f configure.ac ]; then autoreconf -i; fi
 - |
