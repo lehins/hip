@@ -141,20 +141,14 @@ before_install:
 - mkdir -p ~/.local/bin
 - |
 
-  if [ "$TRAVIS_OS_NAME" = "osx" ]
-  then
-    travis_retry curl --insecure -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
-  else
-    travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  fi
   case "$BUILD" in
     stack)
-      # if [ "$TRAVIS_OS_NAME" = "osx" ]
-      # then
-      #   travis_retry curl --insecure -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
-      # else
-      #   travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-      # fi
+      if [ "$TRAVIS_OS_NAME" = "osx" ]
+      then
+        travis_retry curl --insecure -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
+      else
+        travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+      fi
       ;;
     cabal)
       # Use the more reliable S3 mirror of Hackage
@@ -187,7 +181,7 @@ install:
       travis_retry cabal update
 
       # Get the list of packages from the stack.yaml file
-      PACKAGES=$(stack --system-ghc query locals | grep '^ *path' | sed 's@^ *path:@@')
+      PACKAGES="$TRAVIS_BUILD_DIR"
       echo $PACKAGES
 
       cabal install --only-dependencies --enable-tests --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES

@@ -16,7 +16,7 @@ Description:
             It is capable of reading and writing a number of popular image formats by using <https://hackage.haskell.org/package/JuicyPixels JuciyPixels> and <https://hackage.haskell.org/package/netpbm netpbm> packages. Being a pure Haskell library it does not require any external programs, although it can display images using a program of your choice.
 Homepage:          https://github.com/lehins/hip
 Bug-Reports:       https://github.com/lehins/hip/issues
-Cabal-Version:     >= 1.10
+Cabal-Version:     >= 1.18
 Build-Type:        Simple
 Extra-Doc-Files:   images/*.jpg
                  , images/*.png
