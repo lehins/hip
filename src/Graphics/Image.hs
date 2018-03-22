@@ -1,265 +1,305 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-duplicate-exports #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms       #-}
 -- |
 -- Module      : Graphics.Image
--- Copyright   : (c) Alexey Kuleshevich 2017
+-- Copyright   : (c) Alexey Kuleshevich 2016-2018
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
--- Haskell Image Processing (HIP) library is a wrapper around any array like
--- data structure and is fully agnostic to the underlying representation. All of
--- the functionality in this library relies upon a few type classes, which
--- corresponding representation types are instances of:
+-- Haskell Image Processing (HIP) library is a wrapper around an array library called
+-- <http://hackage.haskell.org/package/massiv massiv>, which will seemlessly handle parallel and
+-- sequential computation as well as fusing most of operations together. Prior to version 2.x of HIP
+-- it was required to specify various array representations manually, although similar approach is
+-- still used in @massiv@, HIP became much simpler in that aspect and only retained foreign
+-- representation, which is hidden from the user. At the same time it means all of the images are
+-- backed by pinned memory, therefore all computations are performed efficiently.
 --
--- * @__`Array` arr cs e__@ - this is a base class for every
--- __@`Image`@ @arr@ @cs@ @e@__, where @__arr__@ stands for an underlying array
--- representation, @__cs__@ is the `ColorSpace` of an image and @__e__@ is the
--- type denoting precision of an image (@Int@, @Word@, @Double@, etc.) .
+-- * @__'Image' cs e__@, where @__cs__@ is the `ColorModel` of an image and @__e__@ is the type
+-- denoting precision of an image (@Int@, @Word@, @Double@, etc.) .
 --
--- * @__`MArray` arr cs e__@ - is a kind of array, that can be indexed in
--- constant time and allows monadic operations and mutation on
--- __@`MImage`@ @st@ @arr@ @cs@ @e@__, which is `Image`'s mutable cousin.
---
--- Representations using <http://hackage.haskell.org/package/vector Vector> and
--- <http://hackage.haskell.org/package/repa Repa> packages:
---
--- * `VU` - Vector Unboxed representation.
--- * `VS` - Vector Storable representation.
--- * `RSU` - Repa Sequential Unboxed array representation (computation is done sequentially).
--- * `RPU` - Repa Parallel Unboxed array representation (computation is done in parallel).
--- * `RSS` - Repa Sequential Storable array representation (computation is done sequentially).
--- * `RPS` - Repa Parallel Storable array representation (computation is done in parallel).
---
--- Images with `RSU`, `RSS`, `RPU` and `RPS` types, most of the time, hold
--- functions rather than an actual data, this way computation can be fused
--- together, and later changed to `VU` or `VS` using `toManifest`, which in turn
--- performs the fused computation. If at any time computation needs to be
--- forced, `compute` can be used for that purpose.
---
--- Many of the function names exported by this module will clash with the ones
--- from "Prelude", hence it can be more convenient to import like this:
+-- Many of the function names exported by this module will clash with the ones from "Prelude", hence
+-- it can be more convenient to import like this:
 --
 -- @
 -- import Prelude as P
 -- import Graphics.Image as I
 -- @
 --
-module Graphics.Image (
+module Graphics.Image
+  (
   -- * Color Space
   -- $colorspace
-
+  module Graphics.Pixel.ColorSpace
   -- * Creation
   --
-  -- `makeImageR` is a type restricted version of `makeImage` function, which
+  -- `makeImage` is a type restricted version of `makeImage` function, which
   -- simplifies creation of images with `Double` precision and a particular
   -- representation through an extra argument.
   --
   -- If it is necessary to create an image with an arbitrary precision and
   -- representation, `makeImage` function can be used with a manual type
-  -- specification of result image, eg:
+  -- specification of the result image, eg:
   --
-  -- @ makeImage (256, 256) (PixelY . fromIntegral . fst) :: Image RPU Y Word8 @
+  -- @ makeImage (256 :. 256) (\(i :. _) -> PixelY (fromIntegral i)) :: I.Image Y Word8 @
   --
-  makeImageR, makeImage, fromListsR, fromLists, toLists,
+  , Image
+  , Ix2(..)
+  , makeImage
+  -- * Computation
+  , Comp(..)
+  -- , pattern Par
+  , makeImageComp
+  , setComp
+  -- * Conversion
+  , fromArray
+  , toArray
+  , fromLists
+  , toLists
   -- * IO
-  module Graphics.Image.IO,
+  -- module Graphics.Image.IO,
   -- ** Reading
-  -- | Read supported files into an 'Image' with pixels in 'Double'
-  -- precision. In order to read an image in a different representation, color
-  -- space or precision, use 'readImage' or 'readImageExact' from
-  -- <Graphics-Image-IO.html Graphics.Image.IO> instead. While reading an image,
-  -- it's underlying representation can be specified by passing one of `VU`,
-  -- `VS`, `RSU`, `RPU`, `RSS` or `RSU` as the first argument to @readImage*@
-  -- functions. Here is a quick demonstration of how two images can be read as
-  -- different representations and later easily combined as their average.
+  -- | Read supported files into an 'Image' possibly with automatic color space conversion. Here is
+  -- a quick demonstration of how two images can be read as different representations and later
+  -- easily combined as their average.
   --
-  -- >>> cluster <- readImageRGB VU "images/cluster.jpg"
+  -- >>> cluster <- readImageRGB "images/cluster.jpg"
   -- >>> displayImage cluster
-  -- >>> centaurus <- readImageRGB VU "images/centaurus.jpg"
+  -- >>> centaurus <- readImageRGB "images/centaurus.jpg"
   -- >>> displayImage centaurus
   -- >>> displayImage ((cluster + centaurus) / 2)
   --
   -- <<images/cluster.jpg>> <<images/centaurus.jpg>> <<images/centaurus_and_cluster.jpg>>
   --
-  readImageY, readImageYA, readImageRGB, readImageRGBA,
+  , readImage
+  , readImageAuto
+  , readImageY
+  , readImageYA
+  , readImageRGB
+  , readImageRGBA
   -- ** Writing
-  writeImage, displayImage,
+  , writeImage
+  , writeImageAuto
+  , displayImage
   -- * Accessors
   -- ** Dimensions
-  rows, cols, dims,
+  , rows
+  , cols
+  , dims
   -- ** Indexing
-  index, maybeIndex, defaultIndex, borderIndex,
+  , (!)
+  , (!?)
+  , index
+  , maybeIndex
+  , defaultIndex
+  , borderIndex
+  , Border(..)
+  -- *** Tuple conversion
+  , A.fromIx2
+  , A.toIx2
   -- * Transformation
   -- ** Pointwise
-  I.map, imap, I.zipWith, izipWith,
+  , map
+  , imap
+  , zipWith
+  , zipWith3
+  , izipWith
+  , izipWith3
   -- ** Geometric
-  I.traverse, traverse2,
-  transpose, backpermute,
-  (|*|),
+  , transmute
+  , transmute2
+  , transform
+  , transform2
+  --, transpose
+  , module IP
+  -- (|*|),
   -- * Reduction
-  fold, sum, product, maximum, minimum, normalize, eqTol,
-  -- * Manifest Image
-  -- * Representations
-  exchange,
-  module IP
+  --, fold
+  , foldMono
+  , foldSemi
+  , sum
+  , product
+  , maximum
+  , minimum
+  , normalize
+  -- , eqTol
   ) where
 
-import Prelude as P hiding (maximum, minimum, sum, product)
-import qualified Data.Foldable as F
-import Graphics.Image.ColorSpace
-import Graphics.Image.IO
-import Graphics.Image.Interface as I hiding (Pixel)
-import Graphics.Image.Types as IP
+import qualified Data.Massiv.Array         as A
+import           Graphics.Pixel.ColorSpace
+import           Graphics.Image.Internal   as I
+import           Graphics.Image.IO         as I
+import           Graphics.Image.Processing as IP
+import           Prelude                   as P hiding (map, maximum, minimum,
+                                                 product, sum, traverse,
+                                                 zipWith, zipWith3)
+-- import Graphics.Image.Types as IP
 
-import Graphics.Image.Processing as IP
-import Graphics.Image.Processing.Binary as IP
-import Graphics.Image.Processing.Complex as IP
-import Graphics.Image.Processing.Geometric as IP
-import Graphics.Image.IO.Histogram as IP
+-- import Graphics.Image.Processing as IP
+-- import Graphics.Image.Processing.Binary as IP
+-- import Graphics.Image.Processing.Complex as IP
+-- import Graphics.Image.Processing.Geometric as IP
+-- import Graphics.Image.IO.Histogram as IP
 
 
--- | Create an image with a specified representation and pixels of 'Double'
--- precision. Note, that it is essential for 'Double' precision pixels to keep values
--- normalized in the @[0, 1]@ range in order for an image to be written to file
--- properly.
+-- -- | Create an image with a specified representation and pixels of 'Double'
+-- -- precision. Note, that it is essential for 'Double' precision pixels to keep values
+-- -- normalized in the @[0, 1]@ range in order for an image to be written to file
+-- -- properly.
+-- --
+-- -- >>> let grad_gray = makeImageR VU (200, 200) (\(i, j) -> PixelY (fromIntegral i) / 200 * (fromIntegral j) / 200)
+-- --
+-- -- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
+-- --
+-- -- >>> let grad_gray = makeImageR RPU (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+-- -- >>> writeImage "images/grad_gray.png" grad_gray
+-- --
+-- -- Creating color images is just as easy.
+-- --
+-- -- >>> let grad_color = makeImageR VU (200, 200) (\(i, j) -> PixelRGB (fromIntegral i) (fromIntegral j) (fromIntegral (i + j))) / 400
+-- -- >>> writeImage "images/grad_color.png" grad_color
+-- --
+-- -- <<images/grad_gray.png>> <<images/grad_color.png>>
+-- --
+-- makeImageR :: Array arr cs e =>
+--               arr -- ^ Underlying image representation.
+--            -> (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
+--            -> ((Int, Int) -> Pixel cs e)
+--            -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
+--            -- and returns a pixel for that location.
+--            -> Image arr cs e
+-- makeImageR _ = I.makeImage
+-- {-# INLINE makeImageR #-}
+
+-- | Get the number of rows in an image. Same as `dims`, it does break fusion.
 --
--- >>> let grad_gray = makeImageR VU (200, 200) (\(i, j) -> PixelY (fromIntegral i) / 200 * (fromIntegral j) / 200)
---
--- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
---
--- >>> let grad_gray = makeImageR RPU (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
--- >>> writeImage "images/grad_gray.png" grad_gray
---
--- Creating color images is just as easy.
---
--- >>> let grad_color = makeImageR VU (200, 200) (\(i, j) -> PixelRGB (fromIntegral i) (fromIntegral j) (fromIntegral (i + j))) / 400
--- >>> writeImage "images/grad_color.png" grad_color
---
--- <<images/grad_gray.png>> <<images/grad_color.png>>
---
-makeImageR :: Array arr cs e =>
-              arr -- ^ Underlying image representation.
-           -> (Int, Int) -- ^ (@m@ rows, @n@ columns) - dimensions of a new image.
-           -> ((Int, Int) -> Pixel cs e)
-           -- ^ A function that takes (@i@-th row, and @j@-th column) as an argument
-           -- and returns a pixel for that location.
-           -> Image arr cs e
-makeImageR _ = I.makeImage
-{-# INLINE makeImageR #-}
-
--- | Read image as luma (brightness).
-readImageY :: Array arr Y Double => arr -> FilePath -> IO (Image arr Y Double)
-readImageY _ = readImage'
-{-# INLINE readImageY #-}
-
-
--- | Read image as luma with 'Alpha' channel.
-readImageYA :: Array arr YA Double => arr -> FilePath -> IO (Image arr YA Double)
-readImageYA _ = readImage'
-{-# INLINE readImageYA #-}
-
-
--- | Read image in RGB colorspace.
-readImageRGB :: Array arr RGB Double => arr -> FilePath -> IO (Image arr RGB Double)
-readImageRGB _ = readImage'
-{-# INLINE readImageRGB #-}
-
-
--- | Read image in RGB colorspace with 'Alpha' channel.
-readImageRGBA :: Array arr RGBA Double => arr -> FilePath -> IO (Image arr RGBA Double)
-readImageRGBA _ = readImage'
-{-# INLINE readImageRGBA #-}
-
-
--- | Get the number of rows in an image.
---
--- >>> frog <- readImageRGB VU "images/frog.jpg"
+-- >>> frog <- readImageRGB "images/megabat.jpg"
 -- >>> frog
--- <Image VectorUnboxed RGB (Double): 200x320>
+-- <Image RGB Double: 200x300>
 -- >>> rows frog
 -- 200
 --
-rows :: BaseArray arr cs e => Image arr cs e -> Int
-rows = fst . dims
+rows :: ColorModel cs e => Image cs e -> Int
+rows img = let Sz (m :. _) = dims img in m
 {-# INLINE rows #-}
 
 
--- | Get the number of columns in an image.
+-- | Get the number of columns in an image. Same as `dims`, it does break fusion.
 --
--- >>> frog <- readImageRGB VU "images/frog.jpg"
+-- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> frog
--- <Image VectorUnboxed RGB (Double): 200x320>
+-- <Image RGB Double: 200x320>
 -- >>> cols frog
 -- 320
 --
-cols :: BaseArray arr cs e => Image arr cs e -> Int
-cols = snd . dims
+cols :: ColorModel cs e => Image cs e -> Int
+cols img = let Sz (_ :. n) = dims img in n
 {-# INLINE cols #-}
 
 
+--------------
+-- Indexing --
+--------------
+
+-- | Get a pixel at @i@-th and @j@-th location.
+--
+-- >>> img = makeImage (200 :. 200) (\(i :. j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+-- >>> index img (20 :. 30)
+-- <Luma:(1.5e-2)>
+--
+index :: ColorModel cs e => Image cs e -> Ix2 -> Pixel cs e
+index (Image arr) = A.index' arr
+{-# INLINE index #-}
+
+
+-- | Infix synonym for `index`.
+(!) :: ColorModel cs e => Image cs e -> Ix2 -> Pixel cs e
+(!) (Image arr) = A.index' arr
+{-# INLINE (!) #-}
+
+
+-- | Image indexing function that returns a default pixel if index is out of bounds.
+defaultIndex :: ColorModel cs e =>
+                Pixel cs e -> Image cs e -> Ix2 -> Pixel cs e
+defaultIndex px (Image arr) = A.defaultIndex px arr
+{-# INLINE defaultIndex #-}
+
+
+-- | Image indexing function that uses a special border resolutions strategy for
+-- out of bounds pixels.
+borderIndex :: ColorModel cs e =>
+               Border (Pixel cs e) -> Image cs e -> Ix2 -> Pixel cs e
+borderIndex atBorder (Image arr) = A.borderIndex atBorder arr
+{-# INLINE borderIndex #-}
+
+
+-- | Image indexing function that returns @'Nothing'@ if index is out of bounds,
+-- @'Just' px@ otherwise.
+maybeIndex :: ColorModel cs e =>
+              Image cs e -> Ix2 -> Maybe (Pixel cs e)
+maybeIndex (Image arr) = A.index arr
+{-# INLINE maybeIndex #-}
+
+-- | Infix synonym for `maybeIndex`.
+(!?) :: ColorModel cs e => Image cs e -> Ix2 -> Maybe (Pixel cs e)
+(!?) (Image arr) = A.index arr
+{-# INLINE (!?) #-}
+
+
+-------------
+-- Folding --
+-------------
+
 -- | Sum all pixels in the image.
-sum :: Array arr cs e => Image arr cs e -> Pixel cs e
-sum = fold (+) 0
-{-# INLINE sum #-}
+sum :: ColorModel cs e => Image cs e -> Pixel cs e
+sum = A.sum . delayPull
+{-# INLINE [~1] sum #-}
 
 
 -- | Multiply all pixels in the image.
-product :: Array arr cs e => Image arr cs e -> Pixel cs e
-product = fold (+) 1
-{-# INLINE product #-}
+product :: ColorModel cs e => Image cs e -> Pixel cs e
+product = A.product . delayPull
+{-# INLINE [~1] product #-}
 
 
 -- | Retrieve the biggest pixel from an image
-maximum :: (Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
-maximum !img = fold max (index00 img) img
-{-# INLINE maximum #-}
+maximum :: (ColorModel cs e, Ord (Color cs e)) => Image cs e -> Pixel cs e
+maximum = A.maximum' . delayPull
+{-# INLINE [~1] maximum #-}
 
 
 -- | Retrieve the smallest pixel from an image
-minimum :: (Array arr cs e, Ord (Pixel cs e)) => Image arr cs e -> Pixel cs e
-minimum !img = fold min (index00 img) img
-{-# INLINE minimum #-}
+minimum :: (ColorModel cs e, Ord (Color cs e)) => Image cs e -> Pixel cs e
+minimum = A.minimum' . delayPull
+{-# INLINE [~1] minimum #-}
 
 
 -- | Scales all of the pixels to be in the range @[0, 1]@.
-normalize :: (Array arr cs e, Array arr X e, Fractional e, Ord e) =>
-             Image arr cs e -> Image arr cs e
-normalize !img = if l == s
-                 then (if s < 0 then (*0) else if s > 1 then (*1) else id) img
-                 else I.map (liftPx (\ !e -> (e - s) / (l - s))) img
+normalize :: (ColorModel cs e, Ord e) =>
+             Image cs e -> Image cs e
+normalize img =
+  I.map (fmap (\e -> (e - iMin) * ((maxValue - minValue) // (iMax - iMin)) + minValue)) img
   where
-    !(PixelX l, PixelX s) = (maximum (I.map (PixelX . foldl1Px max) img),
-                             minimum (I.map (PixelX . foldl1Px min) img))
+    !iMax = maxVal img
+    !iMin = minVal img
 {-# INLINE normalize #-}
 
+-- -- | Check weather two images are equal within a tolerance. Useful for comparing
+-- -- images with `Float` or `Double` precision.
+-- eqTol
+--   :: (ColorModel cs e, Ord e) =>
+--      e -> Image cs e -> Image cs e -> Bool
+-- eqTol !tol !img1 = IP.and . thresholdWith2 (eqTolPx tol) img1
+-- {-# INLINE eqTol #-}
 
--- | Check weather two images are equal within a tolerance. Useful for comparing
--- images with `Float` or `Double` precision.
-eqTol
-  :: (Array arr X Bit, Array arr cs e, Ord e) =>
-     e -> Image arr cs e -> Image arr cs e -> Bool
-eqTol !tol !img1 = IP.and . toImageBinaryUsing2 (eqTolPx tol) img1
-{-# INLINE eqTol #-}
 
-
--- | Type restricted version of `fromLists` that constructs an image using
--- supplied representation.
-fromListsR :: Array arr cs e => arr -> [[Pixel cs e]] -> Image arr cs e
-fromListsR _ = fromLists
-{-# INLINE fromListsR #-}
-
--- | Generates a nested list of pixels from an image.
---
--- @ img == fromLists (toLists img) @
---
-toLists :: MArray arr cs e => Image arr cs e -> [[Pixel cs e]]
-toLists img = [[index img (i, j) | j <- [0..cols img - 1]] | i <- [0..rows img - 1]]
 
 -- $colorspace
--- Here is a list of default Pixels with their respective constructors:
+-- Here is a list of Pixels with their respective constructors:
 --
 -- @
 --     * __'Pixel' 'Y' e      = PixelY y__              - Luma, also commonly denoted as __Y'__.
@@ -280,7 +320,4 @@ toLists img = [[index img (i, j) | j <- [0..cols img - 1]] | i <- [0..rows img -
 --
 -- Every 'Pixel' is an instance of 'Functor', 'Applicative', 'F.Foldable' and
 -- 'Num', as well as 'Floating' and 'Fractional' if __e__ is also an instance.
---
--- All of the functionality related to every 'ColorSpace' is re-exported by
--- "Graphics.Image.Types" module.
 

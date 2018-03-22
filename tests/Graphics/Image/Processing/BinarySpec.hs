@@ -1,12 +1,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Graphics.Image.Processing.BinarySpec (spec, struct) where
 
-import           Test.Hspec
+import Test.Hspec
 
-import           Graphics.Image as I
+import Graphics.Image as I
+import Graphics.Image.Processing.Binary
 
 
-figure :: Image VU X Bit
+figure :: Image X Bit
 figure =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -29,11 +30,11 @@ figure =
     ]
 
 
-struct :: Image VU X Bit
+struct :: Image X Bit
 struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 
 
-eroded :: Image VU X Bit
+eroded :: Image X Bit
 eroded =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -55,7 +56,7 @@ eroded =
     , [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ]
 
-dialated :: Image VU X Bit
+dialated :: Image X Bit
 dialated =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -78,7 +79,7 @@ dialated =
     ]
 
 
-opened :: Image VU X Bit
+opened :: Image X Bit
 opened =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -101,7 +102,7 @@ opened =
     ]
 
 
-closed :: Image VU X Bit
+closed :: Image X Bit
 closed =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

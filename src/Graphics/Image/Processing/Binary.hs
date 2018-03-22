@@ -1,299 +1,236 @@
-{-# LANGUAGE BangPatterns            #-}
-{-# LANGUAGE CPP                     #-}
-{-# LANGUAGE FlexibleContexts        #-}
-{-# LANGUAGE FlexibleInstances       #-}
-{-# LANGUAGE FunctionalDependencies  #-}
-{-# LANGUAGE MultiParamTypeClasses   #-}
-#if __GLASGOW_HASKELL__ >= 800
-{-# LANGUAGE UndecidableSuperClasses #-}
-#endif
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 -- |
 -- Module      : Graphics.Image.Processing.Binary
--- Copyright   : (c) Alexey Kuleshevich 2017
+-- Copyright   : (c) Alexey Kuleshevich 2018
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Processing.Binary (
-  -- * Construction
-  toImageBinaryUsing, toImageBinaryUsing2,
-  threshold, threshold2,
-  thresholdWith, thresholdWith2, compareWith,
-  -- * Thresholding
-  Thresholding(..),
+module Graphics.Image.Processing.Binary
+  ( -- * Construction
+    on
+  , off
+  , module Graphics.Color.Algebra.Binary
+    -- * Thresholding
+  , threshold
+  , threshold2
+  , thresholdWith
+  , thresholdWith2
+  , Thresholding
+  -- ** Common comparators
+  , (!==!)
+  , (!/=!)
+  , (!<!)
+  , (!<=!)
+  , (!>!)
+  , (!>=!)
+  , (!&&!)
+  , (!||!)
+  , (.==.)
+  , (./=.)
+  , (.<.)
+  , (.<=.)
+  , (.>.)
+  , (.>=.)
+  , (.&&.)
+  , (.||.)
   -- * Bitwise operations
-  or, and, (!&&!), (!||!), (.&&.), (.||.), invert, disjunction, conjunction,
+  -- , or
+  -- , and
+  , invert
+  , disjunction
+  , conjunction
   -- * Binary Morphology
   -- $morphology
-  erode, dialate, open, close
+  , erode
+  , dialate
+  , open
+  , close
   ) where
 
-import           Control.Applicative
-import           Data.Bits
-import qualified Data.Foldable                           as F
-import           Graphics.Image.ColorSpace
-import           Graphics.Image.Interface                as I
-import           Graphics.Image.Processing.Convolution
-import           Graphics.Image.Utils                    ((.:), (.:!))
-import           Prelude                                 as P hiding (and, or)
+import Control.Applicative
+
+import Data.Bits
+import Graphics.Color.Model as Model
+import qualified Data.Foldable as F
+import Graphics.Image.Internal as I
+import Graphics.Image.Processing.Convolution
+import Prelude as P hiding (and, or)
+import Graphics.Color.Algebra.Binary
 
 infix  4  .==., ./=., .<., .<=., .>=., .>., !==!, !/=!, !<!, !<=!, !>=!, !>!
-infixr 3  .&&., !&&!
-infixr 2  .||., !||!
+-- infixr 3  .&&., !&&!
+-- infixr 2  .||., !||!
 
+on :: Applicative (Color cs) => Pixel cs Bit
+on = pure one
+
+off :: Applicative (Color cs) => Pixel cs Bit
+off = pure zero
 
 
 -- | 'Thresholding' contains a convenient set of functions for binary image
 -- construction, which is done by comparing either a single pixel with every
 -- pixel in an image or two same size images pointwise. For example:
 --
--- >>> frog <- readImageY VU "images/frog.jpg"
+-- >>> frog <- readImageY "images/frog.jpg"
 -- >>> frog .==. PixelY 0    -- (or: PixelY 0 .==. frog)
 -- >>> frog .<. flipH frog   -- (or: flipH frog .>. frog)
 --
-class Thresholding a b arr | a b -> arr where
-  (!==!) :: (Applicative (Pixel cs), Array arr cs e, Array arr cs Bit) =>
-            a cs e -> b cs e -> Image arr cs Bit
-  (!/=!) :: (Applicative (Pixel cs), Array arr cs e, Array arr cs Bit) =>
-            a cs e -> b cs e -> Image arr cs Bit
-  (!<!)  :: (Ord e, Applicative (Pixel cs), Array arr cs e, Array arr cs Bit) =>
-            a cs e -> b cs e -> Image arr cs Bit
-  (!<=!) :: (Ord e, Applicative (Pixel cs), Array arr cs e, Array arr cs Bit) =>
-            a cs e -> b cs e -> Image arr cs Bit
-  (!>!)  :: (Ord e, Applicative (Pixel cs), Array arr cs e, Array arr cs Bit) =>
-            a cs e -> b cs e -> Image arr cs Bit
-  (!>=!) :: (Ord e, Applicative (Pixel cs), Array arr cs e, Array arr cs Bit) =>
-            a cs e -> b cs e -> Image arr cs Bit
-  (.==.) :: (Array arr cs e, Array arr X Bit) => a cs e -> b cs e -> Image arr X Bit
-  (./=.) :: (Array arr cs e, Array arr X Bit) => a cs e -> b cs e -> Image arr X Bit
-  (.<.)  :: (Ord (Pixel cs e), Array arr cs e, Array arr X Bit) =>
-            a cs e -> b cs e -> Image arr X Bit
-  (.<=.) :: (Ord (Pixel cs e), Array arr cs e, Array arr X Bit) =>
-            a cs e -> b cs e -> Image arr X Bit
-  (.>.)  :: (Ord (Pixel cs e), Array arr cs e, Array arr X Bit) =>
-            a cs e -> b cs e -> Image arr X Bit
-  (.>=.) :: (Ord (Pixel cs e), Array arr cs e, Array arr X Bit) =>
-            a cs e -> b cs e -> Image arr X Bit
+class Thresholding a b where
+  threshold2 ::
+       (ColorModel cs e', ColorModel cs e, ColorModel cs Bit)
+    => Pixel cs (e' -> e -> Bool)
+    -> a cs e'
+    -> b cs e
+    -> Image cs Bit
+  thresholdWith2 ::
+       (ColorModel cs e)
+    => (Pixel cs e -> Pixel cs e -> Bool) -- ^ Predicate
+    -> a cs e -- ^ First source image.
+    -> b cs e -- ^ Second source image.
+    -> Image Model.Y Bit
 
 
 
-instance Thresholding (Image arr) (Image arr) arr where
-  (.==.) = toImageBinaryUsing2 (==)
-  {-# INLINE (.==.) #-}
-  (./=.) = toImageBinaryUsing2 (/=)
-  {-# INLINE (./=.) #-}
-  (.<.)  = toImageBinaryUsing2 (<)
-  {-# INLINE (.<.) #-}
-  (.<=.) = toImageBinaryUsing2 (<=)
-  {-# INLINE (.<=.) #-}
-  (.>.)  = toImageBinaryUsing2 (>)
-  {-# INLINE (.>.) #-}
-  (.>=.) = toImageBinaryUsing2 (>=)
-  {-# INLINE (.>=.) #-}
-  (!==!) = threshold2 (pure (==))
-  {-# INLINE (!==!) #-}
-  (!/=!) = threshold2 (pure (/=))
-  {-# INLINE (!/=!) #-}
-  (!<!)  = threshold2 (pure (<))
-  {-# INLINE (!<!) #-}
-  (!<=!) = threshold2 (pure (<=))
-  {-# INLINE (!<=!) #-}
-  (!>!)  = threshold2 (pure (>))
-  {-# INLINE (!>!) #-}
-  (!>=!) = threshold2 (pure (>=))
-  {-# INLINE (!>=!) #-}
+instance Thresholding Image Image where
+  threshold2 f = I.zipWith (\ px1 px2 -> fromBool <$> (f <*> px1 <*> px2))
+  {-# INLINE threshold2 #-}
+  thresholdWith2 f = I.zipWith (\ px1 px2 -> pure $ fromBool $ f px1 px2)
+  {-# INLINE thresholdWith2 #-}
 
 
-instance Array arr X Bit => Thresholding Pixel (Image arr) arr where
-  (.==.) !px = toImageBinaryUsing (==px)
-  {-# INLINE (.==.) #-}
-  (./=.) !px = toImageBinaryUsing (/=px)
-  {-# INLINE (./=.) #-}
-  (.<.)  !px = toImageBinaryUsing (< px)
-  {-# INLINE (.<.) #-}
-  (.<=.) !px = toImageBinaryUsing (<=px)
-  {-# INLINE (.<=.) #-}
-  (.>.)  !px = toImageBinaryUsing (> px)
-  {-# INLINE (.>.) #-}
-  (.>=.) !px = toImageBinaryUsing (>=px)
-  {-# INLINE (.>=.) #-}
-  (!==!) !px = threshold ((==) <$> px)
-  {-# INLINE (!==!) #-}
-  (!/=!) !px = threshold ((/=) <$> px)
-  {-# INLINE (!/=!) #-}
-  (!<!) !px  = threshold ((<) <$> px)
-  {-# INLINE (!<!) #-}
-  (!<=!) !px = threshold ((<=) <$> px)
-  {-# INLINE (!<=!) #-}
-  (!>!) !px  = threshold ((>) <$> px)
-  {-# INLINE (!>!) #-}
-  (!>=!) !px = threshold ((>=) <$> px)
-  {-# INLINE (!>=!) #-}
+instance Thresholding Pixel Image where
+  threshold2 f px1 = I.map (\ px2 -> fromBool <$> (f <*> px1 <*> px2))
+  {-# INLINE threshold2 #-}
+  thresholdWith2 f px1 = I.map (\ px2 -> pure $ fromBool $ f px1 px2)
+  {-# INLINE thresholdWith2 #-}
 
 
-instance Array arr X Bit => Thresholding (Image arr) Pixel arr where
-  (.==.) !img !px = toImageBinaryUsing (==px) img
-  {-# INLINE (.==.) #-}
-  (./=.) !img !px = toImageBinaryUsing (/=px) img
-  {-# INLINE (./=.) #-}
-  (.<.)  !img !px = toImageBinaryUsing (< px) img
-  {-# INLINE (.<.) #-}
-  (.<=.) !img !px = toImageBinaryUsing (<=px) img
-  {-# INLINE (.<=.) #-}
-  (.>.)  !img !px = toImageBinaryUsing (> px) img
-  {-# INLINE (.>.) #-}
-  (.>=.) !img !px = toImageBinaryUsing (>=px) img
-  {-# INLINE (.>=.) #-}
-  (!==!) !img !px = threshold ((==) <$> px) img
-  {-# INLINE (!==!) #-}
-  (!/=!) !img !px = threshold ((/=) <$> px) img
-  {-# INLINE (!/=!) #-}
-  (!<!)  !img !px = threshold ((<) <$> px) img
-  {-# INLINE (!<!) #-}
-  (!<=!) !img !px = threshold ((<=) <$> px) img
-  {-# INLINE (!<=!) #-}
-  (!>!)  !img !px = threshold ((>) <$> px) img
-  {-# INLINE (!>!) #-}
-  (!>=!) !img !px = threshold ((>=) <$> px) img
-  {-# INLINE (!>=!) #-}
+instance Thresholding Image Pixel where
+  threshold2 f img px2 = I.map (\ px1 -> fromBool <$> (f <*> px1 <*> px2)) img
+  {-# INLINE threshold2 #-}
+  thresholdWith2 f img px2 = I.map (\ px1 -> pure $ fromBool $ f px1 px2) img
+  {-# INLINE thresholdWith2 #-}
 
 
+(!==!), (!/=!) ::
+     (Thresholding a b, ColorModel cs e, ColorModel cs Bit) => a cs e -> b cs e -> Image cs Bit
+(!==!) = threshold2 (pure (==))
+{-# INLINE (!==!) #-}
+(!/=!) = threshold2 (pure (/=))
+{-# INLINE (!/=!) #-}
+
+(!<!), (!<=!), (!>!), (!>=!) ::
+     (Thresholding a b, ColorModel cs e, ColorModel cs Bit, Ord e)
+  => a cs e
+  -> b cs e
+  -> Image cs Bit
+(!<!)  = threshold2 (pure (<))
+{-# INLINE (!<!) #-}
+(!<=!) = threshold2 (pure (<=))
+{-# INLINE (!<=!) #-}
+(!>!)  = threshold2 (pure (>))
+{-# INLINE (!>!) #-}
+(!>=!) = threshold2 (pure (>=))
+{-# INLINE (!>=!) #-}
+
+
+(.==.), (./=.) :: (Thresholding a b, ColorModel cs e) => a cs e -> b cs e -> Image Model.Y Bit
+(.==.) = thresholdWith2 (==)
+{-# INLINE (.==.) #-}
+(./=.) = thresholdWith2 (/=)
+{-# INLINE (./=.) #-}
+
+(.<.), (.<=.), (.>.), (.>=.) ::
+     (Thresholding a b, ColorModel cs e, Ord (Color cs e)) => a cs e -> b cs e -> Image Model.Y Bit
+(.<.)  = thresholdWith2 (<)
+{-# INLINE (.<.) #-}
+(.<=.) = thresholdWith2 (<=)
+{-# INLINE (.<=.) #-}
+(.>.)  = thresholdWith2 (>)
+{-# INLINE (.>.) #-}
+(.>=.) = thresholdWith2 (>=)
+{-# INLINE (.>=.) #-}
+
+
+-- TODO: validate optimization rewrite rule:
+--{-# RULES
+--"bit/bool/binary" forall x. fromBool (bit2bool x) = pure x
+-- #-}
 -- | Pixel wise @AND@ operator on binary images. Unlike `!&&!` this operator
 -- will also @AND@ pixel componenets.
-(.&&.) :: (Array arr cs Bit, Array arr X Bit) =>
-          Image arr cs Bit -> Image arr cs Bit -> Image arr X Bit
-(.&&.) = squashWith2 ((.&.) .: (.&.)) one
+(.&&.), (.||.) :: (Thresholding a b, ColorModel cs Bit) =>
+                  a cs Bit -> b cs Bit -> Image Model.Y Bit
+(.&&.) = thresholdWith2 (\px1 px2 -> toBool $ F.foldl' (.&.) one $ liftA2 (.&.) px1 px2)
 {-# INLINE (.&&.) #-}
 
 -- | Pixel wise @OR@ operator on binary images. Unlike `!||!` this operator
 -- will also @OR@ pixel componenets.
-(.||.) :: (Array arr cs Bit, Array arr X Bit) =>
-          Image arr cs Bit -> Image arr cs Bit -> Image arr X Bit
-(.||.) = squashWith2 ((.|.) .: (.|.)) zero
+(.||.) = thresholdWith2 (\px1 px2 -> toBool $ F.foldl' (.|.) zero $ liftA2 (.|.) px1 px2)
 {-# INLINE (.||.) #-}
 
 
+-- TODO: validate optimization rewrite rule:
+--{-# RULES
+--"bit/bool/bit" forall x. bool2bit (bit2bool x) = x
+-- #-}
 -- | Pixel wise @AND@ operator on binary images.
-(!&&!) :: Array arr cs Bit =>
-          Image arr cs Bit -> Image arr cs Bit -> Image arr cs Bit
-(!&&!) = I.zipWith (liftPx2 (.&.))
+(!&&!), (!||!) :: (Thresholding a b, ColorModel cs Bit) =>
+          a cs Bit -> b cs Bit -> Image cs Bit
+(!&&!) = threshold2 (pure (\e1 e2 -> toBool (e1 .&. e2)))
 {-# INLINE (!&&!) #-}
 
 -- | Pixel wise @OR@ operator on binary images.
-(!||!) :: Array arr cs Bit =>
-          Image arr cs Bit -> Image arr cs Bit -> Image arr cs Bit
-(!||!) = I.zipWith (liftPx2 (.|.))
+(!||!) = threshold2 (pure (\e1 e2 -> toBool (e1 .|. e2)))
 {-# INLINE (!||!) #-}
 
 
 -- | Complement each pixel in a binary image
-invert :: Array arr cs Bit => Image arr cs Bit -> Image arr cs Bit
-invert = I.map (liftPx complement)
+invert :: ColorModel cs Bit => Image cs Bit -> Image cs Bit
+invert = I.map (fmap complement)
 {-# INLINE invert #-}
 
 
 -- | Construct a binary image using a predicate from a source image.
-toImageBinaryUsing :: (Array arr cs e, Array arr X Bit) =>
-                      (Pixel cs e -> Bool) -- ^ Predicate
-                   -> Image arr cs e -- ^ Source image.
-                   -> Image arr X Bit
-toImageBinaryUsing f = I.map (fromBool . f)
-{-# INLINE toImageBinaryUsing #-}
-
-
--- | Construct a binary image using a predicate from two source images.
-toImageBinaryUsing2 :: (Array arr cs e, Array arr X Bit) =>
-                       (Pixel cs e -> Pixel cs e -> Bool) -- ^ Predicate
-                    -> Image arr cs e -- ^ First source image.
-                    -> Image arr cs e -- ^ Second source image.
-                    -> Image arr X Bit
-toImageBinaryUsing2 f = I.zipWith (fromBool .:! f)
-{-# INLINE toImageBinaryUsing2 #-}
-
-
-threshold :: (Applicative (Pixel cs), Array arr cs e, Array arr cs Bit) =>
-             Pixel cs (e -> Bool) -> Image arr cs e -> Image arr cs Bit
-threshold fPx = I.map (fmap bool2bit . (fPx <*>))
-{-# INLINE threshold #-}
-
-
-threshold2 :: (Applicative (Pixel cs), Array arr cs e', Array arr cs e, Array arr cs Bit) =>
-              Pixel cs (e' -> e -> Bool)
-           -> Image arr cs e'
-           -> Image arr cs e
-           -> Image arr cs Bit
-threshold2 fPx = I.zipWith (\ !px1 !px2 -> bool2bit <$> (fPx <*> px1 <*> px2))
-{-# INLINE threshold2 #-}
-
-
--- | Threshold a source image with an applicative pixel.
---
--- >>> yield <- readImageRGB VU "images/yield.jpg"
--- >>> writeImageExact PNG [] "images/yield_bin.png" $ thresholdWith (PixelRGB (>0.55) (<0.6) (<0.5)) yield
---
--- <<images/yield.jpg>> <<images/yield_bin.png>>
---
-thresholdWith :: (Applicative (Pixel cs), Foldable (Pixel cs),
-                  Array arr cs e, Array arr X Bit) =>
-                 Pixel cs (e -> Bool)
-                 -- ^ Pixel containing a thresholding function per channel.
-              -> Image arr cs e -- ^ Source image.
-              -> Image arr X Bit
-thresholdWith fPx = I.map (fromBool . F.and . (fPx <*>))
+thresholdWith ::
+     ColorModel cs e
+  => (Pixel cs e -> Bool) -- ^ Predicate
+  -> Image cs e -- ^ Source image.
+  -> Image Model.Y Bit
+thresholdWith f = I.map (pure . fromBool . f)
 {-# INLINE thresholdWith #-}
 
 
--- | Compare two images with an applicative pixel. Works just like
--- 'thresholdWith', but on two images.
-thresholdWith2 :: (Applicative (Pixel cs), Foldable (Pixel cs),
-                   Array arr cs e1, Array arr cs e2, Array arr X Bit) =>
-                  Pixel cs (e1 -> e2 -> Bool)
-                  -- ^ Pixel containing a comparing function per channel.
-               -> Image arr cs e1 -- ^ First image.
-               -> Image arr cs e2 -- ^ second image.
-               -> Image arr X Bit
-thresholdWith2 fPx = I.zipWith (\ !px1 !px2 -> (fromBool . F.and) (fPx <*> px1 <*> px2))
-{-# INLINE thresholdWith2 #-}
--- I.map (\ !px -> PixelX $ foldlPx (.&.) one $ (fmap (bool2bit .) fPx <*> px))
-
--- | Compare two images with an applicative pixel. Works just like
--- 'thresholdWith', but on two images.
-compareWith :: (Applicative (Pixel cs), Foldable (Pixel cs),
-                Array arr cs e1, Array arr cs e2, Array arr X Bit) =>
-               Pixel cs (e1 -> e2 -> Bool)
-               -- ^ Pixel containing a comparing function per channel.
-            -> Image arr cs e1 -- ^ First image.
-            -> Image arr cs e2 -- ^ second image.
-            -> Image arr X Bit
-compareWith = thresholdWith2
-{-# INLINE compareWith #-}
-{-# DEPRECATED compareWith "Use `thresholdWith2` instead." #-}
+-- | Threshold an image by supplying a thresholding function per channel.
+threshold :: (ColorModel cs e, ColorModel cs Bit) =>
+             Pixel cs (e -> Bool) -> Image cs e -> Image cs Bit
+threshold f = I.map (fmap fromBool . (f <*>))
+{-# INLINE threshold #-}
 
 
 -- | Join each component of a pixel with a binary @`.|.`@ operator.
-disjunction :: (Array arr cs Bit, Array arr X Bit) =>
-               Image arr cs Bit -> Image arr X Bit
-disjunction = squashWith (.|.) zero
+disjunction, conjunction :: (ColorModel cs Bit) => Image cs Bit -> Image Model.Y Bit
+disjunction = I.map (pure . F.foldl' (.|.) zero)
 {-# INLINE disjunction #-}
 
-
 -- | Join each component of a pixel with a binary @`.&.`@ operator.
-conjunction :: (Array arr cs Bit, Array arr X Bit) =>
-               Image arr cs Bit -> Image arr X Bit
-conjunction = squashWith (.&.) one
+conjunction = I.map (pure . F.foldl' (.&.) one)
 {-# INLINE conjunction #-}
 
--- | Disjunction of all pixels in a Binary image
-or :: Array arr X Bit => Image arr X Bit -> Bool
-or = isOn . fold (.|.) off
-{-# INLINE or #-}
 
+-- -- | Disjunction of all pixels in a Binary image
+-- or :: Image Model.Y Bit -> Bool
+-- or = isOn . foldSemi (.|.) off
+-- {-# INLINE or #-}
 
--- | Conjunction of all pixels in a Binary image
-and :: Array arr X Bit => Image arr X Bit -> Bool
-and = isOn . fold (.&.) on
-{-# INLINE and #-}
+-- -- | Conjunction of all pixels in a Binary image
+-- and :: Image Model.Y Bit -> Bool
+-- and = isOn . foldl (.&.) on
+-- {-# INLINE and #-}
 
 
 {- $morphology In order to demonstrate how morphological operations work, a
@@ -302,7 +239,7 @@ and = isOn . fold (.&.) on
 element is always at it's center, eg. @(1,1)@ for the one below.
 
 @
-figure :: Image VU X Bit
+figure :: Image Model.Y Bit
 figure = fromLists [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
@@ -320,7 +257,7 @@ figure = fromLists [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
-struct :: Image VU X Bit
+struct :: Image Model.Y Bit
 struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 @
 -}
@@ -332,11 +269,11 @@ struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 --
 -- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
 --
-erode :: Array arr X Bit =>
-         Image arr X Bit -- ^ Structuring element.
-      -> Image arr X Bit -- ^ Binary source image.
-      -> Image arr X Bit
-erode !struc !img = invert $ convolve (Fill on) struc (invert img)
+erode :: ColorModel cs Bit
+      => Image cs Bit -- ^ Structuring element.
+      -> Image cs Bit -- ^ Binary source image.
+      -> Image cs Bit
+erode struc = invert . convolve (Fill (pure one)) struc . invert
 {-# INLINE erode #-}
 
 
@@ -346,11 +283,11 @@ erode !struc !img = invert $ convolve (Fill on) struc (invert img)
 --
 -- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
 --
-dialate :: Array arr X Bit =>
-           Image arr X Bit -- ^ Structuring element.
-        -> Image arr X Bit -- ^ Binary source image.
-        -> Image arr X Bit
-dialate !struc !img = convolve (Fill off) struc img
+dialate :: ColorModel cs Bit
+        => Image cs Bit -- ^ Structuring element.
+        -> Image cs Bit -- ^ Binary source image.
+        -> Image cs Bit
+dialate = convolve (Fill (pure zero))
 {-# INLINE dialate #-}
 
 
@@ -360,11 +297,11 @@ dialate !struc !img = convolve (Fill off) struc img
 --
 -- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
 --
-open :: Array arr X Bit =>
-        Image arr X Bit -- ^ Structuring element.
-     -> Image arr X Bit -- ^ Binary source image.
-     -> Image arr X Bit
-open !struc = dialate struc . erode struc
+open :: ColorModel cs Bit
+     => Image cs Bit -- ^ Structuring element.
+     -> Image cs Bit -- ^ Binary source image.
+     -> Image cs Bit
+open struc = dialate struc . erode struc
 {-# INLINE open #-}
 
 
@@ -374,10 +311,10 @@ open !struc = dialate struc . erode struc
 --
 -- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
 --
-close :: Array arr X Bit =>
-         Image arr X Bit -- ^ Structuring element.
-      -> Image arr X Bit -- ^ Binary source image.
-      -> Image arr X Bit
-close !struc = erode struc . dialate struc
+close :: ColorModel cs Bit
+      => Image cs Bit -- ^ Structuring element.
+      -> Image cs Bit -- ^ Binary source image.
+      -> Image cs Bit
+close struc = erode struc . dialate struc
 {-# INLINE close #-}
 

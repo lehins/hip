@@ -18,69 +18,55 @@ module Graphics.Image.Processing.Convolution (
   ) where
 
 
-import           Graphics.Image.ColorSpace               (Pixel (..), X)
-import           Graphics.Image.Interface                as I
-import           Graphics.Image.Processing.Geometric
-import           Graphics.Image.Utils                    (loop)
-import           Prelude                                 as P
+import qualified Data.Massiv.Array        as A
+import           Graphics.Image.Internal
+import           Prelude                  as P
 
 
--- | Correlate an image with a kernel. Border resolution technique is required.
-correlate :: (Array arr X e, Array arr cs e)
-          => Border (Pixel cs e) -> Image arr X e -> Image arr cs e -> Image arr cs e
-correlate !border !kernel !img =
-  makeImageWindowed
-    sz
-    (kM2, kN2)
-    (m - kM2 * 2, n - kN2 * 2)
-    (getStencil (I.unsafeIndex imgM))
-    (getStencil (borderIndex border imgM))
-  where
-    !imgM = toManifest img
-    !sz@(m, n) = dims img
-    !kernelM = toManifest kernel
-    !(kM, kN) = dims kernel
-    !(kM2, kN2) = (kM `div` 2, kN `div` 2)
-    getStencil getImgPx !(i, j) =
-      loop 0 (< kM) (+ 1) 0 $ \ !iK !acc0 ->
-        let !iD = i + iK - kM2 in
-          loop 0 (< kN) (+ 1) acc0 $ \ !jK !acc1 ->
-            let !jD = j + jK - kN2 in
-              acc1 + liftPx (* getX (unsafeIndex kernelM (iK, jK))) (getImgPx (iD, jD))
-    {-# INLINE getStencil #-}
+-- | Correlate an image with a kernel.
+correlate ::
+     ColorModel cs e
+  => Border (Pixel cs e) -- ^ Border resolution technique.
+  -> Image cs e -- ^ Kernel image.
+  -> Image cs e -- ^ Source image.
+  -> Image cs e
+correlate !border (Image kernel) (Image arr) =
+  Image (A.compute (A.mapStencil border (A.makeCorrelationStencilFromKernel kernel) arr))
 {-# INLINE correlate #-}
 
 
--- | Convolution of an image using a kernel. Border resolution technique is required.
+-- | Convolution of an image using a kernel.
 --
 -- Example using <https://en.wikipedia.org/wiki/Sobel_operator Sobel operator>:
 --
--- >>> frog <- readImageY RPU "images/frog.jpg"
+-- >>> frog <- readImageY "images/frog.jpg"
 -- >>> let frogX = convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) frog
 -- >>> let frogY = convolve Edge (fromLists [[-1,-2,-1], [ 0, 0, 0], [ 1, 2, 1]]) frog
 -- >>> displayImage $ normalize $ sqrt (frogX ^ 2 + frogY ^ 2)
 --
 -- <<images/frogY.jpg>> <<images/frog_sobel.jpg>>
 --
-convolve :: (Array arr X e, Array arr cs e) =>
-            Border (Pixel cs e) -- ^ Approach to be used near the borders.
-         -> Image arr X e -- ^ Kernel image.
-         -> Image arr cs e -- ^ Source image.
-         -> Image arr cs e
-convolve !out = correlate out . rotate180
+convolve ::
+     ColorModel cs e
+  => Border (Pixel cs e) -- ^ Border resolution technique.
+  -> Image cs e -- ^ Kernel image.
+  -> Image cs e -- ^ Source image.
+  -> Image cs e
+convolve !border (Image kernel) (Image arr) =
+  Image (A.compute $ A.mapStencil border (A.makeConvolutionStencilFromKernel kernel) arr)
 {-# INLINE convolve #-}
 
 
 -- | Convolve image's rows with a vector kernel represented by a list of pixels.
-convolveRows :: (Array arr X e, Array arr cs e) =>
-                Border (Pixel cs e) -> [Pixel X e] -> Image arr cs e -> Image arr cs e
-convolveRows !out = convolve out . fromLists . (:[]) . reverse
+convolveRows :: ColorModel cs e =>
+                Border (Pixel cs e) -> [Pixel cs e] -> Image cs e -> Image cs e
+convolveRows !border = convolve border . fromLists . pure . reverse
 {-# INLINE convolveRows #-}
 
 
 -- | Convolve image's columns with a vector kernel represented by a list of pixels.
-convolveCols :: (Array arr X e, Array arr cs e) =>
-                Border (Pixel cs e) -> [Pixel X e] -> Image arr cs e -> Image arr cs e
-convolveCols !out = convolve out . fromLists . P.map (:[]) . reverse
+convolveCols :: (ColorModel cs e) =>
+                Border (Pixel cs e) -> [Pixel cs e] -> Image cs e -> Image cs e
+convolveCols !out = convolve out . fromLists . P.map pure . reverse
 {-# INLINE convolveCols #-}
 

@@ -88,9 +88,11 @@ matrix:
       apt:
         packages: [libgmp-dev]
 
-  # - env: BUILD=stack ARGS="--resolver lts-7"
-  #   compiler: ": #stack GHC-8.0.1 (lts-7)"
-  #   addons: {apt: {packages: [libgmp-dev]}}
+  - env: BUILD=stack ARGS="--resolver lts-7"
+    compiler: ": #stack GHC-8.0.1 (lts-7.24)"
+    addons:
+      apt:
+        packages: [libgmp-dev]
 
   - env: BUILD=stack ARGS="--resolver lts-8.24"
     compiler: ": #stack GHC-8.0.2 (lts-8.24)"
@@ -111,9 +113,11 @@ matrix:
         packages: [libgmp-dev]
 
   # Nightly builds are allowed to fail
-  # - env: BUILD=stack ARGS="--resolver nightly"
-  #   compiler: ": #stack nightly"
-  #   addons: {apt: {packages: [libgmp-dev]}}
+  - env: BUILD=stack ARGS="--resolver nightly"
+    compiler: ": #stack nightly"
+    addons:
+      apt:
+        packages: [libgmp-dev]
 
   # - env: BUILD=stack ARGS="--resolver lts-8"
   #   compiler: ": #stack 8.0.2 osx"
@@ -121,7 +125,7 @@ matrix:
 
   allow_failures:
   - env: BUILD=cabal GHCVER=head CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
-  #- env: BUILD=stack ARGS="--resolver nightly"
+  - env: BUILD=stack ARGS="--resolver nightly"
 
 branches:
   except:
@@ -152,11 +156,6 @@ before_install:
       mkdir -p $HOME/.cabal
       echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
       echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
-
-      # if [ "$CABALVER" != "1.16" ]
-      # then
-      #   echo 'jobs: $ncpus' >> $HOME/.cabal/config
-      # fi
       ;;
   esac
 
@@ -177,7 +176,7 @@ install:
       cabal --version
       travis_retry cabal update
 
-      # Get the list of packages from the stack.yaml file
+      # Set the list of packages we will build
       PACKAGES="$TRAVIS_BUILD_DIR"
       echo $PACKAGES
 

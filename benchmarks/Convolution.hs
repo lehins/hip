@@ -14,18 +14,16 @@ import           Data.Array.Repa.Stencil             as R
 import           Data.Array.Repa.Stencil.Dim2        as R
 
 import           Graphics.Image                      as I
-import           Graphics.Image.Interface            as I
-import           Graphics.Image.Interface.Repa
 import           Prelude                             as P
 
 -- | Convolution
-sobelGx :: (I.Array arr X e, I.Array arr cs e) => Image arr cs e -> Image arr cs e
+sobelGx :: ColorSpace cs e => Image cs e -> Image cs e
 sobelGx =
   convolve Edge (fromLists [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
 
 -- | Same convolution by separable
-sobelGxSep :: (I.Array arr X e, I.Array arr cs e) => Image arr cs e -> Image arr cs e
+sobelGxSep :: (ColorSpace cs e) => Image cs e -> Image cs e
 sobelGxSep =
   convolveCols Edge [1, 2, 1] . convolveRows Edge [1, 0, -1]
 
@@ -33,17 +31,17 @@ sobelGxSep =
 -- | Repa algorithms convolution implementation
 sobelGxRAlg :: (Unbox e, Num e, Monad m) => R.Array U DIM2 e -> m (R.Array U DIM2 e)
 sobelGxRAlg =
-  convolveOutP outClamp (R.fromListUnboxed (Z :. 3 :. 3) [-1, 0, 1, -2, 0, 2, -1, 0, 1])
+  convolveOutP outClamp (R.fromListUnboxed (Z R.:. 3 R.:. 3) [-1, 0, 1, -2, 0, 2, -1, 0, 1])
 
 -- | Repa algorithms convolution implementation - separable
 sobelGxRAlgSep :: (Unbox e, Num e, Monad m) => R.Array U DIM2 e -> m (R.Array U DIM2 e)
 sobelGxRAlgSep =
   convolveOutP
     outClamp
-    (R.fromListUnboxed (Z :. 1 :. 3) [1, 0, -1]) >=>
+    (R.fromListUnboxed (Z R.:. 1 R.:. 3) [1, 0, -1]) >=>
   convolveOutP
     outClamp
-    (R.fromListUnboxed (Z :. 3 :. 1) [1, 2, 1])
+    (R.fromListUnboxed (Z R.:. 3 R.:. 1) [1, 2, 1])
 
 
 -- |  Repa stencil base convolution
@@ -53,12 +51,12 @@ sobelGxR
 sobelGxR = mapStencil2 BoundClamp stencil
   where stencil = makeStencil2 3 3
                   (\ix -> case ix of
-                      Z :. -1 :. -1 -> Just (-1)
-                      Z :.  0 :. -1 -> Just (-2)
-                      Z :.  1 :. -1 -> Just (-1)
-                      Z :. -1 :.  1 -> Just 1
-                      Z :.  0 :.  1 -> Just 2
-                      Z :.  1 :.  1 -> Just 1
+                      Z R.:. -1 R.:. -1 -> Just (-1)
+                      Z R.:.  0 R.:. -1 -> Just (-2)
+                      Z R.:.  1 R.:. -1 -> Just (-1)
+                      Z R.:. -1 R.:.  1 -> Just 1
+                      Z R.:.  0 R.:.  1 -> Just 2
+                      Z R.:.  1 R.:.  1 -> Just 1
                       _             -> Nothing)
 
 forceP
@@ -81,12 +79,12 @@ main :: IO ()
 main = do
   let !imgU = compute $ makeImage (1600, 1600)
               (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j )))
-              :: Image RPU Y Double
+              :: Image Y Double
   let !imgU' =
         compute $
         makeImage
           (1600, 1600)
-          (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image VU Y Double
+          (\(i, j) -> fromIntegral ((min i j) `div` (1 + max i j))) :: Image Y Double
   let !sobelFSep = applyFilter (sobelFilter Horizontal Edge) imgU
   let !sobelFSep' = applyFilter (sobelFilter Horizontal Edge)
   let !imgR = toRepaArray imgU
@@ -101,7 +99,7 @@ main = do
         [
         --   bench "naive U" $ whnf compute sobelU
           bench "repa R Stencil" $ whnfIO (forceP sobelR)
-        , bench "Filter R" $ whnf compute sobelFSep
+        , bench "Filter R" $ whnf sobelFSep
         , bench "Filter VU" $ whnf sobelFSep' imgU'
         , bench "repa R Agorithms Separated" $ whnfIO sobelRAlgSep
         ]
