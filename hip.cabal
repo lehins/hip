@@ -44,6 +44,7 @@ Library
                , repa            >= 3.2.1.1 && < 4
                , temporary       >= 1.1.1
                , vector          >= 0.10
+               , array
   Other-Extensions: BangPatterns
                   , ConstraintKinds
                   , CPP
@@ -67,6 +68,7 @@ Library
                  , Graphics.Image.Processing.Binary
                  , Graphics.Image.Processing.Complex
                  , Graphics.Image.Processing.Filter
+                 , Graphics.Image.Processing.Hough
                  , Graphics.Image.Types
   Other-Modules:   Graphics.Image.ColorSpace.Binary
                  , Graphics.Image.ColorSpace.CMYK
