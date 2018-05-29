@@ -18,12 +18,6 @@ import Graphics.Image.Interface as I
 import Graphics.Image.Types as IP
 
 -- | Some helper functions :
--- | toImageY : Converts an image to Luma Image
-toImageY :: (ToY cs e, IP.Array arr cs e, IP.Array arr Y Double) =>
-            Image arr cs e
-         -> Image arr Y Double
-toImageY = I.map toPixelY
-
 -- | Trivial function for subtracting co-ordinate pairs 
 sub :: Num x => (x, x) -> (x, x) -> (x, x)
 sub (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
@@ -48,11 +42,11 @@ mag x = sqrt (dotProduct x x)
 -- bright (or dark, depending on the color of the background field) spot; by applying a suitable 
 -- filter to the results of the transform, it is possible to extract the locations of the lines in the original image.
 --
--- <<images/frog_rbg.jpg>>
+-- <<images/yield.jpg>>
 --
 -- Usage : 
 --	
--- >>> frog <- readImageRGB VU "frog_rbg.jpg"
+-- >>> frog <- readImageRGB VU "yield.jpg"
 -- >>> input1 <- getLine
 -- >>> input2 <- getLine
 -- >>> let thetaSz = (P.read input1 :: Int)
@@ -63,14 +57,14 @@ mag x = sqrt (dotProduct x x)
 --
 hough
   :: forall arr a.
-     ( IP.Array arr RGB a, IP.Array arr RGB Word8
+     ( IP.Array arr RGBA a, IP.Array arr RGBA Word8
      , MArray arr Y Double, IP.Array arr Y Double
-     , IP.Array arr RGB Double
+     , IP.Array arr RGBA Double
      )
-  => Image arr RGB a
+  => Image arr RGBA a
   -> Int
   -> Int
-  -> Image arr RGB Double
+  -> Image arr RGBA Double
 hough image thetaSz distSz = I.map (fmap toDouble) hImage
  where
    widthMax, xCtr, heightMax, yCtr :: Int
@@ -115,20 +109,20 @@ hough image thetaSz distSz = I.map (fmap toDouble) hImage
    maxAcc = F.maximum accBin  
    hTransform (x, y) =
         let l = 255 - truncate ((accBin ! (x, y)) / maxAcc * 255) -- pixel generating function
-        in PixelRGB l l l
+        in PixelRGBA l l l l
 
-   hImage :: Image arr RGB Word8
+   hImage :: Image arr RGBA Word8
    hImage = makeImage (thetaSz, distSz) hTransform
 
 
 test :: IO ()
 test = do
-      frog <- readImageRGB VU "frog_rbg.jpg"
+      frog <- readImageRGBA VU "frog_rbg.jpg"
       input1 <- getLine
       input2 <- getLine
       let thetaSz = (P.read input1 :: Int)
       let distSz = (P.read input2 :: Int)
       writeImage "input.png" frog
-      let houghImage :: Image VU RGB Double
+      let houghImage :: Image VU RGBA Double
           houghImage = hough frog thetaSz distSz
       writeImage "test.png" houghImage
