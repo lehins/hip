@@ -108,21 +108,9 @@ hough image thetaSz distSz = I.map (fmap toDouble) hImage
 
    maxAcc = F.maximum accBin  
    hTransform (x, y) =
-        let l = 255 - truncate ((accBin ! (x, y)) / maxAcc * 255) -- pixel generating function
+        let l = 1 - truncate ((accBin ! (x, y)) / maxAcc * 255) -- pixel generating function
         in PixelRGBA l l l l
 
    hImage :: Image arr RGBA Word8
    hImage = makeImage (thetaSz, distSz) hTransform
 
-
-test :: IO ()
-test = do
-      frog <- readImageRGBA VU "frog_rbg.jpg"
-      input1 <- getLine
-      input2 <- getLine
-      let thetaSz = (P.read input1 :: Int)
-      let distSz = (P.read input2 :: Int)
-      writeImage "input.png" frog
-      let houghImage :: Image VU RGBA Double
-          houghImage = hough frog thetaSz distSz
-      writeImage "test.png" houghImage
