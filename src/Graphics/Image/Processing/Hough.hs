@@ -42,7 +42,7 @@ mag x = sqrt (dotProduct x x)
 -- bright (or dark, depending on the color of the background field) spot; by applying a suitable 
 -- filter to the results of the transform, it is possible to extract the locations of the lines in the original image.
 --
--- <<images/yield.jpg>>
+-- <<images/yield.jpg>>   <<images/yield_hough.png>>
 --
 -- Usage : 
 --	
@@ -56,16 +56,12 @@ mag x = sqrt (dotProduct x x)
 -- >>> writeImage "test.png" houghImage
 --
 hough
-  :: forall arr a.
-     ( IP.Array arr RGBA a, IP.Array arr RGBA Word8
-     , MArray arr Y Double, IP.Array arr Y Double
-     , IP.Array arr RGBA Double
-     )
-  => Image arr RGBA a
+  :: forall arr . ( MArray arr Y Double, IP.Array arr Y Double, IP.Array arr Y Word8)
+  => Image arr Y Double
   -> Int
   -> Int
-  -> Image arr RGBA Double
-hough image thetaSz distSz = I.map (fmap toDouble) hImage
+  -> Image arr Y Word8
+hough image thetaSz distSz = I.map (fmap toWord8) hImage
  where
    widthMax, xCtr, heightMax, yCtr :: Int
    widthMax = ((rows image) - 1)
@@ -73,14 +69,11 @@ hough image thetaSz distSz = I.map (fmap toDouble) hImage
    heightMax = ((cols image) - 1)
    yCtr = (heightMax `div` 2)
 
-   luma :: Image arr Y Double
-   luma = IP.toImageY image
-
    slope :: Int -> Int -> (Double, Double)
    slope x y =
-     let PixelY orig = I.index luma (x, y)
-         PixelY x' = I.index luma (min (x+1) widthMax, y)
-         PixelY y' = I.index luma (x, min (y+1) heightMax)
+     let PixelY orig = I.index image (x, y)
+         PixelY x' = I.index image (min (x+1) widthMax, y)
+         PixelY y' = I.index image (x, min (y+1) heightMax)
      in (orig - x', orig - y')
 
    slopeMap :: [ ((Int, Int), (Double, Double)) ]
@@ -108,9 +101,9 @@ hough image thetaSz distSz = I.map (fmap toDouble) hImage
 
    maxAcc = F.maximum accBin  
    hTransform (x, y) =
-        let l = 1 - truncate ((accBin ! (x, y)) / maxAcc * 255) -- pixel generating function
-        in PixelRGBA l l l l
+        let l = 255 - truncate ((accBin ! (x, y)) / maxAcc * 255) -- pixel generating function
+        in PixelY l
 
-   hImage :: Image arr RGBA Word8
+   hImage :: Image arr Y Word8
    hImage = makeImage (thetaSz, distSz) hTransform
 
