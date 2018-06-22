@@ -14,7 +14,7 @@
 --
 module Graphics.Image.Processing.Filter
   ( -- * Filter
-    Filter
+    Filter (..)
   , applyFilter
   , Direction(..)
     -- * Gaussian
@@ -26,6 +26,7 @@ module Graphics.Image.Processing.Filter
     -- * Prewitt
   , prewittFilter
   , prewittOperator
+  
   ) where
 
 
