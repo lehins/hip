@@ -42,7 +42,7 @@ simpleFilter dir !border =
 --
 -- Usage : 
 --	
--- >>> img <- readImageY VU "yield.jpg"
+-- >>> img <- readImageY VU "images/yield.jpg"
 -- >>> input1 <- getLine
 -- >>> input2 <- getLine
 -- >>> let thetaSz = (P.read input1 :: Int)
@@ -50,7 +50,7 @@ simpleFilter dir !border =
 -- >>> let neighborhoodFactor = (P.read input2 :: Int) 
 -- >>> let aheImage :: Image VU RGB Double
 -- >>>     aheImage = ahe img thetaSz distSz neighborhoodFactor
--- >>> writeImage "test.png" (toImageRGB aheImage)
+-- >>> writeImage "images/yield_ahe.png" (toImageRGB aheImage)
 --
 ahe
   :: forall arr e cs . ( MArray arr Y Double, IP.Array arr Y Double, IP.Array arr Y Word16, MArray arr Y Word16, Array arr X Double)
