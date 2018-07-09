@@ -45,6 +45,7 @@ data Filter arr cs e = Filter
 data Direction
   = Vertical
   | Horizontal
+  | Complete
 
 
 
@@ -138,4 +139,32 @@ prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
   where !prewittX = applyFilter (prewittFilter Horizontal Edge) img
         !prewittY = applyFilter (prewittFilter Vertical Edge) img
 {-# INLINE prewittOperator #-}
+
+
+-- |The Laplacian of an image highlights regions of rapid intensity change 
+-- and is therefore often used for edge detection. It is often applied to an 
+-- image that has first been smoothed with something approximating a 
+-- Gaussian smoothing filter in order to reduce its sensitivity to noise.
+--
+-- <<images/yield.jpg>>   <<images/yield_laplacian.png>> 
+-- 
+-- Usage : 
+--	
+-- >>> img <- readImageY VU "images/yield.jpg"
+-- >>> let laplacianImage :: Image VU RGB Double
+-- >>>     laplacianImage = applyFilter (laplacianFilter Complete Edge) img
+-- >>> writeImage "images/yield_laplacian.png" (toImageRGB aheImage)
+--
+laplacianFilter :: (Array arr cs e, Array arr X e) =>
+                   Direction -> Border (Pixel cs e) -> Filter arr cs e
+laplacianFilter dir !border =
+  Filter (correlate border kernel)
+  where
+    !kernel =
+      case dir of
+        Complete   -> fromLists $ [ [ -1, -1, -1 ]     -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
+                                  , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass. 
+                                  , [  -1, -1, -1 ]]   -- This is the approximated kernel used for it. (Includes diagonals)
+{-# INLINE laplacianFilter #-}
+
 
