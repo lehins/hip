@@ -153,7 +153,7 @@ prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
 -- >>> img <- readImageY VU "images/yield.jpg"
 -- >>> let laplacianImage :: Image VU RGB Double
 -- >>>     laplacianImage = applyFilter (laplacianFilter Complete Edge) img
--- >>> writeImage "images/yield_laplacian.png" (toImageRGB aheImage)
+-- >>> writeImage "images/yield_laplacian.png" (toImageRGB laplacianImage)
 --
 laplacianFilter :: (Array arr cs e, Array arr X e) =>
                    Direction -> Border (Pixel cs e) -> Filter arr cs e
