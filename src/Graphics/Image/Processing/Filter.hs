@@ -143,8 +143,8 @@ prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
 -- <<images/yield.jpg>>   <<images/yield_laplacian.png>> 
 --
 laplacianFilter :: (Array arr cs e, Array arr X e) =>
-                   Direction -> Border (Pixel cs e) -> Filter arr cs e
-laplacianFilter dir !border =
+                   Border (Pixel cs e) -> Filter arr cs e
+laplacianFilter !border =
   Filter (correlate border kernel)
   where
     !kernel = fromLists $ [ [ -1, -1, -1 ]     -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
