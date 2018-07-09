@@ -26,7 +26,9 @@ module Graphics.Image.Processing.Filter
     -- * Prewitt
   , prewittFilter
   , prewittOperator
-  
+
+  , logFilter
+  , laplacianFilter
   ) where
 
 
@@ -136,12 +138,12 @@ prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
 {-# INLINE prewittOperator #-}
 
 
--- |The Laplacian of an image highlights regions of rapid intensity change 
--- and is therefore often used for edge detection. It is often applied to an 
--- image that has first been smoothed with something approximating a 
+-- |The Laplacian of an image highlights regions of rapid intensity change
+-- and is therefore often used for edge detection. It is often applied to an
+-- image that has first been smoothed with something approximating a
 -- Gaussian smoothing filter in order to reduce its sensitivity to noise.
 --
--- <<images/yield.jpg>>   <<images/yield_laplacian.png>> 
+-- <<images/yield.jpg>>   <<images/yield_laplacian.png>>
 --
 laplacianFilter :: (Array arr cs e, Array arr X e) =>
                    Border (Pixel cs e) -> Filter arr cs e
@@ -157,28 +159,26 @@ laplacianFilter !border =
 -- an image before applying some derivative filter on it. This comes in
 -- need for reducing the noise sensitivity while working with noisy
 -- datasets or in case of approximating second derivative measurements.
--- 
--- The LoG operator takes the second derivative of the image. Where the image  
+--
+-- The LoG operator takes the second derivative of the image. Where the image
 -- is basically uniform, the LoG will give zero. Wherever a change occurs, the LoG will
 -- give a positive response on the darker side and a negative response on the lighter side.
--- 
--- <<images/yield.jpg>>   <<images/yield_log.png>> 
+--
+-- <<images/yield.jpg>>   <<images/yield_log.png>>
 --
 logFilter :: (Array arr cs e, Array arr X e) =>
              Border (Pixel cs e) -> Filter arr cs e
 logFilter !border =
   Filter (correlate border kernel)
   where
-    !kernel = fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]              
+    !kernel = fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]
                           , [  1,  2,  4, 5, 5, 5, 4, 2, 1 ]
-                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1 ] 
-                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2 ] 
-                          , [  2,  5,  0, -24, -40, -24, 0, 5, 2  ] 
-                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2  ] 
-                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1  ] 
-                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1  ] 
-                          , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ] ] 
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1 ]
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2 ]
+                          , [  2,  5,  0, -24, -40, -24, 0, 5, 2  ]
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2  ]
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1  ]
+                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1  ]
+                          , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ] ]
 
 {-# INLINE logFilter #-}
-
-
