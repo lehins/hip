@@ -150,9 +150,9 @@ laplacianFilter :: (Array arr cs e, Array arr X e) =>
 laplacianFilter !border =
   Filter (correlate border kernel)
   where
-    !kernel = fromLists $ [ [ -1, -1, -1 ]     -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
-                          , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass. 
-                          , [  -1, -1, -1 ]]   -- This is the approximated kernel used for it. (Includes diagonals)
+    !kernel = fromLists $ [ [ -1, -1, -1 ]   -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
+                        , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass. 
+                        , [  -1, -1, -1 ]]   -- This is the approximated kernel used for it. (Includes diagonals)
 {-# INLINE laplacianFilter #-}
 
 -- | 'Laplacian of Gaussian' (LOG) filter is a two step process of smoothing
@@ -171,25 +171,13 @@ logFilter :: (Array arr cs e, Array arr X e) =>
 logFilter dir !border =
   Filter (correlate border kernel)
   where
-    !kernel =
-      case dir of
-        Vertical   -> fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]
-                                  , [  1,  2,  4, 5, 5, 5, 4, 2, 1 ]
-                                  , [  1,  4,  5, 3, 0, 3, 5, 4, 1 ]
-                                  , [  2,  5,  3, -12, -24, -12, 3, 5, 2 ]
-                                  , [  2,  5,  0, -24, -40, -24, 0, 5, 2  ]
-                                  , [  2,  5,  3, -12, -24, -12, 3, 5, 2  ]
-                                  , [  1,  4,  5, 3, 0, 3, 5, 4, 1  ]
-                                  , [  1,  2,  4, 5, 5, 5, 4, 2, 1  ]
-                                  , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ]]
-
-        Horizontal -> fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]
-                                  , [  1,  2,  4, 5, 5, 5, 4, 2, 1 ]
-                                  , [  1,  4,  5, 3, 0, 3, 5, 4, 1 ]
-                                  , [  2,  5,  3, -12, -24, -12, 3, 5, 2 ]
-                                  , [  2,  5,  0, -24, -40, -24, 0, 5, 2  ]
-                                  , [  2,  5,  3, -12, -24, -12, 3, 5, 2  ]
-                                  , [  1,  4,  5, 3, 0, 3, 5, 4, 1  ]
-                                  , [  1,  2,  4, 5, 5, 5, 4, 2, 1  ]
-                                  , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ]]
+    !kernel = fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]
+                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1 ]
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1 ]
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2 ]
+                          , [  2,  5,  0, -24, -40, -24, 0, 5, 2  ]
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2  ]
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1  ]
+                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1  ]
+                          , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ] ]
 {-# INLINE logFilter #-}
