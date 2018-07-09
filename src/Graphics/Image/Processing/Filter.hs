@@ -167,8 +167,8 @@ laplacianFilter !border =
 -- <<images/yield.jpg>>   <<images/yield_log.png>>
 --
 logFilter :: (Array arr cs e, Array arr X e) =>
-             Direction -> Border (Pixel cs e) -> Filter arr cs e
-logFilter dir !border =
+             Border (Pixel cs e) -> Filter arr cs e
+logFilter !border =
   Filter (correlate border kernel)
   where
     !kernel = fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]
