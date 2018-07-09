@@ -45,9 +45,6 @@ data Filter arr cs e = Filter
 data Direction
   = Vertical
   | Horizontal
-  | Complete
-
-
 
 -- | Create a Gaussian Filter.
 --
@@ -119,8 +116,6 @@ sobelOperator !img = sqrt (sobelX ^ (2 :: Int) + sobelY ^ (2 :: Int))
 {-# INLINE sobelOperator #-}
 
 
-
-
 prewittFilter :: (Array arr cs e, Array arr X e) =>
                  Direction -> Border (Pixel cs e) -> Filter arr cs e
 prewittFilter dir !border =
@@ -131,7 +126,6 @@ prewittFilter dir !border =
         Vertical   -> ([1, 1, 1], [1, 0, -1])
         Horizontal -> ([1, 0, -1], [1, 1, 1])
 {-# INLINE prewittFilter #-}
-
 
 
 prewittOperator :: (Array arr cs e, Array arr X e, Floating e) => Image arr cs e -> Image arr cs e
@@ -147,24 +141,43 @@ prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
 -- Gaussian smoothing filter in order to reduce its sensitivity to noise.
 --
 -- <<images/yield.jpg>>   <<images/yield_laplacian.png>> 
--- 
--- Usage : 
---	
--- >>> img <- readImageY VU "images/yield.jpg"
--- >>> let laplacianImage :: Image VU RGB Double
--- >>>     laplacianImage = applyFilter (laplacianFilter Complete Edge) img
--- >>> writeImage "images/yield_laplacian.png" (toImageRGB laplacianImage)
 --
 laplacianFilter :: (Array arr cs e, Array arr X e) =>
                    Direction -> Border (Pixel cs e) -> Filter arr cs e
 laplacianFilter dir !border =
   Filter (correlate border kernel)
   where
-    !kernel =
-      case dir of
-        Complete   -> fromLists $ [ [ -1, -1, -1 ]     -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
-                                  , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass. 
-                                  , [  -1, -1, -1 ]]   -- This is the approximated kernel used for it. (Includes diagonals)
+    !kernel = fromLists $ [ [ -1, -1, -1 ]     -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
+                          , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass. 
+                          , [  -1, -1, -1 ]]   -- This is the approximated kernel used for it. (Includes diagonals)
 {-# INLINE laplacianFilter #-}
+
+-- | 'Laplacian of Gaussian' (LOG) filter is a two step process of smoothing
+-- an image before applying some derivative filter on it. This comes in
+-- need for reducing the noise sensitivity while working with noisy
+-- datasets or in case of approximating second derivative measurements.
+-- 
+-- The LoG operator takes the second derivative of the image. Where the image  
+-- is basically uniform, the LoG will give zero. Wherever a change occurs, the LoG will
+-- give a positive response on the darker side and a negative response on the lighter side.
+-- 
+-- <<images/yield.jpg>>   <<images/yield_log.png>> 
+--
+logFilter :: (Array arr cs e, Array arr X e) =>
+             Border (Pixel cs e) -> Filter arr cs e
+logFilter !border =
+  Filter (correlate border kernel)
+  where
+    !kernel = fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]              
+                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1 ]
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1 ] 
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2 ] 
+                          , [  2,  5,  0, -24, -40, -24, 0, 5, 2  ] 
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2  ] 
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1  ] 
+                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1  ] 
+                          , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ] ] 
+
+{-# INLINE logFilter #-}
 
 
