@@ -26,6 +26,10 @@ module Graphics.Image.Processing.Filter
     -- * Prewitt
   , prewittFilter
   , prewittOperator
+    -- * Laplacian
+  , laplacianFilter
+    -- * Laplacian of Gaussian
+  , logFilter
   ) where
 
 
@@ -138,4 +142,71 @@ prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
   where !prewittX = applyFilter (prewittFilter Horizontal Edge) img
         !prewittY = applyFilter (prewittFilter Vertical Edge) img
 {-# INLINE prewittOperator #-}
+
+
+-- |The Laplacian of an image highlights regions of rapid intensity change 
+-- and is therefore often used for edge detection. It is often applied to an 
+-- image that has first been smoothed with something approximating a 
+-- Gaussian smoothing filter in order to reduce its sensitivity to noise.
+--
+-- <<images/yield.jpg>>   <<images/yield_laplacian.png>> 
+--
+laplacianFilter :: (Array arr cs e, Array arr X e) =>
+                   Border (Pixel cs e) -> Filter arr cs e
+laplacianFilter !border =
+  Filter (correlate border kernel)
+  where
+    !kernel = fromLists $ [ [ -1, -1, -1 ]     -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
+                          , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass. 
+                          , [  -1, -1, -1 ]]   -- This is the approximated kernel used for it. (Includes diagonals)
+{-# INLINE laplacianFilter #-}
+
+-- | 'Laplacian of Gaussian' (LOG) filter is a two step process of smoothing
+-- an image before applying some derivative filter on it. This comes in
+-- need for reducing the noise sensitivity while working with noisy
+-- datasets or in case of approximating second derivative measurements.
+-- 
+-- The LoG operator takes the second derivative of the image. Where the image  
+-- is basically uniform, the LoG will give zero. Wherever a change occurs, the LoG will
+-- give a positive response on the darker side and a negative response on the lighter side.
+-- 
+-- <<images/yield.jpg>>   <<images/yield_log.png>> 
+--
+logFilter :: (Array arr cs e, Array arr X e) =>
+             Border (Pixel cs e) -> Filter arr cs e
+logFilter !border =
+  Filter (correlate border kernel)
+  where
+    !kernel = fromLists $ [ [ 0, 1, 1, 2, 2, 2, 1, 1, 0 ]              
+                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1 ]
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1 ] 
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2 ] 
+                          , [  2,  5,  0, -24, -40, -24, 0, 5, 2  ] 
+                          , [  2,  5,  3, -12, -24, -12, 3, 5, 2  ] 
+                          , [  1,  4,  5, 3, 0, 3, 5, 4, 1  ] 
+                          , [  1,  2,  4, 5, 5, 5, 4, 2, 1  ] 
+                          , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ] ] 
+
+{-# INLINE logFilter #-}
+
+-- | The Gaussian smoothing operator is a 2-D convolution operator that is used to 
+-- `blur' images and remove detail and noise. The idea of Gaussian smoothing is to use 
+-- this 2-D distribution as a `point-spread' function, and this is achieved by convolution. 
+-- Since the image is stored as a collection of discrete pixels we need to produce a 
+-- discrete approximation to the Gaussian function before we can perform the convolution. 
+-- 
+-- <<images/GSM_gsn_yield_IP.jpg>> <<images/GSM_gsn_yield_OP.png>> 
+--
+gaussianSmoothingFilter :: (Fractional e, Array arr cs e, Array arr X e) =>
+                           Border (Pixel cs e) -> Filter arr cs e
+gaussianSmoothingFilter !border =
+  Filter (correlate border kernel)
+  where
+    !kernel = fromLists $ [[ 1/273, 4/273, 7/273, 4/273, 1/273 ]     -- Discrete approximation to the Gaussian function.
+                          ,[  4/273, 16/273, 26/273, 16/273, 4/273 ] -- 273 is the sum of all values in the mask and hence used in rescaling.
+                          ,[  7/273, 26/273, 41/273, 26/273, 7/273 ]
+                          ,[  4/273, 16/273, 26/273, 16/273, 4/273 ]
+                          ,[ 1/273, 4/273, 7/273, 4/273, 1/273 ]]
+
+{-# INLINE gaussianSmoothingFilter #-}       
 
