@@ -26,7 +26,12 @@ module Graphics.Image.Processing.Filter
     -- * Prewitt
   , prewittFilter
   , prewittOperator
-  
+    -- * Laplacian
+  , laplacianFilter
+    -- * Laplacian of Gaussian
+  , logFilter
+    -- * Gaussian Smoothing
+  , gaussianSmoothingFilter  
   ) where
 
 
@@ -140,6 +145,7 @@ prewittOperator !img = sqrt (prewittX ^ (2 :: Int) + prewittY ^ (2 :: Int))
 -- and is therefore often used for edge detection. It is often applied to an 
 -- image that has first been smoothed with something approximating a 
 -- Gaussian smoothing filter in order to reduce its sensitivity to noise.
+-- More info about the algo at <https://homepages.inf.ed.ac.uk/rbf/HIPR2/log.htm>
 --
 -- <<images/yield.jpg>>   <<images/yield_laplacian.png>> 
 --
@@ -157,6 +163,7 @@ laplacianFilter !border =
 -- an image before applying some derivative filter on it. This comes in
 -- need for reducing the noise sensitivity while working with noisy
 -- datasets or in case of approximating second derivative measurements.
+-- More info about the algo at <https://homepages.inf.ed.ac.uk/rbf/HIPR2/log.htm>
 -- 
 -- The LoG operator takes the second derivative of the image. Where the image  
 -- is basically uniform, the LoG will give zero. Wherever a change occurs, the LoG will
@@ -180,5 +187,27 @@ logFilter !border =
                           , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ] ] 
 
 {-# INLINE logFilter #-}
+
+-- | The Gaussian smoothing operator is a 2-D convolution operator that is used to 
+-- `blur' images and remove detail and noise. The idea of Gaussian smoothing is to use 
+-- this 2-D distribution as a `point-spread' function, and this is achieved by convolution. 
+-- Since the image is stored as a collection of discrete pixels we need to produce a 
+-- discrete approximation to the Gaussian function before we can perform the convolution. 
+-- More info about the algo at <https://homepages.inf.ed.ac.uk/rbf/HIPR2/gsmooth.htm>
+-- 
+-- <<images/GSM_gsn_yield_IP.jpg>> <<images/GSM_gsn_yield_OP.png>> 
+--
+gaussianSmoothingFilter :: (Fractional e, Array arr cs e, Array arr X e) =>
+                           Border (Pixel cs e) -> Filter arr cs e
+gaussianSmoothingFilter !border =
+  Filter (I.map (/ 273) . correlate border kernel)
+  where
+    !kernel = fromLists $ [[ 1, 4, 7, 4, 1 ]     -- Discrete approximation to the Gaussian function.
+                          ,[  4, 16, 26, 16, 4 ] -- 273 is the sum of all values in the mask and hence used in rescaling.
+                          ,[  7, 26, 41, 26, 7 ]
+                          ,[  4, 16, 26, 16, 4 ]
+                          ,[ 1, 4, 7, 4, 1 ]]
+
+{-# INLINE gaussianSmoothingFilter #-}       
 
 
