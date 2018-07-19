@@ -214,8 +214,8 @@ gaussianSmoothingFilter !border =
 
 -- | The mean filter is a simple sliding-window spatial filter that replaces the 
 -- center value in the window with the average (mean) of all the pixel values in 
--- the window. The window, or kernel, is usually square but can be any shape.  
--- It is often used to reduce noise in images.
+-- the window. The window, or kernel, can be any shape, but this one uses the most 
+-- common 3x3 square kernel.
 -- More info about the algo at <http://homepages.inf.ed.ac.uk/rbf/HIPR2/mean.htm>
 -- 
 -- <<images/yield.jpg>>   <<images/yield_mean.png>>
