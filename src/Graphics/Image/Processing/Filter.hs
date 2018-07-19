@@ -31,7 +31,9 @@ module Graphics.Image.Processing.Filter
     -- * Laplacian of Gaussian
   , logFilter
     -- * Gaussian Smoothing
-  , gaussianSmoothingFilter  
+  , gaussianSmoothingFilter
+    -- * Mean 
+  , meanFilter  
   ) where
 
 
@@ -207,5 +209,25 @@ gaussianSmoothingFilter !border =
                           ,[  4, 16, 26, 16, 4 ]
                           ,[ 1, 4, 7, 4, 1 ]]
 
-{-# INLINE gaussianSmoothingFilter #-}       
+{-# INLINE gaussianSmoothingFilter #-}    
+
+
+-- | The mean filter is a simple sliding-window spatial filter that replaces the 
+-- center value in the window with the average (mean) of all the pixel values in 
+-- the window. The window, or kernel, can be any shape, but this one uses the most 
+-- common 3x3 square kernel.
+-- More info about the algo at <http://homepages.inf.ed.ac.uk/rbf/HIPR2/mean.htm>
+-- 
+-- <<images/yield.jpg>>   <<images/yield_mean.png>>
+-- 
+meanFilter :: (Fractional e, Array arr cs e, Array arr X e) =>
+                           Border (Pixel cs e) -> Filter arr cs e
+meanFilter !border =
+  Filter (I.map (/ 9) . correlate border kernel)
+  where 
+    !kernel = fromLists $[ [ 1, 1, 1 ]       -- Replace each pixel with the mean value of its neighbors, including itself.
+                          , [  1, 1, 1 ]   
+                          , [  1, 1, 1 ]]
+
+{-# INLINE meanFilter #-}
 
