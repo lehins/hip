@@ -33,7 +33,9 @@ module Graphics.Image.Processing.Filter
     -- * Gaussian Smoothing
   , gaussianSmoothingFilter
     -- * Mean 
-  , meanFilter  
+  , meanFilter
+    -- * Unsharp Masking
+  , unsharpMaskingFilter  
   ) where
 
 
@@ -230,4 +232,27 @@ meanFilter !border =
                           , [  1, 1, 1 ]]
 
 {-# INLINE meanFilter #-}
+
+-- | The unsharp-masking filter is a sharpening operator which derives its name from
+-- the fact that it enhances edges (and other high frequency components in an image) 
+-- via a procedure which subtracts an unsharp, or smoothed, version of an image from
+-- the original image. It is commonly used in the photographic and printing industries 
+-- for crispening edges.
+-- More info about the algo at <https://homepages.inf.ed.ac.uk/rbf/HIPR2/unsharp.htm>
+--
+-- <<images/yield_gray.png>>   <<images/yield_unsharpMasking.png>>
+--
+unsharpMaskingFilter :: (Fractional e, Array arr cs e, Array arr X e) =>
+                           Border (Pixel cs e) -> Filter arr cs e
+unsharpMaskingFilter !border =
+  Filter (I.map (/256) . correlate border kernel)
+  where 
+    !kernel = fromLists $ [[ -1, -4, -6, -4, -1 ]     
+                          ,[  -4, -16, -24, -16, -4 ]    -- Uses negative image to create a mask of the original image.
+                          ,[  -6, -24, 476, -24, -6 ]    -- The unsharped mask is then combined with the positive (original) image.
+                          ,[  -4, -16, -24, -16, -4 ]    -- So, the resulting image is less blurry, i.e clearer.
+                          ,[ -1, -4, -6, -4, -1 ]]
+
+{-# INLINE unsharpMaskingFilter #-}
+
 
