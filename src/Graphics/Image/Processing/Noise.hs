@@ -43,7 +43,7 @@ randomCoords a width height = (rnx1, rny1) : randomCoords g2 width height
 -- >>> let distSz = (P.read input2 :: Int) 
 -- >>> let noiseLevel = (P.read input3 :: Float)
 -- >>> let snpImage :: Image VU Y Word16
--- >>>     snpImage = snp frog thetaSz distSz noiseLevel g
+-- >>>     snpImage = snp img thetaSz distSz noiseLevel g
 -- >>> writeImage "images/yield_snp.png" (toImageRGB snpImage)
 --
 snp
