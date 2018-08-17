@@ -24,40 +24,40 @@ applyThreshold :: RealFrac x => x -> x
 applyThreshold x = 255 * fromIntegral (floor(x/128))
 
 dithering
-  :: forall arr e cs . ( MArray arr RGB Double, IP.Array arr RGB Double, IP.Array arr RGB Double)
-  => Image arr RGB Double
-  -> Int  -- ^ width of output image
-  -> Int  -- ^ height of output image 
-  -> Image arr RGB Double
-dithering image thetaSz distSz = accBin
+  :: forall arr e cs . ( MArray arr Y Double, IP.Array arr Y Double, IP.Array arr Y Double, IP.Array arr Y Word8)
+  => Image arr Y Double
+  -> Image arr Y Word8
+dithering image = I.map (fmap toWord8) accBin
  where
    widthMax, heightMax :: Int
    widthMax = ((rows image) - 1)
    heightMax = ((cols image) - 1)
     
-   accBin :: Image arr RGB Double
+   accBin :: Image arr Y Double
    accBin = runST $                
-     do arr <- I.new (thetaSz, distSz) 
+     do arr <- I.new (widthMax + 1, heightMax + 1) 
         forM_ [0 .. widthMax] $ \x -> do
           forM_ [0 .. heightMax] $ \y -> do
             let m = (I.index image (x, y))
-            let re = m - 0.1
-            let be = m - 0.5
-            let ge = m - 0.85
-            let err1 = m - re 
-            let err2 = m - be
-            let err3 = m - ge
+{-            if (m > 0.5)
+               then do let we = 1 - m
+                       I.write arr (x, y) m
+               else if (m <= 0.5)
+                       then do let be = m - 0
+                               I.write arr (x, y) m
+               else do let we = 1 - m
+                       I.write arr (x, y) m -}
             if (x < widthMax) 
-               then do let px = (re * 7/16)
+               then do let px = ( (1-m) * 7/16)
                        I.write arr (x+1, y) px 
                else if (x > 1 && y < heightMax)
-                       then do let px = (ge * 3/16)
+                       then do let px = ((m-0) * 3/16)
                                I.write arr (x-1, y+1) px
                else if (x > 1 && y < heightMax)
-                       then do let px = (be * 5/16)
+                       then do let px = ((1-m) * 5/16)
                                I.write arr (x, y+1) px
                else if (x > 1 && y < heightMax)
-                       then do let px = (ge * 1/16)
+                       then do let px = ((m-0) * 1/16)
                                I.write arr (x-1, y+1) px
                else do let px = I.index image (x, y)
                        I.write arr (x, y) px 
@@ -65,13 +65,9 @@ dithering image thetaSz distSz = accBin
 
 test :: IO ()
 test = do
-      frog <- readImageRGB VU "yield.jpg"
-      input1 <- getLine
-      input2 <- getLine
-      let thetaSz = (P.read input1 :: Int)
-      let distSz = (P.read input2 :: Int)
+      frog <- readImageY VU "yield.jpg"
       writeImage "input.png" frog
-      let ditherImage :: Image VU RGB Double
-          ditherImage = dithering frog thetaSz distSz
-      writeImage "dither.png" ditherImage  
+      let ditherImage :: Image VU Y Word8
+          ditherImage = dithering frog
+      writeImage "dither2.png" (toImageRGB ditherImage)  
 
