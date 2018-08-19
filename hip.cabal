@@ -46,6 +46,8 @@ Library
                , vector          >= 0.10
                , array
                , random
+               , random-fu
+               , normaldistribution
   Other-Extensions: BangPatterns
                   , ConstraintKinds
                   , CPP
@@ -71,6 +73,12 @@ Library
                  , Graphics.Image.Processing.Filter
                  , Graphics.Image.Processing.Hough
                  , Graphics.Image.Processing.Ahe
+                 , Graphics.Image.Processing.Otsu
+                 , Graphics.Image.Processing.Noise 
+                 , Graphics.Image.Processing.Gabor
+                 , Graphics.Image.Processing.Deconvolution
+                 , Graphics.Image.Processing.Canny
+                 , Graphics.Image.Processing.Dithering
                  , Graphics.Image.Processing.Noise
                  , Graphics.Image.Types
   Other-Modules:   Graphics.Image.ColorSpace.Binary
