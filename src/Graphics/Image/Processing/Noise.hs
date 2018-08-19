@@ -45,6 +45,7 @@ randomCoords a width height = (rnx1, rny1) : randomCoords g2 width height
 --
 saltAndPepper
   :: forall arr e cs . (IP.MArray arr Y Double, IP.Array arr Y Double)
+  :: forall arr e cs . (MArray arr Y Double, IP.Array arr Y Double)
   => Image arr Y Double
   -> Float  -- ^ Noise Intensity -> Domain : (0, 1)
   -> StdGen -- ^ Instance of RandomGen
@@ -96,3 +97,4 @@ gaussianNoise image mean sigma g = accBin
          I.freeze arr
 
 
+         freeze arr
