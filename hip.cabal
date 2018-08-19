@@ -79,6 +79,7 @@ Library
                  , Graphics.Image.Processing.Deconvolution
                  , Graphics.Image.Processing.Canny
                  , Graphics.Image.Processing.Dithering
+                 , Graphics.Image.Processing.Noise
                  , Graphics.Image.Types
   Other-Modules:   Graphics.Image.ColorSpace.Binary
                  , Graphics.Image.ColorSpace.CMYK
