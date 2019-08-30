@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports -fno-warn-duplicate-exports #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- |
@@ -118,7 +119,9 @@ import Graphics.Image.Processing as IP
 import Graphics.Image.Processing.Binary as IP
 import Graphics.Image.Processing.Complex as IP
 import Graphics.Image.Processing.Geometric as IP
+#ifndef DISABLE_CHART
 import Graphics.Image.IO.Histogram as IP
+#endif
 
 
 -- | Create an image with a specified representation and pixels of 'Double'
