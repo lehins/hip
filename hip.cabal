@@ -25,6 +25,12 @@ Extra-Doc-Files:   images/*.jpg
                  , images/*.svg
                  , README.md
                    CHANGELOG.md
+
+Flag disable-netpbm
+  Description: Disable netpbm for a lighter dependency footprint
+  Default: False
+  Manual: True
+
 Library
   Default-Language: Haskell2010
   HS-Source-Dirs: src
@@ -38,7 +44,6 @@ Library
                , deepseq         >= 1.1
                , directory       >= 1.2.2.0
                , filepath        >= 1.0
-               , netpbm          >= 1.0.1
                , primitive       >= 0.4
                , process         >= 1.1.0.0
                , repa            >= 3.2.1.1 && < 4
@@ -46,6 +51,9 @@ Library
                , vector          >= 0.10
                , array
                , random
+  if !flag(disable-netpbm)
+    Build-Depends:
+                 netpbm          >= 1.0.1
   Other-Extensions: BangPatterns
                   , ConstraintKinds
                   , CPP
@@ -83,7 +91,6 @@ Library
                  , Graphics.Image.ColorSpace.YCbCr
                  , Graphics.Image.IO.Base
                  , Graphics.Image.IO.Formats.JuicyPixels
-                 , Graphics.Image.IO.Formats.Netpbm
                  , Graphics.Image.Interface.Elevator
                  , Graphics.Image.Interface.Repa.Generic
                  , Graphics.Image.Interface.Repa.Storable
@@ -97,7 +104,12 @@ Library
                  , Graphics.Image.Processing.Geometric
                  , Graphics.Image.Processing.Interpolation
                  , Graphics.Image.Utils
+  if !flag(disable-netpbm)
+    Other-Modules:
+                   Graphics.Image.IO.Formats.Netpbm
   GHC-Options:     -Wall
+  if flag(disable-netpbm)
+    CPP-Options: -DDISABLE_NETPBM
   if os(windows)
     CPP-Options:      -DOS_Win32
   else
