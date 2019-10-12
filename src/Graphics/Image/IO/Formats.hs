@@ -1,6 +1,5 @@
 {-# LANGUAGE ConstraintKinds       #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -16,9 +15,7 @@
 --
 module Graphics.Image.IO.Formats
   ( module Graphics.Image.IO.Formats.JuicyPixels
-#ifndef DISABLE_NETPBM
   , module Graphics.Image.IO.Formats.Netpbm
-#endif
     -- * General
   , ImageFormat(..)
   , InputFormat(..)
@@ -36,9 +33,7 @@ module Graphics.Image.IO.Formats
 import           Graphics.Image.Interface
 import           Graphics.Image.IO.Base
 import           Graphics.Image.IO.Formats.JuicyPixels
-#ifndef DISABLE_NETPBM
 import           Graphics.Image.IO.Formats.Netpbm
-#endif
 
 
 
@@ -50,9 +45,7 @@ data InputFormat = InputBMP
                  | InputJPG
                  | InputPNG
                  | InputTIF
-#ifndef DISABLE_NETPBM
                  | InputPNM
-#endif
                  | InputTGA  deriving (Eq, Show, Enum, Bounded)
 
 
@@ -66,9 +59,7 @@ instance ImageFormat InputFormat where
   ext InputPNG = ext PNG
   ext InputTGA = ext TGA
   ext InputTIF = ext TIF
-#ifndef DISABLE_NETPBM
   ext InputPNM = ext PPM
-#endif
 
   exts InputBMP = exts BMP
   exts InputGIF = exts GIF
@@ -77,9 +68,7 @@ instance ImageFormat InputFormat where
   exts InputPNG = exts PNG
   exts InputTGA = exts TGA
   exts InputTIF = exts TIF
-#ifndef DISABLE_NETPBM
   exts InputPNM = [ext PBM, ext PGM, ext PPM]
-#endif
 
 
 -- | Constraint type synonym for all readable formats.
@@ -90,9 +79,7 @@ type AllReadable arr cs = ( Readable (Image arr cs Double) BMP
                           , Readable (Image arr cs Double) PNG
                           , Readable (Image arr cs Double) TGA
                           , Readable (Image arr cs Double) TIF
-#ifndef DISABLE_NETPBM
                           , Readable (Image arr cs Double) PPM
-#endif
                           )
 
 
@@ -103,9 +90,7 @@ instance AllReadable arr cs => Readable (Image arr cs Double) InputFormat where
   decode InputJPG = decode JPG
   decode InputPNG = decode PNG
   decode InputTIF = decode TIF
-#ifndef DISABLE_NETPBM
   decode InputPNM = decode PPM
-#endif
   decode InputTGA = decode TGA
 
 

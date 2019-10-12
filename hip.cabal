@@ -26,11 +26,6 @@ Extra-Doc-Files:   images/*.jpg
                  , README.md
                    CHANGELOG.md
 
-Flag disable-netpbm
-  Description: Disable netpbm for a lighter dependency footprint
-  Default: False
-  Manual: True
-
 Flag disable-chart
   Description: Disable Chart-diagrams and Chart for a lighter dependency footprint
   Default: False
@@ -55,9 +50,7 @@ Library
                , vector          >= 0.10
                , array
                , random
-  if !flag(disable-netpbm)
-    Build-Depends:
-                 netpbm          >= 1.0.1
+               , netpbm          >= 1.0.1
   if !flag(disable-chart)
     Build-Depends:
                  Chart           >= 1.5
@@ -113,12 +106,8 @@ Library
                  , Graphics.Image.Processing.Geometric
                  , Graphics.Image.Processing.Interpolation
                  , Graphics.Image.Utils
-  if !flag(disable-netpbm)
-    Other-Modules:
-                   Graphics.Image.IO.Formats.Netpbm
+                 , Graphics.Image.IO.Formats.Netpbm
   GHC-Options:     -Wall
-  if flag(disable-netpbm)
-    CPP-Options: -DDISABLE_NETPBM
   if flag(disable-chart)
     CPP-Options: -DDISABLE_CHART
   if os(windows)
