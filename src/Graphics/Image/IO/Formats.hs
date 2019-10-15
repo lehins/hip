@@ -79,7 +79,8 @@ type AllReadable arr cs = ( Readable (Image arr cs Double) BMP
                           , Readable (Image arr cs Double) PNG
                           , Readable (Image arr cs Double) TGA
                           , Readable (Image arr cs Double) TIF
-                          , Readable (Image arr cs Double) PPM )
+                          , Readable (Image arr cs Double) PPM
+                          )
 
 
 instance AllReadable arr cs => Readable (Image arr cs Double) InputFormat where

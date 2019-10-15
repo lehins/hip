@@ -25,20 +25,24 @@ Extra-Doc-Files:   images/*.jpg
                  , images/*.svg
                  , README.md
                    CHANGELOG.md
+
+Flag disable-chart
+  Description: Disable Chart-diagrams and Chart for a lighter dependency footprint
+  Default: False
+  Manual: True
+
 Library
   Default-Language: Haskell2010
   HS-Source-Dirs: src
 
-  Build-Depends: Chart           >= 1.5
-               , Chart-diagrams  >= 1.5
-               , JuicyPixels     >= 3.2.7
+  Build-Depends:
+                 JuicyPixels     >= 3.2.7
                , base            >= 4.5 && < 5
                , bytestring      >= 0.9.0.4
                , colour          >= 2.3.3
                , deepseq         >= 1.1
                , directory       >= 1.2.2.0
                , filepath        >= 1.0
-               , netpbm          >= 1.0.1
                , primitive       >= 0.4
                , process         >= 1.1.0.0
                , repa            >= 3.2.1.1 && < 4
@@ -46,6 +50,11 @@ Library
                , vector          >= 0.10
                , array
                , random
+               , netpbm          >= 1.0.1
+  if !flag(disable-chart)
+    Build-Depends:
+                 Chart           >= 1.5
+               , Chart-diagrams  >= 1.5
   Other-Extensions: BangPatterns
                   , ConstraintKinds
                   , CPP
@@ -61,7 +70,6 @@ Library
                  , Graphics.Image.ColorSpace
                  , Graphics.Image.IO
                  , Graphics.Image.IO.Formats
-                 , Graphics.Image.IO.Histogram
                  , Graphics.Image.Interface
                  , Graphics.Image.Interface.Repa
                  , Graphics.Image.Interface.Vector
@@ -73,6 +81,8 @@ Library
                  , Graphics.Image.Processing.Ahe
                  , Graphics.Image.Processing.Noise
                  , Graphics.Image.Types
+  if !flag(disable-chart)
+    Exposed-Modules: Graphics.Image.IO.Histogram
   Other-Modules:   Graphics.Image.ColorSpace.Binary
                  , Graphics.Image.ColorSpace.CMYK
                  , Graphics.Image.ColorSpace.Complex
@@ -83,7 +93,6 @@ Library
                  , Graphics.Image.ColorSpace.YCbCr
                  , Graphics.Image.IO.Base
                  , Graphics.Image.IO.Formats.JuicyPixels
-                 , Graphics.Image.IO.Formats.Netpbm
                  , Graphics.Image.Interface.Elevator
                  , Graphics.Image.Interface.Repa.Generic
                  , Graphics.Image.Interface.Repa.Storable
@@ -97,7 +106,10 @@ Library
                  , Graphics.Image.Processing.Geometric
                  , Graphics.Image.Processing.Interpolation
                  , Graphics.Image.Utils
+                 , Graphics.Image.IO.Formats.Netpbm
   GHC-Options:     -Wall
+  if flag(disable-chart)
+    CPP-Options: -DDISABLE_CHART
   if os(windows)
     CPP-Options:      -DOS_Win32
   else
@@ -118,6 +130,7 @@ Test-Suite hip-tests
                     , Graphics.Image.Interface.VectorSpec
                     , Graphics.Image.Interface.RepaSpec
                     , Graphics.Image.IO.FormatsSpec
+  Build-Tool-Depends: hspec-discover:hspec-discover
   Build-Depends:      base            >= 4.5 && < 5
                     , bytestring
                     , hip
@@ -150,6 +163,8 @@ benchmark histogram
                      , criterion
                      , hip
   default-language:    Haskell2010
+  if flag(disable-chart)
+    Buildable:         False
 
 
 Source-Repository head
