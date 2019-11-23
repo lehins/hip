@@ -134,7 +134,7 @@ import Graphics.Image.IO.Histogram as IP
 -- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
 --
 -- >>> let grad_gray = makeImageR RPU (200, 200) (\(i, j) -> PixelY $ fromIntegral (i*j)) / (200*200)
--- >>> writeImage "images/grad_gray.png" grad_gray
+-- >>> writeImage "images/grad_gray.png" (grad_gray :: Image RPU Y Double)
 --
 -- Creating color images is just as easy.
 --

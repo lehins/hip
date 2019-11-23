@@ -4,4 +4,5 @@ packages:
 - '.'
 extra-deps:
 - repa-3.4.1.3
+- repa-algorithms-3.4.1.3@sha256:86e7e11f2ad4095d589fd23700350f4034ab2e1d8e094accb7fbe770af88175e,1874
 resolver: lts-9.20
