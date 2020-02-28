@@ -4,5 +4,5 @@ packages:
 - '.'
 extra-deps:
 - repa-3.4.1.4
-- JuicyPixels # TODO: wait for JuicyPixel' PR merge and add appropriate version
+- JuicyPixels-3.3.5
 resolver: lts-15.0
