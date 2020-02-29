@@ -156,8 +156,7 @@ readImageExact' format path = either error id <$> readImageExact format path
 -- 'RGBA' 'Double') would be written as @RGBA16@, hence preserving transparency
 -- and using highest supported precision 'Word16'. At the same time, writing
 -- that image in 'GIF' format would save it in @RGB8@, since 'Word8' is the
--- highest precision 'GIF' supports and it currently cannot be saved with
--- transparency.
+-- highest precision 'GIF' supports.
 writeImage :: (Array VS cs e, Array arr cs e,
                Writable (Image VS cs e) OutputFormat) =>
               FilePath            -- ^ Location where an image should be written.
