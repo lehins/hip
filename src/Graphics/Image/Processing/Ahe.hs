@@ -5,6 +5,8 @@
 
 -- | Adaptive histogram equalization is used to improve contrast in images.
 -- It adjusts image intensity in small regions (neighborhood) in the image.
+--
+-- /__Warning__/ - This module is experimental and likely doesn't work as expected
 module Graphics.Image.Processing.Ahe where
 
 import Control.Monad (forM_, when)

@@ -1,10 +1,15 @@
+1.5.5.0
+=======
+
+* Ability to encode animated gifs
+
 1.5.4.0
 =======
 
 * Addition of `disable-chart` flag
 * Bunch of semi-functional stuff from GSoC 2018
 
-1.5.2.0
+1.5.3.0
 =======
 
 * Fixed FFT performace issue
