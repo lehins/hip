@@ -111,8 +111,14 @@ matrix:
       apt:
         packages: [libgmp-dev]
 
-  - env: BUILD=stack ARGS="--resolver lts-14"
-    compiler: ": #stack GHC-8.6.5 (lts-14)"
+  - env: BUILD=stack ARGS="--resolver lts-14.27"
+    compiler: ": #stack GHC-8.6.5 (lts-14.27)"
+    addons:
+      apt:
+        packages: [libgmp-dev]
+
+  - env: BUILD=stack ARGS="--resolver lts-15"
+    compiler: ": #stack GHC-8.8.2 (lts-15)"
     addons:
       apt:
         packages: [libgmp-dev]
