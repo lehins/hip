@@ -168,6 +168,10 @@ fromJPImageY16 :: JP.Image JP.Pixel16 -> Image VS Y Word16
 fromJPImageY16 = jpImageToImageUnsafe
 {-# INLINE fromJPImageY16 #-}
 
+fromJPImageY32 :: JP.Image JP.Pixel32 -> Image VS Y Word32
+fromJPImageY32 = jpImageToImageUnsafe
+{-# INLINE fromJPImageY32 #-}
+
 fromJPImageYA8 :: JP.Image JP.PixelYA8 -> Image VS YA Word8
 fromJPImageYA8 = jpImageToImageUnsafe
 {-# INLINE fromJPImageYA8 #-}
@@ -280,6 +284,7 @@ jpDynamicImageToImage
 jpDynamicImageToImage (JP.ImageY8 jimg)     = convert $ fromJPImageY8 jimg
 jpDynamicImageToImage (JP.ImageYA8 jimg)    = convert $ fromJPImageYA8 jimg
 jpDynamicImageToImage (JP.ImageY16 jimg)    = convert $ fromJPImageY16 jimg
+jpDynamicImageToImage (JP.ImageY32 jimg)    = convert $ fromJPImageY32 jimg
 jpDynamicImageToImage (JP.ImageYA16 jimg)   = convert $ fromJPImageYA16 jimg
 jpDynamicImageToImage (JP.ImageYF jimg)     = convert $ fromJPImageYF jimg
 jpDynamicImageToImage (JP.ImageRGB8 jimg)   = convert $ fromJPImageRGB8 jimg
@@ -296,6 +301,7 @@ jpDynamicImageToImage (JP.ImageCMYK16 jimg) = convert $ fromJPImageCMYK16 jimg
 jpImageShowCS :: JP.DynamicImage -> String
 jpImageShowCS (JP.ImageY8 _)     = "Y8 (Pixel Y Word8)"
 jpImageShowCS (JP.ImageY16 _)    = "Y16 (Pixel Y Word16)"
+jpImageShowCS (JP.ImageY32 _)    = "Y32 (Pixel Y Word32)"
 jpImageShowCS (JP.ImageYF _)     = "YF (Pixel Y Float)"
 jpImageShowCS (JP.ImageYA8 _)    = "YA8 (Pixel YA Word8)"
 jpImageShowCS (JP.ImageYA16 _)   = "YA16 (Pixel YA Word16)"

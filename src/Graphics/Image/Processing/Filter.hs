@@ -14,7 +14,7 @@
 --
 module Graphics.Image.Processing.Filter
   ( -- * Filter
-    Filter (..)
+    Filter (Filter)
   , applyFilter
   , Direction(..)
     -- * Gaussian
@@ -32,10 +32,10 @@ module Graphics.Image.Processing.Filter
   , logFilter
     -- * Gaussian Smoothing
   , gaussianSmoothingFilter
-    -- * Mean 
+    -- * Mean
   , meanFilter
     -- * Unsharp Masking
-  , unsharpMaskingFilter  
+  , unsharpMaskingFilter
   ) where
 
 
@@ -158,8 +158,8 @@ laplacianFilter :: (Array arr cs e, Array arr X e) =>
 laplacianFilter !border =
   Filter (correlate border kernel)
   where
-    !kernel = fromLists $ [ [ -1, -1, -1 ]   -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel. 
-                        , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass. 
+    !kernel = fromLists $ [ [ -1, -1, -1 ]   -- Unlike the Sobel edge detector, the Laplacian edge detector uses only one kernel.
+                        , [  -1, 8, -1 ]     -- It calculates second order derivatives in a single pass.
                         , [  -1, -1, -1 ]]   -- This is the approximated kernel used for it. (Includes diagonals)
 {-# INLINE laplacianFilter #-}
 
@@ -167,7 +167,7 @@ laplacianFilter !border =
 -- an image before applying some derivative filter on it. This comes in
 -- need for reducing the noise sensitivity while working with noisy
 -- datasets or in case of approximating second derivative measurements.
--- 
+--
 -- The LoG operator takes the second derivative of the image. Where the image
 -- is basically uniform, the LoG will give zero. Wherever a change occurs, the LoG will
 -- give a positive response on the darker side and a negative response on the lighter side.
@@ -191,14 +191,14 @@ logFilter !border =
                           , [  0,  1,  1, 2, 2, 2, 1, 1, 0  ] ]
 {-# INLINE logFilter #-}
 
--- | The Gaussian smoothing operator is a 2-D convolution operator that is used to 
--- `blur' images and remove detail and noise. The idea of Gaussian smoothing is to use 
--- this 2-D distribution as a `point-spread' function, and this is achieved by convolution. 
--- Since the image is stored as a collection of discrete pixels we need to produce a 
--- discrete approximation to the Gaussian function before we can perform the convolution. 
+-- | The Gaussian smoothing operator is a 2-D convolution operator that is used to
+-- `blur' images and remove detail and noise. The idea of Gaussian smoothing is to use
+-- this 2-D distribution as a `point-spread' function, and this is achieved by convolution.
+-- Since the image is stored as a collection of discrete pixels we need to produce a
+-- discrete approximation to the Gaussian function before we can perform the convolution.
 -- More info about the algo at <https://homepages.inf.ed.ac.uk/rbf/HIPR2/gsmooth.htm>
--- 
--- <<images/GSM_gsn_yield_IP.jpg>> <<images/GSM_gsn_yield_OP.png>> 
+--
+-- <<images/GSM_gsn_yield_IP.jpg>> <<images/GSM_gsn_yield_OP.png>>
 --
 gaussianSmoothingFilter :: (Fractional e, Array arr cs e, Array arr X e) =>
                            Border (Pixel cs e) -> Filter arr cs e
@@ -211,32 +211,32 @@ gaussianSmoothingFilter !border =
                           ,[  4, 16, 26, 16, 4 ]
                           ,[ 1, 4, 7, 4, 1 ]]
 
-{-# INLINE gaussianSmoothingFilter #-}    
+{-# INLINE gaussianSmoothingFilter #-}
 
 
--- | The mean filter is a simple sliding-window spatial filter that replaces the 
--- center value in the window with the average (mean) of all the pixel values in 
--- the window. The window, or kernel, can be any shape, but this one uses the most 
+-- | The mean filter is a simple sliding-window spatial filter that replaces the
+-- center value in the window with the average (mean) of all the pixel values in
+-- the window. The window, or kernel, can be any shape, but this one uses the most
 -- common 3x3 square kernel.
 -- More info about the algo at <http://homepages.inf.ed.ac.uk/rbf/HIPR2/mean.htm>
--- 
+--
 -- <<images/yield.jpg>>   <<images/yield_mean.png>>
--- 
+--
 meanFilter :: (Fractional e, Array arr cs e, Array arr X e) =>
                            Border (Pixel cs e) -> Filter arr cs e
 meanFilter !border =
   Filter (I.map (/ 9) . correlate border kernel)
-  where 
+  where
     !kernel = fromLists $[ [ 1, 1, 1 ]       -- Replace each pixel with the mean value of its neighbors, including itself.
-                          , [  1, 1, 1 ]   
+                          , [  1, 1, 1 ]
                           , [  1, 1, 1 ]]
 
 {-# INLINE meanFilter #-}
 
 -- | The unsharp-masking filter is a sharpening operator which derives its name from
--- the fact that it enhances edges (and other high frequency components in an image) 
+-- the fact that it enhances edges (and other high frequency components in an image)
 -- via a procedure which subtracts an unsharp, or smoothed, version of an image from
--- the original image. It is commonly used in the photographic and printing industries 
+-- the original image. It is commonly used in the photographic and printing industries
 -- for crispening edges.
 -- More info about the algo at <https://homepages.inf.ed.ac.uk/rbf/HIPR2/unsharp.htm>
 --
@@ -246,13 +246,11 @@ unsharpMaskingFilter :: (Fractional e, Array arr cs e, Array arr X e) =>
                            Border (Pixel cs e) -> Filter arr cs e
 unsharpMaskingFilter !border =
   Filter (I.map (/256) . correlate border kernel)
-  where 
-    !kernel = fromLists $ [[ -1, -4, -6, -4, -1 ]     
+  where
+    !kernel = fromLists $ [[ -1, -4, -6, -4, -1 ]
                           ,[  -4, -16, -24, -16, -4 ]    -- Uses negative image to create a mask of the original image.
                           ,[  -6, -24, 476, -24, -6 ]    -- The unsharped mask is then combined with the positive (original) image.
                           ,[  -4, -16, -24, -16, -4 ]    -- So, the resulting image is less blurry, i.e clearer.
                           ,[ -1, -4, -6, -4, -1 ]]
 
 {-# INLINE unsharpMaskingFilter #-}
-
-

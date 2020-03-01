@@ -37,13 +37,6 @@ matrix:
   # We grab the appropriate GHC and cabal-install versions from hvr's PPA. See:
   # https://github.com/hvr/multi-ghc-travis
 
-  - env: BUILD=cabal GHCVER=7.10.3 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.10.3"
-    addons:
-      apt:
-        packages: [cabal-install-1.24,ghc-7.10.3,happy-1.19.5,alex-3.1.7]
-        sources: [hvr-ghc]
-
   - env: BUILD=cabal GHCVER=8.0.2 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 8.0.2"
     addons:
@@ -70,32 +63,56 @@ matrix:
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
 
-  - env: BUILD=stack ARGS="--stack-yaml stack.lts-6.yaml"
-    compiler: ": #stack GHC-7.10.3 (lts-6.30)"
+  # - env: BUILD=stack ARGS="--resolver lts-8.24"
+  #   compiler: ": #stack GHC-8.0.2 (lts-8.24)"
+  #   addons:
+  #     apt:
+  #       packages: [libgmp-dev]
+
+  - env: BUILD=stack ARGS="--resolver lts-9.21"
+    compiler: ": #stack GHC-8.0.2 (lts-9.20)"
     addons:
       apt:
         packages: [libgmp-dev]
 
-  - env: BUILD=stack ARGS="--resolver lts-7"
-    compiler: ": #stack GHC-8.0.1 (lts-7.24)"
+  - env: BUILD=stack ARGS="--resolver lts-10.10"
+    compiler: ": #stack GHC-8.2.2 (lts-10.10)"
     addons:
       apt:
         packages: [libgmp-dev]
 
-  - env: BUILD=stack ARGS="--resolver lts-8.24"
-    compiler: ": #stack GHC-8.0.2 (lts-8.24)"
+  - env: BUILD=stack ARGS="--resolver lts-12.24"
+    compiler: ": #stack GHC-8.4.3 (lts-12.24)"
     addons:
       apt:
         packages: [libgmp-dev]
 
-  - env: BUILD=stack ARGS=""
-    compiler: ": #stack GHC-8.0.2 (lts-9.20) - default"
+  - env: BUILD=stack ARGS="--resolver lts-12.26"
+    compiler: ": #stack GHC-8.4.4 (lts-12.26)"
     addons:
       apt:
         packages: [libgmp-dev]
 
-  - env: BUILD=stack ARGS="--resolver lts-10"
-    compiler: ": #stack GHC-8.2.2 (lts-10)"
+  - env: BUILD=stack ARGS="--resolver lts-13.9"
+    compiler: ": #stack GHC-8.6.3 (lts-13.9)"
+    addons:
+      apt:
+        packages: [libgmp-dev]
+
+  - env: BUILD=stack ARGS="--resolver lts-13.19"
+    compiler: ": #stack GHC-8.6.4 (lts-13.19)"
+    addons:
+      apt:
+        packages: [libgmp-dev]
+
+  - env: BUILD=stack ARGS="--resolver lts-13.30"
+    compiler: ": #stack GHC-8.6.5 (lts-13.30)"
+    addons:
+      apt:
+        packages: [libgmp-dev]
+
+  - env: BUILD=stack ARGS="--resolver lts-14"
+    compiler: ": #stack GHC-8.6.5 (lts-14)"
     addons:
       apt:
         packages: [libgmp-dev]
