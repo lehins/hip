@@ -16,7 +16,6 @@ import Graphics.Image.Processing.Filter
 import Graphics.Image.Interface as I
 import Graphics.Image
 import Graphics.Image.Types as IP
-import Graphics.Image.ColorSpace (X)
 
 -- | Supplementary function for applying border resolution and a general mask.
 simpleFilter :: (Array arr cs e, Array arr X e) => Direction -> Border (Pixel cs e) -> Filter arr cs e
@@ -25,8 +24,8 @@ simpleFilter dir !border =
   where
     !kernel =
       case dir of
-        Vertical   -> fromLists $ [ [ 0, -1, 0 ], [  -1,  4,  -1 ], [  0,  -1,  0 ] ]
-        Horizontal -> fromLists $ [ [ 0, -1, 0 ], [ -1, 4, -1 ], [ 0, -1, 0 ] ]
+        Vertical   -> fromLists [ [ 0, -1, 0 ], [ -1, 4, -1 ], [ 0, -1, 0 ] ]
+        Horizontal -> fromLists [ [ 0, -1, 0 ], [ -1, 4, -1 ], [ 0, -1, 0 ] ]
 
 -- | 'ahe' operates on small 'contextual' regions of the image. It enhances the contrast of each
 -- region and this technique works well when the distribution of pixel values is similar throughout
