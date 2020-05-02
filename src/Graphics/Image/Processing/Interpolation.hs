@@ -132,4 +132,5 @@ instance Interpolation Bicubic where
         + weight (distX i1) * weight (distY j3)
         + weight (distX i2) * weight (distY j3)
         + weight (distX i3) * weight (distY j3)
+  {-# INLINE interpolate #-}
 

@@ -13,17 +13,22 @@ import Graphics.Image.InterfaceSpec (translateWrap, dummyImage10x20)
 data Interpol
   = I1 Nearest
   | I2 Bilinear
+  | I3 Bicubic
 
 instance Show Interpol where
   show (I1 i) = "I1 " ++ show i
   show (I2 i) = "I2 " ++ show i
+  show (I3 i) = "I3 " ++ show i
 
 instance Arbitrary Interpol where
   arbitrary = do
     ix <- arbitrary
-    case ix `mod` (2 :: Int) of
+    case ix `mod` (3 :: Int) of
       0 -> return $ I1 Nearest
       1 -> return $ I2 Bilinear
+      2 -> do
+        Negative a <- arbitrary
+        return . I3 $ Bicubic a
       _ -> error $ "Unknown interpolation: " ++ show ix
 
 
@@ -74,18 +79,22 @@ prop_concatRotate img =
 prop_rotate90 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
 prop_rotate90 (I1 i) border img = rotate90 img == rotate i border (pi/2) img
 prop_rotate90 (I2 i) border img = rotate90 img == rotate i border (pi/2) img
+prop_rotate90 (I3 i) border img = rotate90 img == rotate i border (pi/2) img
 
 prop_rotate180 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
 prop_rotate180 (I1 i) border img = rotate180 img == rotate i border pi img
 prop_rotate180 (I2 i) border img = rotate180 img == rotate i border pi img
+prop_rotate180 (I3 i) border img = rotate180 img == rotate i border pi img
 
 prop_rotate270 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
 prop_rotate270 (I1 i) border img = rotate270 img == rotate i border (3*pi/2) img
 prop_rotate270 (I2 i) border img = rotate270 img == rotate i border (3*pi/2) img
+prop_rotate270 (I3 i) border img = rotate270 img == rotate i border (3*pi/2) img
 
 prop_rotate360 :: Interpol -> Border (Pixel RGB Double) -> Image VU RGB Double -> Bool
 prop_rotate360 (I1 i) border img = (rotate270 . rotate90) img == rotate i border (2*pi) img
 prop_rotate360 (I2 i) border img = (rotate270 . rotate90) img == rotate i border (2*pi) img
+prop_rotate360 (I3 i) border img = (rotate270 . rotate90) img == rotate i border (2*pi) img
 
 
 struct :: Image VS X Bit
