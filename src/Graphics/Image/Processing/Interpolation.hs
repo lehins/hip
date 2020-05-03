@@ -92,45 +92,59 @@ instance Interpolation Bicubic where
     !(i2, j2) = (i1 + 1, j1 + 1)
     !(i3, j3) = (i1 + 2, j1 + 2)
 
-    !f00 = getPx' (i0, j0) * promote (fromDouble $ weight (distX i0) * weight (distY j0))
-    !f10 = getPx' (i1, j0) * promote (fromDouble $ weight (distX i1) * weight (distY j0))
-    !f20 = getPx' (i2, j0) * promote (fromDouble $ weight (distX i2) * weight (distY j0))
-    !f30 = getPx' (i3, j0) * promote (fromDouble $ weight (distX i3) * weight (distY j0))
+    !weightX0 = weight (distX i0)
+    !weightY0 = weight (distY i0)
+    !weightX1 = weight (distX i1)
+    !weightY1 = weight (distY i1)
+    !weightX2 = weight (distX i2)
+    !weightY2 = weight (distY i2)
+    !weightX3 = weight (distX i3)
+    !weightY3 = weight (distY i3)
 
-    !f01 = getPx' (i0, j1) * promote (fromDouble $ weight (distX i0) * weight (distY j1))
-    !f11 = getPx' (i1, j1) * promote (fromDouble $ weight (distX i1) * weight (distY j1))
-    !f21 = getPx' (i2, j1) * promote (fromDouble $ weight (distX i2) * weight (distY j1))
-    !f31 = getPx' (i3, j1) * promote (fromDouble $ weight (distX i3) * weight (distY j1))
+    !weightX0Y0 = weightX0 * weightY0
+    !weightX1Y0 = weightX1 * weightY0
+    !weightX2Y0 = weightX2 * weightY0
+    !weightX3Y0 = weightX3 * weightY0
 
-    !f02 = getPx' (i0, j2) * promote (fromDouble $ weight (distX i0) * weight (distY j2))
-    !f12 = getPx' (i1, j2) * promote (fromDouble $ weight (distX i1) * weight (distY j2))
-    !f22 = getPx' (i2, j2) * promote (fromDouble $ weight (distX i2) * weight (distY j2))
-    !f32 = getPx' (i3, j2) * promote (fromDouble $ weight (distX i3) * weight (distY j2))
+    !weightX0Y1 = weightX0 * weightY1
+    !weightX1Y1 = weightX1 * weightY1
+    !weightX2Y1 = weightX2 * weightY1
+    !weightX3Y1 = weightX3 * weightY1
 
-    !f03 = getPx' (i0, j3) * promote (fromDouble $ weight (distX i0) * weight (distY j3))
-    !f13 = getPx' (i1, j3) * promote (fromDouble $ weight (distX i1) * weight (distY j3))
-    !f23 = getPx' (i2, j3) * promote (fromDouble $ weight (distX i2) * weight (distY j3))
-    !f33 = getPx' (i3, j3) * promote (fromDouble $ weight (distX i3) * weight (distY j3))
+    !weightX0Y2 = weightX0 * weightY2
+    !weightX1Y2 = weightX1 * weightY2
+    !weightX2Y2 = weightX2 * weightY2
+    !weightX3Y2 = weightX3 * weightY2
+
+    !weightX0Y3 = weightX0 * weightY3
+    !weightX1Y3 = weightX1 * weightY3
+    !weightX2Y3 = weightX2 * weightY3
+    !weightX3Y3 = weightX3 * weightY3
+
+    !f00 = getPx' (i0, j0) * promote (fromDouble weightX0Y0)
+    !f10 = getPx' (i1, j0) * promote (fromDouble weightX1Y0)
+    !f20 = getPx' (i2, j0) * promote (fromDouble weightX2Y0)
+    !f30 = getPx' (i3, j0) * promote (fromDouble weightX3Y0)
+
+    !f01 = getPx' (i0, j1) * promote (fromDouble weightX0Y1)
+    !f11 = getPx' (i1, j1) * promote (fromDouble weightX1Y1)
+    !f21 = getPx' (i2, j1) * promote (fromDouble weightX2Y1)
+    !f31 = getPx' (i3, j1) * promote (fromDouble weightX3Y1)
+
+    !f02 = getPx' (i0, j2) * promote (fromDouble weightX0Y2)
+    !f12 = getPx' (i1, j2) * promote (fromDouble weightX1Y2)
+    !f22 = getPx' (i2, j2) * promote (fromDouble weightX2Y2)
+    !f32 = getPx' (i3, j2) * promote (fromDouble weightX3Y2)
+
+    !f03 = getPx' (i0, j3) * promote (fromDouble weightX0Y3)
+    !f13 = getPx' (i1, j3) * promote (fromDouble weightX1Y3)
+    !f23 = getPx' (i2, j3) * promote (fromDouble weightX2Y3)
+    !f33 = getPx' (i3, j3) * promote (fromDouble weightX3Y3)
 
     !w = promote . fromDouble . (1 /) $
-          weight (distX i0) * weight (distY j0)
-        + weight (distX i1) * weight (distY j0)
-        + weight (distX i2) * weight (distY j0)
-        + weight (distX i3) * weight (distY j0)
-
-        + weight (distX i0) * weight (distY j1)
-        + weight (distX i1) * weight (distY j1)
-        + weight (distX i2) * weight (distY j1)
-        + weight (distX i3) * weight (distY j1)
-
-        + weight (distX i0) * weight (distY j2)
-        + weight (distX i1) * weight (distY j2)
-        + weight (distX i2) * weight (distY j2)
-        + weight (distX i3) * weight (distY j2)
-
-        + weight (distX i0) * weight (distY j3)
-        + weight (distX i1) * weight (distY j3)
-        + weight (distX i2) * weight (distY j3)
-        + weight (distX i3) * weight (distY j3)
+          weightX0Y0 + weightX1Y0 + weightX2Y0 + weightX3Y0
+        + weightX0Y1 + weightX1Y1 + weightX2Y1 + weightX3Y1
+        + weightX0Y2 + weightX1Y2 + weightX2Y2 + weightX3Y2
+        + weightX0Y3 + weightX1Y3 + weightX2Y3 + weightX3Y3
   {-# INLINE interpolate #-}
 
