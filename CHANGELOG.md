@@ -1,3 +1,8 @@
+1.5.6.0
+=======
+
+* Addition of Bicubic interpolation (Thanks to @kirisaki)
+
 1.5.5.0
 =======
 
