@@ -26,9 +26,7 @@ instance Arbitrary Interpol where
     case ix `mod` (3 :: Int) of
       0 -> return $ I1 Nearest
       1 -> return $ I2 Bilinear
-      2 -> do
-        Negative a <- arbitrary
-        return . I3 $ Bicubic a
+      2 -> I3 . Bicubic <$> choose (-1, -0.5)
       _ -> error $ "Unknown interpolation: " ++ show ix
 
 
