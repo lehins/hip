@@ -8,6 +8,8 @@ module Graphics.Image.Processing.Noise where
 import Control.Monad (forM_)
 import Control.Monad.ST
 import System.Random
+import Data.Random.Normal
+import Data.Array.MArray
 
 import Prelude as P hiding (subtract)
 import Graphics.Image.Interface as I
@@ -42,6 +44,7 @@ randomCoords a width height = (rnx1, rny1) : randomCoords g2 width height
 -- >>> writeImage "images/yield_snp.png" snpImage
 --
 saltAndPepper
+  :: forall arr e cs . (IP.MArray arr Y Double, IP.Array arr Y Double)
   :: forall arr e cs . (MArray arr Y Double, IP.Array arr Y Double)
   => Image arr Y Double
   -> Float  -- ^ Noise Intensity -> Domain : (0, 1)
@@ -66,4 +69,32 @@ saltAndPepper image noiseLevel = accBin
                       I.write arr i px
               else do let px = 1.0
                       I.write arr i px
+         I.freeze arr
+
+gaussianNoise
+  :: forall arr e cs . (IP.MArray arr Y Double, IP.Array arr Y Double)
+  => Image arr Y Double
+  -> Float  -- ^ Mean
+  -> Float  -- ^ Sigma
+  -> StdGen -- ^ Instance of RandomGen
+  -> Image arr Y Double
+gaussianNoise image mean sigma g = accBin 
+ where
+   widthMax, heightMax :: Int
+   widthMax = ((rows image) - 1)
+   heightMax = ((cols image) - 1)
+   samples = normals' (mean, sigma) g
+   new = newListArray (widthMax, heightMax) samples
+
+   accBin :: [(Int,Int)] -> Image arr Y Double
+   accBin new = runST $ 
+      do arr <- I.thaw image  
+         forM_ [0 .. widthMax] $ \x -> do
+          forM_ [0 .. heightMax] $ \y -> do  
+              let value = (fromIntegral (readArray new (x, y) ))
+              let px = ( (I.index image (x, y)) + (PixelY value) )
+              I.write arr (x, y) px
+         I.freeze arr
+
+
          freeze arr
