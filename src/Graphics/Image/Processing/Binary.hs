@@ -39,7 +39,7 @@ module Graphics.Image.Processing.Binary
   , (.||.)
   -- * Bitwise operations
   -- , or
-  -- , and
+  , and
   , invert
   , disjunction
   , conjunction
@@ -60,6 +60,7 @@ import Graphics.Image.Internal as I
 import Graphics.Image.Processing.Convolution
 import Prelude as P hiding (and, or)
 import Graphics.Color.Algebra.Binary
+import Data.Monoid (Product(..))
 
 infix  4  .==., ./=., .<., .<=., .>=., .>., !==!, !/=!, !<!, !<=!, !>=!, !>!
 -- infixr 3  .&&., !&&!
@@ -227,10 +228,10 @@ conjunction = I.map (pure . F.foldl' (.&.) one)
 -- or = isOn . foldSemi (.|.) off
 -- {-# INLINE or #-}
 
--- -- | Conjunction of all pixels in a Binary image
--- and :: Image Model.Y Bit -> Bool
--- and = isOn . foldl (.&.) on
--- {-# INLINE and #-}
+-- | Conjunction of all pixels in a Binary image
+and :: Image Model.Y Bit -> Bool
+and =  (==1) . getProduct . I.foldMono Product
+{-# INLINE and #-}
 
 
 {- $morphology In order to demonstrate how morphological operations work, a
