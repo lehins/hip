@@ -45,6 +45,7 @@ module Graphics.Image.Processing.Geometric
 import           Control.Monad.ST
 import           Data.Bifunctor
 import qualified Data.Massiv.Array        as A
+import qualified Data.Massiv.Vector       as V
 import qualified Data.Massiv.Array.Unsafe as A
 import qualified Data.Vector.Unboxed      as VU
 import           Graphics.Image.Internal
@@ -62,21 +63,10 @@ import           Prelude                  hiding (traverse)
 -- <<images/frog.jpg>> <<images/frog_downsampled.jpg>>
 --
 downsample :: ColorModel cs e =>
-              (Int -> Bool) -- ^ Rows predicate
-           -> (Int -> Bool) -- ^ Columns predicate
+              Stride Ix2
            -> Image cs e -- ^ Source image
            -> Image cs e
-downsample mPred nPred = transform getNewDims getNewPx
-  where
-    getNewDims (Sz2 m n) =
-      let rowsIx = VU.filter (not . mPred) $ VU.enumFromN 0 m
-          colsIx = VU.filter (not . nPred) $ VU.enumFromN 0 n
-          sz = Sz (VU.length rowsIx :. VU.length colsIx)
-      in (sz, (rowsIx, colsIx))
-    {-# INLINE getNewDims #-}
-    getNewPx (rowsIx, colsIx) getPx (i :. j) =
-      getPx (VU.unsafeIndex rowsIx i :. VU.unsafeIndex colsIx j)
-    {-# INLINE getNewPx #-}
+downsample stride = computeI . A.fromStrideLoad stride . delayPull
 {-# INLINE [~1] downsample #-}
 
 
@@ -93,61 +83,42 @@ downsample mPred nPred = transform getNewDims getNewPx
 --
 upsample :: ColorModel cs e =>
             Pixel cs e -- ^ Pixel to use for upsampling
-         -> (Int -> (Int, Int)) -- ^ How many rows to insert @(above, below)@ a particular row.
-         -> (Int -> (Int, Int)) -- ^ How many columns to insert to the @(left, right)@ of a
-                                -- particular column.
+         -> Stride Ix2
          -> Image cs e -- ^ Source image
          -> Image cs e
-upsample defPx mAdd nAdd = transform getNewDims getNewPx
+upsample defPx (Stride six@(is :. js)) = computeI . upsampleArray . delayPull
   where
-    getNewDims (m' :. n') = (sz, (sz, rowsIx, colsIx))
-      where
-        rowsInfoArr = A.makeArrayR A.U Seq m' (bimap (max 0) (max 0) . mAdd)
-        colsInfoArr = A.makeArrayR A.U Seq n' (bimap (max 0) (max 0) . nAdd)
-        m = A.sum (A.map (uncurry (+)) rowsInfoArr) + m'
-        n = A.sum (A.map (uncurry (+)) colsInfoArr) + n'
-        sz = m :. n
-        rowsIx = makeIndices rowsInfoArr m
-        colsIx = makeIndices colsInfoArr n
-    {-# INLINE getNewDims #-}
-    getNewPx (sz, rowsIx, colsIx) getPx (i :. j) =
-      A.handleBorderIndex (Fill defPx) sz getPx (A.unsafeIndex rowsIx i :. A.unsafeIndex colsIx j)
-    {-# INLINE getNewPx #-}
-    makeIndices a k =
-      runST $ do
-        marr <- A.unsafeThaw $ A.makeArrayR A.P Seq k (const (-1))
-        let writer ci i (l, r) = do
-              A.unsafeLinearWrite marr (ci + l) i
-              return (ci + l + 1 + r)
-        A.ifoldlM_ writer 0 a
-        A.unsafeFreeze Seq marr
-    {-# INLINE makeIndices #-}
+    upsampleArray arr =
+      let sz' = liftSz2 (*) (Sz six) (A.size arr)
+       in A.unsafeMakeLoadArrayAdjusted (A.getComp arr) sz' (Just defPx) $ \scheduler uWrite ->
+            A.iforSchedulerM_ scheduler arr $ \ix e ->
+              uWrite (toLinearIndex sz' (A.liftIndex2 (*) ix six)) e
 {-# INLINE [~1] upsample #-}
 
 
--- | Downsample an image by discarding every odd row.
+-- | Downsample an image by discarding every odd indexed row.
 downsampleRows :: ColorModel cs e => Image cs e -> Image cs e
-downsampleRows = downsample odd (const False)
+downsampleRows = downsample (Stride (2 :. 1))
 {-# INLINE [~1] downsampleRows #-}
 
 
--- | Downsample an image by discarding every odd column.
+-- | Downsample an image by discarding every odd indexed column.
 downsampleCols :: ColorModel cs e => Image cs e -> Image cs e
-downsampleCols = downsample (const False) odd
+downsampleCols = downsample (Stride (1 :. 2))
 {-# INLINE [~1] downsampleCols #-}
 
 
--- | Upsample an image by inserting a row of back pixels after each row of a
+-- | Upsample an image by inserting a row of back pixels after each even indexed row of a
 -- source image.
 upsampleRows :: ColorModel cs e => Image cs e -> Image cs e
-upsampleRows = upsample 0 (const (0, 1)) (const (0, 0))
+upsampleRows = upsample 0 (Stride (2 :. 1))
 {-# INLINE [~1] upsampleRows #-}
 
 
--- | Upsample an image by inserting a column of back pixels after each column of a
+-- | Upsample an image by inserting a column of back pixels after each even indexed column of a
 -- source image.
 upsampleCols :: ColorModel cs e => Image cs e -> Image cs e
-upsampleCols = upsample 0 (const (0, 0)) (const (0, 1))
+upsampleCols = upsample 0 (Stride (1 :. 2))
 {-# INLINE [~1] upsampleCols #-}
 
 
@@ -155,21 +126,21 @@ upsampleCols = upsample 0 (const (0, 0)) (const (0, 1))
 -- | Append two images together into one horisontally. Both input images must have the
 -- same number of rows, otherwise error.
 leftToRight :: ColorModel cs e => Image cs e -> Image cs e -> Image cs e
-leftToRight img1 img2 = computeI (A.append' 1 (delayI img1) (delayI img2))
-{-# INLINE [~1] leftToRight #-}
+leftToRight img1 img2 = computeI (A.append' 1 (delayPull img1) (delayPull img2))
+{-# INLINE [~1] leftToRight #-} --TODO: implement `A.appendInnerM`
 
 
 -- | Append two images together into one vertically. Both input images must have the
 -- same number of columns, otherwise error.
 topToBottom :: ColorModel cs e => Image cs e -> Image cs e -> Image cs e
-topToBottom img1 img2 = computeI (A.append' 2 (delayI img1) (delayI img2))
+topToBottom img1 img2 = computeI (either throw id $ A.appendOuterM (delayPush img1) (delayPush img2))
 {-# INLINE [~1] topToBottom #-}
 
 
 
 -- | Transpose an image
 transpose :: ColorModel cs e => Image cs e -> Image cs e
-transpose = computeI . A.transpose . delayI
+transpose = computeI . A.transpose . delayPull
 {-# INLINE [~1] transpose #-}
 
 
@@ -185,10 +156,11 @@ transpose = computeI . A.transpose . delayI
 translate
   :: ColorModel cs e
   => Border (Pixel cs e) -- ^ Border resolution strategy
-  -> (Ix2 -> Ix2) -- ^ Number of rows and columns image will be shifted by.
+  -> (Sz2 -> Sz2) -- ^ Number of rows and columns image will be shifted by. Accepts
+                  -- current size as an argument.
   -> Image cs e -> Image cs e
 translate atBorder fDeltaSz =
-  transmute (\sz -> (sz, (sz, fDeltaSz sz))) $ \(sz, (dm :. dn)) getPx (i :. j) ->
+  transform (\sz -> (sz, (sz, fDeltaSz sz))) $ \(sz, Sz (dm :. dn)) getPx (i :. j) ->
     A.handleBorderIndex atBorder sz getPx (i - dm :. j - dn)
 {-# INLINE [~1] translate #-}
 
@@ -202,20 +174,20 @@ translate atBorder fDeltaSz =
 -- scale the canvas and place it in a middle:
 --
 -- >>> logo <- readImageRGBA "images/logo_40.png"
--- >>> writeImage "images/logo_tile.png" $ canvasSize Wrap (\sz -> (sz * (5 :. 7), 0)) logo
--- >>> writeImage "images/logo_center.png" $ canvasSize Edge (\sz -> (sz * (5 :. 7), sz * (2 :. 3))) logo
+-- >>> writeImage "images/logo_tile.png" $ canvasSize Wrap (\sz -> (0, sz * Sz (5 :. 7))) logo
+-- >>> writeImage "images/logo_center.png" $ canvasSize Edge (\sz -> (unSz sz * (2 :. 3), sz * Sz (5 :. 7))) logo
 --
 -- <<images/logo_tile.png>> <<images/logo_center.png>>
 canvasSize ::
      ColorModel cs e
   => Border (Pixel cs e) -- ^ Border resolution strategy
-  -> (Ix2 -> (Ix2, Ix2)) -- ^ Function that returns new dimensions of the image and the offset position
+  -> (Sz2 -> (Ix2, Sz2)) -- ^ Function that returns the offset and new dimensions of the image
   -> Image cs e -- ^ Source image
   -> Image cs e
 canvasSize atBorder fSz =
-  transmute
+  transform
     (\oldSz ->
-       let (newSz, offset) = fSz oldSz
+       let (offset, newSz) = fSz oldSz
        in (newSz, (oldSz, offset))) $ \(sz, dm :. dn) getPx (i :. j) ->
     A.handleBorderIndex atBorder sz getPx (i - dm :. j - dn)
 {-# INLINE [~1] canvasSize #-}
@@ -231,7 +203,7 @@ canvasSize atBorder fSz =
 --
 crop ::
      ColorModel cs e
-  => (Ix2 -> (Ix2, Ix2))
+  => (Sz2 -> (Ix2, Sz2))
   -- ^ Takes dimensions of the source image as an argument and returns @(i `:.` j)@ starting index from
   -- within a source image as well as @(m `:.` n)@ dimensions of a new image.
   -> Image cs e -- ^ Source image.
@@ -241,7 +213,7 @@ crop fSz =
   (\arr ->
      let !(ix0, sz) = fSz (A.size arr)
      in A.extract' ix0 sz arr) .
-  delayI
+  delayPull
 {-# INLINE [~1] crop #-}
 
 
@@ -254,7 +226,7 @@ superimpose ::
   -> Image cs e -- ^ Source image.
   -> Image cs e
 superimpose ix0 =
-  transmute2 (flip (,)) $ \szA getPxA getPxB ix ->
+  transform2 (flip (,)) $ \szA getPxA getPxB ix ->
     A.handleBorderIndex (Fill (getPxB ix)) szA getPxA (ix - ix0)
 {-# INLINE [~1] superimpose #-}
 
@@ -266,7 +238,7 @@ superimpose ix0 =
 -- <<images/frog.jpg>> <<images/frog_flipV.jpg>>
 --
 flipV :: ColorModel cs e => Image cs e -> Image cs e
-flipV = backpermute dupl (\ (m :. _) (i :. j) -> m - 1 - i :. j)
+flipV = backpermute dupl (\ (Sz2 m _) (i :. j) -> m - 1 - i :. j)
 {-# INLINE [~1] flipV #-}
 
 
@@ -278,7 +250,7 @@ flipV = backpermute dupl (\ (m :. _) (i :. j) -> m - 1 - i :. j)
 -- <<images/frog.jpg>> <<images/frog_flipH.jpg>>
 --
 flipH :: ColorModel cs e => Image cs e -> Image cs e
-flipH = backpermute dupl (\ (_ :. n) (i :. j) -> i :. n - 1 - j)
+flipH = backpermute dupl (\ (Sz2 _ n) (i :. j) -> i :. n - 1 - j)
 {-# INLINE [~1] flipH #-}
 
 
@@ -302,7 +274,7 @@ rotate90 = transpose . flipV
 -- <<images/frog.jpg>> <<images/frog_rotate180.jpg>>
 --
 rotate180 :: ColorModel cs e => Image cs e -> Image cs e
-rotate180 = backpermute dupl (\ sz ix -> sz - ix - 1)
+rotate180 = backpermute dupl (\ sz ix -> unSz sz - ix - 1)
 {-# INLINE [~1] rotate180 #-}
 
 
@@ -333,14 +305,14 @@ rotate :: (ColorModel cs e, Interpolation method) =>
        -> Image cs e -- ^ Source image
        -> Image cs e -- ^ Rotated image
 rotate method border theta' (Image arr) =
-  makeImageComp (A.getComp arr) (ceiling mD' :. ceiling nD') $ \(i :. j) ->
+  makeImageComp (A.getComp arr) (Sz (ceiling mD' :. ceiling nD')) $ \(i :. j) ->
     let !(iD, jD) = (fromIntegral i - iDelta + 0.5, fromIntegral j - jDelta + 0.5)
         !i' = iD * cosTheta + jD * sinTheta - 0.5
         !j' = jD * cosTheta - iD * sinTheta - 0.5
     in interpolate method (A.handleBorderIndex border sz (A.index' arr)) (i', j')
   where
     !theta = angle0to2pi (-theta') -- invert angle direction and put it into [0, 2*pi) range
-    !sz@(m :. n) = A.size arr
+    !sz@(Sz2 m n) = A.size arr
     !mD = fromIntegral m
     !nD = fromIntegral n
     !sinTheta = sin' theta
@@ -369,20 +341,20 @@ rotate method border theta' (Image arr) =
 resize :: (ColorModel cs e, Interpolation method) =>
           method -- ^ Interpolation method to be used during scaling.
        -> Border (Pixel cs e) -- ^ Border handling strategy
-       -> Ix2   -- ^ Dimensions of a result image.
+       -> Sz2   -- ^ Dimensions of a result image.
        -> Image cs e -- ^ Source image.
        -> Image cs e -- ^ Result image.
-resize method border sz'@(m' :. n') (Image arr) =
-  Image (A.makeArray sz' getNewPx)
+resize method border sz'@(Sz2 m' n') (Image arr) =
+  Image (A.makeArray (A.getComp arr) sz' getNewPx)
   where
-    sz@(m :. n) = A.size arr
+    sz@(Sz2 m n) = A.size arr
     !fM = fromIntegral m' / fromIntegral m
     !fN = fromIntegral n' / fromIntegral n
     getNewPx (i :. j) =
       interpolate
         method
         (A.handleBorderIndex border sz (A.index' arr))
-        ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
+        ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - (0.5 :: Double))
     {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
@@ -401,9 +373,10 @@ scale :: (ColorModel cs e, Interpolation method) =>
 scale method border (fM, fN) img =
   if fM <= 0 || fN <= 0
     then error "scale: scaling factor must be greater than 0."
-    else resize method border (round (fM * fromIntegral m) :. round (fN * fromIntegral n)) img
+    else resize method border newSz img
   where
-    (m :. n) = dims img
+    Sz2 m n = dims img
+    newSz = Sz (round (fM * fromIntegral m) :. round (fN * fromIntegral n))
 {-# INLINE scale #-}
 
 
