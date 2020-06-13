@@ -304,7 +304,7 @@ eqTol
 eqTol !tol !img1 =
   IP.and . thresholdWith2 thresholdPixel img1
   where
-    thresholdPixel pixelA pixelB = F.foldl' (||) False (thresholdComponent <$> pixelA <*> pixelB)
+    thresholdPixel pixelA pixelB = F.foldl' (&&) True (thresholdComponent <$> pixelA <*> pixelB)
     thresholdComponent compA compB = abs (compA - compB) <= tol
 {-# INLINE eqTol #-}
 
