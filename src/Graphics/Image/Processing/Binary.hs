@@ -38,7 +38,7 @@ module Graphics.Image.Processing.Binary
   , (.&&.)
   , (.||.)
   -- * Bitwise operations
-  -- , or
+  , or
   -- , and
   , invert
   , disjunction
@@ -60,6 +60,7 @@ import Graphics.Image.Internal as I
 import Graphics.Image.Processing.Convolution
 import Prelude as P hiding (and, or)
 import Graphics.Color.Algebra.Binary
+import Data.Monoid (Any(..))
 
 infix  4  .==., ./=., .<., .<=., .>=., .>., !==!, !/=!, !<!, !<=!, !>=!, !>!
 -- infixr 3  .&&., !&&!
@@ -222,10 +223,16 @@ conjunction = I.map (pure . F.foldl' (.&.) one)
 {-# INLINE conjunction #-}
 
 
--- -- | Disjunction of all pixels in a Binary image
--- or :: Image Model.Y Bit -> Bool
--- or = isOn . foldSemi (.|.) off
--- {-# INLINE or #-}
+-- | Disjunction of all pixels in a Binary image
+--
+-- >>> or (makeImage (Sz2 1 2) (const 0) :: Image Model.Y Bit)
+-- False
+--
+-- >>> or (makeImage (Sz2 1 2) (\(Ix2 _ iy) -> pure (fromNum iy)) :: Image Model.Y Bit)
+-- True
+or :: Image Model.Y Bit -> Bool
+or = getAny . I.foldMono (Any . (== pure one))
+{-# INLINE or #-}
 
 -- -- | Conjunction of all pixels in a Binary image
 -- and :: Image Model.Y Bit -> Bool
