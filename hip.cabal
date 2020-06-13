@@ -40,7 +40,6 @@ library
                , deepseq
                , massiv          >= 0.5
                , massiv-io       >= 0.1.2
-               , vector
   other-extensions: BangPatterns
                   , CPP
                   , FlexibleContexts

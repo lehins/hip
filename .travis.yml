@@ -14,13 +14,12 @@ sudo: false
 # Do not choose a language; we provide our own build tools.
 language: generic
 
-# Caching so the next build will be fast too.
 cache:
   directories:
-  - $HOME/.ghc
-  - $HOME/.cabal
   - $HOME/.stack
   - $TRAVIS_BUILD_DIR/.stack-work
+  - $TRAVIS_BUILD_DIR/hip/.stack-work
+  timeout: 360
 
 # The different configurations we want to test. We have BUILD=cabal which uses
 # cabal-install, and BUILD=stack which uses Stack. More documentation on each
@@ -34,182 +33,110 @@ cache:
 #     addons: {apt: {packages: [libfcgi-dev,libgmp-dev]}}
 matrix:
   include:
-  # We grab the appropriate GHC and cabal-install versions from hvr's PPA. See:
-  # https://github.com/hvr/multi-ghc-travis
-  - env: BUILD=cabal GHCVER=7.8.4 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.8.4"
-    addons:
-      apt:
-        packages: [cabal-install-1.24,ghc-7.8.4,happy-1.19.5,alex-3.1.7]
-        sources: [hvr-ghc]
-
-  - env: BUILD=cabal GHCVER=7.10.3 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.10.3"
-    addons:
-      apt:
-        packages: [cabal-install-1.24,ghc-7.10.3,happy-1.19.5,alex-3.1.7]
-        sources: [hvr-ghc]
-
-  - env: BUILD=cabal GHCVER=8.0.2 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 8.0.2"
-    addons:
-      apt:
-        packages: [cabal-install-1.24,ghc-8.0.2,happy-1.19.5,alex-3.1.7]
-        sources: [hvr-ghc]
-
-  - env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 8.2.2"
-    addons:
-      apt:
-        packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5,alex-3.1.7]
-        sources: [hvr-ghc]
-
-  # Build with the newest GHC and cabal-install. This is an accepted failure,
-  # see below.
-  - env: BUILD=cabal GHCVER=head CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC HEAD"
-    addons:
-      apt:
-        packages: [cabal-install-head,ghc-head,happy-1.19.5,alex-3.1.7]
-        sources: [hvr-ghc]
 
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
 
-  - env: BUILD=stack ARGS="--stack-yaml stack.lts-3.yaml"
-    compiler: ": #stack GHC-7.10.2 (lts-3.22)"
-    addons:
-      apt:
-        packages: [libgmp-dev]
+  # - env: BUILD=stack RESOLVER="lts-12.26"
+  #   compiler: ": #stack GHC-8.4.4 (lts-12.26)"
+  #   os: osx
 
-  - env: BUILD=stack ARGS="--stack-yaml stack.lts-6.yaml"
-    compiler: ": #stack GHC-7.10.3 (lts-6.30)"
-    addons:
-      apt:
-        packages: [libgmp-dev]
+  # - env: BUILD=stack RESOLVER="lts-14.27"
+  #   compiler: ": #stack GHC-8.6.5 (lts-14.27)"
+  #   os: osx
 
-  - env: BUILD=stack ARGS="--resolver lts-7"
-    compiler: ": #stack GHC-8.0.1 (lts-7.24)"
-    addons:
-      apt:
-        packages: [libgmp-dev]
+  # - env: BUILD=stack RESOLVER="lts-15"
+  #   compiler: ": #stack GHC-8.8.2 (lts-15)"
+  #   os: osx
 
-  - env: BUILD=stack ARGS="--resolver lts-8.24"
-    compiler: ": #stack GHC-8.0.2 (lts-8.24)"
-    addons:
-      apt:
-        packages: [libgmp-dev]
 
-  - env: BUILD=stack ARGS=""
-    compiler: ": #stack GHC-8.0.2 (lts-9.20) - default"
-    addons:
-      apt:
-        packages: [libgmp-dev]
+  # - env: BUILD=stack RESOLVER="lts-12.14"
+  #   compiler: ": #stack GHC-8.4.3 (lts-12.14)"
+  #   addons:
+  #     apt:
+  #       packages: [libgmp-dev]
 
-  - env: BUILD=stack ARGS="--resolver lts-10"
-    compiler: ": #stack GHC-8.2.2 (lts-10)"
+  # - env: BUILD=stack RESOLVER="lts-12.26"
+  #   compiler: ": #stack GHC-8.4.4 (lts-12.26)"
+  #   addons:
+  #     apt:
+  #       packages: [libgmp-dev]
+
+  # - env: BUILD=stack RESOLVER="lts-13.9"
+  #   compiler: ": #stack GHC-8.6.3 (lts-13.9)"
+  #   addons:
+  #     apt:
+  #       packages: [libgmp-dev]
+
+  # - env: BUILD=stack RESOLVER="lts-13.19"
+  #   compiler: ": #stack GHC-8.6.4 (lts-13.19)"
+  #   addons:
+  #     apt:
+  #       packages: [libgmp-dev]
+
+  # - env: BUILD=stack RESOLVER="lts-13.30"
+  #   compiler: ": #stack GHC-8.6.5 (lts-13.30)"
+  #   addons:
+  #     apt:
+  #       packages: [libgmp-dev]
+
+  # - env: BUILD=stack RESOLVER="lts-14.27" COVERALLS_STACK_YAML="stack.yaml"
+  #   compiler: ": #stack GHC-8.6.5 (lts-14.27)"
+  #   addons:
+  #     apt:
+  #       packages: [libgmp-dev]
+
+  - env: BUILD=stack RESOLVER="lts-16"
+    compiler: ": #stack GHC-8.8.2 (lts-16)"
     addons:
       apt:
         packages: [libgmp-dev]
 
   # Nightly builds are allowed to fail
-  - env: BUILD=stack ARGS="--resolver nightly"
+  - env: BUILD=stack RESOLVER="nightly"
     compiler: ": #stack nightly"
     addons:
       apt:
         packages: [libgmp-dev]
 
-  # - env: BUILD=stack ARGS="--resolver lts-8"
-  #   compiler: ": #stack 8.0.2 osx"
-  #   os: osx
-
   allow_failures:
-  - env: BUILD=cabal GHCVER=head CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
   - env: BUILD=stack ARGS="--resolver nightly"
-
-branches:
-  except:
-    - /^v[0-9].[0-9].[0-9].[0-9]/ # turn off ci for tags
 
 before_install:
 # Using compiler above sets CC to an invalid value, so unset it
 - unset CC
 
 # We want to always allow newer versions of packages when building on GHC HEAD
-- if [ ! -v "CABALARGS" ]; then CABALARGS=""; fi
-- if [ "x$GHCVER" = "xhead" ]; then CABALARGS="$CABALARGS --allow-newer"; fi
 - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:/opt/alex/$ALEXVER/bin:/opt/happy/$HAPPYVER/bin:$HOME/.cabal/bin:$PATH
 - mkdir -p ~/.local/bin
 - |
+  travis_retry curl -s -L https://gist.githubusercontent.com/lehins/fd36a8cc8bf853173437b17f6b6426ad/raw/d9ddb32cac2f0dc6800be4fa54d450f0dcda6c60/git-modtime.hs -o git-modtime.hs
 
-  case "$BUILD" in
-    stack)
-      if [ "$TRAVIS_OS_NAME" = "osx" ]
-      then
-        travis_retry curl --insecure -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
-      else
-        travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-      fi
-      ;;
-    cabal)
-      # Use the more reliable S3 mirror of Hackage
-      mkdir -p $HOME/.cabal
-      echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
-      echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
-      ;;
-  esac
-
-install:
-- while [ true ] ; do echo "Prevent death by Travis due to no output"; sleep 540; done &
-- echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-- if [ -f configure.ac ]; then autoreconf -i; fi
-- |
-  set -ex
-  case "$BUILD" in
-    stack)
-      # Workaround for non-buildable bug in Cabal <= 1.22
-      stack --no-terminal $ARGS build mwc-random
-
-      stack --no-terminal --install-ghc $ARGS test --only-dependencies
-      ;;
-    cabal)
-      cabal --version
-      travis_retry cabal update
-
-      # Set the list of packages we will build
-      PACKAGES="$TRAVIS_BUILD_DIR"
-      echo $PACKAGES
-
-      cabal install --only-dependencies --enable-tests --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
-      ;;
-  esac
-  set +ex
+  if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    travis_retry curl -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
+  else
+    travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  fi
 
 script:
 - |
   set -ex
-  case "$BUILD" in
-    stack)
-      stack --no-terminal $ARGS test --haddock --no-haddock-deps
-      ;;
-    cabal)
-      cabal install --enable-tests --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
-
-      ORIGDIR=$(pwd)
-      for dir in $PACKAGES
-      do
-        cd $dir
-        cabal check || [ "$CABALVER" == "1.16" ]
-        cabal sdist
-        PKGVER=$(cabal info . | awk '{print $2;exit}')
-        SRC_TGZ=$PKGVER.tar.gz
-        cd dist
-        tar zxfv "$SRC_TGZ"
-        cd "$PKGVER"
-        cabal configure --enable-tests
-        cabal build
-        cd $ORIGDIR
-      done
-      ;;
-  esac
+  stack script --resolver $RESOLVER git-modtime.hs
+  ARGS="--resolver $RESOLVER"
+  BUILD_ARGS="--bench --no-run-benchmarks --haddock --no-haddock-deps"
+  if [ -n "${COVERALLS_STACK_YAML}" ] && [ -n "${COVERALLS_REPO_TOKEN}" ]; then
+     stack --stack-yaml="$COVERALLS_STACK_YAML" test hip:tests --coverage $BUILD_ARGS
+     stack --stack-yaml="$COVERALLS_STACK_YAML" hpc report --all
+     travis_retry curl -L https://github.com/lehins/stack-hpc-coveralls/releases/download/0.0.5.0/shc.tar.gz | tar xz shc
+     STACK_YAML="$COVERALLS_STACK_YAML" ./shc --repo-token=$COVERALLS_REPO_TOKEN combined custom
+     if [ -z "$DOCTESTS_DISABLED" ]; then
+       stack --stack-yaml="$COVERALLS_STACK_YAML" $ARGS test hip:doctests --coverage $BUILD_ARGS
+     fi
+  else
+    stack $ARGS test --no-run-tests $BUILD_ARGS
+    # stack $ARGS test hip:tests $BUILD_ARGS
+    # if [ -z "$DOCTESTS_DISABLED" ]; then
+    #   stack $ARGS test hip:doctests $BUILD_ARGS
+    # fi
+  fi
   set +ex

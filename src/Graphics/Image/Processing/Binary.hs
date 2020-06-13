@@ -13,6 +13,8 @@ module Graphics.Image.Processing.Binary
   ( -- * Construction
     on
   , off
+  , isOn
+  , isOff
   , module Graphics.Color.Algebra.Binary
     -- * Thresholding
   , threshold
@@ -63,14 +65,20 @@ import Graphics.Color.Algebra.Binary
 import Data.Monoid (All(..), Any(..))
 
 infix  4  .==., ./=., .<., .<=., .>=., .>., !==!, !/=!, !<!, !<=!, !>=!, !>!
--- infixr 3  .&&., !&&!
--- infixr 2  .||., !||!
+infixr 3  .&&., !&&!
+infixr 2  .||., !||!
 
 on :: Applicative (Color cs) => Pixel cs Bit
 on = pure one
 
 off :: Applicative (Color cs) => Pixel cs Bit
 off = pure zero
+
+isOn :: Pixel Model.Y Bit -> Bool
+isOn = (== on)
+
+isOff :: Pixel Model.Y Bit -> Bool
+isOff = (== off)
 
 
 -- | 'Thresholding' contains a convenient set of functions for binary image

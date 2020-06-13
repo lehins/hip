@@ -42,12 +42,8 @@ module Graphics.Image.Processing.Geometric
   , scale
   ) where
 
-import           Control.Monad.ST
-import           Data.Bifunctor
 import qualified Data.Massiv.Array        as A
-import qualified Data.Massiv.Vector       as V
 import qualified Data.Massiv.Array.Unsafe as A
-import qualified Data.Vector.Unboxed      as VU
 import           Graphics.Image.Internal
 import           Graphics.Image.Processing.Interpolation
 import           Prelude                  hiding (traverse)
@@ -86,7 +82,7 @@ upsample :: ColorModel cs e =>
          -> Stride Ix2
          -> Image cs e -- ^ Source image
          -> Image cs e
-upsample defPx (Stride six@(is :. js)) = computeI . upsampleArray . delayPull
+upsample defPx (Stride six) = computeI . upsampleArray . delayPull
   where
     upsampleArray arr =
       let sz' = liftSz2 (*) (Sz six) (A.size arr)
