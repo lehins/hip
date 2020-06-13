@@ -60,7 +60,7 @@ import Graphics.Image.Internal as I
 import Graphics.Image.Processing.Convolution
 import Prelude as P hiding (and, or)
 import Graphics.Color.Algebra.Binary
-import Data.Monoid (Product(..))
+import Data.Monoid (All(..))
 
 infix  4  .==., ./=., .<., .<=., .>=., .>., !==!, !/=!, !<!, !<=!, !>=!, !>!
 -- infixr 3  .&&., !&&!
@@ -230,7 +230,7 @@ conjunction = I.map (pure . F.foldl' (.&.) one)
 
 -- | Conjunction of all pixels in a Binary image
 and :: Image Model.Y Bit -> Bool
-and =  (==1) . getProduct . I.foldMono Product
+and =  getAll . I.foldMono (All . (== pure one))
 {-# INLINE and #-}
 
 
