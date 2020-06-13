@@ -118,7 +118,7 @@ module Graphics.Image
   , module IP
   -- (|*|),
   -- * Reduction
-  --, fold
+  , fold
   , foldMono
   , foldSemi
   , sum

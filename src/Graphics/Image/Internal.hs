@@ -42,6 +42,7 @@ module Graphics.Image.Internal
   , transform
   , transform2
   , backpermute
+  , fold
   , foldMono
   , foldSemi
   , foldSemi1
@@ -373,14 +374,17 @@ backpermute fDim f =
 
 -- Folding
 
--- -- | Undirected reduction of an image.
--- fold :: ColorModel cs e =>
---         (Pixel cs e -> Pixel cs e -> Pixel cs e) -- ^ An associative folding function.
---      -> Pixel cs e -- ^ Initial element, that is neutral with respect to the folding function.
---      -> Image cs e -- ^ Source image.
---      -> Pixel cs e
--- fold f acc = A.foldMono f acc . delayPull
--- {-# INLINE [~1] fold #-}
+-- | Undirected reduction of an image.
+--
+-- >>> fold (+) 0 (makeImage (Sz2 1 4) (\(Ix2 _ iy) -> pure iy) :: Image Model.Y Int)
+-- <Y:(         6)>
+fold :: ColorModel cs e =>
+        (Pixel cs e -> Pixel cs e -> Pixel cs e) -- ^ An associative folding function.
+     -> Pixel cs e -- ^ Initial element, that is neutral with respect to the folding function.
+     -> Image cs e -- ^ Source image.
+     -> Pixel cs e
+fold f = flip (appEndo . A.foldMono (Endo . f) . delayPull)
+{-# INLINE [~1] fold #-}
 
 -- | Monoidal reduction of an image.
 foldMono ::
