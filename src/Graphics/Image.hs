@@ -126,9 +126,10 @@ module Graphics.Image
   , maximum
   , minimum
   , normalize
-  -- , eqTol
+  , eqTol
   ) where
 
+import qualified Data.Foldable             as F
 import qualified Data.Massiv.Array         as A
 import           Graphics.Pixel.ColorSpace
 import           Graphics.Image.Internal   as I
@@ -137,6 +138,7 @@ import           Graphics.Image.Processing as IP
 import           Prelude                   as P hiding (map, maximum, minimum,
                                                  product, sum, traverse,
                                                  zipWith, zipWith3)
+
 -- import Graphics.Image.Types as IP
 
 -- import Graphics.Image.Processing as IP
@@ -288,13 +290,23 @@ normalize img =
     !iMin = minVal img
 {-# INLINE normalize #-}
 
--- -- | Check weather two images are equal within a tolerance. Useful for comparing
--- -- images with `Float` or `Double` precision.
--- eqTol
---   :: (ColorModel cs e, Ord e) =>
---      e -> Image cs e -> Image cs e -> Bool
--- eqTol !tol !img1 = IP.and . thresholdWith2 (eqTolPx tol) img1
--- {-# INLINE eqTol #-}
+-- | Check weather two images are equal within a tolerance. Useful for comparing
+-- images with `Float` or `Double` precision.
+--
+-- >>> eqTol 0.99 (makeImage (Sz2 2 2) (const 0) :: Image Model.Y Float) (makeImage (Sz2 2 2) (const 1))
+-- False
+--
+-- >>> eqTol 1 (makeImage (Sz2 2 2) (const 0) :: Image Model.Y Float) (makeImage (Sz2 2 2) (const 1))
+-- True
+eqTol
+  :: (ColorModel cs e, Ord e) =>
+     e -> Image cs e -> Image cs e -> Bool
+eqTol !tol !img1 =
+  IP.and . thresholdWith2 thresholdPixel img1
+  where
+    thresholdPixel pixelA pixelB = F.foldl' (&&) True (thresholdComponent <$> pixelA <*> pixelB)
+    thresholdComponent compA compB = abs (compA - compB) <= tol
+{-# INLINE eqTol #-}
 
 
 
