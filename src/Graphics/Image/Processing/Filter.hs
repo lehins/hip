@@ -17,8 +17,9 @@
 module Graphics.Image.Processing.Filter
   ( -- * Filter
     -- $filter
-    Filter
+    Filter(..)
   , Filter'
+  , A.Value
   -- ** Application
   , applyFilter
   -- ** Creation
@@ -88,10 +89,10 @@ instance (ColorModel cs a, Applicative (Pixel cs)) => Applicative (Filter cs a) 
 -- mapping a function over an array, with an exception of border resolution and underlying
 -- complexity.
 --
--- >λ> batRGB <- readImageRGB "images/megabat.jpg"
--- >λ> writeImage "images/megabat_sobel_rgb.jpg" $ normalize $ applyFilter Edge sobelOperator batRGB
--- >λ> let batY = I.map toPixelY batRGB
--- >λ> writeImage "images/megabat_sobel.jpg" $ normalize $ applyFilter Edge sobelOperator batY
+-- >>> batRGB <- readImageRGB "images/megabat.jpg"
+-- >>> writeImage "images/megabat_sobel_rgb.jpg" $ normalize $ applyFilter Edge sobelOperator batRGB
+-- >>> let batY = I.map toPixelY batRGB
+-- >>> writeImage "images/megabat_sobel.jpg" $ normalize $ applyFilter Edge sobelOperator batY
 --
 -- <<images/megabat.jpg>> <<images/megabat_sobel_rgb.jpg>> <<images/megabat_sobel.jpg>>
 --

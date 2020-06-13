@@ -20,6 +20,7 @@ module Graphics.Image.Internal
   , Border(..)
   , computeI
   , delayPull
+  , delayPush
   , makeImage
   , makeImageComp
   , fromLists

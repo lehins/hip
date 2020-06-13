@@ -57,7 +57,7 @@ library
                  , Graphics.Image.Processing.Convolution
                  , Graphics.Image.Processing.Complex.Fourier
                  , Graphics.Image.Processing.Complex.Internal
-                 --, Graphics.Image.Processing.Geometric
+                 , Graphics.Image.Processing.Geometric
                  , Graphics.Image.Processing.Interpolation
   ghc-options:     -Wall
 

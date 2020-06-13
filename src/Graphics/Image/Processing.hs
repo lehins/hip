@@ -10,9 +10,9 @@
 module Graphics.Image.Processing
   (
   -- * Geometric
-  --module Graphics.Image.Processing.Geometric
+    module Graphics.Image.Processing.Geometric
   -- * Interpolation
-   module Graphics.Image.Processing.Interpolation
+  , module Graphics.Image.Processing.Interpolation
   -- * Convolution
   , module Graphics.Image.Processing.Convolution
   -- * Binary
@@ -29,7 +29,7 @@ import Graphics.Image.Internal
 import Graphics.Image.Processing.Binary
 import Graphics.Image.Processing.Complex
 import Graphics.Image.Processing.Convolution
---import Graphics.Image.Processing.Geometric
+import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
 import Prelude hiding (traverse)
 import Graphics.Image.Processing.Filter
