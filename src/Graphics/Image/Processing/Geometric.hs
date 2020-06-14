@@ -350,7 +350,8 @@ resize method border sz'@(Sz2 m' n') (Image arr) =
       interpolate
         method
         (A.handleBorderIndex border sz (A.index' arr))
-        ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - (0.5 :: Double))
+        ( (fromIntegral i + 0.5) / fM - 0.5
+        , (fromIntegral j + 0.5) / fN - (0.5 :: Double))
     {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 

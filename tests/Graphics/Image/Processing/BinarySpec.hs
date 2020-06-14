@@ -3,11 +3,12 @@ module Graphics.Image.Processing.BinarySpec (spec, struct) where
 
 import Test.Hspec
 
+import Graphics.Color.Model as M
 import Graphics.Image as I
 import Graphics.Image.Processing.Binary
 
 
-figure :: Image X Bit
+figure :: Image M.Y Bit
 figure =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -30,11 +31,11 @@ figure =
     ]
 
 
-struct :: Image X Bit
+struct :: Image M.Y Bit
 struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 
 
-eroded :: Image X Bit
+eroded :: Image M.Y Bit
 eroded =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -56,7 +57,7 @@ eroded =
     , [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ]
 
-dialated :: Image X Bit
+dialated :: Image M.Y Bit
 dialated =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -79,7 +80,7 @@ dialated =
     ]
 
 
-opened :: Image X Bit
+opened :: Image M.Y Bit
 opened =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -102,7 +103,7 @@ opened =
     ]
 
 
-closed :: Image X Bit
+closed :: Image M.Y Bit
 closed =
   fromLists
     [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

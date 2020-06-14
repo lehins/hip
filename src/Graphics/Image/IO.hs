@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- |
@@ -133,26 +134,14 @@ readImageYA = readImageAuto
 {-# INLINE readImageYA #-}
 
 
--- -- | Read image as luma (brightness), i.e. grayscale.
--- readImageY' :: MonadIO m => FilePath -> m (Image Y' Double)
--- readImageY' = readImageAuto
--- {-# INLINE readImageY' #-}
-
-
--- -- | Read image as luma with 'Alpha' channel.
--- readImageY'A :: MonadIO m => FilePath -> m (Image (Alpha Y') Double)
--- readImageY'A = readImageAuto
--- {-# INLINE readImageY'A #-}
-
-
 -- | Read image in sRGB colorspace.
-readImageRGB :: MonadIO m => FilePath -> m (Image SRGB Double)
+readImageRGB :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Double)
 readImageRGB = readImageAuto
 {-# INLINE readImageRGB #-}
 
 
 -- | Read image in sRGB colorspace with 'Alpha' channel.
-readImageRGBA :: MonadIO m => FilePath -> m (Image (Alpha SRGB) Double)
+readImageRGBA :: MonadIO m => FilePath -> m (Image (Alpha (SRGB 'Linear)) Double)
 readImageRGBA = readImageAuto
 {-# INLINE readImageRGBA #-}
 

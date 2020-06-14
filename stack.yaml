@@ -9,11 +9,11 @@ extra-deps: #for now, since we might need to add changes to upstream deps
   subdirs:
     - massiv
 - github: lehins/massiv-io
-  commit: 201ae5fc94aae1d116a5d1bae091dd700296fd11
+  commit: 3501c8930179345a634e1ad66ea7f746ba599986
   subdirs:
     - massiv-io
 - github: lehins/Color
-  commit: f69f05a189e8c04b603e73bcdabdbd9041de959c
+  commit: c566a3083a238eba70e61ba0e261f9dacb8481bb
   subdirs:
     - Color
 
