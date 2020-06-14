@@ -16,6 +16,7 @@ module Graphics.Image.IO
   , readImageY
   , readImageYA
   , readImageRGB
+  , readImageRGB8
   , readImageRGBA
   -- * Writing
   , writeImage
@@ -62,7 +63,6 @@ module Graphics.Image.IO
   , A.PGM(..)
   -- ** PPM
   , A.PPM(..)
-  -- module Graphics.Image.IO.Formats
   -- $supported
   -- * Hands on examples
   -- ** Animated GIF
@@ -138,6 +138,11 @@ readImageYA = readImageAuto
 readImageRGB :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Double)
 readImageRGB = readImageAuto
 {-# INLINE readImageRGB #-}
+
+-- | Read image in sRGB colorspace.
+readImageRGB8 :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Word8)
+readImageRGB8 = readImageAuto
+{-# INLINE readImageRGB8 #-}
 
 
 -- | Read image in sRGB colorspace with 'Alpha' channel.

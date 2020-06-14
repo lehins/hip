@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PatternSynonyms       #-}
+{-# LANGUAGE PatternSynonyms #-}
 -- |
 -- Module      : Graphics.Image
 -- Copyright   : (c) Alexey Kuleshevich 2016-2018
@@ -34,7 +34,6 @@ module Graphics.Image
   (
   -- * Color Space
   -- $colorspace
-  module Graphics.Pixel.ColorSpace
   -- * Creation
   --
   -- `makeImage` is a type restricted version of `makeImage` function, which
@@ -47,12 +46,14 @@ module Graphics.Image
   --
   -- @ makeImage (256 :. 256) (\(i :. _) -> PixelY (fromIntegral i)) :: I.Image Y Word8 @
   --
-  , Image
+    Image(..)
   , Ix2(..)
+  , Sz(..)
+  , Sz2
+  , module Core -- TODO: Reduce export footprint
   , makeImage
   -- * Computation
   , Comp(..)
-  -- , pattern Par
   , makeImageComp
   , setComp
   -- * Conversion
@@ -115,6 +116,8 @@ module Graphics.Image
   , transform
   , transform2
   --, transpose
+  , module I
+  , module IO
   , module IP
   -- (|*|),
   -- * Reduction
@@ -129,15 +132,14 @@ module Graphics.Image
   , eqTol
   ) where
 
-import qualified Data.Foldable             as F
-import qualified Data.Massiv.Array         as A
-import           Graphics.Pixel.ColorSpace
-import           Graphics.Image.Internal   as I
-import           Graphics.Image.IO         as I
-import           Graphics.Image.Processing as IP
-import           Prelude                   as P hiding (map, maximum, minimum,
-                                                 product, sum, traverse,
-                                                 zipWith, zipWith3)
+import qualified Data.Foldable as F
+import qualified Data.Massiv.Array as A
+import qualified Data.Massiv.Core as Core
+import Graphics.Image.Internal as I
+import Graphics.Image.IO as IO
+import Graphics.Image.Processing as IP
+import Prelude as P hiding (map, maximum, minimum, product, sum, traverse,
+                     zipWith, zipWith3)
 
 -- import Graphics.Image.Types as IP
 
