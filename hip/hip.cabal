@@ -38,7 +38,7 @@ library
   build-depends: base            >= 4.8 && < 5
                , deepseq
                , massiv          >= 0.5
-               , massiv-io       >= 0.2.1
+               , massiv-io       >= 0.2.2
                , Color           >= 0.2.0
   other-extensions: BangPatterns
                   , CPP

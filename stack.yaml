@@ -1,7 +1,7 @@
 flags: {}
 extra-package-dbs: []
 packages:
-- '.'
+- 'hip'
 resolver: lts-16.0
 extra-deps: #for now, since we might need to add changes to upstream deps
 - github: lehins/massiv
