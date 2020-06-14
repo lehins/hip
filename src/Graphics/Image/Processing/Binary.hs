@@ -236,7 +236,7 @@ conjunction = I.map (pure . F.foldl' (.&.) one)
 -- >>> or (makeImage (Sz2 1 2) (const 0) :: Image Model.Y Bit)
 -- False
 --
--- >>> or (makeImage (Sz2 1 2) (\(Ix2 _ iy) -> pure (fromNum iy)) :: Image Model.Y Bit)
+-- >>> or (makeImage (Sz2 1 2) (\(Ix2 _ j) -> pure (fromNum j)) :: Image Model.Y Bit)
 -- True
 or :: Image Model.Y Bit -> Bool
 or = getAny . I.foldMono (Any . (== pure one))

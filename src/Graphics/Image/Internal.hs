@@ -189,6 +189,24 @@ scalar = computeI . A.singleton @A.D
 
 -- | Create an Image by supplying it's dimensions and a pixel generating function.
 --
+-- It is essential for 'Double' precision pixels to be normalized in the
+-- @[0, 1]@ range in order for an image to be written to file properly.
+--
+-- >>> let grad_gray = makeImage (Sz2 200 200) (\(Ix2 i j) -> PixelY (fromIntegral i) / 200 * (fromIntegral j) / 200) :: Image (Y D65) Double
+--
+-- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
+--
+-- >>> let grad_gray = makeImage (Sz2 200 200) (\(Ix2 i j) -> PixelY $ fromIntegral (i*j)) / (200*200) :: Image (Y D65) Double
+-- >>> writeImageAuto "images/grad_gray.png" grad_gray
+--
+-- Creating color images is just as easy.
+--
+-- >>> let grad_color = makeImage (Sz2 200 200) (\(Ix2 i j) -> PixelRGB (fromIntegral i) (fromIntegral j) (fromIntegral (i + j))) / 400 :: Image SRGB Double
+-- >>> writeImageAuto "images/grad_color.png" grad_color
+--
+-- <<images/grad_gray.png>> <<images/grad_color.png>>
+--
+--
 -- __Note__. If another image(s) is being used to make the new one with this function, it will
 -- likely to be breaking fusion and will cause that source image to be fully computed. It is
 -- recommended to use `transmute` or `transmute2` instead.
