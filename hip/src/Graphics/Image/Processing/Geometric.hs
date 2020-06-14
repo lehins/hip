@@ -340,7 +340,7 @@ resize :: (ColorModel cs e, Interpolation method) =>
        -> Sz2   -- ^ Dimensions of a result image.
        -> Image cs e -- ^ Source image.
        -> Image cs e -- ^ Result image.
-resize method border sz'@(Sz2 m' n') (Image arr) =
+resize method border sz'@(Sz2 m' n') (Image arr) = --Image $ A.compute warr
   Image (A.makeArray (A.getComp arr) sz' getNewPx)
   where
     sz@(Sz2 m n) = A.size arr
@@ -353,6 +353,31 @@ resize method border sz'@(Sz2 m' n') (Image arr) =
         ( (fromIntegral i + 0.5) / fM - 0.5
         , (fromIntegral j + 0.5) / fN - (0.5 :: Double))
     {-# INLINE getNewPx #-}
+  -- where
+  --   (center@(u :. _), neighborhood) = interpolationBox method
+  --   darr =
+  --     A.makeArray
+  --       (A.getComp arr)
+  --       sz'
+  --       (getNewPx (A.handleBorderIndex border sz (A.index' arr)))
+  --   warr =
+  --     A.insertWindow darr $
+  --     A.Window
+  --       { A.windowStart = center
+  --       , A.windowSize = sz - neighborhood + Sz center
+  --       , A.windowIndex = getNewPx (A.unsafeIndex arr)
+  --       , A.windowUnrollIx2 = Just u
+  --       }
+  --   sz@(Sz2 m n) = A.size arr
+  --   !fM = fromIntegral m' / fromIntegral m
+  --   !fN = fromIntegral n' / fromIntegral n
+  --   getNewPx getOldPx (i :. j) =
+  --     interpolate
+  --       method
+  --       getOldPx
+  --       ( (fromIntegral i + 0.5) / fM - 0.5
+  --       , (fromIntegral j + 0.5) / fN - (0.5 :: Double))
+  --   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
 

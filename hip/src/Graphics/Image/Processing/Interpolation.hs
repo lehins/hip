@@ -21,8 +21,8 @@ import Graphics.Image.Internal
 -- | Implementation for an interpolation method.
 class Interpolation method where
 
-  -- | Size of the neighborhood
-  neighborhood :: method -> Sz2
+  -- | Size of the neighborhood and the index of the center within it.
+  interpolationBox :: method -> (Ix2, Sz2)
 
   -- | Construct a new pixel by using information from neighboring pixels.
   interpolate :: (Elevator a, RealFloat a, ColorModel cs e) =>
@@ -49,7 +49,7 @@ newtype Bicubic = Bicubic Double deriving Show
 
 instance Interpolation Nearest where
 
-  neighborhood Nearest = Sz (1 :. 1)
+  interpolationBox Nearest = (0 :. 0, Sz (1 :. 1))
 
   interpolate Nearest getPx (i, j) = getPx (round i :. round j)
 
@@ -57,7 +57,7 @@ instance Interpolation Nearest where
 
 instance Interpolation Bilinear where
 
-  neighborhood _ = Sz (2 :. 2)
+  interpolationBox _ = (0 :. 0, Sz (2 :. 2))
 
   interpolate Bilinear getPx (i, j) = fi0 + fmap (jWeight *) (fi1 - fi0)
     where
@@ -78,7 +78,7 @@ instance Interpolation Bilinear where
 
 instance Interpolation Bicubic where
 
-  neighborhood _ = Sz (4 :. 4)
+  interpolationBox _ = (1 :. 1, Sz (4 :. 4))
 
   interpolate (Bicubic a) getPx (i, j) =
       (// fromRealFloat w) <$> ( f00 + f10 + f20 + f30

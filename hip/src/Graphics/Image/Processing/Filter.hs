@@ -1,11 +1,11 @@
-{-# LANGUAGE ConstraintKinds            #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 -- |
 -- Module      : Graphics.Image.Processing.Filter
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -60,12 +60,14 @@ module Graphics.Image.Processing.Filter
   -- , prewittOperator
   ) where
 
-import           Control.Applicative
-import           Control.DeepSeq
-import           Data.Int
-import qualified Data.Massiv.Array       as A
-import           Graphics.Image.Internal
-import           Prelude                 as P
+import Control.Applicative
+import Control.DeepSeq
+import Data.Int
+import qualified Data.Massiv.Array as A
+import qualified Data.Massiv.Array.Numeric.Integral as A
+import Graphics.Image.Internal
+import Prelude as P
+import qualified Graphics.Pixel as M
 
 -- | Filter that can be applied to an image using `applyFilter`.
 newtype Filter cs a b = Filter
@@ -159,6 +161,92 @@ dimapFilter f g (Filter s) = Filter (A.dimapStencil (fmap f) (fmap g) s)
 -------------
 
 
+gaussian :: Floating e => e -> e -> e -> e
+gaussian stdDev y x = exp (-(x ^ (2 :: Int) + y ^ (2 :: Int)) / var2) / (var2 * pi)
+  where
+    var2 = 2 * stdDev ^ (2 :: Int)
+{-# INLINE gaussian #-}
+
+-- | Numeber of samples to use for kernel approximation
+numSamples :: Int
+numSamples = 50
+
+makeKernel1D ::
+     (A.Storable e, Floating e)
+  => Int -- ^ Radius
+  -> (e -> e) -- ^ Kernel function @f(x)@
+  -> A.Vector A.M e
+makeKernel1D r g
+  | r <= 0 = error "makeKernel1D: Radius must be positive"
+  | otherwise =
+    let f scale i = g (scale i)
+        {-# INLINE f #-}
+        side = r * 2 + 1
+        sz = Sz side
+        a = fromIntegral side / 2 - fromIntegral side
+        d = 1
+     in A.simpsonsRule Par A.S f a d sz numSamples
+{-# INLINE makeKernel1D #-}
+
+makeKernel2D ::
+     (A.Storable e, Floating e)
+  => Int -- ^ Radius
+  -> (e -> e -> e) -- ^ Kernel function @f(x, y)@
+  -> A.Matrix A.M e
+makeKernel2D r g
+  | r <= 0 = error "makeKernel2D: Radius must be positive"
+  | otherwise =
+    let f scale (i :. j) = g (scale i) (scale j)
+        {-# INLINE f #-}
+        side = r * 2 + 1
+        sz = Sz (side :. side)
+        a = fromIntegral side / 2 - fromIntegral side
+        d = 1
+     in A.simpsonsRule Par A.S f a d sz numSamples
+{-# INLINE makeKernel2D #-}
+
+makeIntegralKernel1D ::
+     forall cs a e. (ColorModel cs e, A.Storable a, RealFloat a)
+  => Int
+  -> (a -> a)
+  -> Array A.S Ix1 (Pixel cs e)
+makeIntegralKernel1D r f =
+  let k = makeKernel1D r f
+      m = A.minimum' k
+   in A.compute $ A.map (pure . fromIntegral . (round :: a -> Int) . (/ m)) k
+
+makeIntegralKernel2D ::
+     forall cs a e. (ColorModel cs e, A.Storable a, RealFloat a)
+  => Int
+  -> (a -> a -> a)
+  -> Array A.S Ix2 (Pixel cs e)
+makeIntegralKernel2D r f =
+  let k = makeKernel2D r f
+      m = A.minimum' k
+   in A.compute $
+      A.map (pure . fromIntegral . (round :: a -> Int) . (/ m)) k
+
+makeFloatingKernel1D ::
+     forall cs e. (ColorModel cs e, RealFloat e)
+  => Int
+  -> (e -> e)
+  -> Array A.S Ix1 (Pixel cs e)
+makeFloatingKernel1D r f =
+  let k = makeKernel1D r f
+      m = A.sum k
+   in A.compute $ A.map (pure . (/ m)) k
+
+makeFloatingKernel2D ::
+     forall cs e. (ColorModel cs e, RealFloat e)
+  => Int
+  -> (e -> e -> e)
+  -> Array A.S Ix2 (Pixel cs e)
+makeFloatingKernel2D r f =
+  let k = makeKernel2D r f
+      m = A.sum k
+   in A.compute $ A.map (pure . (/ m)) k
+
+
 -- | Gaussian 5x5 filter. Gaussian is separable, so it is faster to apply `gaussian5x1` after
 -- `gaussian1x5`.
 --
@@ -178,31 +266,30 @@ dimapFilter f g (Filter s) = Filter (A.dimapStencil (fmap f) (fmap g) s)
 -- \end{bmatrix}
 -- \]
 --
-gaussian5x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian5x5 = Filter $ fmap (/ 273) <$> A.makeStencil (Sz2 5 5) (2 :. 2) stencil
+gaussian5x5 :: (ColorModel cs e) => Filter cs e e
+gaussian5x5 = Filter $ fmap (// 264) <$> A.makeStencil (Sz2 5 5) (2 :. 2) stencil
   where
     stencil f =
-          f (-2 :. -2) +  4 * f (-2 :. -1) +  7 * f (-2 :.  0) +  4 * f (-2 :.  1) +     f (-2 :.  2) +
-      4 * f (-1 :. -2) + 16 * f (-1 :. -1) + 26 * f (-1 :.  0) + 16 * f (-1 :.  1) + 4 * f (-1 :.  2) +
-      7 * f ( 0 :. -2) + 26 * f ( 0 :. -1) + 41 * f ( 0 :.  0) + 26 * f ( 0 :.  1) + 7 * f ( 0 :.  2) +
-      4 * f ( 1 :. -2) + 16 * f ( 1 :. -1) + 26 * f ( 1 :.  0) + 16 * f ( 1 :.  1) + 4 * f ( 1 :.  2) +
-          f ( 2 :. -2) +  4 * f ( 2 :. -1) +  7 * f ( 2 :.  0) +  4 * f ( 2 :.  1) +     f ( 2 :.  2)
+          f (-2 :. -2) +  4 * f (-2 :. -1) +  6 * f (-2 :.  0) +  4 * f (-2 :.  1) +     f (-2 :.  2) +
+      4 * f (-1 :. -2) + 16 * f (-1 :. -1) + 25 * f (-1 :.  0) + 16 * f (-1 :.  1) + 4 * f (-1 :.  2) +
+      6 * f ( 0 :. -2) + 25 * f ( 0 :. -1) + 40 * f ( 0 :.  0) + 25 * f ( 0 :.  1) + 6 * f ( 0 :.  2) +
+      4 * f ( 1 :. -2) + 16 * f ( 1 :. -1) + 25 * f ( 1 :.  0) + 16 * f ( 1 :.  1) + 4 * f ( 1 :.  2) +
+          f ( 2 :. -2) +  4 * f ( 2 :. -1) +  6 * f ( 2 :.  0) +  4 * f ( 2 :.  1) +     f ( 2 :.  2)
     {-# INLINE stencil #-}
 {-# INLINE gaussian5x5 #-}
 
-
 gaussian1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian1x5 = Filter $ fmap (/ 17) <$> A.makeStencil (Sz2 1 5) (0 :. 2) stencil
+gaussian1x5 = Filter $ fmap (/ 16) <$> A.makeStencil (Sz2 1 5) (0 :. 2) stencil
   where
-    stencil f = f (0 :. -2) +  4 * f (0 :. -1) + 7 * f (0 :.  0) + 4 * f (0 :.  1) + f (0 :.  2)
+    stencil f = f (0 :. -2) +  4 * f (0 :. -1) + 6 * f (0 :.  0) + 4 * f (0 :.  1) + f (0 :.  2)
     {-# INLINE stencil #-}
 {-# INLINE gaussian1x5 #-}
 
 
 gaussian5x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian5x1 = Filter $ fmap (/ 17) <$> A.makeStencil (Sz2 5 1) (2 :. 0) stencil
+gaussian5x1 = Filter $ fmap (/ 16) <$> A.makeStencil (Sz2 5 1) (2 :. 0) stencil
   where
-    stencil f = f (-2 :. 0) +  4 * f (-1 :. 0) + 7 * f (0 :.  0) + 4 * f (1 :.  0) + f (2 :.  0)
+    stencil f = f (-2 :. 0) +  4 * f (-1 :. 0) + 6 * f (0 :.  0) + 4 * f (1 :.  0) + f (2 :.  0)
     {-# INLINE stencil #-}
 {-# INLINE gaussian5x1 #-}
 
@@ -213,9 +300,9 @@ applyGaussian5x5 b = applyFilter b gaussian5x1 . applyFilter b gaussian1x5
 
 -- | Laplacian filter
 --
--- >λ> bat <- readImageY "images/megabat.jpg"
--- >λ> writeImage "images/megabat_laplacian_nonorm.jpg" $ applyFilter Edge laplacian bat -- no normalization
--- >λ> writeImage "images/megabat_laplacian.jpg" $ normalize $ applyFilter Edge laplacian bat
+-- >>> bat <- readImageY "images/megabat.jpg"
+-- >>> writeImage "images/megabat_laplacian_nonorm.jpg" $ applyFilter Edge laplacian bat -- no normalization
+-- >>> writeImage "images/megabat_laplacian.jpg" $ normalize $ applyFilter Edge laplacian bat
 --
 -- <<images/megabat_y.jpg>> <<images/megabat_laplacian_nonorm.jpg>> <<images/megabat_laplacian.jpg>>
 --
