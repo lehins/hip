@@ -25,12 +25,12 @@ class Interpolation method where
   interpolationBox :: method -> (Ix2, Sz2)
 
   -- | Construct a new pixel by using information from neighboring pixels.
-  interpolate :: (Elevator a, RealFloat a, ColorModel cs e) =>
+  interpolate :: (RealFloat e, ColorModel cs e) =>
                  method -- ^ Interpolation method
               -> (Ix2 -> Pixel cs e)
                  -- ^ Lookup function that returns a pixel at @i@th and @j@th
                  -- location.
-              -> (a, a) -- ^ Real values of @i@ and @j@ index
+              -> (e, e) -- ^ Real values of @i@ and @j@ index
               -> Pixel cs e
 
 
@@ -65,14 +65,15 @@ instance Interpolation Bilinear where
       !j0 = floor j
       !i1 = i0 + 1
       !j1 = j0 + 1
-      !iWeight = fromRealFloat (i - fromIntegral i0)
-      !jWeight = fromRealFloat (j - fromIntegral j0)
+      !iWeight = i - fromIntegral i0
+      !jWeight = j - fromIntegral j0
       !f00 = getPx (i0 :. j0)
       !f10 = getPx (i1 :. j0)
       !f01 = getPx (i0 :. j1)
       !f11 = getPx (i1 :. j1)
       !fi0 = f00 + fmap (iWeight *) (f10 - f00)
       !fi1 = f01 + fmap (iWeight *) (f11 - f01)
+  {-# INLINE interpolate #-}
 
 
 
@@ -81,15 +82,11 @@ instance Interpolation Bicubic where
   interpolationBox _ = (1 :. 1, Sz (4 :. 4))
 
   interpolate (Bicubic a) getPx (i, j) =
-      (// fromRealFloat w) <$> ( f00 + f10 + f20 + f30
-                               + f01 + f11 + f21 + f31
-                               + f02 + f12 + f22 + f32
-                               + f03 + f13 + f23 + f33 )
+      (/ w) <$> ( f00 + f10 + f20 + f30
+                + f01 + f11 + f21 + f31
+                + f02 + f12 + f22 + f32
+                + f03 + f13 + f23 + f33 )
     where
-      distX x = fromIntegral x - i
-      {-# INLINE distX #-}
-      distY y = fromIntegral y - j
-      {-# INLINE distY #-}
       a' = fromDouble a
       weight x
           | x' <= 1 = ((a' + 2) * x' - (a' + 3)) * x2' + 1
@@ -107,14 +104,14 @@ instance Interpolation Bicubic where
       !i3 = i1 + 2
       !j3 = j1 + 2
 
-      !weightX0 = weight (distX i0)
-      !weightX1 = weight (distX i1)
-      !weightX2 = weight (distX i2)
-      !weightX3 = weight (distX i3)
-      !weightY0 = weight (distY j0)
-      !weightY1 = weight (distY j1)
-      !weightY2 = weight (distY j2)
-      !weightY3 = weight (distY j3)
+      !weightX0 = weight (fromIntegral i0 - i)
+      !weightX1 = weight (fromIntegral i1 - i)
+      !weightX2 = weight (fromIntegral i2 - i)
+      !weightX3 = weight (fromIntegral i3 - i)
+      !weightY0 = weight (fromIntegral j0 - j)
+      !weightY1 = weight (fromIntegral j1 - j)
+      !weightY2 = weight (fromIntegral j2 - j)
+      !weightY3 = weight (fromIntegral j3 - j)
 
       !weightX0Y0 = weightX0 * weightY0
       !weightX1Y0 = weightX1 * weightY0
@@ -136,25 +133,25 @@ instance Interpolation Bicubic where
       !weightX2Y3 = weightX2 * weightY3
       !weightX3Y3 = weightX3 * weightY3
 
-      !f00 = (fromRealFloat weightX0Y0 *) <$> getPx (i0 :. j0)
-      !f10 = (fromRealFloat weightX1Y0 *) <$> getPx (i1 :. j0)
-      !f20 = (fromRealFloat weightX2Y0 *) <$> getPx (i2 :. j0)
-      !f30 = (fromRealFloat weightX3Y0 *) <$> getPx (i3 :. j0)
+      !f00 = (weightX0Y0 *) <$> getPx (i0 :. j0)
+      !f10 = (weightX1Y0 *) <$> getPx (i1 :. j0)
+      !f20 = (weightX2Y0 *) <$> getPx (i2 :. j0)
+      !f30 = (weightX3Y0 *) <$> getPx (i3 :. j0)
 
-      !f01 = (fromRealFloat weightX0Y1 *) <$> getPx (i0 :. j1)
-      !f11 = (fromRealFloat weightX1Y1 *) <$> getPx (i1 :. j1)
-      !f21 = (fromRealFloat weightX2Y1 *) <$> getPx (i2 :. j1)
-      !f31 = (fromRealFloat weightX3Y1 *) <$> getPx (i3 :. j1)
+      !f01 = (weightX0Y1 *) <$> getPx (i0 :. j1)
+      !f11 = (weightX1Y1 *) <$> getPx (i1 :. j1)
+      !f21 = (weightX2Y1 *) <$> getPx (i2 :. j1)
+      !f31 = (weightX3Y1 *) <$> getPx (i3 :. j1)
 
-      !f02 = (fromRealFloat weightX0Y2 *) <$> getPx (i0 :. j2)
-      !f12 = (fromRealFloat weightX1Y2 *) <$> getPx (i1 :. j2)
-      !f22 = (fromRealFloat weightX2Y2 *) <$> getPx (i2 :. j2)
-      !f32 = (fromRealFloat weightX3Y2 *) <$> getPx (i3 :. j2)
+      !f02 = (weightX0Y2 *) <$> getPx (i0 :. j2)
+      !f12 = (weightX1Y2 *) <$> getPx (i1 :. j2)
+      !f22 = (weightX2Y2 *) <$> getPx (i2 :. j2)
+      !f32 = (weightX3Y2 *) <$> getPx (i3 :. j2)
 
-      !f03 = (fromRealFloat weightX0Y3 *) <$> getPx (i0 :. j3)
-      !f13 = (fromRealFloat weightX1Y3 *) <$> getPx (i1 :. j3)
-      !f23 = (fromRealFloat weightX2Y3 *) <$> getPx (i2 :. j3)
-      !f33 = (fromRealFloat weightX3Y3 *) <$> getPx (i3 :. j3)
+      !f03 = (weightX0Y3 *) <$> getPx (i0 :. j3)
+      !f13 = (weightX1Y3 *) <$> getPx (i1 :. j3)
+      !f23 = (weightX2Y3 *) <$> getPx (i2 :. j3)
+      !f33 = (weightX3Y3 *) <$> getPx (i3 :. j3)
 
       !w = weightX0Y0 + weightX1Y0 + weightX2Y0 + weightX3Y0
          + weightX0Y1 + weightX1Y1 + weightX2Y1 + weightX3Y1

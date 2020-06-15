@@ -294,10 +294,10 @@ rotate270 = transpose . flipH
 --
 -- <<images/frog.jpg>> <<images/frog_rotate330.png>>
 --
-rotate :: (ColorModel cs e, Interpolation method) =>
+rotate :: (RealFloat e, ColorModel cs e, Interpolation method) =>
           method -- ^ Interpolation method to be used
        -> Border (Pixel cs e) -- ^ Border handling strategy
-       -> Double -- ^ Angle Θ in radians
+       -> e -- ^ Angle Θ in radians
        -> Image cs e -- ^ Source image
        -> Image cs e -- ^ Rotated image
 rotate method border theta' (Image arr) =
@@ -307,7 +307,7 @@ rotate method border theta' (Image arr) =
         !j' = jD * cosTheta - iD * sinTheta - 0.5
     in interpolate method (A.handleBorderIndex border sz (A.index' arr)) (i', j')
   where
-    !theta = angle0to2pi (-theta') -- invert angle direction and put it into [0, 2*pi) range
+    !theta = angle0to2pi (- theta') -- invert angle direction and put it into [0, 2*pi) range
     !sz@(Sz2 m n) = A.size arr
     !mD = fromIntegral m
     !nD = fromIntegral n
@@ -334,59 +334,58 @@ rotate method border theta' (Image arr) =
 --
 -- <<images/frog.jpg>> <<images/frog_resize.jpg>>
 --
-resize :: (ColorModel cs e, Interpolation method) =>
+resize :: (RealFloat e, ColorModel cs e, Interpolation method) =>
           method -- ^ Interpolation method to be used during scaling.
        -> Border (Pixel cs e) -- ^ Border handling strategy
        -> Sz2   -- ^ Dimensions of a result image.
        -> Image cs e -- ^ Source image.
        -> Image cs e -- ^ Result image.
-resize method border sz'@(Sz2 m' n') (Image arr) = --Image $ A.compute warr
-  Image (A.makeArray (A.getComp arr) sz' getNewPx)
-  where
-    sz@(Sz2 m n) = A.size arr
-    !fM = fromIntegral m' / fromIntegral m
-    !fN = fromIntegral n' / fromIntegral n
-    getNewPx (i :. j) =
-      interpolate
-        method
-        (A.handleBorderIndex border sz (A.index' arr))
-        ( (fromIntegral i + 0.5) / fM - 0.5
-        , (fromIntegral j + 0.5) / fN - (0.5 :: Double))
-    {-# INLINE getNewPx #-}
+resize method border sz'@(Sz2 m' n') (Image arr) =
+  -- Image (A.makeArray (A.getComp arr) sz' getNewPx)
   -- where
-  --   (center@(u :. _), neighborhood) = interpolationBox method
-  --   darr =
-  --     A.makeArray
-  --       (A.getComp arr)
-  --       sz'
-  --       (getNewPx (A.handleBorderIndex border sz (A.index' arr)))
-  --   warr =
-  --     A.insertWindow darr $
-  --     A.Window
-  --       { A.windowStart = center
-  --       , A.windowSize = sz - neighborhood + Sz center
-  --       , A.windowIndex = getNewPx (A.unsafeIndex arr)
-  --       , A.windowUnrollIx2 = Just u
-  --       }
   --   sz@(Sz2 m n) = A.size arr
   --   !fM = fromIntegral m' / fromIntegral m
   --   !fN = fromIntegral n' / fromIntegral n
-  --   getNewPx getOldPx (i :. j) =
+  --   getNewPx (i :. j) =
   --     interpolate
   --       method
-  --       getOldPx
+  --       (A.handleBorderIndex border sz (A.index' arr))
   --       ( (fromIntegral i + 0.5) / fM - 0.5
-  --       , (fromIntegral j + 0.5) / fN - (0.5 :: Double))
+  --       , (fromIntegral j + 0.5) / fN - 0.5)
   --   {-# INLINE getNewPx #-}
+  Image $ A.compute warr
+  where
+    (center@(u :. _), neighborhood) = interpolationBox method
+    !darr = A.makeArray (A.getComp arr) sz' (getNewPx (A.handleBorderIndex border sz (A.index' arr)))
+    !warr =
+      A.insertWindow
+        darr
+        A.Window
+          { A.windowStart = center
+          , A.windowSize = sz - neighborhood + Sz center
+          , A.windowIndex = getNewPx (A.unsafeIndex arr)
+          , A.windowUnrollIx2 = Just u
+          }
+    sz@(Sz2 m n) = A.size arr
+    !fM = fromIntegral m' / fromIntegral m
+    !fN = fromIntegral n' / fromIntegral n
+    getNewPx getOldPx (i :. j) =
+      interpolate
+        method
+        getOldPx
+        ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
+    {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
+-- Note: Reducing the size seems to be better performance wise with windowed array, while
+-- increasing not necesserally
 
 -- | Scale an image. Same as resize, except scaling factors are supplied
 -- instead of new dimensions.
 --
 -- @ scale 'Bilinear' 'Edge' (0.5, 2) frog == resize 'Bilinear' 'Edge' (100, 640) frog @
 --
-scale :: (ColorModel cs e, Interpolation method) =>
+scale :: (RealFloat e, ColorModel cs e, Interpolation method) =>
          method -- ^ Interpolation method to be used during scaling.
       -> Border (Pixel cs e) -- ^ Border handling strategy
       -> (Double, Double) -- ^ Positive scaling factors.
@@ -409,16 +408,15 @@ scale method border (fM, fN) img =
 ----------------------
 
 -- | Put an angle into @[0, 2*pi)@ range.
-angle0to2pi :: Double -> Double
+angle0to2pi :: RealFloat e => e -> e
 angle0to2pi !f = f - 2 * pi * floor' (f / (2 * pi))
- where  floor' :: Double -> Double
-        floor' !x = fromIntegral (floor x :: Int)
+ where  floor' !x = fromIntegral (floor x :: Int)
         {-# INLINE floor' #-}
 {-# INLINE angle0to2pi #-}
 
 
 -- | Make sure @sin' pi == 0@ instead of @sin pi == 1.2246467991473532e-16@
-sin' :: Double -> Double
+sin' :: RealFloat e => e -> e
 sin' a = if abs sinA <= _0 then 0 else sinA
   where !_0 = 10 * sin pi
         !sinA = sin a
@@ -427,7 +425,7 @@ sin' a = if abs sinA <= _0 then 0 else sinA
 
 -- | Make sure @cos' (pi/2) == 0@ instead of @cos (pi/2) == 6.123233995736766e-17@
 -- and @cos' (3*pi/2) == 0@ instead of @cos (3*pi/2) == -1.8369701987210297e-16@
-cos' :: Double -> Double
+cos' :: RealFloat e => e -> e
 cos' a = sin' (a + pi/2)
 {-# INLINE cos' #-}
 
