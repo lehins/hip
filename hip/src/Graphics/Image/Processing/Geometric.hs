@@ -340,45 +340,47 @@ resize :: (RealFloat e, ColorModel cs e, Interpolation method) =>
        -> Sz2   -- ^ Dimensions of a result image.
        -> Image cs e -- ^ Source image.
        -> Image cs e -- ^ Result image.
-resize method border sz'@(Sz2 m' n') (Image arr) =
-  -- Image (A.makeArray (A.getComp arr) sz' getNewPx)
-  -- where
-  --   sz@(Sz2 m n) = A.size arr
-  --   !fM = fromIntegral m' / fromIntegral m
-  --   !fN = fromIntegral n' / fromIntegral n
-  --   getNewPx (i :. j) =
-  --     interpolate
-  --       method
-  --       (A.handleBorderIndex border sz (A.index' arr))
-  --       ( (fromIntegral i + 0.5) / fM - 0.5
-  --       , (fromIntegral j + 0.5) / fN - 0.5)
-  --   {-# INLINE getNewPx #-}
-  Image $ A.compute warr
+resize method border sz' (Image arr) = Image $ A.compute $ A.extract' center sz' arr'
   where
-    (center@(u :. _), neighborhood) = interpolationBox method
-    !darr = A.makeArray (A.getComp arr) sz' (getNewPx (A.handleBorderIndex border sz (A.index' arr)))
-    !warr =
-      A.insertWindow
-        darr
-        A.Window
-          { A.windowStart = center
-          , A.windowSize = sz - neighborhood + Sz center
-          , A.windowIndex = getNewPx (A.unsafeIndex arr)
-          , A.windowUnrollIx2 = Just u
-          }
+    arr' = A.makeArrayR A.D (A.getComp arr) sz'' getNewPx
+    (center, neighborhood) = interpolationBox method
+    sz''@(Sz2 m' n') = sz' + neighborhood - 1
     sz@(Sz2 m n) = A.size arr
     !fM = fromIntegral m' / fromIntegral m
     !fN = fromIntegral n' / fromIntegral n
-    getNewPx getOldPx (i :. j) =
+    getNewPx (i :. j) =
       interpolate
         method
-        getOldPx
+        (A.handleBorderIndex border sz (A.index' arr))
         ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
     {-# INLINE getNewPx #-}
+  -- Image $ A.compute warr
+  -- where
+  --   (center@(u :. _), neighborhood) = interpolationBox method
+  --   !darr = A.makeArray (A.getComp arr) sz' (getNewPx (A.handleBorderIndex border sz (A.index' arr)))
+  --   !warr =
+  --     A.insertWindow
+  --       darr
+  --       A.Window
+  --         { A.windowStart = center
+  --         , A.windowSize = sz - neighborhood + Sz center
+  --         , A.windowIndex = getNewPx (A.unsafeIndex arr)
+  --         , A.windowUnrollIx2 = Just u
+  --         }
+  --   sz@(Sz2 m n) = A.size arr
+  --   !fM = fromIntegral m' / fromIntegral m
+  --   !fN = fromIntegral n' / fromIntegral n
+  --   getNewPx getOldPx (i :. j) =
+  --     interpolate
+  --       method
+  --       getOldPx
+  --       ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
+  --   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
 
--- Note: Reducing the size seems to be better performance wise with windowed array, while
--- increasing not necesserally
+-- Note: Reducing the size seems to be slightly better performance wise with windowed
+-- array, while increasing the size might be opposite. Extracting windowed array is not
+-- implemented though.
 
 -- | Scale an image. Same as resize, except scaling factors are supplied
 -- instead of new dimensions.
