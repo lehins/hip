@@ -29,7 +29,7 @@ custom-setup
 
 library
   hs-source-dirs:      src
-  exposed-modules:     IHaskell.Display.Image
+  exposed-modules:     IHaskell.Display.Hip
 
   other-modules:
   build-depends:       base >= 4.11 && < 5

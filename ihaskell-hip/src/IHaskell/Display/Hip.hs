@@ -4,14 +4,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
--- Module      : IHaskell.Display.Image
+-- Module      : IHaskell.Display.Hip
 -- Copyright   : (c) Alexey Kuleshevich 2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module IHaskell.Display.Image
+module IHaskell.Display.Hip
   ( module IHaskell.Display
   , module I
   ) where
