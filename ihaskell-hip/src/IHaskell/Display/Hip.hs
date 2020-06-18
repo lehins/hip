@@ -55,6 +55,16 @@ instance {-# OVERLAPPABLE #-} (M.ColorSpace cs i e, M.ColorSpace (M.BaseSpace cs
   display = base64encode png (M.Auto M.PNG)
 
 
+instance IHaskellDisplay (NonEmpty (M.GifDelay, I.Image M.Y' Word8)) where
+  display = base64encodeSequence
+
+instance IHaskellDisplay (NonEmpty (M.GifDelay, I.Image (M.SRGB 'I.NonLinear) Word8)) where
+  display = base64encodeSequence
+
+instance IHaskellDisplay (NonEmpty (M.GifDelay, I.Image (M.Alpha (M.SRGB 'I.NonLinear)) Word8)) where
+  display = base64encodeSequence
+
+
 
 base64encode ::
      (M.Writable f (M.Image I.S cs e), M.ColorModel cs e)
@@ -66,3 +76,13 @@ base64encode toDisplayData format img@(I.Image arr) = do
   let I.Sz2 m n = I.dims img
   bs <- M.encodeM format def arr
   pure $ Display [toDisplayData n m $ base64 $ toStrict bs]
+
+
+base64encodeSequence ::
+     (M.Writable (M.Sequence M.GIF) (NonEmpty (M.GifDelay, M.Image I.S cs e)), M.ColorModel cs e)
+  => (NonEmpty (M.GifDelay, I.Image cs e))
+  -> IO Display
+base64encodeSequence imgs@((_, img) :| _) = do
+  let I.Sz2 m n = I.dims img
+  bs <- M.encodeM (M.Sequence M.GIF) def $ fmap (fmap I.unImage) imgs
+  pure $ Display [gif n m $ base64 $ toStrict bs]

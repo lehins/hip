@@ -63,7 +63,7 @@ import Graphics.Pixel.ColorSpace hiding (Vector, MVector)
 import Prelude as P hiding (map, traverse, zipWith, zipWith3)
 
 -- | Main data type of the library
-data Image cs e = Image !(Array A.S Ix2 (Pixel cs e))
+data Image cs e = Image { unImage :: !(Array A.S Ix2 (Pixel cs e)) }
 -- It is not a newtype, just so the fusion works properly
 
 instance ColorModel cs e => Show (Image cs e) where
