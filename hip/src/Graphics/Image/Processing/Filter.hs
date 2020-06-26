@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -20,8 +21,12 @@ module Graphics.Image.Processing.Filter
     Filter(..)
   , Filter'
   , A.Value
+  , A.Padding(..)
   -- ** Application
+  , mapFilter
+  , mapFilterWithStride
   , applyFilter
+  , applyFilterWithStride
   -- ** Creation
   , makeFilter
   -- ** Conversion
@@ -33,10 +38,12 @@ module Graphics.Image.Processing.Filter
   , dimapFilter
   -- * Available filters
   -- ** Gaussian
-  , gaussian5x5
-  , gaussian5x1
-  , gaussian1x5
-  , applyGaussian5x5
+  , gaussianBlur3x3
+  , gaussianBlur5x5
+  , gaussianFilter3x1
+  , gaussianFilter1x3
+  , gaussianFilter5x1
+  , gaussianFilter1x5
   -- ** Laplacian
   , laplacian
   -- ** Laplacian of Gaussian
@@ -58,6 +65,13 @@ module Graphics.Image.Processing.Filter
   --   -- * Prewitt
   -- , prewittFilter
   -- , prewittOperator
+  -- * Kernel factory
+  , makeKernel1D
+  , makeKernel2D
+  , estimateFunction1D
+  , estimateFunction2D
+  , gaussianFunction1D
+  , gaussianFunction2D
   ) where
 
 import Control.Applicative
@@ -67,9 +81,9 @@ import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Numeric.Integral as A
 import Graphics.Image.Internal
 import Prelude as P
-import qualified Graphics.Pixel as M
 
--- | Filter that can be applied to an image using `applyFilter`.
+
+-- | Filter that can be applied to an image using `mapFilter`.
 newtype Filter cs a b = Filter
   { filterStencil :: A.Stencil Ix2 (Pixel cs a) (Pixel cs b)
   } deriving (NFData, Num, Fractional, Floating)
@@ -92,23 +106,56 @@ instance (ColorModel cs a, Applicative (Pixel cs)) => Applicative (Filter cs a) 
 -- complexity.
 --
 -- >>> batRGB <- readImageRGB "images/megabat.jpg"
--- >>> writeImage "images/megabat_sobel_rgb.jpg" $ normalize $ applyFilter Edge sobelOperator batRGB
+-- >>> writeImage "images/megabat_sobel_rgb.jpg" $ normalize $ mapFilter Edge sobelOperator batRGB
 -- >>> let batY = I.map toPixelY batRGB
--- >>> writeImage "images/megabat_sobel.jpg" $ normalize $ applyFilter Edge sobelOperator batY
+-- >>> writeImage "images/megabat_sobel.jpg" $ normalize $ mapFilter Edge sobelOperator batY
 --
 -- <<images/megabat.jpg>> <<images/megabat_sobel_rgb.jpg>> <<images/megabat_sobel.jpg>>
 --
 -- With filter application normalization is often desired, see `laplacian` for an example without
 -- normalization.
-applyFilter ::
+mapFilter ::
      (ColorModel cs a, ColorModel cs b)
   => Border (Pixel cs a)
   -> Filter cs a b
   -> Image cs a
   -> Image cs b
-applyFilter border f (Image arr) =
+mapFilter border f (Image arr) =
   Image (A.compute (A.mapStencil border (filterStencil f) arr))
+{-# INLINE mapFilter #-}
+
+applyFilter ::
+     (ColorModel cs a, ColorModel cs b)
+  => A.Padding Ix2 (Pixel cs a)
+  -> Filter cs a b
+  -> Image cs a
+  -> Image cs b
+applyFilter padding f (Image arr) =
+  Image (A.compute (A.applyStencil padding (filterStencil f) arr))
 {-# INLINE applyFilter #-}
+
+
+mapFilterWithStride ::
+     (ColorModel cs a, ColorModel cs b)
+  => Border (Pixel cs a)
+  -> Filter cs a b
+  -> Stride Ix2
+  -> Image cs a
+  -> Image cs b
+mapFilterWithStride border f stride (Image arr) =
+  Image (A.computeWithStride stride (A.mapStencil border (filterStencil f) arr))
+{-# INLINE mapFilterWithStride #-}
+
+applyFilterWithStride ::
+     (ColorModel cs a, ColorModel cs b)
+  => A.Padding Ix2 (Pixel cs a)
+  -> Filter cs a b
+  -> Stride Ix2
+  -> Image cs a
+  -> Image cs b
+applyFilterWithStride padding f stride (Image arr) =
+  Image (A.computeWithStride stride (A.applyStencil padding (filterStencil f) arr))
+{-# INLINE applyFilterWithStride #-}
 
 
 -- | Create a custom filter
@@ -160,149 +207,181 @@ dimapFilter f g (Filter s) = Filter (A.dimapStencil (fmap f) (fmap g) s)
 -- Filters --
 -------------
 
+-- | 1D gaussian function
+-- \g(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{ -\frac{x^2}{2\sigma^2} }\
+gaussianFunction1D ::
+     Floating e
+  => e -- ^ Standard deviation σ (sigma)
+  -> e -- ^ x
+  -> e
+gaussianFunction1D stdDev x = exp (- ((x / stdDev) ^ (2 :: Int)) / 2) / (stdDev * sqrt (2 * pi))
+{-# INLINE gaussianFunction1D #-}
 
-gaussian :: Floating e => e -> e -> e -> e
-gaussian stdDev y x = exp (-(x ^ (2 :: Int) + y ^ (2 :: Int)) / var2) / (var2 * pi)
+-- | 2D gaussian function
+-- \g(x, y) = \frac{1}{2\sigma^2\pi} e^{ -\frac{x^2 + y^2}{2\sigma^2} }\
+gaussianFunction2D ::
+     Floating e
+  => e -- ^ Standard deviation σ (sigma)
+  -> e -- ^ x
+  -> e -- ^ y
+  -> e
+gaussianFunction2D stdDev y x = exp (-(x ^ (2 :: Int) + y ^ (2 :: Int)) / var2) / (var2 * pi)
   where
     var2 = 2 * stdDev ^ (2 :: Int)
-{-# INLINE gaussian #-}
+{-# INLINE gaussianFunction2D #-}
 
--- | Numeber of samples to use for kernel approximation
+-- | Number of samples to use for kernel approximations
 numSamples :: Int
-numSamples = 50
+numSamples = 100
 
-makeKernel1D ::
+estimateFunction1D ::
      (A.Storable e, Floating e)
   => Int -- ^ Radius
   -> (e -> e) -- ^ Kernel function @f(x)@
   -> A.Vector A.M e
-makeKernel1D r g
-  | r <= 0 = error "makeKernel1D: Radius must be positive"
+estimateFunction1D side g
+  | side <= 0 = error "estimateFunction1D: Side must be positive"
   | otherwise =
     let f scale i = g (scale i)
         {-# INLINE f #-}
-        side = r * 2 + 1
         sz = Sz side
-        a = fromIntegral side / 2 - fromIntegral side
+        a = -fromIntegral side / 2
         d = 1
      in A.simpsonsRule Par A.S f a d sz numSamples
-{-# INLINE makeKernel1D #-}
+{-# INLINE estimateFunction1D #-}
 
-makeKernel2D ::
+estimateFunction2D ::
      (A.Storable e, Floating e)
   => Int -- ^ Radius
   -> (e -> e -> e) -- ^ Kernel function @f(x, y)@
   -> A.Matrix A.M e
-makeKernel2D r g
-  | r <= 0 = error "makeKernel2D: Radius must be positive"
+estimateFunction2D side g
+  | side <= 0 = error "estimateFunction2D: Side must be positive"
   | otherwise =
     let f scale (i :. j) = g (scale i) (scale j)
         {-# INLINE f #-}
-        side = r * 2 + 1
         sz = Sz (side :. side)
-        a = fromIntegral side / 2 - fromIntegral side
+        a = -fromIntegral side / 2
         d = 1
      in A.simpsonsRule Par A.S f a d sz numSamples
+{-# INLINE estimateFunction2D #-}
+
+
+makeKernelWith ::
+     (Storable a, Storable e, Num t, Num e, Index ix)
+  => (t -> t2 -> Array A.M ix e)
+  -> (Array S ix e -> Array A.D Ix2 a)
+  -> t
+  -> t2
+  -> Array A.S Ix2 a
+makeKernelWith make adjust r f =
+  let !k = A.computeAs A.S $ make side f
+      !side = r * 2 + 1
+   in A.compute $ adjust k
+{-# INLINE makeKernelWith #-}
+
+-- |
+--
+-- ====__Examples__
+--
+-- Constructing a gaussian 1x5 kernel
+--
+-- >>> makeKernel1D 2 (gaussianFunction1D (5/3 :: Float))
+-- Array S Par (Sz (1 :. 5))
+--   [ [ 0.13533571, 0.22856848, 0.27219155, 0.22856851, 0.13533576 ]
+--   ]
+--
+-- @since 2.0.0
+makeKernel1D :: (Storable e, RealFloat e) => Int -> (e -> e) -> A.Matrix A.S e
+makeKernel1D =
+  makeKernelWith estimateFunction1D $ \k ->
+    let !m = A.sum k
+        Sz side = A.size k
+     in A.resize' (Sz2 1 side) $ A.map (/ m) k
+{-# INLINE makeKernel1D #-}
+
+
+-- |
+--
+-- ====__Examples__
+--
+-- Constructing a gaussian 5x5 kernel
+--
+-- >>> makeKernel2D 2 (gaussianFunction2D (5/3 :: Float))
+-- Array S Par (Sz (5 :. 5))
+--   [ [ 1.8315764e-2, 3.0933492e-2, 3.683724e-2, 3.0933492e-2, 1.8315762e-2 ]
+--   , [ 3.0933483e-2, 5.224356e-2, 6.2214427e-2, 5.224356e-2, 3.0933486e-2 ]
+--   , [ 3.683725e-2, 6.221442e-2, 7.408825e-2, 6.2214423e-2, 3.683724e-2 ]
+--   , [ 3.093349e-2, 5.224356e-2, 6.2214408e-2, 5.224356e-2, 3.0933484e-2 ]
+--   , [ 1.831576e-2, 3.0933494e-2, 3.683725e-2, 3.0933501e-2, 1.831576e-2 ]
+--   ]
+--
+-- @since 2.0.0
+makeKernel2D :: (Storable e, RealFloat e) => Int -> (e -> e -> e) -> A.Matrix A.S e
+makeKernel2D =
+  makeKernelWith estimateFunction2D $ \k ->
+    let !m = A.sum k
+     in A.map (/ m) k
 {-# INLINE makeKernel2D #-}
 
-makeIntegralKernel1D ::
-     forall cs a e. (ColorModel cs e, A.Storable a, RealFloat a)
-  => Int
-  -> (a -> a)
-  -> Array A.S Ix1 (Pixel cs e)
-makeIntegralKernel1D r f =
-  let k = makeKernel1D r f
-      m = A.minimum' k
-   in A.compute $ A.map (pure . fromIntegral . (round :: a -> Int) . (/ m)) k
 
-makeIntegralKernel2D ::
-     forall cs a e. (ColorModel cs e, A.Storable a, RealFloat a)
-  => Int
-  -> (a -> a -> a)
-  -> Array A.S Ix2 (Pixel cs e)
-makeIntegralKernel2D r f =
-  let k = makeKernel2D r f
-      m = A.minimum' k
-   in A.compute $
-      A.map (pure . fromIntegral . (round :: a -> Int) . (/ m)) k
-
-makeFloatingKernel1D ::
-     forall cs e. (ColorModel cs e, RealFloat e)
-  => Int
-  -> (e -> e)
-  -> Array A.S Ix1 (Pixel cs e)
-makeFloatingKernel1D r f =
-  let k = makeKernel1D r f
-      m = A.sum k
-   in A.compute $ A.map (pure . (/ m)) k
-
-makeFloatingKernel2D ::
-     forall cs e. (ColorModel cs e, RealFloat e)
-  => Int
-  -> (e -> e -> e)
-  -> Array A.S Ix2 (Pixel cs e)
-makeFloatingKernel2D r f =
-  let k = makeKernel2D r f
-      m = A.sum k
-   in A.compute $ A.map (pure . (/ m)) k
-
-
--- | Gaussian 5x5 filter. Gaussian is separable, so it is faster to apply `gaussian5x1` after
--- `gaussian1x5`.
---
--- >λ> bat <- readImageY "images/megabat.jpg"
--- >λ> writeImage "images/megabat_laplacian_nonorm.jpg" $ applyFilter Edge laplacian bat -- no normalization
--- >λ> writeImage "images/megabat_laplacian.jpg" $ normalize $ applyFilter Edge laplacian bat
---
--- <<images/megabat_y.jpg>> <<images/megabat_laplacian_nonorm.jpg>> <<images/megabat_laplacian.jpg>>
---
--- ==== __Convolution Kernel__
---
--- \[
--- \mathbf{L} = \begin{bmatrix}
--- +1 & +1 & +1 \\
--- +1 & -8 & +1 \\
--- +1 & +1 & +1
--- \end{bmatrix}
--- \]
---
-gaussian5x5 :: (ColorModel cs e) => Filter cs e e
-gaussian5x5 = Filter $ fmap (// 264) <$> A.makeStencil (Sz2 5 5) (2 :. 2) stencil
+-- | A horizontal gaussian filter with standard diviation set to 1
+gaussianFilter1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussianFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
   where
-    stencil f =
-          f (-2 :. -2) +  4 * f (-2 :. -1) +  6 * f (-2 :.  0) +  4 * f (-2 :.  1) +     f (-2 :.  2) +
-      4 * f (-1 :. -2) + 16 * f (-1 :. -1) + 25 * f (-1 :.  0) + 16 * f (-1 :.  1) + 4 * f (-1 :.  2) +
-      6 * f ( 0 :. -2) + 25 * f ( 0 :. -1) + 40 * f ( 0 :.  0) + 25 * f ( 0 :.  1) + 6 * f ( 0 :.  2) +
-      4 * f ( 1 :. -2) + 16 * f ( 1 :. -1) + 25 * f ( 1 :.  0) + 16 * f ( 1 :.  1) + 4 * f ( 1 :.  2) +
-          f ( 2 :. -2) +  4 * f ( 2 :. -1) +  6 * f ( 2 :.  0) +  4 * f ( 2 :.  1) +     f ( 2 :.  2)
+    stencil f = f (0 :. -1) * 0.27901010608341126 +
+                f (0 :.  0) * 0.44197978783317790 +
+                f (0 :.  1) * 0.27901010608341126
     {-# INLINE stencil #-}
-{-# INLINE gaussian5x5 #-}
+{-# INLINE gaussianFilter1x3 #-}
 
-gaussian1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian1x5 = Filter $ fmap (/ 16) <$> A.makeStencil (Sz2 1 5) (0 :. 2) stencil
+-- | A vertical gaussian filter with standard diviation set to 1
+gaussianFilter3x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussianFilter3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
   where
-    stencil f = f (0 :. -2) +  4 * f (0 :. -1) + 6 * f (0 :.  0) + 4 * f (0 :.  1) + f (0 :.  2)
+    stencil f = f (-1 :. 0) * 0.27901010608341126 +
+                f ( 0 :. 0) * 0.44197978783317790 +
+                f ( 1 :. 0) * 0.27901010608341126
     {-# INLINE stencil #-}
-{-# INLINE gaussian1x5 #-}
+{-# INLINE gaussianFilter3x1 #-}
 
+gaussianBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+gaussianBlur3x3 b = mapFilter b gaussianFilter3x1 . mapFilter b gaussianFilter1x3
+{-# INLINE gaussianBlur3x3 #-}
 
-gaussian5x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian5x1 = Filter $ fmap (/ 16) <$> A.makeStencil (Sz2 5 1) (2 :. 0) stencil
+gaussianFilter1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussianFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
   where
-    stencil f = f (-2 :. 0) +  4 * f (-1 :. 0) + 6 * f (0 :.  0) + 4 * f (1 :.  0) + f (2 :.  0)
+    stencil f = f (0 :. -2) * 0.13533572623225257 +
+                f (0 :. -1) * 0.22856849543519478 +
+                f (0 :.  0) * 0.27219155666510536 +
+                f (0 :.  1) * 0.22856849543519478 +
+                f (0 :.  2) * 0.13533572623225248
     {-# INLINE stencil #-}
-{-# INLINE gaussian5x1 #-}
+{-# INLINE gaussianFilter1x5 #-}
 
 
-applyGaussian5x5 :: (Fractional b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-applyGaussian5x5 b = applyFilter b gaussian5x1 . applyFilter b gaussian1x5
-{-# INLINE applyGaussian5x5 #-}
+gaussianFilter5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussianFilter5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
+  where
+    stencil f = f (-2 :. 0) * 0.13533572623225257 +
+                f (-1 :. 0) * 0.22856849543519478 +
+                f ( 0 :. 0) * 0.27219155666510536 +
+                f ( 1 :. 0) * 0.22856849543519478 +
+                f ( 2 :. 0) * 0.13533572623225248
+    {-# INLINE stencil #-}
+{-# INLINE gaussianFilter5x1 #-}
+
+
+gaussianBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+gaussianBlur5x5 b = mapFilter b gaussianFilter5x1 . mapFilter b gaussianFilter1x5
+{-# INLINE gaussianBlur5x5 #-}
 
 -- | Laplacian filter
 --
 -- >>> bat <- readImageY "images/megabat.jpg"
--- >>> writeImage "images/megabat_laplacian_nonorm.jpg" $ applyFilter Edge laplacian bat -- no normalization
--- >>> writeImage "images/megabat_laplacian.jpg" $ normalize $ applyFilter Edge laplacian bat
+-- >>> writeImage "images/megabat_laplacian_nonorm.jpg" $ mapFilter Edge laplacian bat -- no normalization
+-- >>> writeImage "images/megabat_laplacian.jpg" $ normalize $ mapFilter Edge laplacian bat
 --
 -- <<images/megabat_y.jpg>> <<images/megabat_laplacian_nonorm.jpg>> <<images/megabat_laplacian.jpg>>
 --
@@ -426,6 +505,59 @@ prewittOperator =
   sqrt (prewittHorizontal ^ (2 :: Int) + prewittVertical ^ (2 :: Int))
 {-# INLINE prewittOperator #-}
 
+-- Integral gaussian
+
+-- | Gaussian 5x5 filter. Gaussian is separable, so it is faster to apply `gaussian5x1` after
+-- `gaussian1x5`.
+--
+-- >λ> bat <- readImageY "images/megabat.jpg"
+-- >λ> writeImage "images/megabat_laplacian_nonorm.jpg" $ mapFilter Edge laplacian bat -- no normalization
+-- >λ> writeImage "images/megabat_laplacian.jpg" $ normalize $ mapFilter Edge laplacian bat
+--
+-- <<images/megabat_y.jpg>> <<images/megabat_laplacian_nonorm.jpg>> <<images/megabat_laplacian.jpg>>
+--
+-- ==== __Convolution Kernel__
+--
+-- \[
+-- \mathbf{L} = \begin{bmatrix}
+-- +1 & +1 & +1 \\
+-- +1 & -8 & +1 \\
+-- +1 & +1 & +1
+-- \end{bmatrix}
+-- \]
+--
+-- gaussian5x5i :: (ColorModel cs e, Integral e) => Filter cs e e
+-- gaussian5x5i = Filter $ fmap (`div` 264) <$> A.makeStencil (Sz2 5 5) (2 :. 2) stencil
+--   where
+--     stencil f =
+--           f (-2 :. -2) +  4 * f (-2 :. -1) +  6 * f (-2 :.  0) +  4 * f (-2 :.  1) +     f (-2 :.  2) +
+--       4 * f (-1 :. -2) + 16 * f (-1 :. -1) + 25 * f (-1 :.  0) + 16 * f (-1 :.  1) + 4 * f (-1 :.  2) +
+--       6 * f ( 0 :. -2) + 25 * f ( 0 :. -1) + 40 * f ( 0 :.  0) + 25 * f ( 0 :.  1) + 6 * f ( 0 :.  2) +
+--       4 * f ( 1 :. -2) + 16 * f ( 1 :. -1) + 25 * f ( 1 :.  0) + 16 * f ( 1 :.  1) + 4 * f ( 1 :.  2) +
+--           f ( 2 :. -2) +  4 * f ( 2 :. -1) +  6 * f ( 2 :.  0) +  4 * f ( 2 :.  1) +     f ( 2 :.  2)
+--     {-# INLINE stencil #-}
+-- {-# INLINE gaussian5x5i #-}
+
+gaussian1x5i :: (ColorModel cs e, Integral e) => Filter cs e e
+gaussian1x5i = Filter $ fmap (`div` 16) <$> A.makeStencil (Sz2 1 5) (0 :. 2) stencil
+  where
+    stencil f = f (0 :. -2) +  4 * f (0 :. -1) + 6 * f (0 :.  0) + 4 * f (0 :.  1) + f (0 :.  2)
+    {-# INLINE stencil #-}
+{-# INLINE gaussian1x5i #-}
+
+
+gaussian5x1i :: (ColorModel cs e, Integral e) => Filter cs e e
+gaussian5x1i = Filter $ fmap (`div` 16) <$> A.makeStencil (Sz2 5 1) (2 :. 0) stencil
+  where
+    stencil f = f (-2 :. 0) +  4 * f (-1 :. 0) + 6 * f (0 :.  0) + 4 * f (1 :.  0) + f (2 :.  0)
+    {-# INLINE stencil #-}
+{-# INLINE gaussian5x1i #-}
+
+
+mapGaussian5x5i :: (Integral b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+mapGaussian5x5i b = mapFilter b gaussian5x1i . mapFilter b gaussian1x5i
+{-# INLINE mapGaussian5x5i #-}
+
 
 ----------------------------------
 ------- Benchmarking -------------
@@ -445,3 +577,5 @@ prewittOperator =
 -- computation, which means avoiding intermediary arrays.
 --
 -- Examples of composing two filters together would be `sobelOperator` and `prewittOperator`.
+
+

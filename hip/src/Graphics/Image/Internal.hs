@@ -51,6 +51,7 @@ module Graphics.Image.Internal
   , maxVal
   , minVal
   , module AC
+  , A.Storable
   ) where
 
 import Control.DeepSeq
