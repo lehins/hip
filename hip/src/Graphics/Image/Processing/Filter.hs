@@ -38,12 +38,16 @@ module Graphics.Image.Processing.Filter
   , dimapFilter
   -- * Available filters
   -- ** Gaussian
+  , gaussianBlur
   , gaussianBlur3x3
   , gaussianBlur5x5
+  , gaussianBlur7x7
   , gaussianFilter3x1
   , gaussianFilter1x3
   , gaussianFilter5x1
   , gaussianFilter1x5
+  , gaussianFilter7x1
+  , gaussianFilter1x7
   -- ** Laplacian
   , laplacian
   -- ** Laplacian of Gaussian
@@ -52,13 +56,11 @@ module Graphics.Image.Processing.Filter
   , sobelHorizontal
   , sobelVertical
   , sobelOperator
+  , sobelOperatorNormal
   -- ** Prewitt
   , prewittHorizontal
   , prewittVertical
   , prewittOperator
-  --   -- * Gaussian
-  -- , gaussianLowPass
-  -- , gaussianBlur
   --   -- * Sobel
   -- , sobelFilter
   -- , sobelOperator
@@ -76,7 +78,7 @@ module Graphics.Image.Processing.Filter
 
 import Control.Applicative
 import Control.DeepSeq
-import Data.Int
+import Data.Maybe
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Numeric.Integral as A
 import Graphics.Image.Internal
@@ -230,16 +232,14 @@ gaussianFunction2D stdDev y x = exp (-(x ^ (2 :: Int) + y ^ (2 :: Int)) / var2) 
     var2 = 2 * stdDev ^ (2 :: Int)
 {-# INLINE gaussianFunction2D #-}
 
--- | Number of samples to use for kernel approximations
-numSamples :: Int
-numSamples = 100
 
 estimateFunction1D ::
      (A.Storable e, Floating e)
-  => Int -- ^ Radius
+  => Int -- ^ Number of samples to use for integral approximation
+  -> Int -- ^ Side
   -> (e -> e) -- ^ Kernel function @f(x)@
   -> A.Vector A.M e
-estimateFunction1D side g
+estimateFunction1D numSamples side g
   | side <= 0 = error "estimateFunction1D: Side must be positive"
   | otherwise =
     let f scale i = g (scale i)
@@ -252,10 +252,11 @@ estimateFunction1D side g
 
 estimateFunction2D ::
      (A.Storable e, Floating e)
-  => Int -- ^ Radius
+  => Int -- ^ Number of samples to use for integral approximation
+  -> Int -- ^ Side
   -> (e -> e -> e) -- ^ Kernel function @f(x, y)@
   -> A.Matrix A.M e
-estimateFunction2D side g
+estimateFunction2D numSamples  side g
   | side <= 0 = error "estimateFunction2D: Side must be positive"
   | otherwise =
     let f scale (i :. j) = g (scale i) (scale j)
@@ -268,15 +269,14 @@ estimateFunction2D side g
 
 
 makeKernelWith ::
-     (Storable a, Storable e, Num t, Num e, Index ix)
+     (Storable a, Storable e, Num t, Num e, Index ix, Index ix2)
   => (t -> t2 -> Array A.M ix e)
-  -> (Array S ix e -> Array A.D Ix2 a)
+  -> (Array S ix e -> Array A.D ix2 a)
   -> t
   -> t2
-  -> Array A.S Ix2 a
-makeKernelWith make adjust r f =
+  -> Array A.S ix2 a
+makeKernelWith make adjust side f =
   let !k = A.computeAs A.S $ make side f
-      !side = r * 2 + 1
    in A.compute $ adjust k
 {-# INLINE makeKernelWith #-}
 
@@ -292,9 +292,15 @@ makeKernelWith make adjust r f =
 --   ]
 --
 -- @since 2.0.0
-makeKernel1D :: (Storable e, RealFloat e) => Int -> (e -> e) -> A.Matrix A.S e
-makeKernel1D =
-  makeKernelWith estimateFunction1D $ \k ->
+makeKernel1D ::
+     (Storable e, RealFloat e)
+  => Int -- ^ Number of sample per cell to use for integral estimation. Higher the value
+         -- better is the accuracy, but longer it takes to compute the estimate.
+  -> Int -- ^ Length of the kernel
+  -> (e -> e)
+  -> A.Matrix A.S e
+makeKernel1D n =
+  makeKernelWith (estimateFunction1D n) $ \k ->
     let !m = A.sum k
         Sz side = A.size k
      in A.resize' (Sz2 1 side) $ A.map (/ m) k
@@ -305,21 +311,30 @@ makeKernel1D =
 --
 -- ====__Examples__
 --
--- Constructing a gaussian 5x5 kernel
+-- Constructing a gaussian 5x5 kernel with `Int` values.
 --
--- >>> makeKernel2D 2 (gaussianFunction2D (5/3 :: Float))
--- Array S Par (Sz (5 :. 5))
---   [ [ 1.8315764e-2, 3.0933492e-2, 3.683724e-2, 3.0933492e-2, 1.8315762e-2 ]
---   , [ 3.0933483e-2, 5.224356e-2, 6.2214427e-2, 5.224356e-2, 3.0933486e-2 ]
---   , [ 3.683725e-2, 6.221442e-2, 7.408825e-2, 6.2214423e-2, 3.683724e-2 ]
---   , [ 3.093349e-2, 5.224356e-2, 6.2214408e-2, 5.224356e-2, 3.0933484e-2 ]
---   , [ 1.831576e-2, 3.0933494e-2, 3.683725e-2, 3.0933501e-2, 1.831576e-2 ]
+-- >>> import qualified Data.Massiv.Array as A
+-- >>> x = makeKernel2D 50 5 (gaussianFunction2D (2.5/3 :: Float))
+-- >>> A.map ((round :: Float -> Int) . (/ A.minimum' x)) x
+-- Array D Par (Sz (5 :. 5))
+--   [ [ 1, 7, 13, 7, 1 ]
+--   , [ 7, 47, 90, 47, 7 ]
+--   , [ 13, 90, 170, 90, 13 ]
+--   , [ 7, 47, 90, 47, 7 ]
+--   , [ 1, 7, 13, 7, 1 ]
 --   ]
 --
 -- @since 2.0.0
-makeKernel2D :: (Storable e, RealFloat e) => Int -> (e -> e -> e) -> A.Matrix A.S e
-makeKernel2D =
-  makeKernelWith estimateFunction2D $ \k ->
+makeKernel2D ::
+     (Storable e, RealFloat e)
+  => Int -- ^ Number of sample per cell in each dimension to use for integral
+         -- estimation. Higher the value better is the accuracy, but longer it takes to
+         -- compute the estimate.
+  -> Int -- ^ Length of both sides of the kernel
+  -> (e -> e -> e)
+  -> A.Matrix A.S e
+makeKernel2D n =
+  makeKernelWith (estimateFunction2D n) $ \k ->
     let !m = A.sum k
      in A.map (/ m) k
 {-# INLINE makeKernel2D #-}
@@ -329,9 +344,9 @@ makeKernel2D =
 gaussianFilter1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
 gaussianFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
   where
-    stencil f = f (0 :. -1) * 0.27901010608341126 +
-                f (0 :.  0) * 0.44197978783317790 +
-                f (0 :.  1) * 0.27901010608341126
+    stencil f = f (0 :. -1) * 0.15773119796715185 +
+                f (0 :.  0) * 0.68453760406569570 +
+                f (0 :.  1) * 0.15773119796715185
     {-# INLINE stencil #-}
 {-# INLINE gaussianFilter1x3 #-}
 
@@ -339,9 +354,9 @@ gaussianFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
 gaussianFilter3x1 :: (Floating e, ColorModel cs e) => Filter cs e e
 gaussianFilter3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
   where
-    stencil f = f (-1 :. 0) * 0.27901010608341126 +
-                f ( 0 :. 0) * 0.44197978783317790 +
-                f ( 1 :. 0) * 0.27901010608341126
+    stencil f = f (-1 :. 0) * 0.15773119796715185 +
+                f ( 0 :. 0) * 0.68453760406569570 +
+                f ( 1 :. 0) * 0.15773119796715185
     {-# INLINE stencil #-}
 {-# INLINE gaussianFilter3x1 #-}
 
@@ -349,33 +364,113 @@ gaussianBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image
 gaussianBlur3x3 b = mapFilter b gaussianFilter3x1 . mapFilter b gaussianFilter1x3
 {-# INLINE gaussianBlur3x3 #-}
 
+-- | Gaussian horizontal filter with radius 2.5 and @σ=2.5\/3@
 gaussianFilter1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
 gaussianFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
   where
-    stencil f = f (0 :. -2) * 0.13533572623225257 +
-                f (0 :. -1) * 0.22856849543519478 +
-                f (0 :.  0) * 0.27219155666510536 +
-                f (0 :.  1) * 0.22856849543519478 +
-                f (0 :.  2) * 0.13533572623225248
+    stencil f = f (0 :. -2) * 0.03467403390152031 +
+                f (0 :. -1) * 0.23896796340399287 +
+                f (0 :.  0) * 0.45271600538897480 +
+                f (0 :.  1) * 0.23896796340399287 +
+                f (0 :.  2) * 0.03467403390152031
     {-# INLINE stencil #-}
 {-# INLINE gaussianFilter1x5 #-}
 
 
+-- | Gaussian vertical filter with radius 2.5 and @σ=2.5\/3@
 gaussianFilter5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
 gaussianFilter5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
   where
-    stencil f = f (-2 :. 0) * 0.13533572623225257 +
-                f (-1 :. 0) * 0.22856849543519478 +
-                f ( 0 :. 0) * 0.27219155666510536 +
-                f ( 1 :. 0) * 0.22856849543519478 +
-                f ( 2 :. 0) * 0.13533572623225248
+    stencil f = f (-2 :. 0) * 0.03467403390152031 +
+                f (-1 :. 0) * 0.23896796340399287 +
+                f ( 0 :. 0) * 0.45271600538897480 +
+                f ( 1 :. 0) * 0.23896796340399287 +
+                f ( 2 :. 0) * 0.03467403390152031
     {-# INLINE stencil #-}
 {-# INLINE gaussianFilter5x1 #-}
 
 
+-- | Apply a gaussian blur to an image. Gaussian function with radius 2.5 and @σ=2.5\/3@
+-- was used for constructing the kernel.
 gaussianBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
 gaussianBlur5x5 b = mapFilter b gaussianFilter5x1 . mapFilter b gaussianFilter1x5
 {-# INLINE gaussianBlur5x5 #-}
+
+-- | Gaussian horizontal filter with radius 3.5 and @σ=3.5\/3@
+gaussianFilter1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussianFilter1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
+  where
+    stencil f = f (0 :. -3) * 0.01475221554565270 +
+                f (0 :. -2) * 0.08343436701511067 +
+                f (0 :. -1) * 0.23548192723440955 +
+                f (0 :.  0) * 0.33266298040965380 +
+                f (0 :.  1) * 0.23548192723440955 +
+                f (0 :.  2) * 0.08343436701511067 +
+                f (0 :.  3) * 0.01475221554565270
+    {-# INLINE stencil #-}
+{-# INLINE gaussianFilter1x7 #-}
+
+
+-- | Gaussian vertical filter with radius 3.5 and @σ=3.5\/3@
+gaussianFilter7x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussianFilter7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
+  where
+    stencil f = f (-3 :. 0) * 0.01475221554565270 +
+                f (-2 :. 0) * 0.08343436701511067 +
+                f (-1 :. 0) * 0.23548192723440955 +
+                f ( 0 :. 0) * 0.33266298040965380 +
+                f ( 1 :. 0) * 0.23548192723440955 +
+                f ( 2 :. 0) * 0.08343436701511067 +
+                f ( 3 :. 0) * 0.01475221554565270
+    {-# INLINE stencil #-}
+{-# INLINE gaussianFilter7x1 #-}
+
+
+-- | Apply a gaussian blur to an image. Gaussian function with radius 3.5 and @σ=3.5\/3@
+-- was used for constructing the kernel.
+gaussianBlur7x7 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+gaussianBlur7x7 b = mapFilter b gaussianFilter7x1 . mapFilter b gaussianFilter1x7
+{-# INLINE gaussianBlur7x7 #-}
+
+
+-- | Apply a gaussian blur to an image.
+gaussianBlur ::
+     (Floating e, ColorModel cs e)
+  => Int -- ^ @r@ - a positive integral value radius that will be used for computing
+         -- gaussian function. Both sides of the kernel will be set to @d=2*r + 1@
+  -> Maybe e -- ^ Optional stdDev value for gaussian function. If ommitted an optimal
+             -- @σ=d\/6@ will be used
+  -> Border (Pixel cs e) -- ^ Border resolution technique
+  -> Image cs e
+  -> Image cs e
+gaussianBlur r mStdDev b img
+  | r <= 0 =
+    error $ "Gaussian kernel side is expected to be positive, not: " ++ show r
+  | r == 1 && isNothing mStdDev = gaussianBlur3x3 b img
+  | r == 2 && isNothing mStdDev = gaussianBlur5x5 b img
+  | r == 3 && isNothing mStdDev = gaussianBlur7x7 b img
+  | otherwise =
+    let !side = r * 2 + 1
+        !stdDev = maybe (fromIntegral side / 6) pure mStdDev
+        !numSamples = 50
+        !kVector =
+          makeKernelWith
+            (estimateFunction1D numSamples)
+            (\k ->
+               let !m = A.sum k
+                in A.map (/ m) k)
+            side
+            (gaussianFunction1D stdDev)
+        !k1xD =
+          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 1 side) kVector
+        !kDx1 =
+          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 side 1) kVector
+     in Image .
+        A.computeAs A.S .
+        A.mapStencil b k1xD . A.computeAs A.S . A.mapStencil b kDx1 $
+        unImage img
+{-# INLINE gaussianBlur #-}
+
 
 -- | Laplacian filter
 --
@@ -414,7 +509,7 @@ laplacian = Filter $ A.makeStencil (Sz2 3 3) (1 :. 1) stencil
 -- +1 & 0 & -1
 -- \end{bmatrix}
 -- \]
-sobelHorizontal :: ColorModel cs e => Filter cs e e
+sobelHorizontal :: ColorModel cs e => Filter' cs e
 sobelHorizontal =
   Filter $ A.makeStencil (Sz2 3 3) (1 :. 1) $ \ f ->
                 f (-1 :. -1) -     f (-1 :.  1) +
@@ -433,15 +528,15 @@ sobelHorizontal =
 -- -1 & -2 & -1
 -- \end{bmatrix}
 -- \]
-sobelVertical :: ColorModel cs e => Filter cs e e
+sobelVertical :: ColorModel cs e => Filter' cs e
 sobelVertical =
   Filter $ A.makeStencil (Sz2 3 3) (1 :. 1) $ \ f ->
-              f (-1 :. -1) + 2 * f (-1 :. 0) + f (-1 :. 1)
-            - f ( 1 :. -1) - 2 * f ( 1 :. 0) - f ( 1 :. 1)
+           f (-1 :. -1) + 2 * f (-1 :. 0) + f (-1 :. 1)
+         - f ( 1 :. -1) - 2 * f ( 1 :. 0) - f ( 1 :. 1)
 {-# INLINE sobelVertical #-}
 
 
--- | Sobel Opertor is simply defined as:
+-- | Sobel operator is simply defined as:
 --
 -- @
 -- sobelOperator = sqrt (`sobelHorizontal` ^ 2 + `sobelVertical` ^ 2)
@@ -450,10 +545,29 @@ sobelVertical =
 -- \[
 -- \mathbf{G} = \sqrt{ {\mathbf{G}_x}^2 + {\mathbf{G}_y}^2 }
 -- \]
+--
+-- ====__Examples__
+--
+-- >>>
 sobelOperator :: ColorModel cs Double => Filter' cs Double
 sobelOperator =
   sqrt (sobelHorizontal ^ (2 :: Int) + sobelVertical ^ (2 :: Int))
 {-# INLINE sobelOperator #-}
+
+
+-- | Normalized sobel operator
+--
+-- @
+-- sobelOperator = sqrt ((`sobelHorizontal` \/ 8) ^ 2 + (`sobelVertical` \/ 8) ^ 2)
+-- @
+--
+-- \[
+-- \mathbf{G} = \sqrt{ {\frac{\mathbf{G}_x}{8}}^2 + {\frac{\mathbf{G}_y}{8}}^2 }
+-- \]
+sobelOperatorNormal :: ColorModel cs Double => Filter' cs Double
+sobelOperatorNormal =
+  sqrt ((sobelHorizontal / 8) ^ (2 :: Int) + (sobelVertical / 8) ^ (2 :: Int))
+{-# INLINE sobelOperatorNormal #-}
 
 
 -- | Prewitt gradient along @x@ axis.
@@ -537,26 +651,6 @@ prewittOperator =
 --           f ( 2 :. -2) +  4 * f ( 2 :. -1) +  6 * f ( 2 :.  0) +  4 * f ( 2 :.  1) +     f ( 2 :.  2)
 --     {-# INLINE stencil #-}
 -- {-# INLINE gaussian5x5i #-}
-
-gaussian1x5i :: (ColorModel cs e, Integral e) => Filter cs e e
-gaussian1x5i = Filter $ fmap (`div` 16) <$> A.makeStencil (Sz2 1 5) (0 :. 2) stencil
-  where
-    stencil f = f (0 :. -2) +  4 * f (0 :. -1) + 6 * f (0 :.  0) + 4 * f (0 :.  1) + f (0 :.  2)
-    {-# INLINE stencil #-}
-{-# INLINE gaussian1x5i #-}
-
-
-gaussian5x1i :: (ColorModel cs e, Integral e) => Filter cs e e
-gaussian5x1i = Filter $ fmap (`div` 16) <$> A.makeStencil (Sz2 5 1) (2 :. 0) stencil
-  where
-    stencil f = f (-2 :. 0) +  4 * f (-1 :. 0) + 6 * f (0 :.  0) + 4 * f (1 :.  0) + f (2 :.  0)
-    {-# INLINE stencil #-}
-{-# INLINE gaussian5x1i #-}
-
-
-mapGaussian5x5i :: (Integral b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-mapGaussian5x5i b = mapFilter b gaussian5x1i . mapFilter b gaussian1x5i
-{-# INLINE mapGaussian5x5i #-}
 
 
 ----------------------------------

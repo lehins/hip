@@ -2,25 +2,39 @@ module Main where
 
 import           Criterion.Main
 import           Graphics.Image                   as I
-import           Graphics.Image.Processing.Filter
 import           Prelude                          as P
 
 
 main :: IO ()
 main = do
-  imgRGBD <- readImageAuto "images/frog.jpg" :: IO (Image RGB Double)
+  imgRGBD <- readImageRGB "images/frog.jpg"
   defaultMain
     [ env (return imgRGBD) $ \img ->
         bgroup
-          "Gaussian 5x5"
-          [ bench "Normal" $ whnf (applyFilter Edge gaussian5x5) img
-          , bench "Separated" $ whnf (applyGaussian5x5 Edge) img
+          "Gaussian"
+          [ bgroup
+              "StdDev=derived"
+              [ bench "3x3" $ whnf (gaussianBlur3x3 Edge) img
+              , bench "5x5" $ whnf (gaussianBlur5x5 Edge) img
+              , bench "7x7" $ whnf (gaussianBlur7x7 Edge) img
+              , bench "9x9" $ whnf (gaussianBlur 4 Nothing Edge) img
+              , bench "11x11" $ whnf (gaussianBlur 5 Nothing Edge) img
+              ]
+          , bgroup
+              "StdDev=1"
+              [ bench "3x3" $ whnf (gaussianBlur 1 (Just 1) Edge) img
+              , bench "5x5" $ whnf (gaussianBlur 2 (Just 1) Edge) img
+              , bench "7x7" $ whnf (gaussianBlur 3 (Just 1) Edge) img
+              , bench "9x9" $ whnf (gaussianBlur 4 (Just 1) Edge) img
+              , bench "11x11" $ whnf (gaussianBlur 5 (Just 1) Edge) img
+              ]
           ]
-    -- , env (return imgRGBD) $ \img ->
-    --     bgroup
-    --       "Sobel Operator RGB"
-    --       [ bench "No Normalization" $ whnf (applyFilter Edge sobelOperator') img
-    --       ]
+    , env (return imgRGBD) $ \img ->
+        bgroup
+          "Sobel Operator"
+          [ bench "Normalized" $ whnf (mapFilter Edge sobelOperator) img
+          , bench "Not Normalized" $ whnf (mapFilter Edge sobelOperatorNormal) img
+          ]
     -- , env (return $ I.map toPixelY imgRGBD) $ \img ->
     --     bgroup
     --       "Sobel Operator Y"
