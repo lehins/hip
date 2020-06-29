@@ -1,10 +1,10 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- |
 -- Module      : Graphics.Image.Processing.Geometric
--- Copyright   : (c) Alexey Kuleshevich 2016
+-- Copyright   : (c) Alexey Kuleshevich 2016-2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -42,11 +42,12 @@ module Graphics.Image.Processing.Geometric
   , scale
   ) where
 
-import qualified Data.Massiv.Array        as A
+import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Unsafe as A
-import           Graphics.Image.Internal
-import           Graphics.Image.Processing.Interpolation
-import           Prelude                  hiding (traverse)
+import Graphics.Image.Internal
+import Graphics.Image.Processing.Interpolation
+import Graphics.Pixel
+import Prelude hiding (traverse)
 
 
 -- | Downsample an image. Drop all rows and colums that satisfy the
@@ -319,10 +320,10 @@ rotate method border theta' (Image arr) =
     !nD' = nD * cosThetaAbs + mD * sinThetaAbs
     !(iDelta, jDelta) =
       case (sinTheta >= 0, cosTheta >= 0) of
-        (True, True) -> (nD * sinTheta, 0) -- I quadrant
-        (True, False) -> (mD', -nD * cosTheta) -- II quadrant
+        (True, True)   -> (nD * sinTheta, 0) -- I quadrant
+        (True, False)  -> (mD', -nD * cosTheta) -- II quadrant
         (False, False) -> (-mD * cosTheta, nD') -- III quadrant
-        (False, True) -> (0, -mD * sinTheta) -- IV quadrant
+        (False, True)  -> (0, -mD * sinTheta) -- IV quadrant
 {-# INLINE rotate #-}
 
 

@@ -16,11 +16,12 @@ module Graphics.Image.Processing.Complex.Fourier (
   fft, ifft, isPowerOfTwo
   ) where
 
-import Graphics.Image.Processing.Complex.Internal
 import Data.Bits ((.&.))
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Unsafe as A
 import Graphics.Image.Internal as I
+import Graphics.Image.Processing.Complex.Internal
+import Graphics.Pixel
 import Prelude as P
 
 -- | Fast Fourier Transform

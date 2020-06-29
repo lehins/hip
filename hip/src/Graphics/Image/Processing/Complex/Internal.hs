@@ -45,6 +45,7 @@ import Control.Applicative
 import Data.Complex (Complex(..))
 import qualified Data.Complex as C
 import Graphics.Image.Internal
+import Graphics.Pixel
 import Prelude hiding (map, zipWith)
 
 

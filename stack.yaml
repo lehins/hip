@@ -12,8 +12,5 @@ extra-deps: #for now, since we might need to add changes to upstream deps
   commit: 3501c8930179345a634e1ad66ea7f746ba599986
   subdirs:
     - massiv-io
-- github: lehins/Color
-  commit: c566a3083a238eba70e61ba0e261f9dacb8481bb
-  subdirs:
-    - Color
+- Color-0.2.0
 

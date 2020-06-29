@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- |
 -- Module      : Graphics.Image.Processing.Binary
--- Copyright   : (c) Alexey Kuleshevich 2018
+-- Copyright   : (c) Alexey Kuleshevich 2018-2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -54,15 +54,15 @@ module Graphics.Image.Processing.Binary
   ) where
 
 import Control.Applicative
-
 import Data.Bits
-import Graphics.Color.Model as Model
 import qualified Data.Foldable as F
+import Data.Monoid (All(..), Any(..))
+import Graphics.Color.Algebra.Binary
+import Graphics.Color.Model as Model
 import Graphics.Image.Internal as I
 import Graphics.Image.Processing.Convolution
+import Graphics.Pixel
 import Prelude as P hiding (and, or)
-import Graphics.Color.Algebra.Binary
-import Data.Monoid (All(..), Any(..))
 
 infix  4  .==., ./=., .<., .<=., .>=., .>., !==!, !/=!, !<!, !<=!, !>=!, !>!
 infixr 3  .&&., !&&!

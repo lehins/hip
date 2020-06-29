@@ -1,6 +1,6 @@
 -- |
 -- Module      : Graphics.Image.Processing.Gabor
--- Copyright   : (c) Alexey Kuleshevich 2018
+-- Copyright   : (c) Alexey Kuleshevich 2018-2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -8,10 +8,9 @@
 --
 module Graphics.Image.Processing.Gabor where
 
-import Graphics.Image.IO as I
 import Graphics.Image.Internal as I
-import Graphics.ColorSpace
-import Graphics.Image.Processing.Convolution
+import Graphics.Pixel
+import Graphics.Image.Processing.Complex.Internal
 
 
 gabor :: RealFloat a =>
@@ -23,17 +22,23 @@ gabor :: RealFloat a =>
       -> a -- ^ x
       -> a -- ^ y
       -> Complex a
-gabor λ θ ψ σ γ x y = exp ( (-0.5) * ((x'^2 + γ^2*y'^2) / (σ^2)) :+ 0) * exp ( 0 :+ (2*pi*x'/λ+ψ) )
-    where x' =  x * cos θ + y * sin θ
-          y' = -x * sin θ + y * cos θ
+gabor λ θ ψ σ γ x y =
+  exp
+    ((-0.5) *
+     ((x' ^ (2 :: Int) + γ ^ (2 :: Int) * y' ^ (2 :: Int)) / (σ ^ (2 :: Int))) :+
+     0) *
+  exp (0 :+ (2 * pi * x' / λ + ψ))
+  where
+    x' = x * cos θ + y * sin θ
+    y' = -x * sin θ + y * cos θ
 
 
-imgGabor :: Ix2 -> Image Y (Complex Double)
-imgGabor sz@(m :. n) =
+imgGabor :: Sz2 -> Image Y (Complex Double)
+imgGabor sz@(Sz (m :. n)) =
   makeImage
     sz
     (\(i :. j) ->
-       promote $
+       pure $
        gabor
          3.5
          (pi / 3)

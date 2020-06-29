@@ -1,7 +1,7 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Graphics.Image.Processing.Convolution
 -- Copyright   : (c) Alexey Kuleshevich 2017
@@ -18,9 +18,10 @@ module Graphics.Image.Processing.Convolution (
   ) where
 
 
-import qualified Data.Massiv.Array        as A
-import           Graphics.Image.Internal
-import           Prelude                  as P
+import qualified Data.Massiv.Array as A
+import Graphics.Image.Internal
+import Graphics.Pixel
+import Prelude as P
 
 
 -- | Correlate an image with a kernel.

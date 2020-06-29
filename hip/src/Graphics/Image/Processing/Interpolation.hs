@@ -1,9 +1,9 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Processing.Interpolation
--- Copyright   : (c) Alexey Kuleshevich 2017
+-- Copyright   : (c) Alexey Kuleshevich 2017-2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -17,6 +17,7 @@ module Graphics.Image.Processing.Interpolation
   ) where
 
 import Graphics.Image.Internal
+import Graphics.Pixel
 
 -- | Implementation for an interpolation method.
 class Interpolation method where

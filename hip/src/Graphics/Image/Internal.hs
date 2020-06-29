@@ -14,7 +14,6 @@
 module Graphics.Image.Internal
   ( Image(..)
   , A.S
-  , module Graphics.Pixel.ColorSpace
   , Ix2(..)
   , Comp(..)
   , Border(..)
@@ -60,7 +59,7 @@ import Data.Massiv.Core as AC
 import Data.Semigroup
 import Data.Typeable
 import GHC.Exts (IsList(..))
-import Graphics.Pixel.ColorSpace hiding (Vector, MVector)
+import Graphics.Pixel
 import Prelude as P hiding (map, traverse, zipWith, zipWith3)
 
 -- | Main data type of the library

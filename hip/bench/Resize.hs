@@ -25,7 +25,7 @@ main = do
     ]
 
 
-benchBilinearResize :: Sz2 -> Image (SRGB 'Linear) Word8 -> Benchmark
+benchBilinearResize :: Sz2 -> Image RGB Word8 -> Benchmark
 benchBilinearResize sz@(Sz2 m n) ~img@(Image a) =
   bgroup
     ("Bilinear " ++ show sz)
@@ -34,12 +34,12 @@ benchBilinearResize sz@(Sz2 m n) ~img@(Image a) =
     ]
   where
     i = I.map (fmap toFloat) img
-    jp = M.toJPImageRGB8 (M.toImageBaseModel a)
+    jp = M.toJPImageRGB8 a
 
-benchBicubicResize :: Sz2 -> Image (SRGB 'Linear) Word8 -> Benchmark
+benchBicubicResize :: Sz2 -> Image RGB Word8 -> Benchmark
 benchBicubicResize sz img =
   bgroup
-    ("Bcubic " ++ show sz)
+    ("Bicubic " ++ show sz)
     [bench "HIP" $ nf (resize (Bicubic 0.5) (Fill 0) sz) i]
   where
     i = I.map (fmap toFloat) img

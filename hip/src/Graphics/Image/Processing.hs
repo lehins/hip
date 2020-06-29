@@ -1,7 +1,6 @@
-{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Graphics.Image.Processing
--- Copyright   : (c) Alexey Kuleshevich 2016-2018
+-- Copyright   : (c) Alexey Kuleshevich 2016-2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -25,15 +24,16 @@ module Graphics.Image.Processing
   , pixelGrid
   ) where
 
+import Data.Massiv.Array as A
 import Graphics.Image.Internal
 import Graphics.Image.Processing.Binary
 import Graphics.Image.Processing.Complex
 import Graphics.Image.Processing.Convolution
+import Graphics.Image.Processing.Filter
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
+import Graphics.Pixel
 import Prelude hiding (traverse)
-import Graphics.Image.Processing.Filter
-import Data.Massiv.Array as A
 
 
 -- | This function magnifies an image by a positive factor and draws a grid

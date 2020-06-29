@@ -1,15 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 -- |
 -- Module      : Graphics.Image.Processing.Filter
--- Copyright   : (c) Alexey Kuleshevich 2017
+-- Copyright   : (c) Alexey Kuleshevich 2017-2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -42,12 +38,12 @@ module Graphics.Image.Processing.Filter
   , gaussianBlur3x3
   , gaussianBlur5x5
   , gaussianBlur7x7
-  , gaussianFilter3x1
-  , gaussianFilter1x3
-  , gaussianFilter5x1
-  , gaussianFilter1x5
-  , gaussianFilter7x1
-  , gaussianFilter1x7
+  , gaussian3x1
+  , gaussian1x3
+  , gaussian5x1
+  , gaussian1x5
+  , gaussian7x1
+  , gaussian1x7
   -- ** Laplacian
   , laplacian
   -- ** Laplacian of Gaussian
@@ -61,12 +57,7 @@ module Graphics.Image.Processing.Filter
   , prewittHorizontal
   , prewittVertical
   , prewittOperator
-  --   -- * Sobel
-  -- , sobelFilter
-  -- , sobelOperator
-  --   -- * Prewitt
-  -- , prewittFilter
-  -- , prewittOperator
+  , prewittOperatorNormal
   -- * Kernel factory
   , makeKernel1D
   , makeKernel2D
@@ -78,10 +69,11 @@ module Graphics.Image.Processing.Filter
 
 import Control.Applicative
 import Control.DeepSeq
-import Data.Maybe
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Numeric.Integral as A
+import Data.Maybe
 import Graphics.Image.Internal
+import Graphics.Pixel
 import Prelude as P
 
 
@@ -93,11 +85,11 @@ newtype Filter cs a b = Filter
 -- | Helper type synonym for `Filter` where both input and output precision are the same.
 type Filter' cs e = Filter cs e e
 
-instance Functor (Pixel cs) => Functor (Filter cs a) where
+instance Functor (Color cs) => Functor (Filter cs a) where
   fmap f (Filter s) = Filter (fmap (fmap f) s)
   {-# INLINE fmap #-}
 
-instance (ColorModel cs a, Applicative (Pixel cs)) => Applicative (Filter cs a) where
+instance (ColorModel cs a, Applicative (Color cs)) => Applicative (Filter cs a) where
   pure a = Filter $ pure (pure a)
   {-# INLINE pure #-}
   liftA2 f (Filter x) (Filter y) = Filter (liftA2 (liftA2 f) x y)
@@ -188,19 +180,19 @@ toStencil = filterStencil
 -- the source image many times, the supplied function will also get called that many time for each
 -- pixel. For that reason, most of the time, it will make more sense to apply the function
 -- directly to the source image prior to applying the filter to it.
-lmapFilter :: Functor (Pixel cs) => (a' -> a) -> Filter cs a b -> Filter cs a' b
+lmapFilter :: Functor (Color cs) => (a' -> a) -> Filter cs a b -> Filter cs a' b
 lmapFilter f (Filter s) = Filter (A.lmapStencil (fmap f) s)
 {-# INLINE lmapFilter #-}
 
 -- | This is essentially a synonym to `fmap`, and is provided here for completenss.
-rmapFilter :: Functor (Pixel cs) => (b -> b') -> Filter cs a b -> Filter cs a b'
+rmapFilter :: Functor (Color cs) => (b -> b') -> Filter cs a b -> Filter cs a b'
 rmapFilter g (Filter s) = Filter (A.rmapStencil (fmap g) s)
 {-# INLINE rmapFilter #-}
 
 -- | `Filter` is a Profunctor, but instead of introducing a dependency on
 -- [profunctors](/package/profunctors), standalone functions are provided
 -- here. Same performance consideration applies as in `lmapFilter`.
-dimapFilter :: Functor (Pixel cs) => (a' -> a) -> (b -> b') -> Filter cs a b -> Filter cs a' b'
+dimapFilter :: Functor (Color cs) => (a' -> a) -> (b -> b') -> Filter cs a b -> Filter cs a' b'
 dimapFilter f g (Filter s) = Filter (A.dimapStencil (fmap f) (fmap g) s)
 {-# INLINE dimapFilter #-}
 
@@ -341,32 +333,32 @@ makeKernel2D n =
 
 
 -- | A horizontal gaussian filter with standard diviation set to 1
-gaussianFilter1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussianFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
+gaussian1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussian1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
   where
     stencil f = f (0 :. -1) * 0.15773119796715185 +
                 f (0 :.  0) * 0.68453760406569570 +
                 f (0 :.  1) * 0.15773119796715185
     {-# INLINE stencil #-}
-{-# INLINE gaussianFilter1x3 #-}
+{-# INLINE gaussian1x3 #-}
 
 -- | A vertical gaussian filter with standard diviation set to 1
-gaussianFilter3x1 :: (Floating e, ColorModel cs e) => Filter cs e e
-gaussianFilter3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
+gaussian3x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussian3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
   where
     stencil f = f (-1 :. 0) * 0.15773119796715185 +
                 f ( 0 :. 0) * 0.68453760406569570 +
                 f ( 1 :. 0) * 0.15773119796715185
     {-# INLINE stencil #-}
-{-# INLINE gaussianFilter3x1 #-}
+{-# INLINE gaussian3x1 #-}
 
 gaussianBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur3x3 b = mapFilter b gaussianFilter3x1 . mapFilter b gaussianFilter1x3
+gaussianBlur3x3 b = mapFilter b gaussian3x1 . mapFilter b gaussian1x3
 {-# INLINE gaussianBlur3x3 #-}
 
 -- | Gaussian horizontal filter with radius 2.5 and @σ=2.5\/3@
-gaussianFilter1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussianFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
+gaussian1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussian1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
   where
     stencil f = f (0 :. -2) * 0.03467403390152031 +
                 f (0 :. -1) * 0.23896796340399287 +
@@ -374,12 +366,12 @@ gaussianFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
                 f (0 :.  1) * 0.23896796340399287 +
                 f (0 :.  2) * 0.03467403390152031
     {-# INLINE stencil #-}
-{-# INLINE gaussianFilter1x5 #-}
+{-# INLINE gaussian1x5 #-}
 
 
 -- | Gaussian vertical filter with radius 2.5 and @σ=2.5\/3@
-gaussianFilter5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
-gaussianFilter5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
+gaussian5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussian5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
   where
     stencil f = f (-2 :. 0) * 0.03467403390152031 +
                 f (-1 :. 0) * 0.23896796340399287 +
@@ -387,18 +379,18 @@ gaussianFilter5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
                 f ( 1 :. 0) * 0.23896796340399287 +
                 f ( 2 :. 0) * 0.03467403390152031
     {-# INLINE stencil #-}
-{-# INLINE gaussianFilter5x1 #-}
+{-# INLINE gaussian5x1 #-}
 
 
 -- | Apply a gaussian blur to an image. Gaussian function with radius 2.5 and @σ=2.5\/3@
 -- was used for constructing the kernel.
 gaussianBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur5x5 b = mapFilter b gaussianFilter5x1 . mapFilter b gaussianFilter1x5
+gaussianBlur5x5 b = mapFilter b gaussian5x1 . mapFilter b gaussian1x5
 {-# INLINE gaussianBlur5x5 #-}
 
 -- | Gaussian horizontal filter with radius 3.5 and @σ=3.5\/3@
-gaussianFilter1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussianFilter1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
+gaussian1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
   where
     stencil f = f (0 :. -3) * 0.01475221554565270 +
                 f (0 :. -2) * 0.08343436701511067 +
@@ -408,12 +400,12 @@ gaussianFilter1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
                 f (0 :.  2) * 0.08343436701511067 +
                 f (0 :.  3) * 0.01475221554565270
     {-# INLINE stencil #-}
-{-# INLINE gaussianFilter1x7 #-}
+{-# INLINE gaussian1x7 #-}
 
 
 -- | Gaussian vertical filter with radius 3.5 and @σ=3.5\/3@
-gaussianFilter7x1 :: (Floating e, ColorModel cs e) => Filter cs e e
-gaussianFilter7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
+gaussian7x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussian7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
   where
     stencil f = f (-3 :. 0) * 0.01475221554565270 +
                 f (-2 :. 0) * 0.08343436701511067 +
@@ -423,13 +415,13 @@ gaussianFilter7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
                 f ( 2 :. 0) * 0.08343436701511067 +
                 f ( 3 :. 0) * 0.01475221554565270
     {-# INLINE stencil #-}
-{-# INLINE gaussianFilter7x1 #-}
+{-# INLINE gaussian7x1 #-}
 
 
 -- | Apply a gaussian blur to an image. Gaussian function with radius 3.5 and @σ=3.5\/3@
 -- was used for constructing the kernel.
 gaussianBlur7x7 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur7x7 b = mapFilter b gaussianFilter7x1 . mapFilter b gaussianFilter1x7
+gaussianBlur7x7 b = mapFilter b gaussian7x1 . mapFilter b gaussian1x7
 {-# INLINE gaussianBlur7x7 #-}
 
 
@@ -609,7 +601,7 @@ prewittVertical =
 {-# INLINE prewittVertical #-}
 
 
--- | Prewitt Opertor is simply defined as: @sqrt (`prewittHorizontal` ^ 2 + `prewittVertical` ^ 2)@
+-- | Prewitt operator is simply defined as: @sqrt (`prewittHorizontal` ^ 2 + `prewittVertical` ^ 2)@
 --
 -- \[
 -- \mathbf{G} = \sqrt{ {\mathbf{G}_x}^2 + {\mathbf{G}_y}^2 }
@@ -619,38 +611,19 @@ prewittOperator =
   sqrt (prewittHorizontal ^ (2 :: Int) + prewittVertical ^ (2 :: Int))
 {-# INLINE prewittOperator #-}
 
--- Integral gaussian
-
--- | Gaussian 5x5 filter. Gaussian is separable, so it is faster to apply `gaussian5x1` after
--- `gaussian1x5`.
+-- | Normalized version of Prewitt operator. It is defined as:
 --
--- >λ> bat <- readImageY "images/megabat.jpg"
--- >λ> writeImage "images/megabat_laplacian_nonorm.jpg" $ mapFilter Edge laplacian bat -- no normalization
--- >λ> writeImage "images/megabat_laplacian.jpg" $ normalize $ mapFilter Edge laplacian bat
---
--- <<images/megabat_y.jpg>> <<images/megabat_laplacian_nonorm.jpg>> <<images/megabat_laplacian.jpg>>
---
--- ==== __Convolution Kernel__
+-- @@@
+-- sqrt ((`prewittHorizontal` / 6) ^ 2 + (`prewittVertical` / 6) ^ 2)
+-- @@@
 --
 -- \[
--- \mathbf{L} = \begin{bmatrix}
--- +1 & +1 & +1 \\
--- +1 & -8 & +1 \\
--- +1 & +1 & +1
--- \end{bmatrix}
+-- \mathbf{G} = \sqrt{ {\mathbf{G}_x}^2 + {\mathbf{G}_y}^2 }
 -- \]
---
--- gaussian5x5i :: (ColorModel cs e, Integral e) => Filter cs e e
--- gaussian5x5i = Filter $ fmap (`div` 264) <$> A.makeStencil (Sz2 5 5) (2 :. 2) stencil
---   where
---     stencil f =
---           f (-2 :. -2) +  4 * f (-2 :. -1) +  6 * f (-2 :.  0) +  4 * f (-2 :.  1) +     f (-2 :.  2) +
---       4 * f (-1 :. -2) + 16 * f (-1 :. -1) + 25 * f (-1 :.  0) + 16 * f (-1 :.  1) + 4 * f (-1 :.  2) +
---       6 * f ( 0 :. -2) + 25 * f ( 0 :. -1) + 40 * f ( 0 :.  0) + 25 * f ( 0 :.  1) + 6 * f ( 0 :.  2) +
---       4 * f ( 1 :. -2) + 16 * f ( 1 :. -1) + 25 * f ( 1 :.  0) + 16 * f ( 1 :.  1) + 4 * f ( 1 :.  2) +
---           f ( 2 :. -2) +  4 * f ( 2 :. -1) +  6 * f ( 2 :.  0) +  4 * f ( 2 :.  1) +     f ( 2 :.  2)
---     {-# INLINE stencil #-}
--- {-# INLINE gaussian5x5i #-}
+prewittOperatorNormal :: ColorModel cs Double => Filter' cs Double
+prewittOperatorNormal =
+  sqrt ((prewittHorizontal / 6) ^ (2 :: Int) + (prewittVertical / 6) ^ (2 :: Int))
+{-# INLINE prewittOperatorNormal #-}
 
 
 ----------------------------------

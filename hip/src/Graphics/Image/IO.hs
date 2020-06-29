@@ -1,6 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.IO
 -- Copyright   : (c) Alexey Kuleshevich 2016-2018
@@ -14,11 +19,14 @@ module Graphics.Image.IO
     readImage
   , readImageAuto
   , readImageY
+  , readImageY8
   , readImageYA
   , readImageRGB
   , readImageRGB8
   , readImageRGBA
   -- * Writing
+  , DefSpace
+  , toDefSpace
   , writeImage
   , writeImageAuto
   -- TODO: reexport bunch of massiv-io stuff
@@ -69,27 +77,56 @@ module Graphics.Image.IO
   -- $animation
   ) where
 
+import Data.Massiv.Array as A
 import qualified Data.Massiv.Array.IO as A
 import Graphics.Image.Internal
+import qualified Graphics.Pixel as CM
+import Graphics.Pixel.ColorSpace
+import Unsafe.Coerce
 
 -- | Display an image by writing it as a .tiff file to a temporary directory and making a call to an
 -- external viewer that is set as a default image viewer by the OS.
+-- displayImage ::
+--      (MonadIO m, ColorModel cs e, A.Writable (A.Auto A.TIF) (Image cs e))
+--   => Image cs e
+--   -> m ()
 displayImage ::
-     (MonadIO m, ColorSpace cs i e, ColorSpace (BaseSpace cs) i e)
+     ( ColorSpace (DefSpace cs) i e
+     , ColorSpace (BaseSpace (DefSpace cs)) i e
+     , MonadIO m
+     )
   => Image cs e
   -> m ()
-displayImage (Image arr) = A.displayImage arr
+displayImage img = A.displayImage (unImage (toDefSpace img))
 {-# NOINLINE displayImage #-}
+
+-- | Maps basic color models to a default color space
+type family DefSpace cs where
+  DefSpace CM.Y = Y D65
+  DefSpace CM.RGB = SRGB 'Linear
+  DefSpace CM.HSI = HSI (SRGB 'NonLinear)
+  DefSpace CM.HSV = HSV (SRGB 'NonLinear)
+  DefSpace CM.HSL = HSL (SRGB 'NonLinear)
+  DefSpace CM.CMYK = CMYK (SRGB 'Linear)
+  DefSpace CM.YCbCr = YCbCr (SRGB 'NonLinear)
+  DefSpace cs = cs
+
+-- | Cast an image to a default color space
+toDefSpace :: Image cs e -> Image (DefSpace cs) e
+toDefSpace = unsafeCoerce
 
 -- | Display an image by making a call to an external viewer that is set as a default image viewer
 -- by the OS.
 displayImageUsing ::
-     (MonadIO m, ColorSpace cs i e, ColorSpace (BaseSpace cs) i e)
+     ( MonadIO m
+     , ColorSpace (DefSpace cs) i e
+     , ColorSpace (BaseSpace (DefSpace cs)) i e
+     )
   => A.ExternalViewer
   -> Bool
   -> Image cs e
   -> m ()
-displayImageUsing ev block (Image arr) = A.displayImageUsing ev block arr
+displayImageUsing ev block img = A.displayImageUsing ev block (unImage (toDefSpace img))
 {-# NOINLINE displayImageUsing #-}
 
 
@@ -122,32 +159,50 @@ readImageAuto path = Image <$> A.readImageAuto path
 {-# INLINE readImageAuto #-}
 
 
--- | Read image as luminance (brightness), i.e. grayscale.
-readImageY :: MonadIO m => FilePath -> m (Image (Y D65) Double)
-readImageY = readImageAuto
+-- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
+readImageY :: MonadIO m => FilePath -> m (Image CM.Y Double)
+readImageY fp = do
+  arr :: A.Image A.S (Y D65) Double <- A.readImageAuto fp
+  pure $ Image $ A.toImageBaseModel arr
 {-# INLINE readImageY #-}
 
 
--- | Read image as luminance with 'Alpha' channel.
-readImageYA :: MonadIO m => FilePath -> m (Image (Alpha (Y D65)) Double)
-readImageYA = readImageAuto
+-- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
+readImageY8 :: MonadIO m => FilePath -> m (Image CM.Y Word8)
+readImageY8 fp = do
+  arr :: A.Image A.S (Y D65) Word8 <- A.readImageAuto fp
+  pure $ Image $ A.toImageBaseModel arr
+{-# INLINE readImageY8 #-}
+
+
+-- | Read an image file and convert it to linear luminance with 'Alpha' channel.
+readImageYA :: MonadIO m => FilePath -> m (Image (Alpha CM.Y) Double)
+readImageYA fp = do
+  arr :: A.Image A.S (Alpha (Y D65)) Double <- A.readImageAuto fp
+  pure $ Image $ A.toImageBaseModel arr
 {-# INLINE readImageYA #-}
 
 
--- | Read image in sRGB colorspace.
-readImageRGB :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Double)
-readImageRGB = readImageAuto
+-- | Read an image and convert it into linear sRGB colorspace.
+readImageRGB :: MonadIO m => FilePath -> m (Image CM.RGB Double)
+readImageRGB fp = do
+  arr :: A.Image A.S (SRGB 'Linear) Double <- A.readImageAuto fp
+  pure $ Image $ A.toImageBaseModel arr
 {-# INLINE readImageRGB #-}
 
 -- | Read image in sRGB colorspace.
-readImageRGB8 :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Word8)
-readImageRGB8 = readImageAuto
+readImageRGB8 :: MonadIO m => FilePath -> m (Image CM.RGB Word8)
+readImageRGB8 fp = do
+  arr :: A.Image A.S (SRGB 'Linear) Word8 <- A.readImageAuto fp
+  pure $ Image $ A.toImageBaseModel arr
 {-# INLINE readImageRGB8 #-}
 
 
 -- | Read image in sRGB colorspace with 'Alpha' channel.
-readImageRGBA :: MonadIO m => FilePath -> m (Image (Alpha (SRGB 'Linear)) Double)
-readImageRGBA = readImageAuto
+readImageRGBA :: MonadIO m => FilePath -> m (Image (Alpha CM.RGB) Double)
+readImageRGBA fp = do
+  arr :: A.Image A.S (Alpha (SRGB 'Linear)) Double <- A.readImageAuto fp
+  pure $ Image $ A.toImageBaseModel arr
 {-# INLINE readImageRGBA #-}
 
 
@@ -169,15 +224,15 @@ writeImage ::
   -> Image cs e
   -> m ()
 writeImage path (Image arr) = A.writeImage path arr
-{-# NOINLINE writeImage #-}
+{-# INLINE writeImage #-}
 
 
 -- | Write any image while doing any necessary color space and precision conversions.
 writeImageAuto ::
-     (ColorSpace cs i e, ColorSpace (BaseSpace cs) i e, MonadIO m)
+     (ColorSpace (DefSpace cs) i e, ColorSpace (BaseSpace (DefSpace cs)) i e, MonadIO m)
   => FilePath
   -> Image cs e
   -> m ()
-writeImageAuto path (Image arr) = A.writeImageAuto path arr
-{-# NOINLINE writeImageAuto #-}
+writeImageAuto path img = A.writeImageAuto path (unImage (toDefSpace img))
+{-# INLINE writeImageAuto #-}
 

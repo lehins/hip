@@ -119,6 +119,7 @@ module Graphics.Image
   , module I
   , module IO
   , module IP
+  , module Graphics.Pixel
   -- (|*|),
   -- * Reduction
   , fold
@@ -138,6 +139,7 @@ import qualified Data.Massiv.Core as Core
 import Graphics.Image.Internal as I
 import Graphics.Image.IO as IO
 import Graphics.Image.Processing as IP
+import Graphics.Pixel
 import Prelude as P hiding (map, maximum, minimum, product, sum, traverse,
                      zipWith, zipWith3)
 
@@ -266,10 +268,10 @@ normalize img =
 -- | Check weather two images are equal within a tolerance. Useful for comparing
 -- images with `Float` or `Double` precision.
 --
--- >>> eqTol 0.99 (makeImage (Sz2 2 2) (const 0) :: Image Model.Y Float) (makeImage (Sz2 2 2) (const 1))
+-- >>> eqTol 0.99 (makeImage (Sz2 2 2) (const 0) :: Image Y Float) (makeImage (Sz2 2 2) (const 1))
 -- False
 --
--- >>> eqTol 1 (makeImage (Sz2 2 2) (const 0) :: Image Model.Y Float) (makeImage (Sz2 2 2) (const 1))
+-- >>> eqTol 1 (makeImage (Sz2 2 2) (const 0) :: Image Y Float) (makeImage (Sz2 2 2) (const 1))
 -- True
 eqTol
   :: (ColorModel cs e, Ord e) =>
