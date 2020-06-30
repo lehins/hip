@@ -38,12 +38,12 @@ module Graphics.Image.Processing.Filter
   , gaussianBlur3x3
   , gaussianBlur5x5
   , gaussianBlur7x7
-  , gaussian3x1
   , gaussian1x3
-  , gaussian5x1
   , gaussian1x5
-  , gaussian7x1
   , gaussian1x7
+  , gaussian3x1
+  , gaussian5x1
+  , gaussian7x1
   -- ** Laplacian
   , laplacian
   -- ** Laplacian of Gaussian
@@ -332,7 +332,20 @@ makeKernel2D n =
 {-# INLINE makeKernel2D #-}
 
 
--- | A horizontal gaussian filter with standard diviation set to 1
+-- | Gaussian horizontal filter with radius 1.5 and @σ=1.5\/3@
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian1x3.jpg" $ mapFilter Edge gaussian1x3 frog
+--
+-- Two pictures below might look the same, but with a bit more detail horizontal sharp
+-- details on the image on the left it is possible to distinguish a bit blurriness. Effect
+-- is further amplified with larger filters: `gaussian1x5` and `gaussian1x7`
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian1x3.jpg>>
+--
+-- @since 2.0.0
 gaussian1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
 gaussian1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
   where
@@ -342,7 +355,16 @@ gaussian1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
     {-# INLINE stencil #-}
 {-# INLINE gaussian1x3 #-}
 
--- | A vertical gaussian filter with standard diviation set to 1
+-- | Gaussian vertical filter with radius 1.5 and @σ=1.5\/3@
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian3x1.jpg" $ mapFilter Edge gaussian3x1 frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian3x1.jpg>>
+--
+-- @since 2.0.0
 gaussian3x1 :: (Floating e, ColorModel cs e) => Filter cs e e
 gaussian3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
   where
@@ -352,11 +374,16 @@ gaussian3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
     {-# INLINE stencil #-}
 {-# INLINE gaussian3x1 #-}
 
-gaussianBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur3x3 b = mapFilter b gaussian3x1 . mapFilter b gaussian1x3
-{-# INLINE gaussianBlur3x3 #-}
-
 -- | Gaussian horizontal filter with radius 2.5 and @σ=2.5\/3@
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian1x5.jpg" $ mapFilter Edge gaussian1x5 frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian1x5.jpg>>
+--
+-- @since 2.0.0
 gaussian1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
 gaussian1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
   where
@@ -370,6 +397,15 @@ gaussian1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
 
 
 -- | Gaussian vertical filter with radius 2.5 and @σ=2.5\/3@
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian5x1.jpg" $ mapFilter Edge gaussian5x1 frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian5x1.jpg>>
+--
+-- @since 2.0.0
 gaussian5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
 gaussian5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
   where
@@ -382,13 +418,16 @@ gaussian5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
 {-# INLINE gaussian5x1 #-}
 
 
--- | Apply a gaussian blur to an image. Gaussian function with radius 2.5 and @σ=2.5\/3@
--- was used for constructing the kernel.
-gaussianBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur5x5 b = mapFilter b gaussian5x1 . mapFilter b gaussian1x5
-{-# INLINE gaussianBlur5x5 #-}
-
 -- | Gaussian horizontal filter with radius 3.5 and @σ=3.5\/3@
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian1x7.jpg" $ mapFilter Edge gaussian1x7 frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian1x7.jpg>>
+--
+-- @since 2.0.0
 gaussian1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
 gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
   where
@@ -404,6 +443,15 @@ gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
 
 
 -- | Gaussian vertical filter with radius 3.5 and @σ=3.5\/3@
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian7x1.jpg" $ mapFilter Edge gaussian7x1 frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian7x1.jpg>>
+--
+-- @since 2.0.0
 gaussian7x1 :: (Floating e, ColorModel cs e) => Filter cs e e
 gaussian7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
   where
@@ -418,14 +466,87 @@ gaussian7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
 {-# INLINE gaussian7x1 #-}
 
 
+-- | Apply a gaussian blur to an image. Gaussian function with radius 1.5 and @σ=1.5\/3@
+-- was used for constructing the kernel.
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian3x3.jpg" $ gaussianBlur3x3 Edge frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian3x3.jpg>>
+--
+-- @since 2.0.0
+gaussianBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+gaussianBlur3x3 b = mapFilter b gaussian3x1 . mapFilter b gaussian1x3
+{-# INLINE gaussianBlur3x3 #-}
+
+-- | Apply a gaussian blur to an image. Gaussian function with radius 2.5 and @σ=2.5\/3@
+-- was used for constructing the kernel.
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian5x5.jpg" $ gaussianBlur5x5 Edge frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian5x5.jpg>>
+--
+-- @since 2.0.0
+gaussianBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+gaussianBlur5x5 b = mapFilter b gaussian5x1 . mapFilter b gaussian1x5
+{-# INLINE gaussianBlur5x5 #-}
+
+
 -- | Apply a gaussian blur to an image. Gaussian function with radius 3.5 and @σ=3.5\/3@
 -- was used for constructing the kernel.
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian7x7.jpg" $ gaussianBlur7x7 Edge frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian7x7.jpg>>
+--
+-- @since 2.0.0
 gaussianBlur7x7 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
 gaussianBlur7x7 b = mapFilter b gaussian7x1 . mapFilter b gaussian1x7
 {-# INLINE gaussianBlur7x7 #-}
 
 
 -- | Apply a gaussian blur to an image.
+--
+-- Note that `gaussianBlur3x3`, `gaussianBlur5x5` and `gaussianBlur7x7` are special cases
+-- of this function and can be used when appropriate for clarity and brevity, but
+-- otherwise will result in exactly the same performance and outcome. In other words these
+-- are equivalent
+--
+-- @
+-- `gaussianBlur3x3` === `gaussianBlur` 1 Nothing
+-- `gaussianBlur5x5` === `gaussianBlur` 2 Nothing
+-- `gaussianBlur7x7` === `gaussianBlur` 3 Nothing
+-- @
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_gaussian41x41.jpg" $ gaussianBlur 20 Nothing Edge frog
+-- >>> writeImage "images/haddock/frog_gaussian41x41_stdDevSmall.jpg" $ gaussianBlur 20 (Just 1.5) Edge frog
+--
+-- Note that @"frog_gaussian41x41_stdDevSmall.jpg"@ image is a lot less blurred, because
+-- it has a smaller than optimal σ for the size of the kernel being used. This means that
+-- it has exactly the same performance as the more blurred one and to make it more
+-- efficient while achieving the same result is to omit standard deviation and set a
+-- smaller radius:
+--
+-- @
+-- gaussianBlur 4 Nothing Edge frog
+-- @
+--
+-- which would produce practically the same image while having a much faster runtime.
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_gaussian41x41.jpg>> <<images/haddock/frog_gaussian41x41_stdDevSmall.jpg>>
+--
+-- @since 2.0.0
 gaussianBlur ::
      (Floating e, ColorModel cs e)
   => Int -- ^ @r@ - a positive integral value radius that will be used for computing

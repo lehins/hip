@@ -11,5 +11,5 @@
 ## Specifics
 
 * No more `Array` or `MArray` type class, only restriction that is left on all functions is
-  `ColorSpace`.
+  `ColorModel`.
 * `traverse` is somewhat different

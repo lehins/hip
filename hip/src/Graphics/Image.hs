@@ -62,7 +62,7 @@ module Graphics.Image
   , fromLists
   , toLists
   -- * IO
-  -- module Graphics.Image.IO,
+  , module Graphics.Image.IO
   -- ** Reading
   -- | Read supported files into an 'Image' possibly with automatic color space conversion. Here is
   -- a quick demonstration of how two images can be read as different representations and later
@@ -76,16 +76,6 @@ module Graphics.Image
   --
   -- <<images/cluster.jpg>> <<images/centaurus.jpg>> <<images/centaurus_and_cluster.jpg>>
   --
-  , readImage
-  , readImageAuto
-  , readImageY
-  , readImageYA
-  , readImageRGB
-  , readImageRGBA
-  -- ** Writing
-  , writeImage
-  , writeImageAuto
-  , displayImage
   -- * Accessors
   -- ** Dimensions
   , rows
@@ -117,7 +107,6 @@ module Graphics.Image
   , transform2
   --, transpose
   , module I
-  , module IO
   , module IP
   , module Graphics.Pixel
   -- (|*|),
@@ -137,7 +126,7 @@ import qualified Data.Foldable as F
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Core as Core
 import Graphics.Image.Internal as I
-import Graphics.Image.IO as IO
+import Graphics.Image.IO
 import Graphics.Image.Processing as IP
 import Graphics.Pixel
 import Prelude as P hiding (map, maximum, minimum, product, sum, traverse,

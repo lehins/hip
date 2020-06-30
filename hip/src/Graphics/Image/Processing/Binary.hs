@@ -58,7 +58,6 @@ import Data.Bits
 import qualified Data.Foldable as F
 import Data.Monoid (All(..), Any(..))
 import Graphics.Color.Algebra.Binary
-import Graphics.Color.Model as Model
 import Graphics.Image.Internal as I
 import Graphics.Image.Processing.Convolution
 import Graphics.Pixel
@@ -74,10 +73,10 @@ on = pure one
 off :: Applicative (Color cs) => Pixel cs Bit
 off = pure zero
 
-isOn :: Pixel Model.Y Bit -> Bool
+isOn :: Pixel Y Bit -> Bool
 isOn = (== on)
 
-isOff :: Pixel Model.Y Bit -> Bool
+isOff :: Pixel Y Bit -> Bool
 isOff = (== off)
 
 
@@ -101,7 +100,7 @@ class Thresholding a b where
     => (Pixel cs e -> Pixel cs e -> Bool) -- ^ Predicate
     -> a cs e -- ^ First source image.
     -> b cs e -- ^ Second source image.
-    -> Image Model.Y Bit
+    -> Image Y Bit
 
 
 
@@ -148,14 +147,14 @@ instance Thresholding Image Pixel where
 {-# INLINE (!>=!) #-}
 
 
-(.==.), (./=.) :: (Thresholding a b, ColorModel cs e) => a cs e -> b cs e -> Image Model.Y Bit
+(.==.), (./=.) :: (Thresholding a b, ColorModel cs e) => a cs e -> b cs e -> Image Y Bit
 (.==.) = thresholdWith2 (==)
 {-# INLINE (.==.) #-}
 (./=.) = thresholdWith2 (/=)
 {-# INLINE (./=.) #-}
 
 (.<.), (.<=.), (.>.), (.>=.) ::
-     (Thresholding a b, ColorModel cs e, Ord (Color cs e)) => a cs e -> b cs e -> Image Model.Y Bit
+     (Thresholding a b, ColorModel cs e, Ord (Color cs e)) => a cs e -> b cs e -> Image Y Bit
 (.<.)  = thresholdWith2 (<)
 {-# INLINE (.<.) #-}
 (.<=.) = thresholdWith2 (<=)
@@ -173,7 +172,7 @@ instance Thresholding Image Pixel where
 -- | Pixel wise @AND@ operator on binary images. Unlike `!&&!` this operator
 -- will also @AND@ pixel componenets.
 (.&&.), (.||.) :: (Thresholding a b, ColorModel cs Bit) =>
-                  a cs Bit -> b cs Bit -> Image Model.Y Bit
+                  a cs Bit -> b cs Bit -> Image Y Bit
 (.&&.) = thresholdWith2 (\px1 px2 -> toBool $ F.foldl' (.&.) one $ liftA2 (.&.) px1 px2)
 {-# INLINE (.&&.) #-}
 
@@ -209,7 +208,7 @@ thresholdWith ::
      ColorModel cs e
   => (Pixel cs e -> Bool) -- ^ Predicate
   -> Image cs e -- ^ Source image.
-  -> Image Model.Y Bit
+  -> Image Y Bit
 thresholdWith f = I.map (pure . fromBool . f)
 {-# INLINE thresholdWith #-}
 
@@ -222,7 +221,7 @@ threshold f = I.map (fmap fromBool . (f <*>))
 
 
 -- | Join each component of a pixel with a binary @`.|.`@ operator.
-disjunction, conjunction :: (ColorModel cs Bit) => Image cs Bit -> Image Model.Y Bit
+disjunction, conjunction :: (ColorModel cs Bit) => Image cs Bit -> Image Y Bit
 disjunction = I.map (pure . F.foldl' (.|.) zero)
 {-# INLINE disjunction #-}
 
@@ -233,17 +232,17 @@ conjunction = I.map (pure . F.foldl' (.&.) one)
 
 -- | Disjunction of all pixels in a Binary image
 --
--- >>> or (makeImage (Sz2 1 2) (const 0) :: Image Model.Y Bit)
+-- >>> or (makeImage (Sz2 1 2) (const 0) :: Image Y Bit)
 -- False
 --
--- >>> or (makeImage (Sz2 1 2) (\(Ix2 _ j) -> pure (fromNum j)) :: Image Model.Y Bit)
+-- >>> or (makeImage (Sz2 1 2) (\(Ix2 _ j) -> pure (fromNum j)) :: Image Y Bit)
 -- True
-or :: Image Model.Y Bit -> Bool
+or :: Image Y Bit -> Bool
 or = getAny . I.foldMono (Any . (== pure one))
 {-# INLINE or #-}
 
 -- | Conjunction of all pixels in a Binary image
-and :: Image Model.Y Bit -> Bool
+and :: Image Y Bit -> Bool
 and =  getAll . I.foldMono (All . (== pure one))
 {-# INLINE and #-}
 
@@ -254,7 +253,7 @@ and =  getAll . I.foldMono (All . (== pure one))
 element is always at it's center, eg. @(1,1)@ for the one below.
 
 @
-figure :: Image Model.Y Bit
+figure :: Image Y Bit
 figure = fromLists [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
@@ -272,7 +271,7 @@ figure = fromLists [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
-struct :: Image Model.Y Bit
+struct :: Image Y Bit
 struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 @
 -}

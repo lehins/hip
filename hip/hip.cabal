@@ -22,6 +22,7 @@ build-type:        Simple
 extra-doc-files:   images/*.jpg
                  , images/*.png
                  , images/*.gif
+                 , images/haddock/*.jpg
                  , images/downloaded/*.gif
                  , images/*.svg
                  , README.md

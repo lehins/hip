@@ -17,18 +17,19 @@
 module Graphics.Image.IO
   (  -- * Reading
     readImage
-  , readImageAuto
   , readImageY
+  , readImageY'
   , readImageY8
   , readImageYA
   , readImageRGB
   , readImageRGB8
   , readImageRGBA
+  , readImageExact
   -- * Writing
+  , writeImage
+  , writeImageExact
   , DefSpace
   , toDefSpace
-  , writeImage
-  , writeImageAuto
   -- TODO: reexport bunch of massiv-io stuff
   -- * Displaying
   , A.ExternalViewer(..)
@@ -77,7 +78,8 @@ module Graphics.Image.IO
   -- $animation
   ) where
 
-import Data.Massiv.Array as A
+import Prelude hiding (map)
+import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.IO as A
 import Graphics.Image.Internal
 import qualified Graphics.Pixel as CM
@@ -100,8 +102,9 @@ displayImage ::
 displayImage img = A.displayImage (unImage (toDefSpace img))
 {-# NOINLINE displayImage #-}
 
--- | Maps basic color models to a default color space
+-- | Mapping of basic color models to the default color spaces
 type family DefSpace cs where
+  DefSpace Y' = Y'
   DefSpace CM.Y = Y D65
   DefSpace CM.RGB = SRGB 'Linear
   DefSpace CM.HSI = HSI (SRGB 'NonLinear)
@@ -138,25 +141,25 @@ displayImageUsing ev block img = A.displayImageUsing ev block (unImage (toDefSpa
 --
 -- Resulting image will be read as specified by the type signature:
 --
--- >>> frog <- readImage "images/frog.jpg" :: IO (Image YCbCr Word8)
+-- >>> frog <- readImageExact "images/frog.jpg" :: IO (Image YCbCr Word8)
 -- >>> displayImage frog
-readImage ::
+readImageExact ::
      (ColorModel cs e, MonadIO m)
   => FilePath -- ^ File path for an image
   -> m (Image cs e)
-readImage path = Image <$> A.readImage path
-{-# NOINLINE readImage #-}
+readImageExact path = Image <$> A.readImage path
+{-# NOINLINE readImageExact #-}
 
 
 -- | Same as `readImage`, but will perform any possible color space and
 -- precision conversions in order to match the result image type. Very useful
 -- whenever image format isn't known at compile time.
-readImageAuto ::
+readImage ::
      (ColorSpace cs i e, MonadIO m)
   => FilePath -- ^ File path for an image
   -> m (Image cs e)
-readImageAuto path = Image <$> A.readImageAuto path
-{-# INLINE readImageAuto #-}
+readImage path = Image <$> A.readImageAuto path
+{-# INLINE readImage #-}
 
 
 -- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
@@ -165,6 +168,17 @@ readImageY fp = do
   arr :: A.Image A.S (Y D65) Double <- A.readImageAuto fp
   pure $ Image $ A.toImageBaseModel arr
 {-# INLINE readImageY #-}
+
+
+-- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
+readImageY' :: MonadIO m => FilePath -> m (Image Y' Double)
+readImageY' fp = do
+  arr :: A.Image A.S (SRGB 'NonLinear) Double <- A.readImageAuto fp
+  -- TODO: Optimize for YCbCr:
+  -- readFile
+  -- try decodeM as YCbCr, on decode error fallback to SRGB
+  pure $ computeI $ A.map rgbPixelLuma  arr
+{-# INLINE readImageY' #-}
 
 
 -- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
@@ -208,31 +222,29 @@ readImageRGBA fp = do
 
 
 
--- | Inverse of the 'readImage', but similarly to it, will guess an output file format from the file
--- extension and will write to file any image with the colorspace that is supported by that
--- format. Precision of the image might be adjusted using `Elevator` whenever precision of the
--- source image is not supported by the image file format. For instance, @`Image` `RGBA` `Double`@
--- being saved as 'PNG' file would be written as @`Image` `RGBA` `Word16`@, thus using highest
--- supported precision `Word16` for that format. If automatic colors space conversion is also
--- desired, `writeImageAuto` can be used instead.
+-- | Write an image to a file. It will guess an output file format from the file extension
+-- and will attempt to encode it in the colorspace that was supplied, but will throw an
+-- exception if it is not supported by the guessed format. Unless you are looking to
+-- specify the color space and precision for the file exactly, it is better to use
+-- `writeImage`, which will perform the necessary conversions for you.
 --
 -- Can throw `A.ConvertError`, `A.EncodeError` and other usual IO errors.
 --
-writeImage ::
-     (ColorModel cs e, MonadIO m)
+writeImageExact ::
+     (ColorModel (DefSpace cs) e, MonadIO m)
   => FilePath
   -> Image cs e
   -> m ()
-writeImage path (Image arr) = A.writeImage path arr
-{-# INLINE writeImage #-}
+writeImageExact path img = A.writeImage path (unImage (toDefSpace img))
+{-# INLINE writeImageExact #-}
 
 
 -- | Write any image while doing any necessary color space and precision conversions.
-writeImageAuto ::
+writeImage ::
      (ColorSpace (DefSpace cs) i e, ColorSpace (BaseSpace (DefSpace cs)) i e, MonadIO m)
   => FilePath
   -> Image cs e
   -> m ()
-writeImageAuto path img = A.writeImageAuto path (unImage (toDefSpace img))
-{-# INLINE writeImageAuto #-}
+writeImage path img = A.writeImageAuto path (unImage (toDefSpace img))
+{-# INLINE writeImage #-}
 
