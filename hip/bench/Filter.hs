@@ -1,9 +1,8 @@
 module Main where
 
-import           Criterion.Main
-import           Graphics.Image                   as I
-import           Prelude                          as P
-
+import Criterion.Main
+import Graphics.Image as I
+import Prelude as P
 
 main :: IO ()
 main = do

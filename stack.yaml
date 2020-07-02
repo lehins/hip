@@ -5,7 +5,7 @@ packages:
 resolver: lts-16.0
 extra-deps: #for now, since we might need to add changes to upstream deps
 - github: lehins/massiv
-  commit: 4fdc959542193f95b9a5da7f44b7cc90868b68be
+  commit: 57c0c5fe420dd55141b50c2cf633e76b4a245297
   subdirs:
     - massiv
 - github: lehins/massiv-io

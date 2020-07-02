@@ -33,6 +33,18 @@ module Graphics.Image.Processing.Filter
   , rmapFilter
   , dimapFilter
   -- * Available filters
+  -- ** Average
+  , averageBlur
+  , averageBlur3x3
+  , averageBlur5x5
+  , averageBlur7x7
+  , average1x3
+  , average1x5
+  , average1x7
+  , average3x1
+  , average5x1
+  , average7x1
+  , makeAverageStencil
   -- ** Gaussian
   , gaussianBlur
   , gaussianBlur3x3
@@ -162,12 +174,12 @@ makeFilter ::
 makeFilter sz ix = Filter . A.makeStencil sz ix
 {-# INLINE makeFilter #-}
 
--- | Convert from [massiv](/package/massiv) 2D `A.Stencil`.
+-- | Convert from 2D `A.Stencil`.
 fromStencil :: A.Stencil Ix2 (Pixel cs a) (Pixel cs b) -> Filter cs a b
 fromStencil = Filter
 {-# INLINE fromStencil #-}
 
--- | Convert to a [massiv](/package/massiv) 2D `A.Stencil`.
+-- | Convert to a 2D `A.Stencil`.
 toStencil :: Filter cs a b -> A.Stencil Ix2 (Pixel cs a) (Pixel cs b)
 toStencil = filterStencil
 {-# INLINE toStencil #-}
@@ -332,6 +344,185 @@ makeKernel2D n =
 {-# INLINE makeKernel2D #-}
 
 
+makeAverageStencil ::
+     (A.Default a, Fractional a) => (Int -> Int -> Ix2) -> Sz1 -> Int -> A.Stencil Ix2 a a
+makeAverageStencil ix2 (Sz k) c =
+  A.makeStencil (Sz (ix2 1 k)) (ix2 0 c) $ \get ->
+    let go !i !acc
+          | i < k = go (i + 1) (acc + get (ix2 0 i))
+          | otherwise = acc / dPos
+     in go 1 (get 0)
+  where
+    dPos = fromIntegral k
+{-# INLINE makeAverageStencil #-}
+
+
+averageHorizontalFilter ::
+     (ColorModel cs e, Fractional e) => Sz1 -> Ix1 -> Filter' cs e
+averageHorizontalFilter k = Filter . makeAverageStencil (:.) k
+{-# INLINE averageHorizontalFilter #-}
+
+averageVerticalFilter ::
+     (ColorModel cs e, Fractional e) => Sz1 -> Ix1 -> Filter' cs e
+averageVerticalFilter k = Filter . makeAverageStencil (flip (:.)) k
+{-# INLINE averageVerticalFilter #-}
+
+
+averageBlur ::
+     (Floating e, ColorModel cs e)
+  => Int -- ^ @r@ - a positive integral value radius that will be used for computing
+         -- average kernel. Both sides of the kernel will be set to @d=2*r + 1@
+  -> Border (Pixel cs e) -- ^ Border resolution technique
+  -> Image cs e
+  -> Image cs e
+averageBlur r b
+  | r < 0 = error $ "Average filter with negative radius: " ++ show r
+  | otherwise =
+    mapFilter b (averageVerticalFilter k r) .
+    mapFilter b (averageHorizontalFilter k r)
+  where
+    k = Sz $ r * 2 + 1
+{-# INLINE averageBlur #-}
+
+-- | Average horizontal filter of length 3.
+--
+-- @since 2.0.0
+average1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
+average1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
+  where stencil f = (f (0 :. -1) + f (0 :. 0) + f (0 :. 1)) / 3
+        {-# INLINE stencil #-}
+{-# INLINE average1x3 #-}
+
+
+-- | Average horizontal filter of length 5.
+--
+-- @since 2.0.0
+average1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
+average1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
+  where stencil f = (f (0 :. -2) + f (0 :. -1) + f (0 :. 0) + f (0 :. 1) + f (0 :. 2)) / 5
+        {-# INLINE stencil #-}
+{-# INLINE average1x5 #-}
+
+
+-- | Average horizontal filter of length 7.
+--
+-- @since 2.0.0
+average1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
+average1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
+  where stencil f = ( f (0 :. -3) +
+                      f (0 :. -2) +
+                      f (0 :. -1) +
+                      f (0 :.  0) +
+                      f (0 :.  1) +
+                      f (0 :.  2) +
+                      f (0 :.  3) ) / 7
+        {-# INLINE stencil #-}
+{-# INLINE average1x7 #-}
+
+
+-- | Average vertical filter of height 3.
+--
+-- @since 2.0.0
+average3x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
+average3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
+  where stencil f = (f (-1 :. 0) + f (0 :. 0) + f (1 :. 0)) / 3
+        {-# INLINE stencil #-}
+{-# INLINE average3x1 #-}
+
+-- | Average vertical filter of height 5.
+--
+-- @since 2.0.0
+average5x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
+average5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
+  where stencil f = (f (-2 :. 0) + f (-1 :. 0) + f (0 :. 0) + f (1 :. 0) + f (2 :. 0)) / 5
+        {-# INLINE stencil #-}
+{-# INLINE average5x1 #-}
+
+-- | Average vertical filter of height 7.
+--
+-- @since 2.0.0
+average7x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
+average7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
+  where stencil f = ( f (-3 :. 0) +
+                      f (-2 :. 0) +
+                      f (-1 :. 0) +
+                      f ( 0 :. 0) +
+                      f ( 1 :. 0) +
+                      f ( 2 :. 0) +
+                      f ( 3 :. 0) ) / 7
+        {-# INLINE stencil #-}
+{-# INLINE average7x1 #-}
+
+
+-- | Apply a average blur to an image
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_average3x3.jpg" $ averageBlur3x3 Edge frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_average3x3.jpg>>
+--
+-- @since 2.0.0
+averageBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+averageBlur3x3 b = mapFilter b average3x1 . mapFilter b average1x3
+{-# INLINE averageBlur3x3 #-}
+
+-- | Apply a average blur to an image
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_average5x5.jpg" $ averageBlur5x5 Edge frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_average5x5.jpg>>
+--
+-- @since 2.0.0
+averageBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+averageBlur5x5 b = mapFilter b average5x1 . mapFilter b average1x5
+{-# INLINE averageBlur5x5 #-}
+
+-- | Apply a average blur to an image
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/haddock/frog_average7x7.jpg" $ averageBlur7x7 Edge frog
+--
+-- <<images/frog.jpg>> <<images/haddock/frog_average7x7.jpg>>
+--
+-- @since 2.0.0
+averageBlur7x7 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+averageBlur7x7 b = mapFilter b average7x1 . mapFilter b average1x7
+{-# INLINE averageBlur7x7 #-}
+
+
+averageBlur' ::
+     (Floating e, ColorModel cs e)
+  => Int -- ^ @r@ - a positive integral value radius that will be used for computing
+         -- average kernel. Both sides of the kernel will be set to @d=2*r + 1@
+  -> Border (Pixel cs e) -- ^ Border resolution technique
+  -> Image cs e
+  -> Image cs e
+averageBlur' r b img
+  | r <= 0 =
+    error $ "Average kernel radius is expected to be positive, not: " ++ show r
+  | r == 1 = averageBlur3x3 b img
+  | r == 2 = averageBlur5x5 b img
+  | r == 3 = averageBlur7x7 b img
+  | otherwise =
+    let !side = r * 2 + 1
+        !kVector = A.computeAs A.S $ A.replicate Seq (Sz1 side) 1
+        !k1xD =
+          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 1 side) kVector
+        !kDx1 =
+          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 side 1) kVector
+     in Image .
+        A.computeAs A.S .
+        A.mapStencil b k1xD . A.computeAs A.S . A.mapStencil b kDx1 $
+        unImage img
+{-# INLINE averageBlur' #-}
+
 -- | Gaussian horizontal filter with radius 1.5 and @σ=1.5\/3@
 --
 -- ====__Examples__
@@ -386,13 +577,12 @@ gaussian3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
 -- @since 2.0.0
 gaussian1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
 gaussian1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
-  where
-    stencil f = f (0 :. -2) * 0.03467403390152031 +
-                f (0 :. -1) * 0.23896796340399287 +
-                f (0 :.  0) * 0.45271600538897480 +
-                f (0 :.  1) * 0.23896796340399287 +
-                f (0 :.  2) * 0.03467403390152031
-    {-# INLINE stencil #-}
+  where stencil f = f (0 :. -2) * 0.03467403390152031 +
+                    f (0 :. -1) * 0.23896796340399287 +
+                    f (0 :.  0) * 0.45271600538897480 +
+                    f (0 :.  1) * 0.23896796340399287 +
+                    f (0 :.  2) * 0.03467403390152031
+        {-# INLINE stencil #-}
 {-# INLINE gaussian1x5 #-}
 
 
@@ -408,13 +598,12 @@ gaussian1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
 -- @since 2.0.0
 gaussian5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
 gaussian5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
-  where
-    stencil f = f (-2 :. 0) * 0.03467403390152031 +
-                f (-1 :. 0) * 0.23896796340399287 +
-                f ( 0 :. 0) * 0.45271600538897480 +
-                f ( 1 :. 0) * 0.23896796340399287 +
-                f ( 2 :. 0) * 0.03467403390152031
-    {-# INLINE stencil #-}
+  where stencil f = f (-2 :. 0) * 0.03467403390152031 +
+                    f (-1 :. 0) * 0.23896796340399287 +
+                    f ( 0 :. 0) * 0.45271600538897480 +
+                    f ( 1 :. 0) * 0.23896796340399287 +
+                    f ( 2 :. 0) * 0.03467403390152031
+        {-# INLINE stencil #-}
 {-# INLINE gaussian5x1 #-}
 
 
@@ -430,15 +619,14 @@ gaussian5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
 -- @since 2.0.0
 gaussian1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
 gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
-  where
-    stencil f = f (0 :. -3) * 0.01475221554565270 +
-                f (0 :. -2) * 0.08343436701511067 +
-                f (0 :. -1) * 0.23548192723440955 +
-                f (0 :.  0) * 0.33266298040965380 +
-                f (0 :.  1) * 0.23548192723440955 +
-                f (0 :.  2) * 0.08343436701511067 +
-                f (0 :.  3) * 0.01475221554565270
-    {-# INLINE stencil #-}
+  where stencil f = f (0 :. -3) * 0.01475221554565270 +
+                    f (0 :. -2) * 0.08343436701511067 +
+                    f (0 :. -1) * 0.23548192723440955 +
+                    f (0 :.  0) * 0.33266298040965380 +
+                    f (0 :.  1) * 0.23548192723440955 +
+                    f (0 :.  2) * 0.08343436701511067 +
+                    f (0 :.  3) * 0.01475221554565270
+        {-# INLINE stencil #-}
 {-# INLINE gaussian1x7 #-}
 
 
@@ -454,15 +642,14 @@ gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
 -- @since 2.0.0
 gaussian7x1 :: (Floating e, ColorModel cs e) => Filter cs e e
 gaussian7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
-  where
-    stencil f = f (-3 :. 0) * 0.01475221554565270 +
-                f (-2 :. 0) * 0.08343436701511067 +
-                f (-1 :. 0) * 0.23548192723440955 +
-                f ( 0 :. 0) * 0.33266298040965380 +
-                f ( 1 :. 0) * 0.23548192723440955 +
-                f ( 2 :. 0) * 0.08343436701511067 +
-                f ( 3 :. 0) * 0.01475221554565270
-    {-# INLINE stencil #-}
+  where stencil f = f (-3 :. 0) * 0.01475221554565270 +
+                    f (-2 :. 0) * 0.08343436701511067 +
+                    f (-1 :. 0) * 0.23548192723440955 +
+                    f ( 0 :. 0) * 0.33266298040965380 +
+                    f ( 1 :. 0) * 0.23548192723440955 +
+                    f ( 2 :. 0) * 0.08343436701511067 +
+                    f ( 3 :. 0) * 0.01475221554565270
+        {-# INLINE stencil #-}
 {-# INLINE gaussian7x1 #-}
 
 
@@ -558,7 +745,7 @@ gaussianBlur ::
   -> Image cs e
 gaussianBlur r mStdDev b img
   | r <= 0 =
-    error $ "Gaussian kernel side is expected to be positive, not: " ++ show r
+    error $ "Gaussian kernel radius is expected to be positive, not: " ++ show r
   | r == 1 && isNothing mStdDev = gaussianBlur3x3 b img
   | r == 2 && isNothing mStdDev = gaussianBlur5x5 b img
   | r == 3 && isNothing mStdDev = gaussianBlur7x7 b img

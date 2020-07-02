@@ -115,6 +115,7 @@ benchmark filter
                      , criterion
                      , deepseq
                      , hip
+                     , massiv
                      , massiv-io
                      , JuicyPixels-extra
   default-language:    Haskell2010

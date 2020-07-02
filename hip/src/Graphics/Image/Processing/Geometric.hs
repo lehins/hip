@@ -40,12 +40,21 @@ module Graphics.Image.Processing.Geometric
   -- *** Resize
   , resize
   , scale
+
+  , resizeDW
+  , shrinkHorizontal
+  , shrinkVertical
+  , shrink2x2
+  , shrink3x3
+  , shrink4x1
+  , shrink1x4
   ) where
 
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Unsafe as A
 import Graphics.Image.Internal
 import Graphics.Image.Processing.Interpolation
+import Graphics.Image.Processing.Filter
 import Graphics.Pixel
 import Prelude hiding (traverse)
 
@@ -338,14 +347,12 @@ rotate method border theta' (Image arr) =
 resize :: (RealFloat e, ColorModel cs e, Interpolation method) =>
           method -- ^ Interpolation method to be used during scaling.
        -> Border (Pixel cs e) -- ^ Border handling strategy
-       -> Sz2   -- ^ Dimensions of a result image.
+       -> Sz2   -- ^ Size of the result image.
        -> Image cs e -- ^ Source image.
        -> Image cs e -- ^ Result image.
-resize method border sz' (Image arr) = Image $ A.compute $ A.extract' center sz' arr'
+resize method border sz'@(Sz2 m' n') (Image arr) =
+  makeImageComp (A.getComp arr) sz' getNewPx
   where
-    arr' = A.makeArrayR A.D (A.getComp arr) sz'' getNewPx
-    (center, neighborhood) = interpolationBox method
-    sz''@(Sz2 m' n') = sz' + neighborhood - 1
     sz@(Sz2 m n) = A.size arr
     !fM = fromIntegral m' / fromIntegral m
     !fN = fromIntegral n' / fromIntegral n
@@ -355,29 +362,143 @@ resize method border sz' (Image arr) = Image $ A.compute $ A.extract' center sz'
         (A.handleBorderIndex border sz (A.index' arr))
         ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
     {-# INLINE getNewPx #-}
-  -- Image $ A.compute warr
-  -- where
-  --   (center@(u :. _), neighborhood) = interpolationBox method
-  --   !darr = A.makeArray (A.getComp arr) sz' (getNewPx (A.handleBorderIndex border sz (A.index' arr)))
-  --   !warr =
-  --     A.insertWindow
-  --       darr
-  --       A.Window
-  --         { A.windowStart = center
-  --         , A.windowSize = sz - neighborhood + Sz center
-  --         , A.windowIndex = getNewPx (A.unsafeIndex arr)
-  --         , A.windowUnrollIx2 = Just u
-  --         }
-  --   sz@(Sz2 m n) = A.size arr
-  --   !fM = fromIntegral m' / fromIntegral m
-  --   !fN = fromIntegral n' / fromIntegral n
-  --   getNewPx getOldPx (i :. j) =
-  --     interpolate
-  --       method
-  --       getOldPx
-  --       ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
-  --   {-# INLINE getNewPx #-}
 {-# INLINE resize #-}
+
+
+shrink2x2 :: (RealFloat e, ColorModel cs e) => Image cs e -> Image cs e
+shrink2x2 (Image arr) =
+  Image $ A.computeWithStride stride $ A.applyStencil A.noPadding stencil arr
+  where
+    stride = A.Stride (2 :. 2)
+    stencil =
+      A.makeStencil (Sz2 2 2) 0 $ \get ->
+        (get (0 :. 0) + get (1 :. 0) + get (0 :. 1) + get 1) / 4
+    {-# INLINE stencil #-}
+{-# INLINE shrink2x2 #-}
+
+
+shrink1x4 :: (RealFloat e, ColorModel cs e) => Image cs e -> Image cs e
+shrink1x4 (Image arr) =
+  Image $ A.computeWithStride stride $ A.applyStencil A.noPadding stencil arr
+  where
+    stride = A.Stride (1 :. 4)
+    stencil =
+      A.makeStencil (Sz2 1 4) 0 $ \f ->
+        (f (0 :. 0) + f (0 :. 1) + f (0 :. 2) + f (0 :. 3)) / 4
+    {-# INLINE stencil #-}
+{-# INLINE shrink1x4 #-}
+
+shrink4x1 :: (RealFloat e, ColorModel cs e) => Image cs e -> Image cs e
+shrink4x1 (Image arr) =
+  Image $ A.computeWithStride stride $ A.applyStencil A.noPadding stencil arr
+  where
+    stride = A.Stride (4 :. 1)
+    stencil =
+      A.makeStencil (Sz2 4 1) 0 $ \f ->
+        (f (0 :. 0) + f (1 :. 0) + f (2 :. 0) + f (3 :. 0)) / 4
+    {-# INLINE stencil #-}
+{-# INLINE shrink4x1 #-}
+
+shrink3x3 :: (RealFloat e, ColorModel cs e) => Image cs e -> Image cs e
+shrink3x3 (Image arr) =
+  Image $ A.computeWithStride stride $ A.applyStencil A.noPadding stencil arr
+  where
+    stride = A.Stride (2 :. 2)
+    stencil = A.makeStencil (Sz2 3 3) (1 :. 1) $ \ f ->
+                  ( f (-1 :. -1) + f (-1 :. 0) + f (-1 :. 1) +
+                    f ( 0 :. -1) + f ( 0 :. 0) + f ( 0 :. 1) +
+                    f ( 1 :. -1) + f ( 1 :. 0) + f ( 1 :. 1) ) / 9
+    {-# INLINE stencil #-}
+{-# INLINE shrink3x3 #-}
+
+
+shrinkVertical :: (RealFloat e, ColorModel cs e) => Int -> Image cs e -> Image cs e
+shrinkVertical k (Image arr) =
+  Image $
+  A.computeWithStride stride $
+  A.applyStencil A.noPadding (makeAverageStencil (flip (:.)) (Sz kPos) 0) arr
+  where
+    stride@(A.Stride (kPos :. 1)) = A.Stride (k :. 1)
+{-# INLINE shrinkVertical #-}
+
+shrinkHorizontal :: (RealFloat e, ColorModel cs e) => Int -> Image cs e -> Image cs e
+shrinkHorizontal k (Image arr) =
+  Image $
+  A.computeWithStride stride $
+  A.applyStencil A.noPadding (makeAverageStencil (:.) (Sz kPos) 0) arr
+  where
+    stride@(A.Stride (_ :. kPos)) = A.Stride (1 :. k)
+{-# INLINE shrinkHorizontal #-}
+
+
+-- shrinkVertical :: (RealFloat e, ColorModel cs e) => Int -> Image cs e -> Image cs e
+-- shrinkVertical k (Image arr) =
+--   Image $ A.computeWithStride stride $ A.applyStencil A.noPadding stencil arr
+--   where
+--     stride@(A.Stride (kPos :. _)) = A.Stride (k :. 1)
+--     dPos = fromIntegral kPos
+--     stencil =
+--       A.makeStencil (Sz2 kPos 0 $ \get ->
+--         let go !i !acc
+--               | i < kPos = go (i + 1) (acc + get (i :. 0))
+--               | otherwise = acc / dPos
+--          in go 1 (get 0)
+--     {-# INLINE stencil #-}
+-- {-# INLINE shrinkVertical #-}
+
+-- shrinkHorizontal :: (RealFloat e, ColorModel cs e) => Int -> Image cs e -> Image cs e
+-- shrinkHorizontal k (Image arr) =
+--   Image $ A.computeWithStride stride $ A.applyStencil A.noPadding stencil arr
+--   where
+--     stride@(A.Stride (_ :. kPos)) = A.Stride (1 :. k)
+--     dPos = fromIntegral kPos
+--     stencil =
+--       A.makeStencil (Sz2 1 kPos $ \get ->
+--         let go !i !acc
+--               | i < kPos = go (i + 1) (acc + get (0 :. i))
+--               | otherwise = acc / dPos
+--          in go 1 (get 0)
+--     {-# INLINE stencil #-}
+-- {-# INLINE shrinkHorizontal #-}
+
+
+
+
+resizeDW :: (RealFloat e, ColorModel cs e, Interpolation method) =>
+          method -- ^ Interpolation method to be used during scaling.
+       -> Border (Pixel cs e) -- ^ Border handling strategy
+       -> Sz2   -- ^ Size of the result image.
+       -> Image cs e -- ^ Source image.
+       -> Image cs e -- ^ Result image.
+resizeDW method border sz'@(Sz2 m' n') (Image arr) = computeI warr
+  where
+    (center@(u :. _), neighborhood) = interpolationBox method
+    !darr =
+      A.makeArray
+        (A.getComp arr)
+        sz'
+        (getNewPx (A.handleBorderIndex border sz (A.index' arr)))
+    !warr =
+      A.insertWindow
+        darr
+        A.Window
+          { A.windowStart = center
+          , A.windowSize = sz - neighborhood + Sz center
+          , A.windowIndex = getNewPx (A.unsafeIndex arr)
+          , A.windowUnrollIx2 = Just u
+          }
+    sz@(Sz2 m n) = A.size arr
+    !fM = fromIntegral m' / fromIntegral m
+    !fN = fromIntegral n' / fromIntegral n
+    getNewPx getOldPx (i :. j) =
+      interpolate
+        method
+        getOldPx
+        ((fromIntegral i + 0.5) / fM - 0.5, (fromIntegral j + 0.5) / fN - 0.5)
+    {-# INLINE getNewPx #-}
+{-# INLINE resizeDW #-}
+
+
 
 -- Note: Reducing the size seems to be slightly better performance wise with windowed
 -- array, while increasing the size might be opposite. Extracting windowed array is not

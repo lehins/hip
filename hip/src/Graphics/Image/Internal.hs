@@ -139,7 +139,7 @@ instance ColorModel cs e => IsList (Image cs e) where
 -- Below is a very simplistic, yet extremely powerful HIP fusion guts:
 
 computeI ::
-     (Load r Ix2 (Pixel cs e), Construct r Ix2 (Pixel cs e), ColorModel cs e)
+     (Load r Ix2 (Pixel cs e), ColorModel cs e)
   => Array r Ix2 (Pixel cs e)
   -> Image cs e
 computeI = Image . A.compute
