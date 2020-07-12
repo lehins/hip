@@ -20,11 +20,8 @@ bug-reports:       https://github.com/lehins/hip/issues
 cabal-version:     >= 1.18
 build-type:        Simple
 extra-doc-files:   images/*.jpg
-                 , images/*.png
                  , images/*.gif
-                 , images/haddock/*.jpg
-                 , images/downloaded/*.gif
-                 , images/*.svg
+                 , images/doc/*.jpg
                  , README.md
                    CHANGELOG.md
 
@@ -51,6 +48,7 @@ library
   --                , Graphics.Image.IO.Histogram
                   , Graphics.Image.Processing
                   , Graphics.Image.Processing.Binary
+                  , Graphics.Image.Processing.Canny
                   , Graphics.Image.Processing.Complex
                   , Graphics.Image.Processing.Filter
   other-modules:   Graphics.Image.Internal
@@ -92,6 +90,15 @@ library
 --                 base >=4.7 && <5
 --               , hip
 --   default-language: Haskell2010
+
+test-suite doctests
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests
+  main-is:          doctests.hs
+  build-depends: base
+               , doctest >=0.15
+               , hip
+  default-language:    Haskell2010
 
 benchmark resize
   type:                exitcode-stdio-1.0

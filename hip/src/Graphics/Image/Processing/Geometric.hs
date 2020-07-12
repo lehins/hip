@@ -64,9 +64,9 @@ import Prelude hiding (traverse)
 -- even indexed column:
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> displayImage $ downsample ((0 ==) . (`mod` 5)) odd frog
+-- >>> writeImage "images/doc/frog_downsample.jpg" $ downsample ((0 ==) . (`mod` 5)) odd frog
 --
--- <<images/frog.jpg>> <<images/frog_downsampled.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_downsample.jpg>>
 --
 downsample :: ColorModel cs e =>
               Stride Ix2
@@ -83,9 +83,9 @@ downsample stride = computeI . A.fromStrideLoad stride . delayPull
 -- unchanged:
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> displayImage $ upsample (const (0, 0)) (\ k -> if k `mod` 10 == 0 then (2, 4) else (0, 0)) frog
+-- >>> writeImage "images/doc/frog_upsample.jpg" $ upsample (const (0, 0)) (\ k -> if k `mod` 10 == 0 then (2, 4) else (0, 0)) frog
 --
--- <<images/frog.jpg>> <<images/frog_upsampled.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_upsample.jpg>>
 --
 upsample :: ColorModel cs e =>
             Pixel cs e -- ^ Pixel to use for upsampling
@@ -154,10 +154,10 @@ transpose = computeI . A.transpose . delayPull
 -- columns, while specifying a border resolution strategy.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_translate_wrap.jpg" $ translate Wrap (50 :. 100) frog
--- >>> writeImage "images/frog_translate_edge.jpg" $ translate Edge (50 :. 100) frog
+-- >>> writeImage "images/doc/frog_translate_wrap.jpg" $ translate Wrap (50 :. 100) frog
+-- >>> writeImage "images/doc/frog_translate_edge.jpg" $ translate Edge (50 :. 100) frog
 --
--- <<images/frog.jpg>> <<images/frog_translate_wrap.jpg>> <<images/frog_translate_edge.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_translate_wrap.jpg>> <<images/doc/frog_translate_edge.jpg>>
 --
 translate
   :: ColorModel cs e
@@ -180,10 +180,10 @@ translate atBorder fDeltaSz =
 -- scale the canvas and place it in a middle:
 --
 -- >>> logo <- readImageRGBA "images/logo_40.png"
--- >>> writeImage "images/logo_tile.png" $ canvasSize Wrap (\sz -> (0, sz * Sz (5 :. 7))) logo
--- >>> writeImage "images/logo_center.png" $ canvasSize Edge (\sz -> (unSz sz * (2 :. 3), sz * Sz (5 :. 7))) logo
+-- >>> writeImage "images/doc/logo_tile.png" $ canvasSize Wrap (\sz -> (0, sz * Sz (5 :. 7))) logo
+-- >>> writeImage "images/doc/logo_center.png" $ canvasSize Edge (\sz -> (unSz sz * (2 :. 3), sz * Sz (5 :. 7))) logo
 --
--- <<images/logo_tile.png>> <<images/logo_center.png>>
+-- <<images/doc/logo_tile.png>> <<images/doc/logo_center.png>>
 canvasSize ::
      ColorModel cs e
   => Border (Pixel cs e) -- ^ Border resolution strategy
@@ -203,9 +203,9 @@ canvasSize atBorder fSz =
 -- otherwise it will result in an error.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_crop.jpg" $ crop (30 :. 80) (const 70) frog
+-- >>> writeImage "images/doc/frog_crop.jpg" $ crop (30 :. 80) (const 70) frog
 --
--- <<images/frog.jpg>> <<images/frog_crop.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_crop.jpg>>
 --
 crop ::
      ColorModel cs e
@@ -239,9 +239,9 @@ superimpose ix0 =
 -- | Flip an image vertically.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_flipV.jpg" $ flipV frog
+-- >>> writeImage "images/doc/frog_flipV.jpg" $ flipV frog
 --
--- <<images/frog.jpg>> <<images/frog_flipV.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_flipV.jpg>>
 --
 flipV :: ColorModel cs e => Image cs e -> Image cs e
 flipV = backpermute dupl (\ (Sz2 m _) (i :. j) -> m - 1 - i :. j)
@@ -251,9 +251,9 @@ flipV = backpermute dupl (\ (Sz2 m _) (i :. j) -> m - 1 - i :. j)
 -- | Flip an image horizontally.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_flipH.jpg" $ flipH frog
+-- >>> writeImage "images/doc/frog_flipH.jpg" $ flipH frog
 --
--- <<images/frog.jpg>> <<images/frog_flipH.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_flipH.jpg>>
 --
 flipH :: ColorModel cs e => Image cs e -> Image cs e
 flipH = backpermute dupl (\ (Sz2 _ n) (i :. j) -> i :. n - 1 - j)
@@ -263,9 +263,9 @@ flipH = backpermute dupl (\ (Sz2 _ n) (i :. j) -> i :. n - 1 - j)
 -- | Rotate an image clockwise by 90°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate90.jpg" $ rotate90 frog
+-- >>> writeImage "images/doc/frog_rotate90.jpg" $ rotate90 frog
 --
--- <<images/frog.jpg>> <<images/frog_rotate90.jpg>>
+-- <<images/frog.jpg>> <<images/fdoc/rog_rotate90.jpg>>
 --
 rotate90 :: ColorModel cs e => Image cs e -> Image cs e
 rotate90 = transpose . flipV
@@ -275,9 +275,9 @@ rotate90 = transpose . flipV
 -- | Rotate an image by 180°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate180.jpg" $ rotate180 frog
+-- >>> writeImage "images/doc/frog_rotate180.jpg" $ rotate180 frog
 --
--- <<images/frog.jpg>> <<images/frog_rotate180.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_rotate180.jpg>>
 --
 rotate180 :: ColorModel cs e => Image cs e -> Image cs e
 rotate180 = backpermute dupl (\ sz ix -> unSz sz - ix - 1)
@@ -287,9 +287,9 @@ rotate180 = backpermute dupl (\ sz ix -> unSz sz - ix - 1)
 -- | Rotate an image clockwise by 270°.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_rotate270.jpg" $ rotate270 frog
+-- >>> writeImage "images/doc/frog_rotate270.jpg" $ rotate270 frog
 --
--- <<images/frog.jpg>> <<images/frog_rotate270.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_rotate270.jpg>>
 --
 rotate270 :: ColorModel cs e => Image cs e -> Image cs e
 rotate270 = transpose . flipH
@@ -300,9 +300,9 @@ rotate270 = transpose . flipH
 -- | Rotate an image clockwise by an angle Θ in radians.
 --
 -- >>> frog <- readImageRGBA "images/frog.jpg"
--- >>> writeImage "images/frog_rotate330.png" $ rotate Bilinear (Fill 0) (11*pi/6) frog
+-- >>> writeImage "images/doc/frog_rotate330.png" $ rotate Bilinear (Fill 0) (11*pi/6) frog
 --
--- <<images/frog.jpg>> <<images/frog_rotate330.png>>
+-- <<images/frog.jpg>> <<images/doc/frog_rotate330.png>>
 --
 rotate :: (RealFloat e, ColorModel cs e, Interpolation method) =>
           method -- ^ Interpolation method to be used
@@ -340,9 +340,9 @@ rotate method border theta' (Image arr) =
 -- | Resize an image using an interpolation method.
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/frog_resize.jpg" $ resize Bilinear Edge (150 :. 480) frog
+-- >>> writeImage "images/doc/frog_resize.jpg" $ resize Bilinear Edge (150 :. 480) frog
 --
--- <<images/frog.jpg>> <<images/frog_resize.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_resize.jpg>>
 --
 resize :: (RealFloat e, ColorModel cs e, Interpolation method) =>
           method -- ^ Interpolation method to be used during scaling.

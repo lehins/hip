@@ -74,7 +74,7 @@ module Graphics.Image
   -- >>> displayImage centaurus
   -- >>> displayImage ((cluster + centaurus) / 2)
   --
-  -- <<images/cluster.jpg>> <<images/centaurus.jpg>> <<images/centaurus_and_cluster.jpg>>
+  -- <<images/doc/cluster.jpg>> <<images/doc/centaurus.jpg>> <<images/doc/centaurus_and_cluster.jpg>>
   --
   -- * Accessors
   -- ** Dimensions
@@ -143,7 +143,7 @@ import Prelude as P hiding (map, maximum, minimum, product, sum, traverse,
 
 -- | Get the number of rows in an image. Same as `dims`, it does break fusion.
 --
--- >>> frog <- readImageRGB "images/megabat.jpg"
+-- >>> frog <- readImageRGB "images/frog.jpg"
 -- >>> frog
 -- <Image RGB Double: 200x300>
 -- >>> rows frog

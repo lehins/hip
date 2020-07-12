@@ -3,6 +3,11 @@ Haskell Image Processing Library
 
 Haskell Image Processing (HIP) Library
 
+**Warning** - Currently HIP is undergoing a major rewrite with
+[massiv](http://hackage.haskell.org/package/massiv) therefore `master` branch is not
+stable at the moment. For currently released version see
+[`1.x`](https://github.com/lehins/hip/tree/hip-1.x) branch.
+
 Documentation is on [Hackage](http://hackage.haskell.org/package/hip), and [Stackage](https://www.stackage.org/package/hip).
 
 [![Build Status](https://travis-ci.org/lehins/hip.svg?branch=master)](https://travis-ci.org/lehins/hip)

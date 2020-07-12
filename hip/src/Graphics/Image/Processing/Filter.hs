@@ -25,6 +25,7 @@ module Graphics.Image.Processing.Filter
   , applyFilterWithStride
   -- ** Creation
   , makeFilter
+  , transposeFilter
   -- ** Conversion
   , fromStencil
   , toStencil
@@ -38,24 +39,24 @@ module Graphics.Image.Processing.Filter
   , averageBlur3x3
   , averageBlur5x5
   , averageBlur7x7
-  , average1x3
-  , average1x5
-  , average1x7
-  , average3x1
-  , average5x1
-  , average7x1
+  , averageFilter1x3
+  , averageFilter1x5
+  , averageFilter1x7
+  , averageFilter3x1
+  , averageFilter5x1
+  , averageFilter7x1
   , makeAverageStencil
   -- ** Gaussian
   , gaussianBlur
   , gaussianBlur3x3
   , gaussianBlur5x5
   , gaussianBlur7x7
-  , gaussian1x3
-  , gaussian1x5
-  , gaussian1x7
-  , gaussian3x1
-  , gaussian5x1
-  , gaussian7x1
+  , gaussianFilter1x3
+  , gaussianFilter1x5
+  , gaussianFilter1x7
+  , gaussianFilter3x1
+  , gaussianFilter5x1
+  , gaussianFilter7x1
   -- ** Laplacian
   , laplacian
   -- ** Laplacian of Gaussian
@@ -82,11 +83,15 @@ module Graphics.Image.Processing.Filter
 import Control.Applicative
 import Control.DeepSeq
 import qualified Data.Massiv.Array as A
+import qualified Data.Massiv.Array.Unsafe as A
 import qualified Data.Massiv.Array.Numeric.Integral as A
 import Data.Maybe
 import Graphics.Image.Internal
 import Graphics.Pixel
 import Prelude as P
+
+-- $setup
+-- >>> import Graphics.Image
 
 
 -- | Filter that can be applied to an image using `mapFilter`.
@@ -112,11 +117,11 @@ instance (ColorModel cs a, Applicative (Color cs)) => Applicative (Filter cs a) 
 -- complexity.
 --
 -- >>> batRGB <- readImageRGB "images/megabat.jpg"
--- >>> writeImage "images/megabat_sobel_rgb.jpg" $ normalize $ mapFilter Edge sobelOperator batRGB
+-- >>> writeImage "images/doc/megabat_sobel_rgb.jpg" $ normalize $ mapFilter Edge sobelOperator batRGB
 -- >>> let batY = I.map toPixelY batRGB
--- >>> writeImage "images/megabat_sobel.jpg" $ normalize $ mapFilter Edge sobelOperator batY
+-- >>> writeImage "images/doc/megabat_sobel.jpg" $ normalize $ mapFilter Edge sobelOperator batY
 --
--- <<images/megabat.jpg>> <<images/megabat_sobel_rgb.jpg>> <<images/megabat_sobel.jpg>>
+-- <<images/megabat.jpg>> <<images/doc/megabat_sobel_rgb.jpg>> <<images/doc/megabat_sobel.jpg>>
 --
 -- With filter application normalization is often desired, see `laplacian` for an example without
 -- normalization.
@@ -208,6 +213,21 @@ dimapFilter :: Functor (Color cs) => (a' -> a) -> (b -> b') -> Filter cs a b -> 
 dimapFilter f g (Filter s) = Filter (A.dimapStencil (fmap f) (fmap g) s)
 {-# INLINE dimapFilter #-}
 
+
+fromVectorStencil :: A.Stencil Ix1 (Pixel cs a) (Pixel cs b) -> Filter cs a b
+fromVectorStencil stencil =
+  Filter $
+  A.transformStencil (\(A.SafeSz n) -> A.SafeSz (1 :. n)) (0 :.) tailDim stencil
+
+
+transposeFilter :: Filter cs a b -> Filter cs a b
+transposeFilter (Filter stencil) =
+  Filter
+    (A.transformStencil (\(A.SafeSz sz) -> A.SafeSz (trans sz)) trans trans stencil)
+  where
+    trans (i :. j) = j :. i
+    {-# INLINE trans #-}
+{-# INLINE transposeFilter #-}
 
 -------------
 -- Filters --
@@ -344,28 +364,119 @@ makeKernel2D n =
 {-# INLINE makeKernel2D #-}
 
 
+
 makeAverageStencil ::
      (A.Default a, Fractional a) => (Int -> Int -> Ix2) -> Sz1 -> Int -> A.Stencil Ix2 a a
 makeAverageStencil ix2 (Sz k) c =
   A.makeStencil (Sz (ix2 1 k)) (ix2 0 c) $ \get ->
     let go !i !acc
-          | i < k = go (i + 1) (acc + get (ix2 0 i))
+          | i < k = go (i + 1) (acc + get (ix2 0 (i - c)))
           | otherwise = acc / dPos
-     in go 1 (get 0)
+     in go 0 0
   where
     dPos = fromIntegral k
 {-# INLINE makeAverageStencil #-}
 
 
-averageHorizontalFilter ::
-     (ColorModel cs e, Fractional e) => Sz1 -> Ix1 -> Filter' cs e
-averageHorizontalFilter k = Filter . makeAverageStencil (:.) k
-{-# INLINE averageHorizontalFilter #-}
+-- | Average horizontal filter of length 3.
+--
+-- @since 2.0.0
+averageFilter1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
+averageFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
+  where stencil f = (f (0 :. -1) + f (0 :. 0) + f (0 :. 1)) / 3
+        {-# INLINE stencil #-}
+{-# INLINE averageFilter1x3 #-}
 
-averageVerticalFilter ::
-     (ColorModel cs e, Fractional e) => Sz1 -> Ix1 -> Filter' cs e
-averageVerticalFilter k = Filter . makeAverageStencil (flip (:.)) k
-{-# INLINE averageVerticalFilter #-}
+
+-- | Average horizontal filter of length 5.
+--
+-- @since 2.0.0
+averageFilter1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
+averageFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
+  where stencil f = (f (0 :. -2) + f (0 :. -1) + f (0 :. 0) + f (0 :. 1) + f (0 :. 2)) / 5
+        {-# INLINE stencil #-}
+{-# INLINE averageFilter1x5 #-}
+
+
+-- | Average horizontal filter of length 7.
+--
+-- @since 2.0.0
+averageFilter1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
+averageFilter1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
+  where stencil f = ( f (0 :. -3) +
+                      f (0 :. -2) +
+                      f (0 :. -1) +
+                      f (0 :.  0) +
+                      f (0 :.  1) +
+                      f (0 :.  2) +
+                      f (0 :.  3) ) / 7
+        {-# INLINE stencil #-}
+{-# INLINE averageFilter1x7 #-}
+
+
+-- | Average vertical filter of height 3.
+--
+-- @since 2.0.0
+averageFilter3x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
+averageFilter3x1 = transposeFilter averageFilter1x3
+{-# INLINE averageFilter3x1 #-}
+
+-- | Average vertical filter of height 5.
+--
+-- @since 2.0.0
+averageFilter5x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
+averageFilter5x1 = transposeFilter averageFilter1x5
+{-# INLINE averageFilter5x1 #-}
+
+-- | Average vertical filter of height 7.
+--
+-- @since 2.0.0
+averageFilter7x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
+averageFilter7x1 = transposeFilter averageFilter1x7
+{-# INLINE averageFilter7x1 #-}
+
+
+-- | Apply a average blur to an image
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/doc/frog_averageFilter3x3.jpg" $ averageBlur3x3 Edge frog
+--
+-- <<images/frog.jpg>> <<images/doc/frog_averageFilter3x3.jpg>>
+--
+-- @since 2.0.0
+averageBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+averageBlur3x3 b = mapFilter b averageFilter3x1 . mapFilter b averageFilter1x3
+{-# INLINE averageBlur3x3 #-}
+
+-- | Apply a average blur to an image
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/doc/frog_averageFilter5x5.jpg" $ averageBlur5x5 Edge frog
+--
+-- <<images/frog.jpg>> <<images/doc/frog_averageFilter5x5.jpg>>
+--
+-- @since 2.0.0
+averageBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+averageBlur5x5 b = mapFilter b averageFilter5x1 . mapFilter b averageFilter1x5
+{-# INLINE averageBlur5x5 #-}
+
+-- | Apply a average blur to an image
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> writeImage "images/doc/frog_averageFilter7x7.jpg" $ averageBlur7x7 Edge frog
+--
+-- <<images/frog.jpg>> <<images/doc/frog_averageFilter7x7.jpg>>
+--
+-- @since 2.0.0
+averageBlur7x7 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
+averageBlur7x7 b = mapFilter b averageFilter7x1 . mapFilter b averageFilter1x7
+{-# INLINE averageBlur7x7 #-}
 
 
 averageBlur ::
@@ -375,215 +486,78 @@ averageBlur ::
   -> Border (Pixel cs e) -- ^ Border resolution technique
   -> Image cs e
   -> Image cs e
-averageBlur r b
+averageBlur r b img
   | r < 0 = error $ "Average filter with negative radius: " ++ show r
-  | otherwise =
-    mapFilter b (averageVerticalFilter k r) .
-    mapFilter b (averageHorizontalFilter k r)
-  where
-    k = Sz $ r * 2 + 1
-{-# INLINE averageBlur #-}
-
--- | Average horizontal filter of length 3.
---
--- @since 2.0.0
-average1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
-average1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
-  where stencil f = (f (0 :. -1) + f (0 :. 0) + f (0 :. 1)) / 3
-        {-# INLINE stencil #-}
-{-# INLINE average1x3 #-}
-
-
--- | Average horizontal filter of length 5.
---
--- @since 2.0.0
-average1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
-average1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
-  where stencil f = (f (0 :. -2) + f (0 :. -1) + f (0 :. 0) + f (0 :. 1) + f (0 :. 2)) / 5
-        {-# INLINE stencil #-}
-{-# INLINE average1x5 #-}
-
-
--- | Average horizontal filter of length 7.
---
--- @since 2.0.0
-average1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
-average1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
-  where stencil f = ( f (0 :. -3) +
-                      f (0 :. -2) +
-                      f (0 :. -1) +
-                      f (0 :.  0) +
-                      f (0 :.  1) +
-                      f (0 :.  2) +
-                      f (0 :.  3) ) / 7
-        {-# INLINE stencil #-}
-{-# INLINE average1x7 #-}
-
-
--- | Average vertical filter of height 3.
---
--- @since 2.0.0
-average3x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
-average3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
-  where stencil f = (f (-1 :. 0) + f (0 :. 0) + f (1 :. 0)) / 3
-        {-# INLINE stencil #-}
-{-# INLINE average3x1 #-}
-
--- | Average vertical filter of height 5.
---
--- @since 2.0.0
-average5x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
-average5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
-  where stencil f = (f (-2 :. 0) + f (-1 :. 0) + f (0 :. 0) + f (1 :. 0) + f (2 :. 0)) / 5
-        {-# INLINE stencil #-}
-{-# INLINE average5x1 #-}
-
--- | Average vertical filter of height 7.
---
--- @since 2.0.0
-average7x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
-average7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
-  where stencil f = ( f (-3 :. 0) +
-                      f (-2 :. 0) +
-                      f (-1 :. 0) +
-                      f ( 0 :. 0) +
-                      f ( 1 :. 0) +
-                      f ( 2 :. 0) +
-                      f ( 3 :. 0) ) / 7
-        {-# INLINE stencil #-}
-{-# INLINE average7x1 #-}
-
-
--- | Apply a average blur to an image
---
--- ====__Examples__
---
--- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_average3x3.jpg" $ averageBlur3x3 Edge frog
---
--- <<images/frog.jpg>> <<images/haddock/frog_average3x3.jpg>>
---
--- @since 2.0.0
-averageBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-averageBlur3x3 b = mapFilter b average3x1 . mapFilter b average1x3
-{-# INLINE averageBlur3x3 #-}
-
--- | Apply a average blur to an image
---
--- ====__Examples__
---
--- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_average5x5.jpg" $ averageBlur5x5 Edge frog
---
--- <<images/frog.jpg>> <<images/haddock/frog_average5x5.jpg>>
---
--- @since 2.0.0
-averageBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-averageBlur5x5 b = mapFilter b average5x1 . mapFilter b average1x5
-{-# INLINE averageBlur5x5 #-}
-
--- | Apply a average blur to an image
---
--- ====__Examples__
---
--- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_average7x7.jpg" $ averageBlur7x7 Edge frog
---
--- <<images/frog.jpg>> <<images/haddock/frog_average7x7.jpg>>
---
--- @since 2.0.0
-averageBlur7x7 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-averageBlur7x7 b = mapFilter b average7x1 . mapFilter b average1x7
-{-# INLINE averageBlur7x7 #-}
-
-
-averageBlur' ::
-     (Floating e, ColorModel cs e)
-  => Int -- ^ @r@ - a positive integral value radius that will be used for computing
-         -- average kernel. Both sides of the kernel will be set to @d=2*r + 1@
-  -> Border (Pixel cs e) -- ^ Border resolution technique
-  -> Image cs e
-  -> Image cs e
-averageBlur' r b img
-  | r <= 0 =
-    error $ "Average kernel radius is expected to be positive, not: " ++ show r
+  | r == 0 = img
   | r == 1 = averageBlur3x3 b img
   | r == 2 = averageBlur5x5 b img
   | r == 3 = averageBlur7x7 b img
   | otherwise =
     let !side = r * 2 + 1
         !kVector = A.computeAs A.S $ A.replicate Seq (Sz1 side) 1
-        !k1xD =
-          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 1 side) kVector
-        !kDx1 =
-          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 side 1) kVector
-     in Image .
-        A.computeAs A.S .
-        A.mapStencil b k1xD . A.computeAs A.S . A.mapStencil b kDx1 $
-        unImage img
-{-# INLINE averageBlur' #-}
+        !k1xD = fromVectorStencil $ A.makeCorrelationStencilFromKernel kVector
+        !kDx1 = transposeFilter k1xD
+     in mapFilter b k1xD . mapFilter b kDx1 $ img
+{-# INLINE averageBlur #-}
 
 -- | Gaussian horizontal filter with radius 1.5 and @σ=1.5\/3@
 --
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian1x3.jpg" $ mapFilter Edge gaussian1x3 frog
+-- >>> writeImage "images/doc/frog_gaussianFilter1x3.jpg" $ mapFilter Edge gaussianFilter1x3 frog
 --
 -- Two pictures below might look the same, but with a bit more detail horizontal sharp
 -- details on the image on the left it is possible to distinguish a bit blurriness. Effect
--- is further amplified with larger filters: `gaussian1x5` and `gaussian1x7`
+-- is further amplified with larger filters: `gaussianFilter1x5` and `gaussianFilter1x7`
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian1x3.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter1x3.jpg>>
 --
 -- @since 2.0.0
-gaussian1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
+gaussianFilter1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussianFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
   where
     stencil f = f (0 :. -1) * 0.15773119796715185 +
                 f (0 :.  0) * 0.68453760406569570 +
                 f (0 :.  1) * 0.15773119796715185
     {-# INLINE stencil #-}
-{-# INLINE gaussian1x3 #-}
+{-# INLINE gaussianFilter1x3 #-}
 
 -- | Gaussian vertical filter with radius 1.5 and @σ=1.5\/3@
 --
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian3x1.jpg" $ mapFilter Edge gaussian3x1 frog
+-- >>> writeImage "images/doc/frog_gaussianFilter3x1.jpg" $ mapFilter Edge gaussianFilter3x1 frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian3x1.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter3x1.jpg>>
 --
 -- @since 2.0.0
-gaussian3x1 :: (Floating e, ColorModel cs e) => Filter cs e e
-gaussian3x1 = Filter $ A.makeStencil (Sz2 3 1) (1 :. 0) stencil
-  where
-    stencil f = f (-1 :. 0) * 0.15773119796715185 +
-                f ( 0 :. 0) * 0.68453760406569570 +
-                f ( 1 :. 0) * 0.15773119796715185
-    {-# INLINE stencil #-}
-{-# INLINE gaussian3x1 #-}
+gaussianFilter3x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussianFilter3x1 = transposeFilter gaussianFilter1x3
+{-# INLINE gaussianFilter3x1 #-}
+
+
 
 -- | Gaussian horizontal filter with radius 2.5 and @σ=2.5\/3@
 --
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian1x5.jpg" $ mapFilter Edge gaussian1x5 frog
+-- >>> writeImage "images/doc/frog_gaussianFilter1x5.jpg" $ mapFilter Edge gaussianFilter1x5 frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian1x5.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter1x5.jpg>>
 --
 -- @since 2.0.0
-gaussian1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
+gaussianFilter1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussianFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
   where stencil f = f (0 :. -2) * 0.03467403390152031 +
                     f (0 :. -1) * 0.23896796340399287 +
                     f (0 :.  0) * 0.45271600538897480 +
                     f (0 :.  1) * 0.23896796340399287 +
                     f (0 :.  2) * 0.03467403390152031
         {-# INLINE stencil #-}
-{-# INLINE gaussian1x5 #-}
+{-# INLINE gaussianFilter1x5 #-}
 
 
 -- | Gaussian vertical filter with radius 2.5 and @σ=2.5\/3@
@@ -591,20 +565,14 @@ gaussian1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian5x1.jpg" $ mapFilter Edge gaussian5x1 frog
+-- >>> writeImage "images/doc/frog_gaussianFilter5x1.jpg" $ mapFilter Edge gaussianFilter5x1 frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian5x1.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter5x1.jpg>>
 --
 -- @since 2.0.0
-gaussian5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
-gaussian5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
-  where stencil f = f (-2 :. 0) * 0.03467403390152031 +
-                    f (-1 :. 0) * 0.23896796340399287 +
-                    f ( 0 :. 0) * 0.45271600538897480 +
-                    f ( 1 :. 0) * 0.23896796340399287 +
-                    f ( 2 :. 0) * 0.03467403390152031
-        {-# INLINE stencil #-}
-{-# INLINE gaussian5x1 #-}
+gaussianFilter5x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussianFilter5x1 = transposeFilter gaussianFilter1x5
+{-# INLINE gaussianFilter5x1 #-}
 
 
 -- | Gaussian horizontal filter with radius 3.5 and @σ=3.5\/3@
@@ -612,13 +580,13 @@ gaussian5x1 = Filter $ A.makeStencil (Sz2 5 1) (2 :. 0) stencil
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian1x7.jpg" $ mapFilter Edge gaussian1x7 frog
+-- >>> writeImage "images/doc/frog_gaussianFilter1x7.jpg" $ mapFilter Edge gaussianFilter1x7 frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian1x7.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter1x7.jpg>>
 --
 -- @since 2.0.0
-gaussian1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
-gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
+gaussianFilter1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
+gaussianFilter1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
   where stencil f = f (0 :. -3) * 0.01475221554565270 +
                     f (0 :. -2) * 0.08343436701511067 +
                     f (0 :. -1) * 0.23548192723440955 +
@@ -627,7 +595,7 @@ gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
                     f (0 :.  2) * 0.08343436701511067 +
                     f (0 :.  3) * 0.01475221554565270
         {-# INLINE stencil #-}
-{-# INLINE gaussian1x7 #-}
+{-# INLINE gaussianFilter1x7 #-}
 
 
 -- | Gaussian vertical filter with radius 3.5 and @σ=3.5\/3@
@@ -635,22 +603,14 @@ gaussian1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian7x1.jpg" $ mapFilter Edge gaussian7x1 frog
+-- >>> writeImage "images/doc/frog_gaussianFilter7x1.jpg" $ mapFilter Edge gaussianFilter7x1 frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian7x1.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter7x1.jpg>>
 --
 -- @since 2.0.0
-gaussian7x1 :: (Floating e, ColorModel cs e) => Filter cs e e
-gaussian7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
-  where stencil f = f (-3 :. 0) * 0.01475221554565270 +
-                    f (-2 :. 0) * 0.08343436701511067 +
-                    f (-1 :. 0) * 0.23548192723440955 +
-                    f ( 0 :. 0) * 0.33266298040965380 +
-                    f ( 1 :. 0) * 0.23548192723440955 +
-                    f ( 2 :. 0) * 0.08343436701511067 +
-                    f ( 3 :. 0) * 0.01475221554565270
-        {-# INLINE stencil #-}
-{-# INLINE gaussian7x1 #-}
+gaussianFilter7x1 :: (Floating e, ColorModel cs e) => Filter cs e e
+gaussianFilter7x1 = transposeFilter gaussianFilter1x5
+{-# INLINE gaussianFilter7x1 #-}
 
 
 -- | Apply a gaussian blur to an image. Gaussian function with radius 1.5 and @σ=1.5\/3@
@@ -659,13 +619,13 @@ gaussian7x1 = Filter $ A.makeStencil (Sz2 7 1) (3 :. 0) stencil
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian3x3.jpg" $ gaussianBlur3x3 Edge frog
+-- >>> writeImage "images/doc/frog_gaussianFilter3x3.jpg" $ gaussianBlur3x3 Edge frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian3x3.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter3x3.jpg>>
 --
 -- @since 2.0.0
 gaussianBlur3x3 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur3x3 b = mapFilter b gaussian3x1 . mapFilter b gaussian1x3
+gaussianBlur3x3 b = mapFilter b gaussianFilter3x1 . mapFilter b gaussianFilter1x3
 {-# INLINE gaussianBlur3x3 #-}
 
 -- | Apply a gaussian blur to an image. Gaussian function with radius 2.5 and @σ=2.5\/3@
@@ -674,13 +634,13 @@ gaussianBlur3x3 b = mapFilter b gaussian3x1 . mapFilter b gaussian1x3
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian5x5.jpg" $ gaussianBlur5x5 Edge frog
+-- >>> writeImage "images/doc/frog_gaussianFilter5x5.jpg" $ gaussianBlur5x5 Edge frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian5x5.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter5x5.jpg>>
 --
 -- @since 2.0.0
 gaussianBlur5x5 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur5x5 b = mapFilter b gaussian5x1 . mapFilter b gaussian1x5
+gaussianBlur5x5 b = mapFilter b gaussianFilter5x1 . mapFilter b gaussianFilter1x5
 {-# INLINE gaussianBlur5x5 #-}
 
 
@@ -690,13 +650,13 @@ gaussianBlur5x5 b = mapFilter b gaussian5x1 . mapFilter b gaussian1x5
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian7x7.jpg" $ gaussianBlur7x7 Edge frog
+-- >>> writeImage "images/doc/frog_gaussianFilter7x7.jpg" $ gaussianBlur7x7 Edge frog
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian7x7.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter7x7.jpg>>
 --
 -- @since 2.0.0
 gaussianBlur7x7 :: (Floating b, ColorModel cs b) => Border (Pixel cs b) -> Image cs b -> Image cs b
-gaussianBlur7x7 b = mapFilter b gaussian7x1 . mapFilter b gaussian1x7
+gaussianBlur7x7 b = mapFilter b gaussianFilter7x1 . mapFilter b gaussianFilter1x7
 {-# INLINE gaussianBlur7x7 #-}
 
 
@@ -716,10 +676,10 @@ gaussianBlur7x7 b = mapFilter b gaussian7x1 . mapFilter b gaussian1x7
 -- ====__Examples__
 --
 -- >>> frog <- readImageRGB "images/frog.jpg"
--- >>> writeImage "images/haddock/frog_gaussian41x41.jpg" $ gaussianBlur 20 Nothing Edge frog
--- >>> writeImage "images/haddock/frog_gaussian41x41_stdDevSmall.jpg" $ gaussianBlur 20 (Just 1.5) Edge frog
+-- >>> writeImage "images/doc/frog_gaussianFilter41x41.jpg" $ gaussianBlur 20 Nothing Edge frog
+-- >>> writeImage "images/doc/frog_gaussianFilter41x41_stdDevSmall.jpg" $ gaussianBlur 20 (Just 1.5) Edge frog
 --
--- Note that @"frog_gaussian41x41_stdDevSmall.jpg"@ image is a lot less blurred, because
+-- Note that @"frog_gaussianFilter41x41_stdDevSmall.jpg"@ image is a lot less blurred, because
 -- it has a smaller than optimal σ for the size of the kernel being used. This means that
 -- it has exactly the same performance as the more blurred one and to make it more
 -- efficient while achieving the same result is to omit standard deviation and set a
@@ -731,7 +691,7 @@ gaussianBlur7x7 b = mapFilter b gaussian7x1 . mapFilter b gaussian1x7
 --
 -- which would produce practically the same image while having a much faster runtime.
 --
--- <<images/frog.jpg>> <<images/haddock/frog_gaussian41x41.jpg>> <<images/haddock/frog_gaussian41x41_stdDevSmall.jpg>>
+-- <<images/frog.jpg>> <<images/doc/frog_gaussianFilter41x41.jpg>> <<images/doc/frog_gaussianFilter41x41_stdDevSmall.jpg>>
 --
 -- @since 2.0.0
 gaussianBlur ::
@@ -761,24 +721,19 @@ gaussianBlur r mStdDev b img
                 in A.map (/ m) k)
             side
             (gaussianFunction1D stdDev)
-        !k1xD =
-          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 1 side) kVector
-        !kDx1 =
-          A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 side 1) kVector
-     in Image .
-        A.computeAs A.S .
-        A.mapStencil b k1xD . A.computeAs A.S . A.mapStencil b kDx1 $
-        unImage img
+        k1xD = fromVectorStencil $ A.makeCorrelationStencilFromKernel kVector
+        kDx1 = transposeFilter k1xD
+     in mapFilter b k1xD . mapFilter b kDx1 $ img
 {-# INLINE gaussianBlur #-}
 
 
 -- | Laplacian filter
 --
--- >>> bat <- readImageY "images/megabat.jpg"
--- >>> writeImage "images/megabat_laplacian_nonorm.jpg" $ mapFilter Edge laplacian bat -- no normalization
--- >>> writeImage "images/megabat_laplacian.jpg" $ normalize $ mapFilter Edge laplacian bat
+-- > bat <- readImageY "images/megabat.jpg"
+-- > writeImage "images/doc/megabat_laplacian_nonorm.jpg" $ mapFilter Edge laplacian bat -- no normalization
+-- > writeImage "images/doc/megabat_laplacian.jpg" $ normalize $ mapFilter Edge laplacian bat
 --
--- <<images/megabat_y.jpg>> <<images/megabat_laplacian_nonorm.jpg>> <<images/megabat_laplacian.jpg>>
+-- <<images/megabat_y.jpg>> <<images/doc/megabat_laplacian_nonorm.jpg>> <<images/megabat_laplacian.jpg>>
 --
 -- ==== __Convolution Kernel__
 --
@@ -904,8 +859,8 @@ prewittHorizontal =
 prewittVertical :: ColorModel cs e => Filter' cs e
 prewittVertical =
   Filter $ A.makeStencil (Sz2 3 3) (1 :. 1) $ \ f ->
-          f (-1 :. -1) + f ( 0 :. -1) + f ( 1 :. -1)
-        - f (-1 :.  1) - f ( 0 :.  1) - f ( 1 :.  1)
+          f (-1 :. -1) + f (-1 :. 0) + f ( -1 :. 1)
+        - f ( 1 :. -1) - f ( 1 :. 0) - f (  1 :. 1)
 {-# INLINE prewittVertical #-}
 
 

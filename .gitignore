@@ -9,3 +9,4 @@ cabal.sandbox.config
 *.chs.h
 *.dyn_o
 *.dyn_hi
+hip/images/doc/*

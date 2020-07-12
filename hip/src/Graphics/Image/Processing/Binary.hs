@@ -279,9 +279,9 @@ struct = fromLists [[0,1,0],[1,1,0],[0,1,0]]
 
 -- | Erosion is defined as: __{E = B ⊖ S = {m,n|Sₘₙ⊆B}__
 --
--- >>> writeImageExact PNG [] "images/figure_erode.png" $ pixelGrid 10 $ fromImageBinary $ erode struct figure
+-- >>> writeImageExact PNG [] "images/doc/figure_erode.png" $ pixelGrid 10 $ fromImageBinary $ erode struct figure
 --
--- <<images/figure.png>> eroded with <<images/struct.png>> is <<images/figure_erode.png>>
+-- <<images/doc/figure.png>> eroded with <<images/doc/struct.png>> is <<images/doc/figure_erode.png>>
 --
 erode :: ColorModel cs Bit
       => Image cs Bit -- ^ Structuring element.
@@ -293,9 +293,9 @@ erode struc = invert . convolve (Fill (pure one)) struc . invert
 
 -- | Dialation is defined as: __{D = B ⊕ S = {m,n|Sₘₙ∩B≠∅}__
 --
--- >>> writeImageExact PNG [] "images/figure_dialate.png" $ pixelGrid 10 $ fromImageBinary $ dialate struct figure
+-- >>> writeImageExact PNG [] "images/doc/figure_dialate.png" $ pixelGrid 10 $ fromImageBinary $ dialate struct figure
 --
--- <<images/figure.png>> dialated with <<images/struct.png>> is <<images/figure_dialate.png>>
+-- <<images/doc/figure.png>> dialated with <<images/doc/struct.png>> is <<images/doc/figure_dialate.png>>
 --
 dialate :: ColorModel cs Bit
         => Image cs Bit -- ^ Structuring element.
@@ -307,9 +307,9 @@ dialate = convolve (Fill (pure zero))
 
 -- | Opening is defined as: __{B ○ S = (B ⊖ S) ⊕ S}__
 --
--- >>> writeImageExact PNG [] "images/figure_open.png" $ pixelGrid 10 $ fromImageBinary $ open struct figure
+-- >>> writeImageExact PNG [] "images/doc/figure_open.png" $ pixelGrid 10 $ fromImageBinary $ open struct figure
 --
--- <<images/figure.png>> opened with <<images/struct.png>> is <<images/figure_open.png>>
+-- <<images/doc/figure.png>> opened with <<images/doc/struct.png>> is <<images/doc/figure_open.png>>
 --
 open :: ColorModel cs Bit
      => Image cs Bit -- ^ Structuring element.
@@ -321,9 +321,9 @@ open struc = dialate struc . erode struc
 
 -- | Closing is defined as: __{B ● S = (B ⊕ S) ⊖ S}__
 --
--- >>> writeImageExact PNG [] "images/figure_close.png" $ pixelGrid 10 $ fromImageBinary $ close struct figure
+-- >>> writeImageExact PNG [] "images/doc/figure_close.png" $ pixelGrid 10 $ fromImageBinary $ close struct figure
 --
--- <<images/figure.png>> closed with <<images/struct.png>> is <<images/figure_close.png>>
+-- <<images/doc/figure.png>> closed with <<images/doc/struct.png>> is <<images/doc/figure_close.png>>
 --
 close :: ColorModel cs Bit
       => Image cs Bit -- ^ Structuring element.

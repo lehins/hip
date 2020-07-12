@@ -197,14 +197,14 @@ scalar = computeI . A.singleton @A.D
 -- Because all 'Pixel's and 'Image's are installed into 'Num', above is equivalent to:
 --
 -- >>> let grad_gray = makeImage (Sz2 200 200) (\(Ix2 i j) -> PixelY $ fromIntegral (i*j)) / (200*200) :: Image (Y D65) Double
--- >>> writeImageAuto "images/grad_gray.png" grad_gray
+-- >>> writeImage "images/doc/grad_gray.png" grad_gray
 --
 -- Creating color images is just as easy.
 --
 -- >>> let grad_color = makeImage (Sz2 200 200) (\(Ix2 i j) -> PixelRGB (fromIntegral i) (fromIntegral j) (fromIntegral (i + j))) / 400 :: Image SRGB Double
--- >>> writeImageAuto "images/grad_color.png" grad_color
+-- >>> writeImage "images/doc/grad_color.png" grad_color
 --
--- <<images/grad_gray.png>> <<images/grad_color.png>>
+-- <<images/doc/grad_gray.png>> <<images/doc/grad_color.png>>
 --
 --
 -- __Note__. If another image(s) is being used to make the new one with this function, it will
@@ -247,7 +247,7 @@ toArray (Image arr) = arr
 --
 -- >>> fromLists [[PixelY (fromIntegral (i*j) / 60000) | j <- [1..300]] | i <- [1..200]]
 --
--- <<images/grad_fromLists.png>>
+-- <<images/doc/grad_fromLists.png>>
 --
 fromLists :: ColorModel cs e => [[Pixel cs e]] -> Image cs e
 fromLists = Image . A.fromLists' Par

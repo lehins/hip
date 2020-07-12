@@ -4,10 +4,11 @@ packages:
 - 'hip'
 resolver: lts-16.0
 extra-deps: #for now, since we might need to add changes to upstream deps
-- github: lehins/massiv
-  commit: 57c0c5fe420dd55141b50c2cf633e76b4a245297
-  subdirs:
-    - massiv
+# - github: lehins/massiv
+#   commit: 57c0c5fe420dd55141b50c2cf633e76b4a245297
+#   subdirs:
+#     - massiv
+- ../massiv/massiv
 - github: lehins/massiv-io
   commit: 3501c8930179345a634e1ad66ea7f746ba599986
   subdirs:

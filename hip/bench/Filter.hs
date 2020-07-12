@@ -1,12 +1,16 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Main where
 
 import Criterion.Main
 import Graphics.Image as I
+import Graphics.Image.Processing.Canny as I
 import Prelude as P
 
 main :: IO ()
 main = do
-  imgRGBD <- readImageRGB "images/frog.jpg"
+  imgY <- readImageY "images/downloaded/frog-1280x824.jpg"
+  imgRGBD <- readImageRGB "images/downloaded/frog-1280x824.jpg"
   defaultMain
     [ env (return imgRGBD) $ \img ->
         bgroup
@@ -30,13 +34,24 @@ main = do
           ]
     , env (return imgRGBD) $ \img ->
         bgroup
-          "Sobel Operator"
-          [ bench "Normalized" $ whnf (mapFilter Edge sobelOperator) img
-          , bench "Not Normalized" $ whnf (mapFilter Edge sobelOperatorNormal) img
+          "Average"
+          [ bench "3x3" $ whnf (averageBlur3x3 Edge) img
+          , bench "5x5" $ whnf (averageBlur5x5 Edge) img
+          , bench "7x7" $ whnf (averageBlur7x7 Edge) img
+          , bench "9x9" $ whnf (averageBlur 4 Edge) img
+          , bench "11x11" $ whnf (averageBlur 5 Edge) img
           ]
-    -- , env (return $ I.map toPixelY imgRGBD) $ \img ->
+    , env (return imgRGBD) $ \img ->
+        bgroup
+          "Sobel Operator"
+          [ bench "Not Normalized" $ whnf (mapFilter Edge sobelOperator) img
+          , bench "Normalized" $ whnf (mapFilter Edge sobelOperatorNormal) img
+          ]
+    -- , env (return imgY) $ \img ->
     --     bgroup
     --       "Sobel Operator Y"
     --       [ bench "No Normalization" $ whnf (applyFilter Edge sobelOperator) img
     --       ]
+    , env (return imgY) $ \img ->
+        bench "Canny" $ whnf (canny 0.2 0.4) img
     ]

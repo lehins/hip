@@ -4,7 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Graphics.Image.Processing.Convolution
--- Copyright   : (c) Alexey Kuleshevich 2017
+-- Copyright   : (c) Alexey Kuleshevich 2017-2020
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
