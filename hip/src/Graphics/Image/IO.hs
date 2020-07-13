@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -99,7 +100,7 @@ displayImage ::
      )
   => Image cs e
   -> m ()
-displayImage img = A.displayImage (unImage (toDefSpace img))
+displayImage !img = A.displayImage (unImage (toDefSpace img))
 {-# NOINLINE displayImage #-}
 
 -- | Mapping of basic color models to the default color spaces
@@ -129,7 +130,7 @@ displayImageUsing ::
   -> Bool
   -> Image cs e
   -> m ()
-displayImageUsing ev block img = A.displayImageUsing ev block (unImage (toDefSpace img))
+displayImageUsing ev block !img = A.displayImageUsing ev block (unImage (toDefSpace img))
 {-# NOINLINE displayImageUsing #-}
 
 

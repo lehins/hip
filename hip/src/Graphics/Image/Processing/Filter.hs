@@ -27,8 +27,12 @@ module Graphics.Image.Processing.Filter
   , makeFilter
   , transposeFilter
   -- ** Conversion
-  , fromStencil
-  , toStencil
+
+  -- Alternative names:
+  , toStencil   -- fromFilter
+  , fromStencil -- toFilter
+  , rowVectorFilter -- toHorizontalFilter
+  , columnVectorFilter -- toVerticalFilter
   -- ** Profunctor
   , lmapFilter
   , rmapFilter
@@ -80,6 +84,7 @@ module Graphics.Image.Processing.Filter
   , gaussianFunction2D
   ) where
 
+import Data.Coerce
 import Control.Applicative
 import Control.DeepSeq
 import qualified Data.Massiv.Array as A
@@ -194,9 +199,9 @@ toStencil = filterStencil
 -- to `lmapFilter` will be applied to each element of the image before applying the stencil to it.
 --
 -- /Note/ - This function must be used with care, since filters will usually use each pixel from
--- the source image many times, the supplied function will also get called that many time for each
--- pixel. For that reason, most of the time, it will make more sense to apply the function
--- directly to the source image prior to applying the filter to it.
+-- the source image many times, the supplied function will also get called that many times for each
+-- pixel. For that reason, most often than not, it will make more sense to apply the function
+-- directly to the source image with `I.map` prior to applying the filter to the image.
 lmapFilter :: Functor (Color cs) => (a' -> a) -> Filter cs a b -> Filter cs a' b
 lmapFilter f (Filter s) = Filter (A.lmapStencil (fmap f) s)
 {-# INLINE lmapFilter #-}
@@ -213,21 +218,70 @@ dimapFilter :: Functor (Color cs) => (a' -> a) -> (b -> b') -> Filter cs a b -> 
 dimapFilter f g (Filter s) = Filter (A.dimapStencil (fmap f) (fmap g) s)
 {-# INLINE dimapFilter #-}
 
+-- | Convert a vector stencil into a horizontal filter
+--
+-- @since 0.2.0
+rowVectorFilter :: ColorModel cs a => A.Stencil Ix1 (Pixel cs a) (Pixel cs b) -> Filter cs a b
+rowVectorFilter =
+  Filter .
+  A.unsafeTransformStencil
+    (coerce . (1 :.) . coerce)
+    (0 :.)
+    stencilFunc
+  where
+    stencilFunc f getVal (i :. j) = f (getVal . (i :.)) j
+    {-# INLINE stencilFunc #-}
+{-# INLINE rowVectorFilter #-}
 
-fromVectorStencil :: A.Stencil Ix1 (Pixel cs a) (Pixel cs b) -> Filter cs a b
-fromVectorStencil stencil =
-  Filter $
-  A.transformStencil (\(A.SafeSz n) -> A.SafeSz (1 :. n)) (0 :.) tailDim stencil
 
+-- | Convert a vector stencil into a vertical filter
+--
+-- @since 0.2.0
+columnVectorFilter :: A.Stencil Ix1 (Pixel cs a) (Pixel cs b) -> Filter cs a b
+columnVectorFilter =
+  Filter .
+  A.unsafeTransformStencil
+    (coerce . (:. 1) . coerce)
+    (:. 0)
+    stencilFunc
+  where
+    stencilFunc f getVal (i :. j) = f (getVal . (:. j)) i
+    {-# INLINE stencilFunc #-}
+{-# INLINE columnVectorFilter #-}
 
+-- | Transpose a filter. All row indices are replaced with column indices and vice versa.
+--
+-- @since 0.2.0
 transposeFilter :: Filter cs a b -> Filter cs a b
 transposeFilter (Filter stencil) =
-  Filter
-    (A.transformStencil (\(A.SafeSz sz) -> A.SafeSz (trans sz)) trans trans stencil)
+  Filter $
+  A.unsafeTransformStencil
+    (coerce . t . coerce)
+    t
+    stencilFunc
+    stencil
   where
-    trans (i :. j) = j :. i
-    {-# INLINE trans #-}
+    t (i :. j) = j :. i
+    {-# INLINE t #-}
+    stencilFunc f getVal = f (getVal . t) . t
+    {-# INLINE stencilFunc #-}
 {-# INLINE transposeFilter #-}
+
+
+foldlVectorSymmetricStencil :: (a -> e -> a) -> a -> Int -> A.Stencil Ix1 e a
+foldlVectorSymmetricStencil f acc0 r =
+  A.makeUnsafeStencil (A.Sz1 d) r $ \_ get ->
+    A.loop (-r) (<= r) (+1) acc0 $ \i -> (`f` get i)
+  where
+    !d = 2 * r + 1
+{-# INLINE foldlVectorSymmetricStencil #-}
+
+
+
+sumSymmetricStencil :: Num e => Int -> A.Stencil Ix1 e e
+sumSymmetricStencil = foldlVectorSymmetricStencil (+) 0
+{-# INLINE sumSymmetricStencil #-}
+
 
 -------------
 -- Filters --
@@ -428,6 +482,7 @@ averageFilter5x1 :: (Fractional e, ColorModel cs e) => Filter cs e e
 averageFilter5x1 = transposeFilter averageFilter1x5
 {-# INLINE averageFilter5x1 #-}
 
+
 -- | Average vertical filter of height 7.
 --
 -- @since 2.0.0
@@ -494,9 +549,12 @@ averageBlur r b img
   | r == 3 = averageBlur7x7 b img
   | otherwise =
     let !side = r * 2 + 1
-        !kVector = A.computeAs A.S $ A.replicate Seq (Sz1 side) 1
-        !k1xD = fromVectorStencil $ A.makeCorrelationStencilFromKernel kVector
-        !kDx1 = transposeFilter k1xD
+        !kd = fromIntegral side
+        -- TODO: Add tests that checks equivalence with this slower approach
+        -- !kVector = A.computeAs A.S $ A.replicate Seq (Sz1 side) 1
+        -- !k1xD = Filter (A.makeCorrelationStencilFromKernel (A.resize' (Sz2 1 side) kVector) / kd)
+        !k1xD = rowVectorFilter (sumSymmetricStencil r / kd)
+        !kDx1 = columnVectorFilter (sumSymmetricStencil r / kd)
      in mapFilter b k1xD . mapFilter b kDx1 $ img
 {-# INLINE averageBlur #-}
 
@@ -721,7 +779,8 @@ gaussianBlur r mStdDev b img
                 in A.map (/ m) k)
             side
             (gaussianFunction1D stdDev)
-        k1xD = fromVectorStencil $ A.makeCorrelationStencilFromKernel kVector
+        --k1xD = Filter $ A.makeCorrelationStencilFromKernel $ A.resize' (Sz2 1 side) kVector
+        k1xD = rowVectorFilter $ A.makeCorrelationStencilFromKernel kVector
         kDx1 = transposeFilter k1xD
      in mapFilter b k1xD . mapFilter b kDx1 $ img
 {-# INLINE gaussianBlur #-}
