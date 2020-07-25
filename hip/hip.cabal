@@ -45,12 +45,12 @@ library
                   , MultiParamTypeClasses
   exposed-modules:  Graphics.Image
                   , Graphics.Image.IO
-  --                , Graphics.Image.IO.Histogram
                   , Graphics.Image.Processing
                   , Graphics.Image.Processing.Binary
                   , Graphics.Image.Processing.Canny
                   , Graphics.Image.Processing.Complex
                   , Graphics.Image.Processing.Filter
+                  , Graphics.Image.Processing.Histogram
   other-modules:   Graphics.Image.Internal
                  , Graphics.Image.Processing.Convolution
                  , Graphics.Image.Processing.Complex.Fourier
