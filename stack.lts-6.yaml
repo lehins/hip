@@ -1,9 +1,0 @@
-flags: {}
-extra-package-dbs: []
-packages:
-- '.'
-extra-deps:
-- attoparsec-binary-0.2
-- netpbm-1.0.2
-- storable-record-0.0.3.1
-resolver: lts-6.30

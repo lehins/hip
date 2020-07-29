@@ -9,7 +9,7 @@ author:              Alexey Kuleshevich
 maintainer:          alexey@kuleshevi.ch
 copyright:           2020 Alexey Kuleshevich
 category:            Algorithms
-build-type:          Custom
+build-type:          Simple
 extra-source-files:  README.md
                    , CHANGELOG.md
 cabal-version:       1.18
@@ -21,42 +21,25 @@ tested-with:         GHC == 8.4.3
                    , GHC == 8.8.1
                    , GHC == 8.8.2
                    , GHC == 8.10.1
-custom-setup
-  setup-depends:
-      base
-    , Cabal
-    , cabal-doctest >=1.0.6
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
+  exposed-modules:     Graphics.Image.Chart
 
   other-modules:
-  build-depends:       base >= 4.8 && < 5
+  build-depends:       Chart
+                     , Chart-diagrams
+                     , base >= 4.8 && < 5
+                     , colour
                      , hip
+                     , massiv
+                     , Color
 
   default-language:    Haskell2010
   ghc-options:         -Wall
                        -Wincomplete-record-updates
                        -Wincomplete-uni-patterns
                        -Wredundant-constraints
-
-
-test-suite doctests
-  type:             exitcode-stdio-1.0
-  hs-source-dirs:   tests
-  main-is:          doctests.hs
-  build-depends: base
-               , doctest >=0.15
-               , hip-chart
-               , template-haskell
-  default-language:    Haskell2010
-  ghc-options:        -Wall
-                      -Wincomplete-record-updates
-                      -Wincomplete-uni-patterns
-                      -Wredundant-constraints
-                      -fno-warn-orphans
-                      -threaded
 
 
 source-repository head

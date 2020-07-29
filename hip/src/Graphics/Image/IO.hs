@@ -79,10 +79,11 @@ module Graphics.Image.IO
   -- $animation
   ) where
 
+import Data.Typeable
 import Prelude hiding (map)
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.IO as A
-import Graphics.Image.Internal
+import Graphics.Image.Internal as I
 import qualified Graphics.Pixel as CM
 import Graphics.Pixel.ColorSpace
 import Unsafe.Coerce
@@ -105,14 +106,13 @@ displayImage !img = A.displayImage (unImage (toDefSpace img))
 
 -- | Mapping of basic color models to the default color spaces
 type family DefSpace cs where
-  DefSpace Y' = Y'
   DefSpace CM.Y = Y D65
   DefSpace CM.RGB = SRGB 'Linear
   DefSpace CM.HSI = HSI (SRGB 'NonLinear)
   DefSpace CM.HSV = HSV (SRGB 'NonLinear)
   DefSpace CM.HSL = HSL (SRGB 'NonLinear)
   DefSpace CM.CMYK = CMYK (SRGB 'Linear)
-  DefSpace CM.YCbCr = YCbCr (SRGB 'NonLinear)
+  DefSpace CM.YCbCr = Y'CbCr SRGB
   DefSpace cs = cs
 
 -- | Cast an image to a default color space
@@ -148,7 +148,7 @@ readImageExact ::
      (ColorModel cs e, MonadIO m)
   => FilePath -- ^ File path for an image
   -> m (Image cs e)
-readImageExact path = Image <$> A.readImage path
+readImageExact = fmap Image . A.readImage
 {-# NOINLINE readImageExact #-}
 
 
@@ -159,65 +159,50 @@ readImage ::
      (ColorSpace cs i e, MonadIO m)
   => FilePath -- ^ File path for an image
   -> m (Image cs e)
-readImage path = Image <$> A.readImageAuto path
+readImage = fmap Image . A.readImageAuto
 {-# INLINE readImage #-}
 
 
+-- | Read an image file and convert it to non-linear grayscale, i.e. Luma
+readImageY' :: MonadIO m => FilePath -> m (Image (Y' SRGB) Double)
+readImageY' = fmap Image . A.readImageAuto
+  -- -- TODO: Optimize for YCbCr: (better in massiv-io)
+  -- -- try decodeM as YCbCr, on decode error fallback to SRGB
+  -- pure $ computeI $ A.map rgbPixelLuma  arr
+{-# INLINE readImageY' #-}
+
 -- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
-readImageY :: MonadIO m => FilePath -> m (Image CM.Y Double)
-readImageY fp = do
-  arr :: A.Image A.S (Y D65) Double <- A.readImageAuto fp
-  pure $ Image $ A.toImageBaseModel arr
+readImageY :: MonadIO m => FilePath -> m (Image (Y D65) Double)
+readImageY = fmap Image . A.readImageAuto
 {-# INLINE readImageY #-}
 
 
 -- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
-readImageY' :: MonadIO m => FilePath -> m (Image Y' Double)
-readImageY' fp = do
-  arr :: A.Image A.S (SRGB 'NonLinear) Double <- A.readImageAuto fp
-  -- TODO: Optimize for YCbCr:
-  -- readFile
-  -- try decodeM as YCbCr, on decode error fallback to SRGB
-  pure $ computeI $ A.map rgbPixelLuma  arr
-{-# INLINE readImageY' #-}
-
-
--- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
-readImageY8 :: MonadIO m => FilePath -> m (Image CM.Y Word8)
-readImageY8 fp = do
-  arr :: A.Image A.S (Y D65) Word8 <- A.readImageAuto fp
-  pure $ Image $ A.toImageBaseModel arr
+readImageY8 :: MonadIO m => FilePath -> m (Image (Y D65) Word8)
+readImageY8 = fmap Image . A.readImageAuto
 {-# INLINE readImageY8 #-}
 
 
 -- | Read an image file and convert it to linear luminance with 'Alpha' channel.
-readImageYA :: MonadIO m => FilePath -> m (Image (Alpha CM.Y) Double)
-readImageYA fp = do
-  arr :: A.Image A.S (Alpha (Y D65)) Double <- A.readImageAuto fp
-  pure $ Image $ A.toImageBaseModel arr
+readImageYA :: MonadIO m => FilePath -> m (Image (Alpha (Y D65)) Double)
+readImageYA = fmap Image . A.readImageAuto
 {-# INLINE readImageYA #-}
 
 
--- | Read an image and convert it into linear sRGB colorspace.
-readImageRGB :: MonadIO m => FilePath -> m (Image CM.RGB Double)
-readImageRGB fp = do
-  arr :: A.Image A.S (SRGB 'Linear) Double <- A.readImageAuto fp
-  pure $ Image $ A.toImageBaseModel arr
+-- | Read an image and convert it into linear sRGB colorspace with Double precision
+readImageRGB :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Double)
+readImageRGB = fmap Image . A.readImageAuto
 {-# INLINE readImageRGB #-}
 
--- | Read image in sRGB colorspace.
-readImageRGB8 :: MonadIO m => FilePath -> m (Image CM.RGB Word8)
-readImageRGB8 fp = do
-  arr :: A.Image A.S (SRGB 'Linear) Word8 <- A.readImageAuto fp
-  pure $ Image $ A.toImageBaseModel arr
+-- | Read an image and convert it into linear sRGB colorspace with 8bit precision
+readImageRGB8 :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Word8)
+readImageRGB8 = fmap Image . A.readImageAuto
 {-# INLINE readImageRGB8 #-}
 
 
 -- | Read image in sRGB colorspace with 'Alpha' channel.
-readImageRGBA :: MonadIO m => FilePath -> m (Image (Alpha CM.RGB) Double)
-readImageRGBA fp = do
-  arr :: A.Image A.S (Alpha (SRGB 'Linear)) Double <- A.readImageAuto fp
-  pure $ Image $ A.toImageBaseModel arr
+readImageRGBA :: MonadIO m => FilePath -> m (Image (Alpha (SRGB 'Linear)) Double)
+readImageRGBA = fmap Image . A.readImageAuto
 {-# INLINE readImageRGBA #-}
 
 
@@ -248,4 +233,3 @@ writeImage ::
   -> m ()
 writeImage path img = A.writeImageAuto path (unImage (toDefSpace img))
 {-# INLINE writeImage #-}
-

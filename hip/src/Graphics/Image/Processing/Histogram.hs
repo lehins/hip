@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -12,7 +13,13 @@
 -- Stability   : experimental
 -- Portability : non-portable
 --
-module Graphics.Image.Processing.Historgram (histogram, cdf, equalize) where
+module Graphics.Image.Processing.Histogram
+  ( Histogram(..)
+  , Histograms(..)
+  , histogram
+  , cdf
+  , equalize
+  ) where
 
 import Data.Coerce
 import qualified Data.Massiv.Array as A
@@ -20,7 +27,22 @@ import qualified Data.Massiv.Array.Unsafe as A
 import Graphics.Image.Internal as I
 import Graphics.Image.IO
 import Graphics.Pixel as C
+import Graphics.Color.Space (Linearity(..))
+import Graphics.Color.Model as CM
+import Data.List.NonEmpty as NE
 
+data Histogram = Histogram
+  { histogramBins :: A.Vector S Int
+    -- ^ Vector containing counts of pixels with the same value. Index of a vector serves
+    -- as the original pixel value. Length of the vector is the number of bins that was
+    -- used to compute the histogram
+  , histogramName :: String
+    -- ^ Name of the channel
+  , histogramColor :: Color (Alpha CM.RGB) Double
+    -- ^ Color of a plotted line. Assumed to be in sRGB color space with Alpha channel.
+  }
+
+newtype Histograms = Histograms (NonEmpty Histogram)
 
 withNumBuckets ::
      forall e a. Elevator e
@@ -45,11 +67,17 @@ histogram ::
   => Maybe Word16
      -- ^ Number of buckets, can't be 0. Default is 255
   -> Image Y e
-  -> A.Vector A.P Int
-histogram mBuckets img = withNumBuckets mBuckets img histogramUnsafe
+  -> Histogram
+histogram mBuckets img =
+  Histogram
+    { histogramBins = withNumBuckets mBuckets img histogramUnsafe
+    , histogramName = "Luma" -- TODO get it from the actual color space
+    , histogramColor = Alpha 0.5 1
+    }
 
 
-histogramUnsafe :: Source r ix Int => Word16 -> Array r ix Int -> A.Vector A.P Int
+
+histogramUnsafe :: Source r ix Int => Word16 -> Array r ix Int -> A.Vector S Int
 histogramUnsafe numBuckets m =
   A.createArrayST_ (fromIntegral numBuckets) $ \mvec ->
     A.forM_ m $ A.unsafeLinearModify mvec (pure . (+ 1))
@@ -57,12 +85,12 @@ histogramUnsafe numBuckets m =
 -- | Compute [cumulative distribution function
 -- (CDF)](https://en.wikipedia.org/wiki/Cumulative_distribution_function) of a the image
 -- histogram
-cdf :: (Elevator e, A.Prim a, Fractional a) => Maybe Word16 -> Image Y e -> A.Vector A.P a
+cdf :: (Elevator e, Elevator a, Fractional a) => Maybe Word16 -> Image Y e -> A.Vector S a
 cdf mBuckets img = withNumBuckets mBuckets img cdfUnsafe
 
 
 cdfUnsafe ::
-     (A.Prim e, Fractional e, Source r ix Int) => Word16 -> Array r ix Int -> A.Vector A.P e
+     (Elevator e, Fractional e, Source r ix Int) => Word16 -> Array r ix Int -> A.Vector S e
 cdfUnsafe numBuckets m = A.compute $ A.iunfoldrS_ (A.size h) collect 0
   where
     h = histogramUnsafe numBuckets m
@@ -72,9 +100,9 @@ cdfUnsafe numBuckets m = A.compute $ A.iunfoldrS_ (A.size h) collect 0
        in (acc' * p, acc')
 
 -- | Apply [histogram equalization](https://en.wikipedia.org/wiki/Histogram_equalization) to an image
-equalize :: Elevator e => Maybe Word16 -> Image Y e -> Image Y Double
+equalize :: (Elevator a, Elevator e, Fractional e) => Maybe Word16 -> Image Y a -> Image Y e
 equalize mBuckets img =
   withNumBuckets mBuckets img $ \ numBuckets arr ->
     let arr' = A.computeAs A.S arr
         cdf' = cdfUnsafe numBuckets arr'
-    in computeI $ A.map (\i -> PixelY (cdf' A.! i)) arr'
+    in computeI $ A.map (\i -> PixelY (cdf' `A.unsafeIndex` i)) arr'

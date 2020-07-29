@@ -1,8 +1,11 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.Internal
 -- Copyright   : (c) Alexey Kuleshevich 2016-2020
@@ -55,11 +58,13 @@ module Graphics.Image.Internal
 
 import Control.DeepSeq
 import qualified Data.Massiv.Array as A
+import qualified Data.Massiv.Array.IO as A
 import Data.Massiv.Core as AC
 import Data.Semigroup
 import Data.Typeable
 import GHC.Exts (IsList(..))
-import Graphics.Pixel
+import qualified Graphics.Pixel as CM
+import Graphics.Pixel.ColorSpace
 import Prelude as P hiding (map, traverse, zipWith, zipWith3)
 
 -- | Main data type of the library
@@ -501,3 +506,84 @@ transmuteArray2 fSz f arr1 arr2 =
     (fSz (A.size arr1) (A.size arr2))
     (f (A.evaluate' arr1) (A.evaluate' arr2))
 {-# INLINE transmuteArray2 #-}
+
+
+
+-- | Any color space or color model that has a separate non-chromatic channel for
+-- brightness allows us applying a function just to that channel with th e help of
+-- this class.
+class ColorModel cs e => GrayScale cs e where
+  applyGrayScale :: (Image CM.Y e -> Image CM.Y e) -> Image cs e -> Image cs e
+
+
+instance Elevator e => GrayScale CM.Y e where
+  applyGrayScale = ($)
+
+instance Elevator e => GrayScale CM.YCbCr e where
+  applyGrayScale f img =
+    zipWith recombine img (f (map (\(CM.PixelYCbCr y' _ _) -> CM.PixelY y') img))
+    where recombine (CM.PixelYCbCr _ cb cr) (CM.PixelY y') = CM.PixelYCbCr y' cb cr
+
+
+instance Elevator e => GrayScale CM.HSI e where
+  applyGrayScale f img =
+    zipWith recombine img (f (map (\(CM.PixelHSI _ _ i) -> CM.PixelY i) img))
+    where
+      recombine (CM.PixelHSI h s _) (CM.PixelY i) = CM.PixelHSI h s i
+
+
+instance Elevator e => GrayScale CM.HSL e where
+  applyGrayScale f img =
+    zipWith recombine img (f (map (\(CM.PixelHSL _ _ l) -> CM.PixelY l) img))
+    where recombine (CM.PixelHSL h s _) (CM.PixelY l) = CM.PixelHSL h s l
+
+
+instance Elevator e => GrayScale CM.HSV e where
+  applyGrayScale f img =
+    zipWith recombine img (f (map (\(CM.PixelHSV _ _ v) -> CM.PixelY v) img))
+    where recombine (CM.PixelHSV h s _) (CM.PixelY v) = CM.PixelHSV h s v
+
+
+instance (Illuminant i, Elevator e) => GrayScale (Y i) e where
+  applyGrayScale f (Image arr) =
+    Image (A.fromImageBaseModel (unImage (f (Image (A.toImageBaseModel arr)))))
+
+
+instance (Typeable cs, Elevator e) => GrayScale (Y' cs) e where
+  applyGrayScale f (Image arr) =
+    Image (A.fromImageBaseModel (unImage (f (Image (A.toImageBaseModel arr)))))
+
+
+instance (Typeable cs, ColorSpace (cs 'NonLinear) i e) => GrayScale (Y'CbCr cs) e where
+  applyGrayScale f img =
+    zipWith recombine img (f (map (\(PixelY'CbCr y' _ _) -> CM.PixelY y') img))
+    where
+      recombine (PixelY'CbCr _ cb cr) (CM.PixelY y') = PixelY'CbCr y' cb cr
+
+
+instance ColorModel cs e => GrayScale (HSI cs) e where
+  applyGrayScale f img = zipWith recombine img (f (map (\(PixelHSI _ _ i) -> CM.PixelY i) img))
+    where
+      recombine (PixelHSI h s _) (CM.PixelY i) = PixelHSI h s i
+
+
+instance ColorModel cs e => GrayScale (HSL cs) e where
+  applyGrayScale f img = zipWith recombine img (f (map (\(PixelHSL _ _ l) -> CM.PixelY l) img))
+    where
+      recombine (PixelHSL h s _) (CM.PixelY l) = PixelHSL h s l
+
+
+instance ColorModel cs e => GrayScale (HSV cs) e where
+  applyGrayScale f img = zipWith recombine img (f (map (\(PixelHSV _ _ v) -> CM.PixelY v) img))
+    where
+      recombine (PixelHSV h s _) (CM.PixelY v) = PixelHSV h s v
+
+instance (Illuminant i, Elevator e) => GrayScale (LAB i) e where
+  applyGrayScale f img = zipWith recombine img (f (map (\(PixelLAB l _ _) -> CM.PixelY l) img))
+    where
+      recombine (PixelLAB _ a b) (CM.PixelY l) = PixelLAB l a b
+
+instance (Illuminant i, Elevator e) => GrayScale (XYZ i) e where
+  applyGrayScale f img = zipWith recombine img (f (map (\(PixelXYZ _ y _) -> CM.PixelY y) img))
+    where
+      recombine (PixelXYZ x _ z) (CM.PixelY y) = PixelXYZ x y z

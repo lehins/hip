@@ -50,4 +50,3 @@ pixelGrid :: ColorModel cs e =>
           -> Image cs e
 pixelGrid f (Image arr) = computeI (A.zoomWithGrid (pure (fromDouble 0.5)) (Stride (f :. f)) arr)
 {-# INLINE pixelGrid #-}
-
