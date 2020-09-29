@@ -3,11 +3,13 @@
 
 module Main where
 
-import Codec.Picture.Extra
+import qualified Codec.Picture as JP
+import Codec.Picture.Extra as JP
 import Criterion.Main
 import qualified Data.Massiv.Array.IO as M
 import Graphics.Image as I
 import Prelude as P
+import qualified Data.Massiv.Array.IO as A
 
 main :: IO ()
 main = do
@@ -15,14 +17,18 @@ main = do
       down4x4 = Sz (1650 :. 1050)
       down = Sz (75 :. 240)
       up = Sz (125 :. 400)
+      addJP :: Image (SRGB 'Linear) Double -> (Image (SRGB 'Linear) Float, JP.Image JP.PixelRGB8)
+      addJP img = (I.map (fmap toFloat) img, M.toJPImageRGB8 $ A.toImageBaseModel a)
+        where
+          Image a = I.map (fmap toWord8) img
   defaultMain
-    [ env (readImageRGB8 "images/frog.jpg") $ \img ->
+    [ env (addJP <$> readImageRGB "images/frog.jpg") $ \img ->
         bgroup
           "Resize"
           [ benchBilinearResize down img
           , benchBilinearResize up img
-          , benchBicubicResize down img
-          , benchBicubicResize up img
+          , benchBicubicResize down (fst img)
+          , benchBicubicResize up (fst img)
           ]
     , env (readImageRGB "images/downloaded/frog-1280x824.jpg") $ \img ->
         bgroup
@@ -37,15 +43,9 @@ main = do
         bgroup
           "Shrink4x4"
           [ bench "resize" $
-            nf
-              (resize Bilinear (Fill 0) down4x4 .
-               resize Bilinear (Fill 0) down2x2)
-              img
+            nf (resize Bilinear (Fill 0) down4x4 . resize Bilinear (Fill 0) down2x2) img
           , bench "resizeDW" $
-            nf
-              (resizeDW Bilinear (Fill 0) down4x4 .
-               resizeDW Bilinear (Fill 0) down2x2)
-              img
+            nf (resizeDW Bilinear (Fill 0) down4x4 . resizeDW Bilinear (Fill 0) down2x2) img
           , bench "shrink2x2 . shrink2x2" $ nf (shrink2x2 . shrink2x2) img
           , bench "shrink4x1 . shrink1x4" $ nf (shrink4x1 . shrink1x4) img
           , bench "shrinkVertical . shrinkHorizontal" $
@@ -55,21 +55,16 @@ main = do
 
 
 
-benchBilinearResize :: Sz2 -> Image RGB Word8 -> Benchmark
-benchBilinearResize sz@(Sz2 m n) ~img@(Image a) =
+benchBilinearResize :: Sz2 -> (Image (SRGB 'Linear) Float, JP.Image JP.PixelRGB8) -> Benchmark
+benchBilinearResize sz@(Sz2 m n) ~(i, jp) =
   bgroup
     ("Bilinear " ++ show sz)
     [ bench "HIP" $ nf (resize Bilinear (Fill 0) sz) i
     , bench "JuicyPixels-extra" $ nf (scaleBilinear n m) jp
     ]
-  where
-    i = I.map (fmap toFloat) img
-    jp = M.toJPImageRGB8 a
 
-benchBicubicResize :: Sz2 -> Image RGB Word8 -> Benchmark
+benchBicubicResize :: Sz2 -> Image (SRGB 'Linear) Float -> Benchmark
 benchBicubicResize sz img =
   bgroup
     ("Bicubic " ++ show sz)
-    [bench "HIP" $ nf (resize (Bicubic 0.5) (Fill 0) sz) i]
-  where
-    i = I.map (fmap toFloat) img
+    [bench "HIP" $ nf (resize (Bicubic 0.5) (Fill 0) sz) img]

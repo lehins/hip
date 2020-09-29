@@ -92,7 +92,6 @@ import qualified Data.Massiv.Array.Unsafe as A
 import qualified Data.Massiv.Array.Numeric.Integral as A
 import Data.Maybe
 import Graphics.Image.Internal
-import Graphics.Pixel
 import Prelude as P
 
 -- $setup
@@ -221,7 +220,7 @@ dimapFilter f g (Filter s) = Filter (A.dimapStencil (fmap f) (fmap g) s)
 -- | Convert a vector stencil into a horizontal filter
 --
 -- @since 0.2.0
-rowVectorFilter :: ColorModel cs a => A.Stencil Ix1 (Pixel cs a) (Pixel cs b) -> Filter cs a b
+rowVectorFilter :: A.Stencil Ix1 (Pixel cs a) (Pixel cs b) -> Filter cs a b
 rowVectorFilter =
   Filter .
   A.unsafeTransformStencil

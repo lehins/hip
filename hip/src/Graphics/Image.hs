@@ -108,7 +108,7 @@ module Graphics.Image
   --, transpose
   , module I
   , module IP
-  , module Graphics.Pixel
+  --, module Graphics.Pixel
   -- (|*|),
   -- * Reduction
   , fold

@@ -110,6 +110,7 @@ benchmark resize
                      , deepseq
                      , hip
                      , massiv-io
+                     , JuicyPixels
                      , JuicyPixels-extra
   default-language:    Haskell2010
 

@@ -26,7 +26,7 @@ import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Unsafe as A
 import Graphics.Image.Internal as I
 import Graphics.Image.IO
-import Graphics.Pixel as C
+import Graphics.Pixel as CM
 import Graphics.Color.Space (Linearity(..))
 import Graphics.Color.Model as CM
 import Data.List.NonEmpty as NE
@@ -47,7 +47,7 @@ newtype Histograms = Histograms (NonEmpty Histogram)
 withNumBuckets ::
      forall e a. Elevator e
   => Maybe Word16
-  -> Image Y e
+  -> Image CM.Y e
   -> (Word16 -> A.Matrix A.D Int -> a)
   -> a
 withNumBuckets mBuckets img f =
@@ -66,7 +66,7 @@ histogram ::
      Elevator e
   => Maybe Word16
      -- ^ Number of buckets, can't be 0. Default is 255
-  -> Image Y e
+  -> Image CM.Y e
   -> Histogram
 histogram mBuckets img =
   Histogram
@@ -85,7 +85,7 @@ histogramUnsafe numBuckets m =
 -- | Compute [cumulative distribution function
 -- (CDF)](https://en.wikipedia.org/wiki/Cumulative_distribution_function) of a the image
 -- histogram
-cdf :: (Elevator e, Elevator a, Fractional a) => Maybe Word16 -> Image Y e -> A.Vector S a
+cdf :: (Elevator e, Elevator a, Fractional a) => Maybe Word16 -> Image CM.Y e -> A.Vector S a
 cdf mBuckets img = withNumBuckets mBuckets img cdfUnsafe
 
 
@@ -100,9 +100,9 @@ cdfUnsafe numBuckets m = A.compute $ A.iunfoldrS_ (A.size h) collect 0
        in (acc' * p, acc')
 
 -- | Apply [histogram equalization](https://en.wikipedia.org/wiki/Histogram_equalization) to an image
-equalize :: (Elevator a, Elevator e, Fractional e) => Maybe Word16 -> Image Y a -> Image Y e
+equalize :: (Elevator a, Elevator e, Fractional e) => Maybe Word16 -> Image CM.Y a -> Image CM.Y e
 equalize mBuckets img =
   withNumBuckets mBuckets img $ \ numBuckets arr ->
     let arr' = A.computeAs A.S arr
         cdf' = cdfUnsafe numBuckets arr'
-    in computeI $ A.map (\i -> PixelY (cdf' `A.unsafeIndex` i)) arr'
+    in computeI $ A.map (\i -> CM.PixelY (cdf' `A.unsafeIndex` i)) arr'
