@@ -20,7 +20,7 @@ module Graphics.Image.Processing.Canny
 import Control.Applicative
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.Unsafe as A
-import Graphics.Image.Internal
+import Graphics.Image.Internal as I
 import Graphics.Image.Processing.Binary
 import Graphics.Image.Processing.Filter
 import qualified Graphics.Pixel as CM
@@ -42,20 +42,20 @@ import System.IO.Unsafe
 --
 -- @since 2.0.0
 cannyGeneral ::
-     (GrayScale cs, ColorModel cs e, RealFloat e)
-  => (Border (Pixel CM.Y e) -> Image CM.Y e -> Image CM.Y e)
+     (ColorSpace cs i e, RealFloat e)
+  => (Border (Pixel X e) -> Image X e -> Image X e)
   -- ^ Blurring function. Usually a `gaussianBlur`
-  -> Filter' CM.Y e
+  -> Filter' X e
   -- ^ Horizontal gradient. Usually `sobelHorizontal`.
-  -> Filter' CM.Y e
+  -> Filter' X e
   -- ^ Vertical gradient. Usually `sobelVertical`.
   -> e -- ^ Low threshold in range @[0, 1]@
   -> e -- ^ High threshold in range @[0, 1]@
   -> Image cs e
   -- ^ Source grayscale image
-  -> Image CM.Y Bit
+  -> Image X Bit
 cannyGeneral blur horizontalGrad verticalGrad threshLow threshHigh imgColor =
-  let img = toGrayScale imgColor
+  let img = I.map grayscalePixel imgColor
       blurred = blur Edge img
       magnitudeOrientation =
         gradientMagnitudeOrientation threshLow horizontalGrad verticalGrad blurred
@@ -79,8 +79,8 @@ canny ::
      (Elevator e, RealFloat e)
   => e -- ^ Low threshold in range @[0, 1]@
   -> e -- ^ High threshold in range @[0, 1]@
-  -> Image CM.Y e
-  -> Image CM.Y Bit
+  -> Image X e
+  -> Image X Bit
 canny threshLow threshHigh img =
   let magnitudeOrientation =
         gradientMagnitudeOrientation threshLow sobelHorizontal sobelVertical $
@@ -100,7 +100,7 @@ orientationVertical         = 2
 orientationNegativeDiagonal = 3
 orientationHorizontal       = 4
 
-edgeNone, edgeWeak, edgeStrong :: Pixel CM.Y Word8
+edgeNone, edgeWeak, edgeStrong :: Pixel X Word8
 edgeNone   = 0
 edgeWeak   = 128
 edgeStrong = 255
@@ -109,18 +109,18 @@ edgeStrong = 255
 gradientMagnitudeOrientation ::
      (Elevator e, RealFloat e)
   => e
-  -> Filter' CM.Y e
+  -> Filter' X e
   -- ^ Horizontal gradient
-  -> Filter' CM.Y e
+  -> Filter' X e
   -- ^ Vertical gradient
-  -> Image CM.Y e
+  -> Image X e
   -> A.Array A.U Ix2 (e, Word8)
 gradientMagnitudeOrientation !threshLow horGrad vertGrad !(Image arr) =
   A.compute $
   A.mapStencil
     Edge
     (liftA2
-       (\(CM.PixelY x) (CM.PixelY y) -> (mag x y, orientation x y))
+       (\(CM.PixelX x) (CM.PixelX y) -> (mag x y, orientation x y))
        (toStencil horGrad)
        (toStencil vertGrad))
     arr
@@ -167,7 +167,7 @@ gradientMagnitudeOrientation !threshLow horGrad vertGrad !(Image arr) =
 
 
 
-suppress :: (A.Unbox e, RealFloat e) => e -> e -> (Array A.U Ix2 (e, Word8)) -> Image CM.Y Word8
+suppress :: (A.Unbox e, RealFloat e) => e -> e -> (Array A.U Ix2 (e, Word8)) -> Image X Word8
 suppress !threshLow !threshHigh !magOrient =
   computeI $ A.mapStencil (Fill (0, 0)) (A.makeUnsafeStencil 3 1 comparePts) magOrient
   where
@@ -192,7 +192,7 @@ suppress !threshLow !threshHigh !magOrient =
 
 
 -- | Select indices of strong edges.
-selectStrong :: Image CM.Y Word8 -> Array S Ix1 Ix1
+selectStrong :: Image X Word8 -> Array S Ix1 Ix1
 selectStrong =
   A.compute .
   A.simapMaybe
@@ -207,8 +207,8 @@ selectStrong =
 
 
 hysteresis ::
-     Image CM.Y Word8 -- ^ Image with strong and weak edges set.
-  -> Image CM.Y Bit
+     Image X Word8 -- ^ Image with strong and weak edges set.
+  -> Image X Bit
 hysteresis img@(Image arr) = unsafePerformIO $ do
   let !strong = selectStrong img
       !szStrong = A.size strong
@@ -224,7 +224,7 @@ hysteresis img@(Image arr) = unsafePerformIO $ do
     !sz = A.size arr
     !lenImg = totalElem sz
     burn ::
-         A.MArray A.RealWorld S Ix2 (Pixel CM.Y Bit)
+         A.MArray A.RealWorld S Ix2 (Pixel X Bit)
       -> A.MArray A.RealWorld S Ix1 Ix1
       -> Int
       -> IO ()

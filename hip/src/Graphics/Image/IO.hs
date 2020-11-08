@@ -71,7 +71,6 @@ module Graphics.Image.IO
 import Prelude hiding (map)
 import qualified Data.Massiv.Array.IO as A
 import Graphics.Image.Internal as I
-import Graphics.Pixel.ColorSpace
 
 -- | Display an image by writing it as a .tiff file to a temporary directory and making a call to an
 -- external viewer that is set as a default image viewer by the OS.

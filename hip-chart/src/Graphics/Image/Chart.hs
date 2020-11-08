@@ -20,9 +20,9 @@ import Data.Massiv.Array as A
 import Control.Monad as M
 import qualified Data.Colour.SRGB as Colour
 import Graphics.Image as I
-import Graphics.Image.IO
+--import Graphics.Image.IO
 import Graphics.Image.Processing.Histogram
-import Graphics.Rendering.Chart.Backend.Diagrams
+--import Graphics.Rendering.Chart.Backend.Diagrams
 import Graphics.Rendering.Chart.Easy
 
 -- import qualified Graphics.Color.Space as CS
@@ -90,8 +90,8 @@ plotHistograms (Histograms histograms) = do
   M.forM_ histograms $ \h -> plot $ line (histogramName h) [stoList . simap (,) $ histogramBins h]
 
 
-toColourRGBA :: (Ord e, Floating e) => Color (Alpha RGB) e -> AlphaColour e
-toColourRGBA (Alpha (ColorRGB r g b) a) = withOpacity (Colour.sRGB r g b) a
+toColourRGBA :: (Ord e, Floating e) => Color (Alpha (SRGB 'NonLinear)) e -> AlphaColour e
+toColourRGBA (Alpha (ColorSRGB r g b) a) = withOpacity (Colour.sRGB r g b) a
 
 
 -- plotDiff :: EC (Layout Double Double) ()

@@ -37,7 +37,7 @@ library
                , deepseq
                , massiv          >= 0.5
                , massiv-io       >= 0.2.2
-               , Color           >= 0.2.0
+               , Color           >= 0.3.1
   other-extensions: BangPatterns
                   , CPP
                   , FlexibleContexts

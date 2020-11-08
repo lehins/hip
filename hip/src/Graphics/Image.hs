@@ -128,7 +128,6 @@ import qualified Data.Massiv.Core as Core
 import Graphics.Image.Internal as I
 import Graphics.Image.IO
 import Graphics.Image.Processing as IP
-import Graphics.Pixel
 import Prelude as P hiding (map, maximum, minimum, product, sum, traverse,
                      zipWith, zipWith3)
 

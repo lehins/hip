@@ -17,7 +17,7 @@ module Graphics.Image.Processing.Interpolation
   ) where
 
 import Graphics.Image.Internal
-import Graphics.Pixel
+
 
 -- | Implementation for an interpolation method.
 class Interpolation method where

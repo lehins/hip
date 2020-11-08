@@ -32,7 +32,6 @@ import Graphics.Image.Processing.Convolution
 import Graphics.Image.Processing.Filter
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
-import Graphics.Pixel
 import Prelude hiding (traverse)
 
 

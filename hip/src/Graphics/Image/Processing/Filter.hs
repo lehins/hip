@@ -346,7 +346,7 @@ estimateFunction2D numSamples  side g
 
 
 makeKernelWith ::
-     (Storable a, Storable e, Num t, Num e, Index ix, Index ix2)
+     (Storable a, Storable e, Index ix, Index ix2)
   => (t -> t2 -> Array A.M ix e)
   -> (Array S ix e -> Array A.D ix2 a)
   -> t

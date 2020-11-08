@@ -1,3 +1,8 @@
+2.0.0.0
+=======
+
+* Switched to `massiv` + `massiv-io` + `Color`
+
 1.5.6.0
 =======
 

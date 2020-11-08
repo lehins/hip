@@ -55,7 +55,6 @@ import qualified Data.Massiv.Array.Unsafe as A
 import Graphics.Image.Internal
 import Graphics.Image.Processing.Interpolation
 import Graphics.Image.Processing.Filter
-import Graphics.Pixel
 import Prelude hiding (traverse)
 
 
@@ -418,7 +417,7 @@ shrinkVertical k (Image arr) =
   A.computeWithStride stride $
   A.applyStencil A.noPadding (makeAverageStencil (flip (:.)) (Sz kPos) 0) arr
   where
-    stride@(A.Stride (kPos :. 1)) = A.Stride (k :. 1)
+    stride@(A.Stride (kPos :. _)) = A.Stride (k :. 1)
 {-# INLINE shrinkVertical #-}
 
 shrinkHorizontal :: (RealFloat e, ColorModel cs e) => Int -> Image cs e -> Image cs e

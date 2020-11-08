@@ -20,7 +20,6 @@ module Graphics.Image.Internal
   , Ix2(..)
   , Comp(..)
   , Border(..)
-  , GrayScale(..)
   , computeI
   , delayPull
   , delayPush
@@ -53,6 +52,8 @@ module Graphics.Image.Internal
   , minPixel
   , maxVal
   , minVal
+  , toImageBaseModel
+  , fromImageBaseModel
   , module Data.Massiv.Core
   , module Graphics.Pixel.ColorSpace
   , A.Storable
@@ -65,7 +66,6 @@ import Data.Massiv.Core
 import Data.Semigroup
 import Data.Typeable
 import GHC.Exts (IsList(..))
-import qualified Graphics.Pixel as CM
 import Graphics.Pixel.ColorSpace
 import Prelude as P hiding (map, traverse, zipWith, zipWith3)
 
@@ -135,7 +135,7 @@ instance (Floating e, ColorModel cs e) => Floating (Image cs e) where
   {-# INLINE [~1] acosh #-}
 
 
-instance (NFData e, ColorModel cs e) => NFData (Image cs e) where
+instance NFData (Image cs e) where
   rnf (Image arr) = rnf arr
 
 instance ColorModel cs e => IsList (Image cs e) where
@@ -269,7 +269,13 @@ toLists (Image arr) = A.toLists arr
 {-# INLINE toLists #-}
 
 
+toImageBaseModel :: Image cs e -> Image (BaseModel cs) e
+toImageBaseModel (Image arr) = Image (A.toImageBaseModel arr)
+{-# INLINE toImageBaseModel #-}
 
+fromImageBaseModel :: Image (BaseModel cs) e -> Image cs e
+fromImageBaseModel (Image arr) = Image (A.fromImageBaseModel arr)
+{-# INLINE fromImageBaseModel #-}
 
 -- Ops
 
@@ -508,92 +514,3 @@ transmuteArray2 fSz f arr1 arr2 =
     (fSz (A.size arr1) (A.size arr2))
     (f (A.evaluate' arr1) (A.evaluate' arr2))
 {-# INLINE transmuteArray2 #-}
-
-
-
--- | Any color space or color model that has a separate non-chromatic channel for
--- brightness allows us applying a function just to that channel with th e help of
--- this class.
-class GrayScale cs where
-
-  -- | Extract the gray scale brightness info, whatever that might mean for a particular
-  -- color space
-  toGrayScale :: ColorModel cs e => Image cs e -> Image CM.Y e
-
-  -- | Apply a function only to the grayscale channel, leaving the chromatic information
-  -- unchanged.
-  applyGrayScale :: ColorModel cs e => (Image CM.Y e -> Image CM.Y e) -> Image cs e -> Image cs e
-
-instance GrayScale CM.Y where
-  toGrayScale = id
-  applyGrayScale = ($)
-
-instance GrayScale CM.YCbCr where
-  toGrayScale = map (\(CM.PixelYCbCr y' _ _) -> CM.PixelY y')
-  applyGrayScale f img = zipWith recombine img (f (toGrayScale img))
-    where
-      recombine (CM.PixelYCbCr _ cb cr) (CM.PixelY y') = CM.PixelYCbCr y' cb cr
-
-
-instance GrayScale CM.HSI where
-  applyGrayScale f img =
-    zipWith recombine img (f (map (\(CM.PixelHSI _ _ i) -> CM.PixelY i) img))
-    where
-      recombine (CM.PixelHSI h s _) (CM.PixelY i) = CM.PixelHSI h s i
-
-
-instance GrayScale CM.HSL where
-  applyGrayScale f img =
-    zipWith recombine img (f (map (\(CM.PixelHSL _ _ l) -> CM.PixelY l) img))
-    where recombine (CM.PixelHSL h s _) (CM.PixelY l) = CM.PixelHSL h s l
-
-
-instance GrayScale CM.HSV where
-  applyGrayScale f img =
-    zipWith recombine img (f (map (\(CM.PixelHSV _ _ v) -> CM.PixelY v) img))
-    where recombine (CM.PixelHSV h s _) (CM.PixelY v) = CM.PixelHSV h s v
-
-
-instance GrayScale (Y i) where
-  applyGrayScale f (Image arr) =
-    Image (A.fromImageBaseModel (unImage (f (Image (A.toImageBaseModel arr)))))
-
-
-instance GrayScale (Y' cs) where
-  applyGrayScale f (Image arr) =
-    Image (A.fromImageBaseModel (unImage (f (Image (A.toImageBaseModel arr)))))
-
-
-instance GrayScale (Y'CbCr cs) where
-  applyGrayScale f img =
-    zipWith recombine img (f (map (\(PixelY'CbCr y' _ _) -> CM.PixelY y') img))
-    where
-      recombine (PixelY'CbCr _ cb cr) (CM.PixelY y') = PixelY'CbCr y' cb cr
-
-
-instance GrayScale (HSI cs) where
-  applyGrayScale f img = zipWith recombine img (f (map (\(PixelHSI _ _ i) -> CM.PixelY i) img))
-    where
-      recombine (PixelHSI h s _) (CM.PixelY i) = PixelHSI h s i
-
-
-instance GrayScale (HSL cs) where
-  applyGrayScale f img = zipWith recombine img (f (map (\(PixelHSL _ _ l) -> CM.PixelY l) img))
-    where
-      recombine (PixelHSL h s _) (CM.PixelY l) = PixelHSL h s l
-
-
-instance GrayScale (HSV cs) where
-  applyGrayScale f img = zipWith recombine img (f (map (\(PixelHSV _ _ v) -> CM.PixelY v) img))
-    where
-      recombine (PixelHSV h s _) (CM.PixelY v) = PixelHSV h s v
-
-instance GrayScale (LAB i) where
-  applyGrayScale f img = zipWith recombine img (f (map (\(PixelLAB l _ _) -> CM.PixelY l) img))
-    where
-      recombine (PixelLAB _ a b) (CM.PixelY l) = PixelLAB l a b
-
-instance GrayScale (XYZ i) where
-  applyGrayScale f img = zipWith recombine img (f (map (\(PixelXYZ _ y _) -> CM.PixelY y) img))
-    where
-      recombine (PixelXYZ x _ z) (CM.PixelY y) = PixelXYZ x y z

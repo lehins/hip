@@ -20,7 +20,6 @@ module Graphics.Image.Processing.Convolution (
 
 import qualified Data.Massiv.Array as A
 import Graphics.Image.Internal
-import Graphics.Pixel
 import Prelude as P
 
 

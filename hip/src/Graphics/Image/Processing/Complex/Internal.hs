@@ -45,7 +45,6 @@ import Control.Applicative
 import Data.Complex (Complex(..))
 import qualified Data.Complex as C
 import Graphics.Image.Internal
-import Graphics.Pixel
 import Prelude hiding (map, zipWith)
 
 
@@ -106,13 +105,13 @@ conjugate = fmap C.conjugate
 {-# INLINE (+:!) #-}
 
 -- | Extracts the real part of a complex image.
-realPartI :: (RealFloat e, ColorModel cs e, ColorModel cs (Complex e)) =>
+realPartI :: (ColorModel cs e, ColorModel cs (Complex e)) =>
              Image cs (Complex e) -> Image cs e
 realPartI = map realPart
 {-# INLINE realPartI #-}
 
 -- | Extracts the imaginary part of a complex image.
-imagPartI :: (RealFloat e, ColorModel cs e, ColorModel cs (Complex e)) =>
+imagPartI :: (ColorModel cs e, ColorModel cs (Complex e)) =>
              Image cs (Complex e) -> Image cs e
 imagPartI = map imagPart
 {-# INLINE imagPartI #-}

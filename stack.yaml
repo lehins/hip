@@ -5,16 +5,19 @@ packages:
 - hip-chart
 resolver: lts-16.0
 extra-deps: #for now, since we might need to add changes to upstream deps
-- github: lehins/massiv
-  commit: 663471b65d465bd020116abc3ac15c7e20e5042d
-  subdirs:
-    - massiv
-- github: lehins/massiv-io
-  commit: 6bd00a6798689018243559d53da00a0e464fa0ff
-  subdirs:
-    - massiv-io
+- scheduler-1.5.0
+- massiv-0.5.5.0
+# - github: lehins/massiv
+#   commit: 663471b65d465bd020116abc3ac15c7e20e5042d
+#   subdirs:
+#     - massiv
+- massiv-io-0.4.0.0
+# - github: lehins/massiv-io
+#   commit: 6bd00a6798689018243559d53da00a0e464fa0ff
+#   subdirs:
+#     - massiv-io
 - github: lehins/Color
-  commit: b362ac02c7487303f93143a0851f00b77c555caf
+  commit: 2c1491289d07c8a3007575aab336f3f66d48d795
   subdirs:
     - Color
 
