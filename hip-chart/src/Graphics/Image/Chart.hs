@@ -22,7 +22,7 @@ import qualified Data.Colour.SRGB as Colour
 import Graphics.Image as I
 --import Graphics.Image.IO
 import Graphics.Image.Processing.Histogram
---import Graphics.Rendering.Chart.Backend.Diagrams
+import Graphics.Rendering.Chart.Backend.Diagrams
 import Graphics.Rendering.Chart.Easy
 
 -- import qualified Graphics.Color.Space as CS

@@ -52,6 +52,5 @@ main = do
     --       "Sobel Operator Y"
     --       [ bench "No Normalization" $ whnf (applyFilter Edge sobelOperator) img
     --       ]
-    , env (return $ toImageBaseModel imgY) $ \img ->
-        bench "Canny" $ whnf (canny 0.2 0.4) img
+    , bench "Canny" $ whnf (canny 0.2 0.4) imgY
     ]

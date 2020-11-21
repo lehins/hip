@@ -27,22 +27,22 @@ import qualified Graphics.Pixel as CM
 import Prelude as P
 import GHC.Word
 import System.IO.Unsafe
+import Graphics.Image.IO
 
 
-
--- | Apply Canny edge detection with customized options.
+-- | Apply Canny edge detection with customized options to a grayscale image.
 --
 -- ====__Examples__
 --
 -- >>> img <- readImageY "images/frog.jpg"
 -- >>> let cannyCustom = cannyGeneral gaussianBlur3x3 prewittHorizontal prewittVertical
--- >>> writeImage "images/doc/frog_cannyGeneral.jpg" $ cannyCustom 0.2 0.4 img
+-- >>> writeImageExact "images/doc/frog_cannyGeneral.jpg" $ cannyCustom 0.2 0.4 $ toImageGrayscale img
 --
 -- <<images/frog.jpg>> <<images/doc/frog_cannyGeneral.jpg>>
 --
 -- @since 2.0.0
 cannyGeneral ::
-     (ColorSpace cs i e, RealFloat e)
+     (Elevator e, RealFloat e)
   => (Border (Pixel X e) -> Image X e -> Image X e)
   -- ^ Blurring function. Usually a `gaussianBlur`
   -> Filter' X e
@@ -51,12 +51,11 @@ cannyGeneral ::
   -- ^ Vertical gradient. Usually `sobelVertical`.
   -> e -- ^ Low threshold in range @[0, 1]@
   -> e -- ^ High threshold in range @[0, 1]@
-  -> Image cs e
-  -- ^ Source grayscale image
+  -> Image X e
+  -- ^ Source image. Only grayscale information from the image will be used.
   -> Image X Bit
-cannyGeneral blur horizontalGrad verticalGrad threshLow threshHigh imgColor =
-  let img = I.map grayscalePixel imgColor
-      blurred = blur Edge img
+cannyGeneral blur horizontalGrad verticalGrad threshLow threshHigh img =
+  let blurred = blur Edge img
       magnitudeOrientation =
         gradientMagnitudeOrientation threshLow horizontalGrad verticalGrad blurred
       suppressed = suppress threshLow threshHigh magnitudeOrientation
@@ -70,23 +69,19 @@ cannyGeneral blur horizontalGrad verticalGrad threshLow threshHigh imgColor =
 -- ====__Examples__
 --
 -- >>> frog <- readImageY "images/frog.jpg"
--- >>> writeImage "images/doc/frog_canny.jpg" $ canny 0.2 0.4 frog
+-- >>> writeImageExact "images/doc/frog_canny.jpg" $ canny 0.2 0.4 frog
 --
 -- <<images/frog.jpg>> <<images/doc/frog_canny.jpg>>
 --
 -- @since 2.0.0
 canny ::
-     (Elevator e, RealFloat e)
+     (ColorSpace cs i e, RealFloat e)
   => e -- ^ Low threshold in range @[0, 1]@
   -> e -- ^ High threshold in range @[0, 1]@
-  -> Image X e
+  -> Image cs e
   -> Image X Bit
-canny threshLow threshHigh img =
-  let magnitudeOrientation =
-        gradientMagnitudeOrientation threshLow sobelHorizontal sobelVertical $
-        gaussianBlur5x5 Edge img
-      suppressed = suppress threshLow threshHigh magnitudeOrientation
-   in hysteresis suppressed
+canny low high =
+  cannyGeneral gaussianBlur5x5 sobelHorizontal sobelVertical low high . I.map grayscalePixel
 {-# INLINE canny #-}
 
 orientationUndefined
@@ -115,7 +110,7 @@ gradientMagnitudeOrientation ::
   -- ^ Vertical gradient
   -> Image X e
   -> A.Array A.U Ix2 (e, Word8)
-gradientMagnitudeOrientation !threshLow horGrad vertGrad !(Image arr) =
+gradientMagnitudeOrientation !threshLow horGrad vertGrad (Image arr) =
   A.compute $
   A.mapStencil
     Edge

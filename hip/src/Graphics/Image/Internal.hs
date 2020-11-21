@@ -54,6 +54,16 @@ module Graphics.Image.Internal
   , minVal
   , toImageBaseModel
   , fromImageBaseModel
+  , toImageGrayscale
+  , applyImageGrayscale
+  , toImage8
+  , toImage16
+  , toImage32
+  , toImage64
+  , toImageF
+  , toImageD
+  , toImageRealFloat
+  , fromImageRealFloat
   , module Data.Massiv.Core
   , module Graphics.Pixel.ColorSpace
   , A.Storable
@@ -276,6 +286,106 @@ toImageBaseModel (Image arr) = Image (A.toImageBaseModel arr)
 fromImageBaseModel :: Image (BaseModel cs) e -> Image cs e
 fromImageBaseModel (Image arr) = Image (A.fromImageBaseModel arr)
 {-# INLINE fromImageBaseModel #-}
+
+-- | Convert an image to grayscale by dropping all the chromaticity information. Resulting
+-- image very much depends on the color space of the source image.
+--
+-- @since 0.2.0
+toImageGrayscale :: ColorSpace cs i e => Image cs e -> Image X e
+toImageGrayscale = map grayscalePixel
+{-# INLINE toImageGrayscale #-}
+
+
+-- | Apply a function to the grayscale channel of the image leaving the chromatic
+-- information intact. Make sure that produced grayscale image keeps the same size,
+-- otherwise intersection of images will remain.
+--
+-- @since 0.2.0
+applyImageGrayscale :: ColorSpace cs i e => Image cs e -> (Image X e -> Image X e) -> Image cs e
+applyImageGrayscale img f =
+  zipWith replaceGrayscalePixel img (f (toImageGrayscale img))
+{-# INLINE applyImageGrayscale #-}
+
+
+-- | Convert precision of the image to a 8bit size word while performing all the
+-- necessary scaling
+--
+-- @since 0.2.0
+toImage8 :: (ColorModel cs e, ColorModel cs Word8) => Image cs e -> Image cs Word8
+toImage8 = map toPixel8
+{-# INLINE [~1] toImage8 #-}
+
+-- | Convert precision of the image to a 16bit size word while performing all the
+-- necessary scaling
+--
+-- @since 0.2.0
+toImage16 :: (ColorModel cs e, ColorModel cs Word16) => Image cs e -> Image cs Word16
+toImage16 = map toPixel16
+{-# INLINE [~1] toImage16 #-}
+
+-- | Convert precision of the image to a 32bit size word while performing all the
+-- necessary scaling
+--
+-- @since 0.2.0
+toImage32 :: (ColorModel cs e, ColorModel cs Word32) => Image cs e -> Image cs Word32
+toImage32 = map toPixel32
+{-# INLINE [~1] toImage32 #-}
+
+-- | Convert precision of an image to a 64bit size word while performing all the
+-- necessary scaling
+--
+-- @since 0.2.0
+toImage64 :: (ColorModel cs e, ColorModel cs Word64) => Image cs e -> Image cs Word64
+toImage64 = map toPixel64
+{-# INLINE [~1] toImage64 #-}
+
+-- | Convert precision of an image to floating point while performing all the necessary
+-- scaling
+--
+-- @since 0.2.0
+toImageF :: (ColorModel cs e, ColorModel cs Float) => Image cs e -> Image cs Float
+toImageF = map toPixelF
+{-# INLINE [~1] toImageF #-}
+
+-- | Convert precision of an image to double floating point while performing all the
+-- necessary scaling
+--
+-- @since 0.2.0
+toImageD :: (ColorModel cs e, ColorModel cs Double) => Image cs e -> Image cs Double
+toImageD = map toPixelD
+{-# INLINE [~1] toImageD #-}
+
+-- | Convert precision of an image to floating point while performing all the necessary
+-- scaling.
+--
+-- @since 0.2.0
+toImageRealFloat :: (ColorModel cs e, ColorModel cs e', RealFloat e') => Image cs e -> Image cs e'
+toImageRealFloat = map (liftPixel (fmap toRealFloat))
+{-# INLINE [~1] toImageRealFloat #-}
+
+-- | Convert precision of an image from floating point while performing all the necessary
+-- scaling.
+--
+-- @since 0.2.0
+fromImageRealFloat :: (ColorModel cs e, ColorModel cs e', RealFloat e') => Image cs e' -> Image cs e
+fromImageRealFloat = map (liftPixel (fmap fromRealFloat))
+{-# INLINE [~1] fromImageRealFloat #-}
+
+
+{-# RULES
+"toImage8"  [1] toImage8  = id
+"toImage16" [1] toImage16 = id
+"toImage32" [1] toImage32 = id
+"toImage64" [1] toImage64 = id
+"toImageF"  [1] toImageF  = id
+"toImageD"  [1] toImageD  = id
+"toImageRealFloat" [1] toImageRealFloat = id
+"toImageRealFloat" [1] toImageRealFloat = toImageF
+"toImageRealFloat" [1] toImageRealFloat = toImageD
+"fromImageRealFloat" [1] toImageRealFloat = id
+"fromImageRealFloat" [1] toImageRealFloat = map (liftPixel (fmap fromDouble))
+ #-}
+
 
 -- Ops
 

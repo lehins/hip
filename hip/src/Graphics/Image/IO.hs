@@ -1,5 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 -- |
 -- Module      : Graphics.Image.IO
 -- Copyright   : (c) Alexey Kuleshevich 2016-2020
@@ -17,6 +20,7 @@ module Graphics.Image.IO
   , readImageY'A
   , readImageRGB
   , readImageRGBA
+  , readImageBinary
   , readImageExact
   -- * Writing
   , writeImage
@@ -24,6 +28,7 @@ module Graphics.Image.IO
   -- * Displaying
   , A.ExternalViewer(..)
   , displayImage
+  , displayImageExact
   , displayImageUsing
   -- ** Common viewers
   , A.displayImageFile
@@ -71,6 +76,8 @@ module Graphics.Image.IO
 import Prelude hiding (map)
 import qualified Data.Massiv.Array.IO as A
 import Graphics.Image.Internal as I
+import Graphics.Image.Processing.Binary
+import Control.Exception (try)
 
 -- | Display an image by writing it as a .tiff file to a temporary directory and making a call to an
 -- external viewer that is set as a default image viewer by the OS.
@@ -88,6 +95,16 @@ displayImage ::
 displayImage = A.displayImage . unImage
 {-# NOINLINE displayImage #-}
 
+displayImageExact :: (ColorModel cs e, MonadIO m) => Image cs e -> m ()
+displayImageExact (Image img) =
+  let go [] excs = putStrLn $ unlines ("Tried all these encoders and failed:" : reverse excs)
+      go (f:fs) excs =
+        try (A.displayImageUsingAdhoc A.defaultViewer False f img) >>= \case
+          Left (exc :: A.ConvertError) -> go fs (displayException exc : excs)
+          Right () -> pure ()
+   in liftIO $ go A.imageWriteFormats []
+{-# NOINLINE displayImageExact #-}
+
 -- | Display an image by making a call to an external viewer that is set as a default image viewer
 -- by the OS.
 displayImageUsing ::
@@ -103,8 +120,11 @@ displayImageUsing ev block = A.displayImageUsing ev block . unImage
 {-# NOINLINE displayImageUsing #-}
 
 
+
+
+
 -- | Try to guess an image format from file's extension, then attempt to decode it as such. Color
--- space and precision of the result array must match exactly that of the actual image, in order to
+-- space and precision of the result image must match exactly that of the actual image, in order to
 -- apply auto conversion use `readImageAuto` instead.
 --
 -- Might throw `A.ConvertError`, `A.DecodeError`, besides other standard errors related to file IO.
@@ -121,7 +141,7 @@ readImageExact = fmap Image . A.readImage
 {-# NOINLINE readImageExact #-}
 
 
--- | Same as `readImage`, but will perform any possible color space and
+-- | Same as `readImage`, but will perform all possible color space and
 -- precision conversions in order to match the result image type. Very useful
 -- whenever image format isn't known at compile time.
 readImage ::
@@ -168,6 +188,11 @@ readImageRGBA = fmap Image . A.readImageAuto
 {-# INLINE readImageRGBA #-}
 
 
+-- | Read any grayscale image file as binary by thresholding all values in the middle. See
+-- `toImageBinary` for more info on thresholding.
+readImageBinary :: MonadIO m => FilePath -> m (Image X Bit)
+readImageBinary = fmap (toImageBinary @Word8 . Image) . A.readImage
+{-# INLINE readImageBinary #-}
 
 
 -- | Write an image to a file. It will guess an output file format from the file extension

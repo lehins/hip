@@ -22,6 +22,8 @@ module Graphics.Image.Processing.Binary
   , thresholdWith
   , thresholdWith2
   , Thresholding
+  , toImageBinary
+  , fromImageBinary
   -- ** Common comparators
   , (!==!)
   , (!/=!)
@@ -56,6 +58,7 @@ module Graphics.Image.Processing.Binary
 import Control.Applicative
 import Data.Bits
 import qualified Data.Foldable as F
+import qualified Data.Massiv.Array.IO as A
 import Data.Monoid (All(..), Any(..))
 import Graphics.Color.Algebra.Binary
 import Graphics.Image.Internal as I
@@ -88,12 +91,14 @@ isOff = (== off)
 -- >>> frog .<. flipH frog   -- (or: flipH frog .>. frog)
 --
 class Thresholding a b where
+  -- | Apply thresholding on per channel basis
   threshold2 ::
        (ColorModel cs e', ColorModel cs e, ColorModel cs Bit)
     => Pixel cs (e' -> e -> Bool)
     -> a cs e'
     -> b cs e
     -> Image cs Bit
+  -- | Apply thresholding to each individual pixel
   thresholdWith2 ::
        (ColorModel cs e)
     => (Pixel cs e -> Pixel cs e -> Bool) -- ^ Predicate
@@ -331,3 +336,27 @@ close :: ColorModel cs Bit
 close struc = erode struc . dialate struc
 {-# INLINE close #-}
 
+
+
+-- | Convert a grayscale image to binary. During conversion we threshold at 50% of total
+-- range instead of blindly matching on `minValue` or `maxValue`.
+--
+-- ====__Examples__
+--
+-- >>> frog <- readImageY' "images/frog.jpg"
+-- >>> writeImageExact "images/doc/frog_binary.png" $ toImageBinary $ toImageGrayscale frog
+--
+-- <<images/frog.jpg>> <<images/doc/frog_binary.png>>
+--
+-- @since 2.0.0
+toImageBinary :: (Ord e, Elevator e) => Image X e -> Image X Bit
+toImageBinary = thresholdWith (>= half)
+  where
+    half = pure (maxValue // 2)
+{-# INLINE toImageBinary #-}
+
+
+-- | /O(1)/ - Convert a binary image to Word8 precision.
+fromImageBinary :: Image X Bit -> Image X Word8
+fromImageBinary (Image arr) = Image (A.coerceBinaryImage arr)
+{-# INLINE fromImageBinary #-}
