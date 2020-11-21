@@ -2,7 +2,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 -- |
@@ -19,6 +18,7 @@ module Graphics.Image.Processing.Histogram
   , histogram
   , cdf
   , equalize
+  , equalizeGrayscale
   ) where
 
 import Data.Coerce
@@ -27,6 +27,8 @@ import qualified Data.Massiv.Array.Unsafe as A
 import Graphics.Image.Internal as I
 import Graphics.Pixel as CM
 import Data.List.NonEmpty as NE
+import Graphics.Image.IO
+
 
 data Histogram = Histogram
   { histogramBins :: A.Vector S Int
@@ -91,15 +93,19 @@ cdfUnsafe ::
 cdfUnsafe numBuckets m = A.compute $ A.iunfoldrS_ (A.size h) collect 0
   where
     h = histogramUnsafe numBuckets m
-    p = 1 / fromIntegral (A.elemsCount m)
+    p = fromIntegral (A.elemsCount m)
     collect acc i =
       let !acc' = acc + fromIntegral (h `A.unsafeIndex` i)
-       in (acc' * p, acc')
+       in (acc' / p, acc')
 
 -- | Apply [histogram equalization](https://en.wikipedia.org/wiki/Histogram_equalization) to an image
-equalize :: (Elevator a, Elevator e, Fractional e) => Maybe Word16 -> Image X a -> Image X e
-equalize mBuckets img =
+equalizeGrayscale :: Elevator e => Maybe Word16 -> Image X e -> Image X e
+equalizeGrayscale mBuckets img =
   withNumBuckets mBuckets img $ \ numBuckets arr ->
     let arr' = A.computeAs A.S arr
         cdf' = cdfUnsafe numBuckets arr'
-    in computeI $ A.map (\i -> CM.PixelX (cdf' `A.unsafeIndex` i)) arr'
+    in computeI $ A.map (\i -> CM.PixelX (fromDouble (cdf' `A.unsafeIndex` i))) arr'
+
+
+equalize :: ColorSpace cs i e => Maybe Word16 -> Image cs e -> Image cs e
+equalize mBuckets img = applyImageGrayscale img (equalizeGrayscale mBuckets)
