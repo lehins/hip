@@ -64,6 +64,8 @@ module Graphics.Image.Internal
   , toImageD
   , toImageRealFloat
   , fromImageRealFloat
+  , toImageLinear
+  , toImageNonLinear
   , module Data.Massiv.Core
   , module Graphics.Pixel.ColorSpace
   , A.Storable
@@ -385,6 +387,23 @@ fromImageRealFloat = map (liftPixel (fmap fromRealFloat))
 "fromImageRealFloat" [1] toImageRealFloat = id
 "fromImageRealFloat" [1] toImageRealFloat = map (liftPixel (fmap fromDouble))
  #-}
+
+
+-- | Apply inverse gamma function to non linear RGB image
+toImageLinear ::
+     (RedGreenBlue cs i, ColorModel (cs 'Linear) e, ColorModel (cs 'NonLinear) e, RealFloat e)
+  => Image (cs 'NonLinear) e
+  -> Image (cs 'Linear) e
+toImageLinear = map (liftPixel dcctf)
+{-# INLINE toImageLinear #-}
+
+-- | Apply gamma function to linear RGB image
+toImageNonLinear ::
+     (RedGreenBlue cs i, ColorModel (cs 'Linear) e, ColorModel (cs 'NonLinear) e, RealFloat e)
+  => Image (cs 'Linear) e
+  -> Image (cs 'NonLinear) e
+toImageNonLinear = map (liftPixel ecctf)
+{-# INLINE toImageNonLinear #-}
 
 
 -- Ops

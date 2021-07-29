@@ -16,7 +16,6 @@ module Graphics.Image.Processing.Filter
     -- $filter
     Filter(..)
   , Filter'
-  , A.Value
   , A.Padding(..)
   -- ** Application
   , mapFilter
@@ -88,6 +87,7 @@ import Data.Coerce
 import Control.Applicative
 import Control.DeepSeq
 import qualified Data.Massiv.Array as A
+import qualified Data.Massiv.Array.IO as A
 import qualified Data.Massiv.Array.Unsafe as A
 import qualified Data.Massiv.Array.Numeric.Integral as A
 import Data.Maybe
@@ -175,22 +175,21 @@ applyFilterWithStride padding f stride (Image arr) =
 
 -- | Create a custom filter
 makeFilter ::
-     ColorModel cs a
-  => Sz2 -- ^ Filter size
+     Sz2 -- ^ Filter size
   -> Ix2 -- ^ Filter center
-  -> ((Ix2 -> A.Value (Pixel cs a)) -> A.Value (Pixel cs b)) -- ^ Filter stencil
+  -> ((Ix2 -> Pixel cs a) -> Pixel cs b) -- ^ Filter stencil
   -> Filter cs a b
 makeFilter sz ix = Filter . A.makeStencil sz ix
 {-# INLINE makeFilter #-}
 
 -- | Convert from 2D `A.Stencil`.
 fromStencil :: A.Stencil Ix2 (Pixel cs a) (Pixel cs b) -> Filter cs a b
-fromStencil = Filter
+fromStencil = coerce
 {-# INLINE fromStencil #-}
 
 -- | Convert to a 2D `A.Stencil`.
 toStencil :: Filter cs a b -> A.Stencil Ix2 (Pixel cs a) (Pixel cs b)
-toStencil = filterStencil
+toStencil = coerce
 {-# INLINE toStencil #-}
 
 -- | `Filter` is contravariant in the second type argument, which is the type of elements in
@@ -228,7 +227,7 @@ rowVectorFilter =
     (0 :.)
     stencilFunc
   where
-    stencilFunc f getVal (i :. j) = f (getVal . (i :.)) j
+    stencilFunc f unsafeGetVal getVal (i :. j) = f (unsafeGetVal . (i :.)) (getVal . (i :.)) j
     {-# INLINE stencilFunc #-}
 {-# INLINE rowVectorFilter #-}
 
@@ -244,7 +243,7 @@ columnVectorFilter =
     (:. 0)
     stencilFunc
   where
-    stencilFunc f getVal (i :. j) = f (getVal . (:. j)) i
+    stencilFunc f unsafeGetVal getVal (i :. j) = f (unsafeGetVal . (:. j)) (getVal . (:. j)) i
     {-# INLINE stencilFunc #-}
 {-# INLINE columnVectorFilter #-}
 
@@ -262,7 +261,7 @@ transposeFilter (Filter stencil) =
   where
     t (i :. j) = j :. i
     {-# INLINE t #-}
-    stencilFunc f getVal = f (getVal . t) . t
+    stencilFunc f unsafeGetVal getVal = f (unsafeGetVal . t) (getVal . t) . t
     {-# INLINE stencilFunc #-}
 {-# INLINE transposeFilter #-}
 

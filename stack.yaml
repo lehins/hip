@@ -6,18 +6,18 @@ packages:
 resolver: lts-16.22
 extra-deps: #for now, since we might need to add changes to upstream deps
 - scheduler-1.5.0
-- massiv-0.5.5.0
-# - github: lehins/massiv
-#   commit: 663471b65d465bd020116abc3ac15c7e20e5042d
-#   subdirs:
-#     - massiv
+#- massiv-0.5.5.0
+- github: lehins/massiv
+  commit: 0a15ce17bcfdb88d76cd90ce06896f9a8c99b55c
+  subdirs:
+    - massiv
 #- massiv-io-0.4.0.0
 - github: lehins/massiv-io
-  commit: 4fbe430fc02b1567fe15ca508a9929b6eb3b70c8
+  commit: 8f6b916b9daea8c6b8e97a3e923e21e07444fd42
   subdirs:
     - massiv-io
 - github: lehins/Color
-  commit: beb4282b4380441a8e99639a9a608e481eb18aa9
+  commit: c970293f549b132ccb2558eb06abc72061088330
   subdirs:
     - Color
 
