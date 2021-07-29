@@ -8,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.Internal
--- Copyright   : (c) Alexey Kuleshevich 2016-2020
+-- Copyright   : (c) Alexey Kuleshevich 2016-2021
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -98,11 +98,11 @@ instance ColorModel cs e => Eq (Image cs e) where
 
 
 instance ColorModel cs e => Num (Image cs e) where
-  (+)         = liftImage2 (+)
+  (+)         = liftImage2' (+)
   {-# INLINE [~1] (+) #-}
-  (-)         = liftImage2 (-)
+  (-)         = liftImage2' (-)
   {-# INLINE [~1] (-) #-}
-  (*)         = liftImage2 (*)
+  (*)         = liftImage2' (*)
   {-# INLINE [~1] (*) #-}
   abs         = map abs
   {-# INLINE [~1] abs #-}
@@ -112,7 +112,7 @@ instance ColorModel cs e => Num (Image cs e) where
   {-# INLINE [~1] fromInteger #-}
 
 instance (Fractional e, ColorModel cs e) => Fractional (Image cs e) where
-  (/) = liftImage2 (/)
+  (/) = liftImage2' (/)
   {-# INLINE [~1] (/) #-}
   fromRational = scalar . fromRational
   {-# INLINE [~1] fromRational #-}
@@ -159,16 +159,16 @@ instance ColorModel cs e => IsList (Image cs e) where
 
 computeI ::
      (Load r Ix2 (Pixel cs e), ColorModel cs e)
-  => Array r Ix2 (Pixel cs e)
+  => Matrix r (Pixel cs e)
   -> Image cs e
 computeI = Image . A.compute
 {-# INLINE [1] computeI #-}
 
-delayPull :: ColorModel cs e => Image cs e -> Array A.D Ix2 (Pixel cs e)
+delayPull :: ColorModel cs e => Image cs e -> Matrix A.D (Pixel cs e)
 delayPull (Image arr) = A.delay arr
 {-# INLINE [1] delayPull #-}
 
-delayPush :: ColorModel cs e => Image cs e -> Array A.DL Ix2 (Pixel cs e)
+delayPush :: ColorModel cs e => Image cs e -> Matrix A.DL (Pixel cs e)
 delayPush (Image arr) = A.toLoadArray arr
 {-# INLINE [1] delayPush #-}
 
@@ -250,12 +250,12 @@ makeImageComp comp sz = computeI . A.makeArrayR A.D comp sz
 {-# INLINE [~1] makeImageComp #-}
 
 -- | Convert a 2-dimensional source array of pixels into an image.
-fromArray :: (Source r Ix2 (Pixel cs e), ColorModel cs e) => Array r Ix2 (Pixel cs e) -> Image cs e
+fromArray :: (Source r (Pixel cs e), ColorModel cs e) => Matrix r (Pixel cs e) -> Image cs e
 fromArray = Image . A.computeSource
 {-# INLINE fromArray #-}
 
 -- | Convert an image into a storable array of pixels
-toArray :: Image cs e -> Array A.S Ix2 (Pixel cs e)
+toArray :: Image cs e -> Matrix A.S (Pixel cs e)
 toArray (Image arr) = arr
 {-# INLINE toArray #-}
 
@@ -611,32 +611,32 @@ minVal = (A.minimum' . A.map minimum) . delayPull
 
 
 -- | Zip two images with a function
-liftImage2 :: (ColorModel cs1 e1, ColorModel cs2 e2, ColorModel cs e) =>
+liftImage2' :: (HasCallStack, ColorModel cs1 e1, ColorModel cs2 e2, ColorModel cs e) =>
            (Pixel cs1 e1 -> Pixel cs2 e2 -> Pixel cs e)
         -> Image cs1 e1 -> Image cs2 e2 -> Image cs e
-liftImage2 f img1 img2 = computeI $ A.liftArray2 f (delayPull img1) (delayPull img2)
-{-# INLINE [~1] liftImage2 #-}
+liftImage2' f img1 img2 = computeI $ A.throwEither $ A.liftArray2M f (delayPull img1) (delayPull img2)
+{-# INLINE [~1] liftImage2' #-}
 
 -- Array functions.
 
 -- | Create an array by traversing a source array.
 transmuteArray ::
-     (Source r1 Ix2 e1)
+     (Source r1 e1)
   => (Sz2 -> Sz2)
   -> ((Ix2 -> e1) -> Ix2 -> e)
-  -> Array r1 Ix2 e1
-  -> Array A.D Ix2 e
+  -> Matrix r1 e1
+  -> Matrix A.D e
 transmuteArray fSz f = A.transform' (\sz -> (fSz sz, ())) (const f)
 {-# INLINE transmuteArray #-}
 
 -- | Create an array, same as `transmuteArray`, except by traversing two source arrays.
-transmuteArray2
-  :: (Source r1 ix1 e1, Source r2 ix2 e2, Index ix)
-  => (Sz ix1 -> Sz ix2 -> Sz ix)
-  -> ((ix1 -> e1) -> (ix2 -> e2) -> ix -> e)
-  -> Array r1 ix1 e1
-  -> Array r2 ix2 e2
-  -> Array A.D ix e
+transmuteArray2 ::
+     (Source r1 e1, Source r2 e2)
+  => (Sz2 -> Sz2 -> Sz2)
+  -> ((Ix2 -> e1) -> (Ix2 -> e2) -> Ix2 -> e)
+  -> Matrix r1 e1
+  -> Matrix r2 e2
+  -> Matrix A.D e
 transmuteArray2 fSz f arr1 arr2 =
   A.makeArray
     (A.getComp arr1)

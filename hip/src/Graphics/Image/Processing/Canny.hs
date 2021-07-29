@@ -212,7 +212,7 @@ hysteresis img@(Image arr) = unsafePerformIO $ do
   -- TODO: wait for https://github.com/lehins/massiv/issues/103 to get implemened and
   -- optimize selectStrong to be loaded directly into vStack
   A.unsafeArrayLinearCopy strong 0 vStack 0 szStrong
-  edges <- A.new sz
+  edges <- A.newMArray sz 0
   burn edges vStack (unSz szStrong)
   Image <$> A.unsafeFreeze (A.getComp arr) edges
   where

@@ -314,7 +314,7 @@ estimateFunction1D ::
   => Int -- ^ Number of samples to use for integral approximation
   -> Int -- ^ Side
   -> (e -> e) -- ^ Kernel function @f(x)@
-  -> A.Vector A.M e
+  -> A.Vector A.D e
 estimateFunction1D numSamples side g
   | side <= 0 = error "estimateFunction1D: Side must be positive"
   | otherwise =
@@ -331,7 +331,7 @@ estimateFunction2D ::
   => Int -- ^ Number of samples to use for integral approximation
   -> Int -- ^ Side
   -> (e -> e -> e) -- ^ Kernel function @f(x, y)@
-  -> A.Matrix A.M e
+  -> A.Matrix A.D e
 estimateFunction2D numSamples  side g
   | side <= 0 = error "estimateFunction2D: Side must be positive"
   | otherwise =
@@ -346,7 +346,7 @@ estimateFunction2D numSamples  side g
 
 makeKernelWith ::
      (Storable a, Storable e, Index ix, Index ix2)
-  => (t -> t2 -> Array A.M ix e)
+  => (t -> t2 -> Array A.D ix e)
   -> (Array S ix e -> Array A.D ix2 a)
   -> t
   -> t2

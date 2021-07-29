@@ -130,15 +130,15 @@ upsampleCols = upsample 0 (Stride (1 :. 2))
 
 -- | Append two images together into one horisontally. Both input images must have the
 -- same number of rows, otherwise error.
-leftToRight :: ColorModel cs e => Image cs e -> Image cs e -> Image cs e
+leftToRight :: (HasCallStack, ColorModel cs e) => Image cs e -> Image cs e -> Image cs e
 leftToRight img1 img2 = computeI (A.append' 1 (delayPull img1) (delayPull img2))
 {-# INLINE [~1] leftToRight #-} --TODO: implement `A.appendInnerM`
 
 
 -- | Append two images together into one vertically. Both input images must have the
 -- same number of columns, otherwise error.
-topToBottom :: ColorModel cs e => Image cs e -> Image cs e -> Image cs e
-topToBottom img1 img2 = computeI (either throw id $ A.appendOuterM (delayPush img1) (delayPush img2))
+topToBottom :: (HasCallStack, ColorModel cs e) => Image cs e -> Image cs e -> Image cs e
+topToBottom img1 img2 = computeI (A.throwEither $ A.appendOuterM (delayPush img1) (delayPush img2))
 {-# INLINE [~1] topToBottom #-}
 
 

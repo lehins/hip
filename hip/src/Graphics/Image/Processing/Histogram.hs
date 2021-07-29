@@ -76,7 +76,7 @@ histogram mBuckets img =
 
 
 
-histogramUnsafe :: Source r ix Int => Word16 -> Array r ix Int -> A.Vector S Int
+histogramUnsafe :: (Index ix, Source r Int) => Word16 -> Array r ix Int -> A.Vector S Int
 histogramUnsafe numBuckets m =
   A.createArrayST_ (fromIntegral numBuckets) $ \mvec ->
     A.forM_ m $ A.unsafeLinearModify mvec (pure . (+ 1))
@@ -89,7 +89,7 @@ cdf mBuckets img = withNumBuckets mBuckets img cdfUnsafe
 
 
 cdfUnsafe ::
-     (Elevator e, Fractional e, Source r ix Int) => Word16 -> Array r ix Int -> A.Vector S e
+     (Elevator e, Fractional e, Index ix, Source r Int) => Word16 -> Array r ix Int -> A.Vector S e
 cdfUnsafe numBuckets m = A.compute $ A.iunfoldrS_ (A.size h) collect 0
   where
     h = histogramUnsafe numBuckets m
