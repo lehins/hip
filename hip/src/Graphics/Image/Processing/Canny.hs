@@ -25,7 +25,6 @@ import Graphics.Image.Processing.Binary
 import Graphics.Image.Processing.Filter
 import qualified Graphics.Pixel as CM
 import Prelude as P
-import GHC.Word
 import System.IO.Unsafe
 import Graphics.Image.IO
 
@@ -140,23 +139,21 @@ gradientMagnitudeOrientation !threshLow horGrad vertGrad (Image arr) =
                 then dRot + 8
                 else dRot
                 -- Doing explicit tests seems to be faster than using the FP floor function.
-         in W8#
-              (if dNorm >= 4
-                 then if dNorm >= 6
-                        then if dNorm >= 7
-                               then 4## -- 7
-                               else 3## -- 6
-                        else if dNorm >= 5
-                               then 2## -- 5
-                               else 1## -- 4
-                 else if dNorm >= 2
-                        then if dNorm >= 3
-                               then 4## -- 3
-                               else 3## -- 2
-                        else if dNorm >= 1
-                               then 2## -- 1
-                               else 1## -- 0
-               )
+         in if dNorm >= 4
+              then if dNorm >= 6
+                     then if dNorm >= 7
+                            then 4 -- 7
+                            else 3 -- 6
+                     else if dNorm >= 5
+                            then 2 -- 5
+                            else 1 -- 4
+              else if dNorm >= 2
+                     then if dNorm >= 3
+                            then 4 -- 3
+                            else 3 -- 2
+                     else if dNorm >= 1
+                            then 2 -- 1
+                            else 1 -- 0
     {-# INLINE orientation #-}
 {-# INLINE gradientMagnitudeOrientation #-}
 

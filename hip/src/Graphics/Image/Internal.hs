@@ -74,7 +74,7 @@ module Graphics.Image.Internal
 import Control.DeepSeq
 import qualified Data.Massiv.Array as A
 import qualified Data.Massiv.Array.IO as A
-import Data.Massiv.Core
+import Data.Massiv.Core hiding (setComp)
 import Data.Semigroup
 import Data.Typeable
 import GHC.Exts (IsList(..))
@@ -289,6 +289,7 @@ fromImageBaseModel :: Image (BaseModel cs) e -> Image cs e
 fromImageBaseModel (Image arr) = Image (A.fromImageBaseModel arr)
 {-# INLINE fromImageBaseModel #-}
 
+
 -- | Convert an image to grayscale by dropping all the chromaticity information. Resulting
 -- image very much depends on the color space of the source image.
 --
@@ -309,6 +310,7 @@ applyImageGrayscale img f =
 {-# INLINE applyImageGrayscale #-}
 
 
+-- -
 -- | Convert precision of the image to a 8bit size word while performing all the
 -- necessary scaling
 --

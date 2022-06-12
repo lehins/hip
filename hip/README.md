@@ -16,6 +16,13 @@ Documentation is on [Hackage](http://hackage.haskell.org/package/hip), and [Stac
 Installation
 ------------
 
+Dependecies:
+
+```
+$ sudo apt-get install zlib1g-dev
+```
+
+
 Install HIP using `cabal`:
 
 * `$ cabal update && cabal install hip`
