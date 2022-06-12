@@ -23,17 +23,6 @@ extra-deps:
 - dual-tree-0.2.3.0@sha256:be4b8ecb2ecef798f88ee569d043f3f19c32f6dd083329cd7cfcb482f0bc6233,2882
 - monoid-extras-0.6.1@sha256:03141a1513274a0618fccf9aac34923d3cef64b23df716d86d0decd50efeeb13,2284
 - statestack-0.3.1@sha256:3ae02171e0a546efd9dcc9dae358e70f0bbd14be52297422381d00f085321682,1047
-
-# - Color-0.3.3@sha256:857fd235bdc50411586d035f59829c7c7b9326f61d19847f1bc76c36714e701a,8737
-
-# - github: lehins/massiv
-#   commit: e83d54c9a227c257bcd6c6a006f8bf25ed79830a
-#   subdirs:
-#     - massiv
-# - github: lehins/massiv-io
-#   commit: 45ab3265b50f792daafefa8d9b686483fb058538
-#   subdirs:
-#     - massiv-io
 - github: lehins/Color
   commit: 8d4f19730a78e05995980e7898037ed7a0503e34
   subdirs:
