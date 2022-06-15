@@ -142,7 +142,7 @@ readImage ::
   => FilePath -- ^ File path for an image
   -> m (Image cs e)
 readImage = fmap Image . A.readImageAuto
-{-# INLINE readImage #-}
+{-# INLINEABLE readImage #-}
 
 
 -- | Read an image file and convert it to non-linear grayscale, i.e. Luma
@@ -150,46 +150,46 @@ readImageY' :: MonadIO m => FilePath -> m (Image (Y' SRGB) Double)
 readImageY' = fmap Image . A.readImageAuto
   -- TODO: Optimize for YCbCr: (better in massiv-io)
   -- try decodeM as YCbCr, on decode error fallback to SRGB
-{-# INLINE readImageY' #-}
+{-# INLINEABLE readImageY' #-}
 
 -- | Read an image file and convert it to non-linear grayscale, i.e. Luma
 readImageY'A :: MonadIO m => FilePath -> m (Image (Alpha (Y' SRGB)) Double)
 readImageY'A = fmap Image . A.readImageAuto
-{-# INLINE readImageY'A #-}
+{-# INLINEABLE readImageY'A #-}
 
 -- | Read an image file and convert it to linear luminance (brightness), i.e. grayscale.
 readImageY :: MonadIO m => FilePath -> m (Image (Y D65) Double)
 readImageY = fmap Image . A.readImageAuto
-{-# INLINE readImageY #-}
+{-# INLINEABLE readImageY #-}
 
 
 -- | Read an image file and convert it to linear luminance with 'Alpha' channel.
 readImageYA :: MonadIO m => FilePath -> m (Image (Alpha (Y D65)) Double)
 readImageYA = fmap Image . A.readImageAuto
-{-# INLINE readImageYA #-}
+{-# INLINEABLE readImageYA #-}
 
 
 -- | Read an image and convert it into linear sRGB colorspace with Double precision
 readImageRGB :: MonadIO m => FilePath -> m (Image (SRGB 'Linear) Double)
 readImageRGB = fmap Image . A.readImageAuto
-{-# INLINE readImageRGB #-}
+{-# INLINEABLE readImageRGB #-}
 
 
 -- | Read image in sRGB colorspace with 'Alpha' channel.
 readImageRGBA :: MonadIO m => FilePath -> m (Image (Alpha (SRGB 'Linear)) Double)
 readImageRGBA = fmap Image . A.readImageAuto
-{-# INLINE readImageRGBA #-}
+{-# INLINEABLE readImageRGBA #-}
 
 
 -- | Read any grayscale image file as binary by thresholding all values in the middle. See
 -- `toImageBinary` for more info on thresholding.
 readImageBinary :: MonadIO m => FilePath -> m (Image X Bit)
 readImageBinary = fmap (toImageBinary @Word8 . Image) . A.readImage
-{-# INLINE readImageBinary #-}
+{-# INLINEABLE readImageBinary #-}
 
 
 -- | Write an image to a file. It will guess an output file format from the file extension
--- and will attempt to encode it in the colorspace that was supplied, but will throw an
+-- and will attempt to encode it in the color space that was supplied, but will throw an
 -- exception if it is not supported by the guessed format. Unless you are looking to
 -- specify the color space and precision for the file exactly, it is better to use
 -- `writeImage`, which will perform the necessary conversions for you.
@@ -202,11 +202,11 @@ writeImageExact ::
   -> Image cs e
   -> m ()
 writeImageExact path = A.writeImage path . unImage
-{-# INLINE writeImageExact #-}
+{-# INLINEABLE writeImageExact #-}
 
 
 -- | Write any image while doing any necessary color space and precision conversions.
 writeImage ::
      (ColorSpace cs i e, ColorSpace (BaseSpace cs) i e, MonadIO m) => FilePath -> Image cs e -> m ()
 writeImage path = A.writeImageAuto path . unImage
-{-# INLINE writeImage #-}
+{-# INLINEABLE writeImage #-}

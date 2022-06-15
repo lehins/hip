@@ -149,7 +149,7 @@ import Prelude as P hiding (map, maximum, minimum, product, sum, traverse,
 -- >>> rows frog
 -- 200
 --
-rows :: ColorModel cs e => Image cs e -> Int
+rows :: Image cs e -> Int
 rows img = let Sz (m :. _) = dims img in m
 {-# INLINE rows #-}
 
@@ -162,7 +162,7 @@ rows img = let Sz (m :. _) = dims img in m
 -- >>> cols frog
 -- 320
 --
-cols :: ColorModel cs e => Image cs e -> Int
+cols :: Image cs e -> Int
 cols img = let Sz (_ :. n) = dims img in n
 {-# INLINE cols #-}
 

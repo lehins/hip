@@ -20,6 +20,8 @@ module Graphics.Image.Processing
   , module Graphics.Image.Processing.Complex
   -- * Filters
   , module Graphics.Image.Processing.Filter
+  -- ** Gabor
+  , module Graphics.Image.Processing.Gabor
   -- * Tools
   , pixelGrid
   ) where
@@ -30,8 +32,10 @@ import Graphics.Image.Processing.Binary
 import Graphics.Image.Processing.Complex
 import Graphics.Image.Processing.Convolution
 import Graphics.Image.Processing.Filter
+import Graphics.Image.Processing.Gabor
 import Graphics.Image.Processing.Geometric
 import Graphics.Image.Processing.Interpolation
+import Graphics.Image.IO
 import Prelude hiding (traverse)
 
 

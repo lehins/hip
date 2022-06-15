@@ -1,6 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module      : Graphics.Image.Processing.Complex.Internal
 -- Copyright   : (c) Alexey Kuleshevich 2016-2018
@@ -136,7 +138,7 @@ polarI :: (RealFloat e, ColorModel cs e, ColorModel cs (Complex e)) =>
 polarI !zImg = (magnitudeI zImg, phaseI zImg)
 {-# INLINE polarI #-}
 
--- | The nonnegative magnitude of a complex image.
+-- | The non-negative magnitude of a complex image.
 magnitudeI :: (RealFloat e, ColorModel cs e, ColorModel cs (Complex e)) =>
               Image cs (Complex e) -> Image cs e
 magnitudeI = map magnitude
@@ -154,3 +156,18 @@ conjugateI :: (RealFloat e, ColorModel cs e, ColorModel cs (Complex e)) =>
               Image cs (Complex e) -> Image cs (Complex e)
 conjugateI = map conjugate
 {-# INLINE conjugateI #-}
+
+
+complexGrayAsColorImage ::
+  forall e. (Elevator e, Elevator (Complex e)) => Image X (Complex e) -> Image (SRGB 'Linear) e
+complexGrayAsColorImage = map complexPixel
+  where
+    complexPixel :: Pixel X e -> Pixel (SRGB 'Linear) e
+    complexPixel (PixelX (r :+ i)) = PixelSRGB r i 0
+
+-- complexGrayAsPhaseColorImage :: Image X (Complex e) -> Image (SRGB 'Linear) e
+-- complexGrayAsPhaseColorImage = map complexColor
+--   where
+--     complexColor px =
+--       case phase px of
+--         (PixelX mag, PixelX ph) -> PixelSRGB mag ph 0

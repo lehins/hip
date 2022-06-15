@@ -59,5 +59,5 @@ makeGaborFilter ::
   -> Double -- ^ ψ: @[-π, π]@ - Phase offset
   -> Double -- ^ σ: @(0, +∞)@  - Standard deviation of the gaussian envelope
   -> Double -- ^ γ: @[0, 1]@ - Spatial aspect ratio
-  -> Image X (Complex Double)
+  -> Filter X (Complex Double) (Complex Double)
 makeGaborFilter sz λ θ ψ σ γ = makeFilterFromKernel (makeGaborKernel sz λ θ ψ σ γ)

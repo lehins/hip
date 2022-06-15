@@ -9,7 +9,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.Internal
--- Copyright   : (c) Alexey Kuleshevich 2016-2021
+-- Copyright   : (c) Alexey Kuleshevich 2016-2022
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -94,7 +94,7 @@ data Image cs e = Image { unImage :: !(Array A.S Ix2 (Pixel cs e)) }
 
 instance ColorModel cs e => Show (Image cs e) where
   show img =
-    let (Sz2 m n) = dims img
+    let Sz2 m n = dims img
     in "<Image " ++
        showsTypeRep (typeRep (Proxy :: Proxy cs)) " " ++
        showsTypeRep (typeRep (Proxy :: Proxy e)) ": " ++ show m ++ "x" ++ show n ++ ">"
@@ -415,7 +415,7 @@ toImageNonLinear = map (liftPixel ecctf)
 {-# INLINE toImageNonLinear #-}
 
 
--- Ops
+-- Operations
 
 -- | Map a function over a an image.
 map :: (ColorModel cs' e', ColorModel cs e) =>
