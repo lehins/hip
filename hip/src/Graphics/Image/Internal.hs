@@ -8,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 -- |
 -- Module      : Graphics.Image.Internal
--- Copyright   : (c) Alexey Kuleshevich 2016-2021
+-- Copyright   : (c) Alexey Kuleshevich 2016-2022
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -87,7 +87,7 @@ data Image cs e = Image { unImage :: !(Array A.S Ix2 (Pixel cs e)) }
 
 instance ColorModel cs e => Show (Image cs e) where
   show img =
-    let (Sz2 m n) = dims img
+    let Sz2 m n = dims img
     in "<Image " ++
        showsTypeRep (typeRep (Proxy :: Proxy cs)) " " ++
        showsTypeRep (typeRep (Proxy :: Proxy e)) ": " ++ show m ++ "x" ++ show n ++ ">"
@@ -180,16 +180,16 @@ delayPush (Image arr) = A.toLoadArray arr
 -- | Get image dimensions. Using this function will cause an image to be fully evaluated and will
 -- break the fusion at the call site, so it is recommended to avoid it in favor of `transmute` when
 -- possible.
-dims :: ColorModel cs e => Image cs e -> Sz2
+dims :: Image cs e -> Sz2
 dims (Image arr) = A.size arr
 {-# INLINE dims #-}
 
 -- | Check if image is empty, i.e. at least one of its sides is equal to 0. Uses `dims` underneath.
-isEmpty :: ColorModel cs e => Image cs e -> Bool
+isEmpty :: Image cs e -> Bool
 isEmpty (Image arr) = A.isEmpty arr
 {-# INLINE isEmpty #-}
 
-totalPixels :: ColorModel cs e => Image cs e -> Int
+totalPixels :: Image cs e -> Int
 totalPixels = A.totalElem . dims
 {-# INLINE totalPixels #-}
 
@@ -408,7 +408,7 @@ toImageNonLinear = map (liftPixel ecctf)
 {-# INLINE toImageNonLinear #-}
 
 
--- Ops
+-- Operations
 
 -- | Map a function over a an image.
 map :: (ColorModel cs' e', ColorModel cs e) =>

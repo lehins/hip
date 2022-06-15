@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- |
 -- Module      : Graphics.Image.Processing.Binary
--- Copyright   : (c) Alexey Kuleshevich 2018-2020
+-- Copyright   : (c) Alexey Kuleshevich 2018-2022
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -17,6 +17,7 @@ module Graphics.Image.Processing.Binary
   , isOff
   , module Graphics.Color.Algebra.Binary
     -- * Thresholding
+  -- , otzuThresholding
   , threshold
   , threshold2
   , thresholdWith
@@ -55,6 +56,7 @@ module Graphics.Image.Processing.Binary
   , close
   ) where
 
+import Graphics.Image.Processing.Histogram (Histogram(..))
 import Control.Applicative
 import Data.Bits
 import qualified Data.Foldable as F
@@ -69,12 +71,16 @@ infix  4  .==., ./=., .<., .<=., .>=., .>., !==!, !/=!, !<!, !<=!, !>=!, !>!
 infixr 3  .&&., !&&!
 infixr 2  .||., !||!
 
+
+-- | Pixel with all channels of a color model set to 1
 on :: Applicative (Color cs) => Pixel cs Bit
 on = pure one
 
+-- | Pixel with all channels of a color model set to 0
 off :: Applicative (Color cs) => Pixel cs Bit
 off = pure zero
 
+-- | Check if a Pixel is turned on
 isOn :: Pixel X Bit -> Bool
 isOn = (== on)
 
@@ -360,3 +366,7 @@ toImageBinary = thresholdWith (>= half)
 fromImageBinary :: Image X Bit -> Image X Word8
 fromImageBinary (Image arr) = Image (A.coerceBinaryImage arr)
 {-# INLINE fromImageBinary #-}
+
+
+-- otzuThresholding img =
+  

@@ -87,7 +87,6 @@ import Data.Coerce
 import Control.Applicative
 import Control.DeepSeq
 import qualified Data.Massiv.Array as A
-import qualified Data.Massiv.Array.IO as A
 import qualified Data.Massiv.Array.Unsafe as A
 import qualified Data.Massiv.Array.Numeric.Integral as A
 import Data.Maybe
@@ -110,7 +109,7 @@ instance Functor (Color cs) => Functor (Filter cs a) where
   fmap f (Filter s) = Filter (fmap (fmap f) s)
   {-# INLINE fmap #-}
 
-instance (ColorModel cs a, Applicative (Color cs)) => Applicative (Filter cs a) where
+instance ColorModel cs a => Applicative (Filter cs a) where
   pure a = Filter $ pure (pure a)
   {-# INLINE pure #-}
   liftA2 f (Filter x) (Filter y) = Filter (liftA2 (liftA2 f) x y)
@@ -418,7 +417,7 @@ makeKernel2D n =
 
 
 makeAverageStencil ::
-     (A.Default a, Fractional a) => (Int -> Int -> Ix2) -> Sz1 -> Int -> A.Stencil Ix2 a a
+     Fractional a => (Int -> Int -> Ix2) -> Sz1 -> Int -> A.Stencil Ix2 a a
 makeAverageStencil ix2 (Sz k) c =
   A.makeStencil (Sz (ix2 1 k)) (ix2 0 c) $ \get ->
     let go !i !acc
@@ -435,8 +434,9 @@ makeAverageStencil ix2 (Sz k) c =
 -- @since 2.0.0
 averageFilter1x3 :: (Fractional e, ColorModel cs e) => Filter cs e e
 averageFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
-  where stencil f = (f (0 :. -1) + f (0 :. 0) + f (0 :. 1)) / 3
-        {-# INLINE stencil #-}
+  where
+    stencil f = (f (0 :. -1) + f (0 :. 0) + f (0 :. 1)) / 3
+    {-# INLINE stencil #-}
 {-# INLINE averageFilter1x3 #-}
 
 
@@ -445,8 +445,9 @@ averageFilter1x3 = Filter $ A.makeStencil (Sz2 1 3) (0 :. 1) stencil
 -- @since 2.0.0
 averageFilter1x5 :: (Fractional e, ColorModel cs e) => Filter cs e e
 averageFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
-  where stencil f = (f (0 :. -2) + f (0 :. -1) + f (0 :. 0) + f (0 :. 1) + f (0 :. 2)) / 5
-        {-# INLINE stencil #-}
+  where
+    stencil f = (f (0 :. -2) + f (0 :. -1) + f (0 :. 0) + f (0 :. 1) + f (0 :. 2)) / 5
+    {-# INLINE stencil #-}
 {-# INLINE averageFilter1x5 #-}
 
 
@@ -455,14 +456,15 @@ averageFilter1x5 = Filter $ A.makeStencil (Sz2 1 5) (0 :. 2) stencil
 -- @since 2.0.0
 averageFilter1x7 :: (Fractional e, ColorModel cs e) => Filter cs e e
 averageFilter1x7 = Filter $ A.makeStencil (Sz2 1 7) (0 :. 3) stencil
-  where stencil f = ( f (0 :. -3) +
-                      f (0 :. -2) +
-                      f (0 :. -1) +
-                      f (0 :.  0) +
-                      f (0 :.  1) +
-                      f (0 :.  2) +
-                      f (0 :.  3) ) / 7
-        {-# INLINE stencil #-}
+  where
+    stencil f = ( f (0 :. -3) +
+                  f (0 :. -2) +
+                  f (0 :. -1) +
+                  f (0 :.  0) +
+                  f (0 :.  1) +
+                  f (0 :.  2) +
+                  f (0 :.  3) ) / 7
+    {-# INLINE stencil #-}
 {-# INLINE averageFilter1x7 #-}
 
 
@@ -804,10 +806,11 @@ gaussianBlur r mStdDev b img
 --
 laplacian :: ColorModel cs e => Filter cs e e
 laplacian = Filter $ A.makeStencil (Sz2 3 3) (1 :. 1) stencil
-  where stencil f = f (-1 :. -1) +     f (-1 :.  0) + f (-1 :.  1) +
-                    f ( 0 :. -1) - 8 * f ( 0 :.  0) + f ( 0 :.  1) +
-                    f ( 1 :. -1) +     f ( 1 :.  0) + f ( 1 :.  1)
-        {-# INLINE stencil #-}
+  where
+    stencil f = f (-1 :. -1) +     f (-1 :.  0) + f (-1 :.  1) +
+                f ( 0 :. -1) - 8 * f ( 0 :.  0) + f ( 0 :.  1) +
+                f ( 1 :. -1) +     f ( 1 :.  0) + f ( 1 :.  1)
+    {-# INLINE stencil #-}
 {-# INLINE laplacian #-}
 
 -- | Sobel gradient along @x@ axis.

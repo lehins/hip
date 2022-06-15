@@ -17,7 +17,7 @@ description:
             It is capable of reading and writing a number of popular image formats by using <https://hackage.haskell.org/package/massiv-io massiv-io> package. Being a pure Haskell library it does not require any external programs, although it can display images using a program of your choice.
 homepage:          https://github.com/lehins/hip
 bug-reports:       https://github.com/lehins/hip/issues
-cabal-version:     >= 1.18
+cabal-version:     >= 1.10
 build-type:        Simple
 extra-doc-files:   images/*.jpg
                  , images/*.gif
@@ -38,11 +38,6 @@ library
                , massiv          >= 0.5
                , massiv-io       >= 0.4.1
                , Color           >= 0.3.1
-  other-extensions: BangPatterns
-                  , CPP
-                  , FlexibleContexts
-                  , FlexibleInstances
-                  , MultiParamTypeClasses
   exposed-modules:  Graphics.Image
                   , Graphics.Image.IO
                   , Graphics.Image.Processing

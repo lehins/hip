@@ -27,7 +27,6 @@ import qualified Data.Massiv.Array.Unsafe as A
 import Graphics.Image.Internal as I
 import Graphics.Pixel as CM
 import Data.List.NonEmpty as NE
-import Graphics.Image.IO
 
 
 data Histogram = Histogram
