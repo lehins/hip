@@ -1,26 +1,42 @@
-resolver: lts-16.22
+resolver: lts-18.28
 flags: {}
 extra-package-dbs: []
 packages:
 - hip
 - hip-chart
-extra-deps: #for now, since we might need to add changes to upstream deps
+extra-deps:
 - scheduler-2.0.0
 - primitive-0.7.1.0@sha256:6a237bb338bcc43193077ff8e8c0f0ce2de14c652231496a15672e8b563a07e2,2604
 - random-1.2.0@sha256:195506fedaa7c31c1fa2a747e9b49b4a5d1f0b09dd8f1291f23a771656faeec3,6097
 - splitmix-0.1.0.3@sha256:fc3aae74c467f4b608050bef53aec17904a618731df9407e655d8f3bf8c32d5c,6049
-#- massiv-0.5.5.0
-- github: lehins/massiv
-  commit: e83d54c9a227c257bcd6c6a006f8bf25ed79830a
-  subdirs:
-    - massiv
-#- massiv-io-0.4.0.0
-- github: lehins/massiv-io
-  commit: 45ab3265b50f792daafefa8d9b686483fb058538
-  subdirs:
-    - massiv-io
+- massiv-1.0.2.0@sha256:dd9241411d0b7ae04e4b11620d514feca0868a7cd75cb4e75514be3ebca8c615,5149
+- massiv-io-1.0.0.1@sha256:36772f6a178514458cc68a7d5079d0c6d34321ad394ec9046e2676a2c665e831,4123
+
+- Chart-diagrams-1.9.4@sha256:c04a6f1005aac1d5cdbba9d835cac302e9de4033314c2253a4c4f3b69c5afb4b,1762
+- SVGFonts-1.8.0.1@sha256:66a29cebd825bdac6ed1da83bd3a310ba6e8db5d63d6511015d644b9a8ec48b8,3019
+- diagrams-core-1.5.0@sha256:8ffd24eb97ce309b41c52e5fa3a8acee5e4063565919eb4d41abb5c219b3d49b,2971
+- diagrams-lib-1.4.5.1@sha256:20f551cdf4d217edc31c10d40530be5d73a8a7d3bc086102c8c841778670f18b,8233
+- diagrams-postscript-1.5.1@sha256:f1bd02682105abd7e45f1e70ca24f8fe68b12340ebf026788d3349502b3faf71,2332
+- diagrams-svg-1.4.3.1@sha256:9e8edfe5b19c59905830433f77bdd328cb5264f7ecbf823baa213184a415d00f,3117
+- svg-builder-0.1.1@sha256:825ebc18c4e457efa1bc6ca5f90f5abc80566992e8ffdab6ccb782407a46db32,1569
+- active-0.2.0.15@sha256:56d95c2205a8e52911bf08784b9958be430036e6ea16521b957c3e27cc71235c,1792
+- dual-tree-0.2.3.0@sha256:be4b8ecb2ecef798f88ee569d043f3f19c32f6dd083329cd7cfcb482f0bc6233,2882
+- monoid-extras-0.6.1@sha256:03141a1513274a0618fccf9aac34923d3cef64b23df716d86d0decd50efeeb13,2284
+- statestack-0.3.1@sha256:3ae02171e0a546efd9dcc9dae358e70f0bbd14be52297422381d00f085321682,1047
+
+# - Color-0.3.3@sha256:857fd235bdc50411586d035f59829c7c7b9326f61d19847f1bc76c36714e701a,8737
+
+# - github: lehins/massiv
+#   commit: e83d54c9a227c257bcd6c6a006f8bf25ed79830a
+#   subdirs:
+#     - massiv
+# - github: lehins/massiv-io
+#   commit: 45ab3265b50f792daafefa8d9b686483fb058538
+#   subdirs:
+#     - massiv-io
 - github: lehins/Color
-  commit: c970293f549b132ccb2558eb06abc72061088330
+  commit: 8d4f19730a78e05995980e7898037ed7a0503e34
   subdirs:
     - Color
-
+nix:
+  packages: [zlib]

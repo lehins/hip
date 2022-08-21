@@ -48,7 +48,7 @@ ifft img = Image . A.compute . A.map (/ factor) . fft2d 1 . toArray $ img
 
 -- | Check if `Int` is a power of two.
 isPowerOfTwo :: Int -> Bool
-isPowerOfTwo n = n /= 0 && (n .&. (n-1)) == 0
+isPowerOfTwo n = n /= 0 && (n .&. (n - 1)) == 0
 {-# INLINE isPowerOfTwo #-}
 
 
@@ -65,8 +65,8 @@ fft2d !sign arr
   | isPowerOfTwo m && isPowerOfTwo n = fftArray sign $ fftArray sign arr
   | otherwise =
     error $
-    "fft2d:  Array dimensions must be powers of two," ++
-    " but the supplied image has " ++ show (Image arr) ++ "."
+    "fft2d: Array dimensions must be powers of two, " ++
+    "but the supplied image has " ++ show (Image arr) ++ "."
   where
     Sz2 m n = A.size arr
 {-# INLINE fft2d #-}

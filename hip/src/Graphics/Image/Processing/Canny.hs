@@ -27,7 +27,6 @@ import qualified Graphics.Pixel as CM
 import Prelude as P
 import GHC.Word
 import System.IO.Unsafe
-import Graphics.Image.IO
 
 
 -- | Apply Canny edge detection with customized options to a grayscale image.
@@ -162,7 +161,7 @@ gradientMagnitudeOrientation !threshLow horGrad vertGrad (Image arr) =
 
 
 
-suppress :: (A.Unbox e, RealFloat e) => e -> e -> (Array A.U Ix2 (e, Word8)) -> Image X Word8
+suppress :: (A.Unbox e, RealFloat e) => e -> e -> Array A.U Ix2 (e, Word8) -> Image X Word8
 suppress !threshLow !threshHigh !magOrient =
   computeI $ A.mapStencil (Fill (0, 0)) (A.makeUnsafeStencil 3 1 comparePts) magOrient
   where
@@ -207,7 +206,7 @@ hysteresis ::
 hysteresis img@(Image arr) = unsafePerformIO $ do
   let !strong = selectStrong img
       !szStrong = A.size strong
-  -- 1. put all the strong edges in a stack
+  -- Put all the strong edges in a stack
   vStack <- A.unsafeNew (Sz lenImg)
   -- TODO: wait for https://github.com/lehins/massiv/issues/103 to get implemened and
   -- optimize selectStrong to be loaded directly into vStack
@@ -241,7 +240,7 @@ hysteresis img@(Image arr) = unsafePerformIO $ do
           | otherwise = do
             let !top' = top - 1
             -- Pop the first strong edge off the stack, look at all its neighbours, and
-            -- if any of these neighbours is a weak edge we rescue it by labelling it as
+            -- if any of these neighbors is a weak edge we rescue it by labelling it as
             -- strong and adding it to the stack
             i <- A.unsafeLinearRead vStack top'
             let (y :. x) = fromLinearIndex sz i

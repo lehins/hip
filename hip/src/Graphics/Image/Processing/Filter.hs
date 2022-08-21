@@ -24,6 +24,7 @@ module Graphics.Image.Processing.Filter
   , applyFilterWithStride
   -- ** Creation
   , makeFilter
+  , makeFilterFromKernel
   , transposeFilter
   -- ** Conversion
 
@@ -181,6 +182,18 @@ makeFilter ::
   -> Filter cs a b
 makeFilter sz ix = Filter . A.makeStencil sz ix
 {-# INLINE makeFilter #-}
+
+
+-- | Create a custom filter from a kernel image. Filter is centered in the
+-- middle of the kernel, thus make sure sides are odd.
+makeFilterFromKernel ::
+     ColorModel cs e
+  => Image cs e
+     -- ^ Kernel
+  -> Filter cs e e
+makeFilterFromKernel (Image arr) = Filter (A.makeConvolutionStencilFromKernel arr)
+{-# INLINE makeFilterFromKernel #-}
+
 
 -- | Convert from 2D `A.Stencil`.
 fromStencil :: A.Stencil Ix2 (Pixel cs a) (Pixel cs b) -> Filter cs a b

@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeApplications #-}
 -- |
 -- Module      : Graphics.Image.IO
--- Copyright   : (c) Alexey Kuleshevich 2016-2020
+-- Copyright   : (c) Alexey Kuleshevich 2016-2022
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -81,17 +81,11 @@ import Control.Exception (try)
 
 -- | Display an image by writing it as a .tiff file to a temporary directory and making a call to an
 -- external viewer that is set as a default image viewer by the OS.
--- displayImage ::
---      (MonadIO m, ColorModel cs e, A.Writable (A.Auto A.TIF) (Image cs e))
---   => Image cs e
---   -> m ()
-displayImage ::
-     ( ColorSpace cs i e
-     , ColorSpace (BaseSpace cs) i e
-     , MonadIO m
-     )
-  => Image cs e
-  -> m ()
+--
+-- This is a non-blocking call. If you'd like to make sure the function stops
+-- until the viewer exited or you'd like to use a custom viewer use the
+-- `displayImageUsing` function.
+displayImage :: (ColorSpace cs i e, ColorSpace (BaseSpace cs) i e, MonadIO m) => Image cs e -> m ()
 displayImage = A.displayImage . unImage
 {-# NOINLINE displayImage #-}
 
@@ -105,23 +99,22 @@ displayImageExact (Image img) =
    in liftIO $ go A.imageWriteFormats []
 {-# NOINLINE displayImageExact #-}
 
--- | Display an image by making a call to an external viewer that is set as a default image viewer
--- by the OS.
+-- | Same as `displayImage`. Display an image by making a call to an external
+-- image viewer.
 displayImageUsing ::
      ( MonadIO m
      , ColorSpace cs i e
      , ColorSpace (BaseSpace cs) i e
      )
   => A.ExternalViewer
+  -- ^ External image viewing program
   -> Bool
+  -- ^ Should the function call block until viewing program is terminated
   -> Image cs e
+  -- ^ Image to display
   -> m ()
 displayImageUsing ev block = A.displayImageUsing ev block . unImage
 {-# NOINLINE displayImageUsing #-}
-
-
-
-
 
 -- | Try to guess an image format from file's extension, then attempt to decode it as such. Color
 -- space and precision of the result image must match exactly that of the actual image, in order to

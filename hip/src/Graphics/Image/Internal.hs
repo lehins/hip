@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -66,20 +67,26 @@ module Graphics.Image.Internal
   , fromImageRealFloat
   , toImageLinear
   , toImageNonLinear
+  , grayImageToArray
+  , imageToArrayOfChannels
   , module Data.Massiv.Core
   , module Graphics.Pixel.ColorSpace
   , A.Storable
   ) where
 
+import Foreign.ForeignPtr
 import Control.DeepSeq
 import qualified Data.Massiv.Array as A
+import qualified Data.Massiv.Array.Unsafe as A
 import qualified Data.Massiv.Array.IO as A
-import Data.Massiv.Core
+import Data.Massiv.Core hiding (setComp)
 import Data.Semigroup
 import Data.Typeable
 import GHC.Exts (IsList(..))
 import Graphics.Pixel.ColorSpace
 import Prelude as P hiding (map, traverse, zipWith, zipWith3)
+import Data.Massiv.Array.Unsafe (unsafeArrayFromForeignPtr0)
+import GHC.TypeLits (natVal)
 
 -- | Main data type of the library
 data Image cs e = Image { unImage :: !(Array A.S Ix2 (Pixel cs e)) }
@@ -180,16 +187,16 @@ delayPush (Image arr) = A.toLoadArray arr
 -- | Get image dimensions. Using this function will cause an image to be fully evaluated and will
 -- break the fusion at the call site, so it is recommended to avoid it in favor of `transmute` when
 -- possible.
-dims :: ColorModel cs e => Image cs e -> Sz2
+dims :: Image cs e -> Sz2
 dims (Image arr) = A.size arr
 {-# INLINE dims #-}
 
 -- | Check if image is empty, i.e. at least one of its sides is equal to 0. Uses `dims` underneath.
-isEmpty :: ColorModel cs e => Image cs e -> Bool
+isEmpty :: Image cs e -> Bool
 isEmpty (Image arr) = A.isEmpty arr
 {-# INLINE isEmpty #-}
 
-totalPixels :: ColorModel cs e => Image cs e -> Int
+totalPixels :: Image cs e -> Int
 totalPixels = A.totalElem . dims
 {-# INLINE totalPixels #-}
 
@@ -566,8 +573,6 @@ foldSemi ::
 foldSemi f m = A.foldSemi f m . delayPull
 {-# INLINE [~1] foldSemi #-}
 
--- FIX: initial element will get counted twice. Either implement fold1 upstream or do `(extract 1
--- (sz-1) . resize (totalElem sz))`. Benchmark the affect of adjustment.
 -- | Semigroup reduction of a non-empty image, while using the 0th pixel as initial element. Will
 -- throw an index out of bounds error if image is empty.
 foldSemi1 ::
@@ -575,7 +580,12 @@ foldSemi1 ::
   => (Pixel cs e -> m) -- ^ Function that converts every pixel in the image to a `Semigroup`.
   -> Image cs e -- ^ Source image.
   -> m
-foldSemi1 f = (\arr -> A.foldSemi f (f (A.evaluate' arr 0)) arr) . delayPull
+foldSemi1 f = fold1Flatten . delayPull
+  where
+    fold1Flatten arr =
+      let vec = A.flatten arr
+          !px0 = A.evaluate' arr 0
+      in A.foldSemi f (f px0) (A.slice' 1 (A.size vec - 1) vec)
 {-# INLINE [~1] foldSemi1 #-}
 
 -- | Find the largest pixel. Throws an error on empty (see `isEmpty`) images.
@@ -643,3 +653,40 @@ transmuteArray2 fSz f arr1 arr2 =
     (fSz (A.size arr1) (A.size arr2))
     (f (A.evaluate' arr1) (A.evaluate' arr2))
 {-# INLINE transmuteArray2 #-}
+
+-- | Convert an image into a 3D array. Inner most dimension will have the same
+-- length as there are components in the pixels of the source image.
+--
+-- >>> import Graphics.Image
+-- >>> import qualified Data.Massiv.Array as I
+-- >>> frog <- readImageRGB "images/frog.jpg"
+-- >>> arr = imageToArrayOfChannels frog
+-- >>> frog ! 199 :. 319
+-- <SRGB 'Linear:( 0.1144357673645491, 0.2086473032232952, 0.0578081658372786)>
+-- >>> arr A.! (199 :> 319 :. 0)
+-- 0.11443576736454908
+-- >>> arr A.! (199 :> 319 :. 1)
+-- 0.20864730322329517
+-- >>> arr A.! (199 :> 319 :. 2)
+-- 5.780816583727859e-2
+imageToArrayOfChannels :: forall cs e. ColorModel cs e => Image cs e -> Array A.S Ix3 e
+imageToArrayOfChannels (Image arr) =
+  let c = fromIntegral (channelCount (Proxy :: Proxy (Color cs e)))
+      Sz2 m n = A.size arr
+      newSz = Sz3 m n c
+      (fp, len) = A.unsafeArrayToForeignPtr arr
+      fpChannels :: ForeignPtr e
+      fpChannels = castForeignPtr fp
+      vec = unsafeArrayFromForeignPtr0 (getComp arr) fpChannels (Sz1 (len * c))
+  in A.unsafeResize newSz vec
+
+-- | Convert a single channel image to a 2D array.
+grayImageToArray ::
+     forall cs e. (ColorModel cs e, ChannelCount cs ~ 1)
+  => Image cs e
+  -> Array A.S Ix2 e
+grayImageToArray img = A.unsafeResize (dims img) $ imageToArrayOfChannels img
+  where
+    -- Trick the type checker that the `ChannelCount cs ~ 1` constraint is not redundant
+    _constraint :: Integer
+    _constraint = natVal (Proxy :: Proxy (ChannelCount cs))

@@ -85,6 +85,7 @@ module Graphics.Image
   , (!)
   , (!?)
   , index
+  , indexM
   , maybeIndex
   , defaultIndex
   , borderIndex
@@ -179,6 +180,19 @@ cols img = let Sz (_ :. n) = dims img in n
 index :: ColorModel cs e => Image cs e -> Ix2 -> Pixel cs e
 index (Image arr) = A.index' arr
 {-# INLINE index #-}
+
+-- | Same as `index`, get a pixel at @i@-th and @j@-th location, but fail
+-- according to the `MonadThrow` for out of bounds, instead of just an error.
+--
+-- >>> img = makeImage (200 :. 200) (\(i :. j) -> PixelY $ fromIntegral (i*j)) / (200*200)
+-- >>> indexM img (20 :. 30)
+-- <Luma:(1.5e-2)>
+-- >>> indexM img (0 :. 30000) :: Maybe (Pixel Y Double)
+-- Nothing
+--
+indexM :: (ColorModel cs e, MonadThrow m) => Image cs e -> Ix2 -> m (Pixel cs e)
+indexM (Image arr) = A.indexM arr
+{-# INLINE indexM #-}
 
 
 -- | Infix synonym for `index`.
