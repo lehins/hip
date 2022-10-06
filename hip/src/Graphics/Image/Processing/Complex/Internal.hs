@@ -41,12 +41,17 @@ module Graphics.Image.Processing.Complex.Internal
   -- ** Conjugate
   , conjugateI
   -- * Re-export
+  -- * Conversion
+  , complexGrayAsColor
+  , complexSideToSide
   ) where
 
+import Text.Printf
 import Control.Applicative
 import Data.Complex (Complex(..))
 import qualified Data.Complex as C
 import Graphics.Image.Internal
+import Graphics.Image.Processing.Geometric (leftToRight)
 import Prelude hiding (map, zipWith)
 
 
@@ -157,17 +162,21 @@ conjugateI :: (RealFloat e, ColorModel cs e, ColorModel cs (Complex e)) =>
 conjugateI = map conjugate
 {-# INLINE conjugateI #-}
 
-
-complexGrayAsColorImage ::
-  forall e. (Elevator e, Elevator (Complex e)) => Image X (Complex e) -> Image (SRGB 'Linear) e
-complexGrayAsColorImage = map complexPixel
+-- | Convert a grayscale complex image into a color image. Useful for displaying
+-- complex images.
+complexGrayAsColor ::
+     forall e. (PrintfArg e, Elevator e, RealFloat e)
+  => Image X (Complex e)
+  -> Image (SRGB 'Linear) e
+complexGrayAsColor = map complexPixel
   where
-    complexPixel :: Pixel X e -> Pixel (SRGB 'Linear) e
-    complexPixel (PixelX (r :+ i)) = PixelSRGB r i 0
+    complexPixel :: Pixel X (Complex e) -> Pixel (SRGB 'Linear) e
+    complexPixel (PixelX (r :+ i)) = PixelSRGB r 0.1 i
 
--- complexGrayAsPhaseColorImage :: Image X (Complex e) -> Image (SRGB 'Linear) e
--- complexGrayAsPhaseColorImage = map complexColor
---   where
---     complexColor px =
---       case phase px of
---         (PixelX mag, PixelX ph) -> PixelSRGB mag ph 0
+-- | Convert a complex image into a real one where real and imaginarey parts are
+-- placed side-by-side with the `leftToRight`
+complexSideToSide ::
+     forall cs e. (ColorModel cs e, ColorModel cs (Complex e))
+  => Image cs (Complex e)
+  -> Image cs e
+complexSideToSide img = leftToRight (realPartI img) (imagPartI img)

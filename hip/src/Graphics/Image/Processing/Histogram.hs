@@ -103,8 +103,8 @@ histogramUnsafe numBuckets m =
     A.forM_ m $ A.unsafeLinearModify mvec (pure . (+ 1))
 
 -- | Compute [cumulative distribution function
--- (CDF)](https://en.wikipedia.org/wiki/Cumulative_distribution_function) of a the image
--- histogram
+-- (CDF)](https://en.wikipedia.org/wiki/Cumulative_distribution_function) of an
+-- image histogram
 cdf :: (Elevator e, Elevator a, Fractional a) => Maybe Word16 -> Image X e -> A.Vector S a
 cdf mBuckets img = withNumBuckets mBuckets (grayImageToArray img) cdfUnsafe
 

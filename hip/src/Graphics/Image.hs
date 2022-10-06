@@ -2,10 +2,10 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TypeApplications #-}
 -- |
 -- Module      : Graphics.Image
--- Copyright   : (c) Alexey Kuleshevich 2016-2018
+-- Copyright   : (c) Alexey Kuleshevich 2016-2022
 -- License     : BSD3
 -- Maintainer  : Alexey Kuleshevich <lehins@yandex.ru>
 -- Stability   : experimental
@@ -52,6 +52,7 @@ module Graphics.Image
   , Sz2
   , module Core -- TODO: Reduce export footprint
   , makeImage
+  , replicate
   -- * Computation
   , Comp(..)
   , makeImageComp
@@ -130,7 +131,7 @@ import Graphics.Image.Internal as I
 import Graphics.Image.IO
 import Graphics.Image.Processing as IP
 import Prelude as P hiding (map, maximum, minimum, product, sum, traverse,
-                     zipWith, zipWith3)
+                            zipWith, zipWith3, replicate)
 
 -- import Graphics.Image.Types as IP
 
@@ -285,7 +286,10 @@ eqTol !tol !img1 =
     thresholdComponent compA compB = abs (compA - compB) <= tol
 {-# INLINE eqTol #-}
 
-
+-- | Create an image where all pixels are set to the same pixel value.
+replicate :: ColorModel cs e => Sz Ix2 -> Pixel cs e -> Image cs e
+replicate sz = computeI . A.replicate @A.DL Par sz
+{-# INLINE replicate #-}
 
 -- $colorspace
 -- Here is a list of Pixels with their respective constructors:

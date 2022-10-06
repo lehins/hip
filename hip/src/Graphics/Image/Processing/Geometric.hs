@@ -40,6 +40,7 @@ module Graphics.Image.Processing.Geometric
   -- *** Resize
   , resize
   , scale
+  , zoom
 
   , resizeDW
   , shrinkHorizontal
@@ -524,6 +525,18 @@ scale method border (fM, fN) img =
 {-# INLINE scale #-}
 
 
+--TODO: Attempt to switch using the DL array
+-- | Scale an image by an integral factor using the most basic strategy
+-- duplicating the pixels value to its neighbors. This is mostly useful for
+-- blowing up small images to see their individual pixels. Another very similar
+-- function `Graphics.Image.Processing.pixelGrid` will also add a grid between
+-- the pixlels. If an actual good quality image scaling is needed `scale` should
+-- be used instead.
+zoom :: ColorModel cs e => Int -> Image cs e -> Image cs e
+zoom factor
+  | factor <= 0 = error "Zoom factor must be positive"
+  | otherwise =
+    transmute (liftSz (* factor)) $ \f (i :. j) -> f ((i `div` factor) :. (j `div` factor))
 
 
 ----------------------
@@ -533,8 +546,9 @@ scale method border (fM, fN) img =
 -- | Put an angle into @[0, 2*pi)@ range.
 angle0to2pi :: RealFloat e => e -> e
 angle0to2pi !f = f - 2 * pi * floor' (f / (2 * pi))
- where  floor' !x = fromIntegral (floor x :: Int)
-        {-# INLINE floor' #-}
+ where
+   floor' !x = fromIntegral (floor x :: Int)
+   {-# INLINE floor' #-}
 {-# INLINE angle0to2pi #-}
 
 

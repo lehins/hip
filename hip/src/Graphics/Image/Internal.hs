@@ -90,7 +90,7 @@ import GHC.TypeLits (natVal)
 
 -- | Main data type of the library
 data Image cs e = Image { unImage :: !(Array A.S Ix2 (Pixel cs e)) }
--- It is not a newtype, just so the fusion works properly
+-- It is not a newtype in order to make sure that the fusion mechanism works properly
 
 instance ColorModel cs e => Show (Image cs e) where
   show img =

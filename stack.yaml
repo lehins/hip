@@ -24,7 +24,7 @@ extra-deps:
 - monoid-extras-0.6.1@sha256:03141a1513274a0618fccf9aac34923d3cef64b23df716d86d0decd50efeeb13,2284
 - statestack-0.3.1@sha256:3ae02171e0a546efd9dcc9dae358e70f0bbd14be52297422381d00f085321682,1047
 - github: lehins/Color
-  commit: 8d4f19730a78e05995980e7898037ed7a0503e34
+  commit: 73d32b3362fdaedb2637e82458f03a8bef668645
   subdirs:
     - Color
 nix:
