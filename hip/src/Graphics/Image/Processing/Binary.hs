@@ -179,14 +179,14 @@ instance Thresholding Image Pixel where
 --"bit/bool/binary" forall x. fromBool (bit2bool x) = pure x
 -- #-}
 -- | Pixel wise @AND@ operator on binary images. Unlike `!&&!` this operator
--- will also @AND@ pixel componenets.
+-- will also @AND@ pixel components.
 (.&&.), (.||.) :: (Thresholding a b, ColorModel cs Bit) =>
                   a cs Bit -> b cs Bit -> Image X Bit
 (.&&.) = thresholdWith2 (\px1 px2 -> toBool $ F.foldl' (.&.) one $ liftA2 (.&.) px1 px2)
 {-# INLINE (.&&.) #-}
 
 -- | Pixel wise @OR@ operator on binary images. Unlike `!||!` this operator
--- will also @OR@ pixel componenets.
+-- will also @OR@ pixel components.
 (.||.) = thresholdWith2 (\px1 px2 -> toBool $ F.foldl' (.|.) zero $ liftA2 (.|.) px1 px2)
 {-# INLINE (.||.) #-}
 

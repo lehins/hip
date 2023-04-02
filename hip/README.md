@@ -16,7 +16,7 @@ Documentation is on [Hackage](http://hackage.haskell.org/package/hip), and [Stac
 Installation
 ------------
 
-Dependecies:
+Dependencies:
 
 ```
 $ sudo apt-get install zlib1g-dev

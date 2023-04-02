@@ -12,7 +12,7 @@
 -- Portability : non-portable
 --
 -- Haskell Image Processing (HIP) library is a wrapper around an array library called
--- <http://hackage.haskell.org/package/massiv massiv>, which will seemlessly handle parallel and
+-- <http://hackage.haskell.org/package/massiv massiv>, which will seamlessly handle parallel and
 -- sequential computation as well as fusing most of operations together. Prior to version 2.x of HIP
 -- it was required to specify various array representations manually, although similar approach is
 -- still used in @massiv@, HIP became much simpler in that aspect and only retained foreign

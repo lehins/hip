@@ -22,7 +22,7 @@
 1.5.3.0
 =======
 
-* Fixed FFT performace issue
+* Fixed FFT performance issue
 * Reduced JuicyPixels module compile time and introduced conversion functions.
 * Created `Filter` and implemented few filters: `gaussianBlur`
 * Indroduced `Seq` format wrapper for sequence of images (eg. animated GIFs)
@@ -33,14 +33,14 @@
 * Fixed `Storable` instance for some Pixel types.
 * Fixed reading/writing animated GIFs. Added a detailed example to documentation.
 * Improved encoding/decoding of images.
-* Improved coversion between `ColorSpace`s.
+* Improved conversion between `ColorSpace`s.
 
 1.5.1.0
 =======
 
 * Significantly improved convolution performance.
 * Improved exchanging representation between images, by removing `Exchangable`
-  class, but keeping `exchange` function usage unchaged, thus it should be
+  class, but keeping `exchange` function usage unchanged, thus it should be
   backwards compatible up to a type signature.
 * Created general `fromVector` to `toVector` functions
 * Brought back `fromRepaArrayS` and `fromRepaArrayP` functions [#6]
@@ -95,7 +95,7 @@ Major API changes:
 1.2.0.0
 =======
 
-* Changed `Interpolation` in a way that border resolution is supplied separatly
+* Changed `Interpolation` in a way that border resolution is supplied separately
   from the method.
 * Introduced function `translate`.
 * Added a better test suite. Improved coverage.

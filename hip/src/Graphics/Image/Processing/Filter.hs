@@ -769,7 +769,7 @@ gaussianBlur ::
      (Floating e, ColorModel cs e)
   => Int -- ^ @r@ - a positive integral value radius that will be used for computing
          -- gaussian function. Both sides of the kernel will be set to @d=2*r + 1@
-  -> Maybe e -- ^ Optional stdDev value for gaussian function. If ommitted an optimal
+  -> Maybe e -- ^ Optional stdDev value for gaussian function. If omitted an optimal
              -- @σ=d\/6@ will be used
   -> Border (Pixel cs e) -- ^ Border resolution technique
   -> Image cs e
