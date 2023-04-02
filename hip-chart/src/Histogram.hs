@@ -62,7 +62,7 @@ data Histogram = Histogram { hBins   :: V.Vector Int
                              -- ^ Color of a plotted line.
                            }
 -- | For now it is just a type synonym, but in the future it might become a custom
--- data type with fields like title, width, heigth, etc.
+-- data type with fields like title, width, height, etc.
 type Histograms = [Histogram]
 
 

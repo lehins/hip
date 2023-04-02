@@ -245,7 +245,7 @@ makeImage :: ColorModel cs e =>
 makeImage sz = computeI . A.makeArrayR A.D Par sz
 {-# INLINE [~1] makeImage #-}
 
--- | Same as `makeImage`, except computation startegy can be supplied as an argument.
+-- | Same as `makeImage`, except computation strategy can be supplied as an argument.
 makeImageComp :: ColorModel cs e =>
                  Comp
               -> Sz2 -- ^ (@m@ rows `:.` @n@ columns) - dimensions of a new image.

@@ -10,7 +10,7 @@ synopsis:          Haskell Image Processing (HIP) Library.
 description:
             .
             Haskell Image Processing (HIP) Library provides an easy to use interface with a
-            whole variaty of image manipulation capabilities.
+            whole variety of image manipulation capabilities.
             .
             Processing can be done sequentially as well as in parallel, with an custom fusion capabily. Computation is done by <https://hackage.haskell.org/package/massiv massiv>. It is highly extendable, with an ability to add various color spaces or provide implementations for underlying array like custom data structures.
             .

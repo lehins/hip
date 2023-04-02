@@ -132,7 +132,7 @@ gradientMagnitudeOrientation !threshLow horGrad vertGrad (Image arr) =
             -- Determine the angle of the vector and rotate it around a bit
             -- to make the segments easier to classify.
             !dRot = 4 * d / pi - 0.5
-            -- Normalize angle to beween 0..8
+            -- Normalize angle to between 0..8
             !dNorm =
               if dRot < 0
                 then dRot + 8
@@ -205,7 +205,7 @@ hysteresis img@(Image arr) = unsafePerformIO $ do
       !szStrong = A.size strong
   -- Put all the strong edges in a stack
   vStack <- A.unsafeNew (Sz lenImg)
-  -- TODO: wait for https://github.com/lehins/massiv/issues/103 to get implemened and
+  -- TODO: wait for https://github.com/lehins/massiv/issues/103 to get implemented and
   -- optimize selectStrong to be loaded directly into vStack
   A.unsafeArrayLinearCopy strong 0 vStack 0 szStrong
   edges <- A.newMArray sz 0

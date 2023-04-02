@@ -59,7 +59,7 @@ import Graphics.Image.Processing.Filter
 import Prelude hiding (traverse)
 
 
--- | Downsample an image. Drop all rows and colums that satisfy the
+-- | Downsample an image. Drop all rows and columns that satisfy the
 -- predicates. For example, in order to discard every 5th row and keep every
 -- even indexed column:
 --
@@ -77,7 +77,7 @@ downsample stride = computeI . A.fromStrideLoad stride . delayPull
 
 
 -- | Upsample an image by inserting rows and columns with default pixel into an image. Supplied
--- functions specify how many rows/columns shoud be inserted @(before, after)@ a particular
+-- functions specify how many rows/columns should be inserted @(before, after)@ a particular
 -- row/column. Returning a negative value in a tuple will result in no upsampling for that
 -- row. E.g. insert 2 columns before and 4 columns after every 10th column, while leaving rows count
 -- unchanged:
@@ -129,7 +129,7 @@ upsampleCols = upsample 0 (Stride (1 :. 2))
 
 
 
--- | Append two images together into one horisontally. Both input images must have the
+-- | Append two images together into one horizontally. Both input images must have the
 -- same number of rows, otherwise error.
 leftToRight :: (HasCallStack, ColorModel cs e) => Image cs e -> Image cs e -> Image cs e
 leftToRight img1 img2 = computeI (A.append' 1 (delayPull img1) (delayPull img2))
