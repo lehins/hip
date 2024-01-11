@@ -108,6 +108,8 @@ Library
                  , Graphics.Image.Utils
                  , Graphics.Image.IO.Formats.Netpbm
   GHC-Options:     -Wall
+  if impl(ghc >=9.6 && <9.9)
+    GHC-Options:   -fsimpl-tick-factor=200
   if flag(disable-chart)
     CPP-Options: -DDISABLE_CHART
   if os(windows)
