@@ -53,7 +53,7 @@ library
                  , Graphics.Image.Processing.Complex.Internal
                  , Graphics.Image.Processing.Geometric
                  , Graphics.Image.Processing.Interpolation
-  ghc-options:     -Wall
+  ghc-options:     -Wall -fsimpl-tick-factor=200
 
 -- test-suite tests
 --   type:               exitcode-stdio-1.0
